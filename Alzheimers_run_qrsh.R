@@ -38,7 +38,9 @@ for(i in 1:length(IDs)){
     file_ID  <- paste(ID2[i], setting_ID, sep = '_')                        # Tau1_e1_m2vr0_n400
     file_ID2 <- paste(ID2[i], setting_ID2, sep = '_')                       # Tau1_e1_m2vr0_n400_me1
     
-    data_ID <- paste(data_root, '.RData', sep = file_ID) 
+    data_root <- paste(data_root, '/', sep  = setting_ID)                   # ../spike_data/e1_m2vr0_n400/
+    
+    data_ID <- paste(data_root, '.RData', sep = file_ID)                    # ../spike_data/e1_m2vr0_n400/Tau1_e1_m2vr0_n400.RData
     
     load(data_ID) # data_df2
     
@@ -127,10 +129,16 @@ for(i in 1:length(IDs)){
     
     ### save results 
     
-    save_dir <- paste('result_simu/', '/', sep = setting_ID2)    #../result_simu/e1_m2vr0_n400_me1/
-    save_dir <- paste(save_dir, '.rda', sep = file_ID2)          #..                              /Tau1_e1_m2vr0_n400_me1.rda
+    save_dir <- paste('result_simu/', '/', sep = setting_ID2)                       #../result_simu/e1_m2vr0_n400_me1/
     
-    save(graph_all, file=save_dir)
+    # if the folder doesn't exist, create it 
+    if (!dir.exists(save_dir)) {
+        dir.create(save_dir)
+    }    
+    
+    save_file <- paste(save_dir, '.rda', sep = file_ID2)                            #../result_simu/e1_m2vr0_n400/me1/Tau1_e1_m2vr0_n400_me1.rda
+    
+    save(graph_all, file=save_file)
     
     # print for job scheduler
     print(paste(ID2[i], ' just finished', sep = ''))
