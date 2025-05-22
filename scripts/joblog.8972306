@@ -1,0 +1,9 @@
+Job 8972306 started on:    n1074
+Job 8972306 started on:    Tue May 20 13:09:54 PDT 2025
+ 
+Loading R/4.2.2
+  Loading requirement: intel/2020.4
+running run_Model1_v2.R
+Job 8972306 ended on:    n1074
+Job 8972306 ended on:    Tue May 20 13:09:58 PDT 2025
+ 

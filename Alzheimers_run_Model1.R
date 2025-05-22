@@ -1,0 +1,130 @@
+
+### Model 1 ###
+
+ffs = 1
+set.seed(ffs)
+source("GraphPP_FUN.R")
+source("modified_funcs.R")
+library(dplyr)
+## simulation setting
+
+min_edges <- 0
+ncores <- parallel::detectCores() - 1
+
+#### simulate the data ####
+
+# 1) Open 99_Create_Spiketrain_Dataset and load the data_df file
+
+IDs <- c('346', '351', '366', '361', '362', '368')  # mouse ID
+ID2 <- c('Tau1', 'Tau2', 'Tau3', 'WT1', 'WT2', 'WT3') # our name 
+
+n <- 400    #number of replicates
+movement <- 2
+VR <- 0
+epoch_num <- 1
+
+for(i in 1:length(IDs)){
+    
+    data_root <- "/u/home/j/jasenzz/Graphical_Cox_Process/GMpp-main/spike_data/"
+    
+    
+    
+    file_ID <- paste(ID2[i], as.character(epoch_num), sep = '_e')
+    file_ID <- paste(file_ID, as.character(movement), sep = '_m')
+    file_ID <- paste(file_ID, as.character(VR), sep = 'vr')
+    file_ID <- paste(file_ID, as.character(n), sep = '_n')
+    
+    data_ID <- paste(data_root, '.RData', sep = file_ID) 
+    
+    load(data_ID) # data_df2
+    
+    # which neurons fire way too little and must be discarded (under 50 total firings = discard)
+    
+    data_df2 <- as.data.table(data_df2)
+    
+    data_df3 <- data_df2[, if (.N >= 50) .SD, by = feature_id]
+    
+    
+    
+    # retroactively get parameters
+    
+    ntrain <- length(unique(data_df3$subject_num))
+    p <- length(unique(data_df3$feature_id))
+    
+    
+    ### get corr matrix for full data
+    patient_sel = 1:ntrain
+    feature_sel = unique(data_df3$feature_id) %>% sort()
+    
+    Tseq = seq(0.05,0.95,length=19)
+    dmax = 3
+    FVE_thre = 0.9 # originally 0.9
+    
+    quantile(data_df3[,(.N),by=c("subject_num","feature_id")]$V1)
+    
+    Rmat_diag_full = get_rho_diag_pp(data_all=data_df3,
+                                     patient_sel=patient_sel,
+                                     feature_sel=feature_sel,
+                                     Tseq=Tseq, 
+                                     dmax=dmax,
+                                     ncores=ncores)
+    
+    Rmat = get_cor_gpp(res=Rmat_diag_full$res, rho_diag=Rmat_diag_full$rho_diag,
+                       NN=length(patient_sel),dmax=dmax)
+    
+    
+    ### choose d based on FVE
+    FVE_list = lapply(Rmat_diag_full$rho_diag, function(x){x$cumFVE})
+    d_seq = sapply(FVE_list, function(x){
+        which(x>FVE_thre)[1]
+    })
+    grpind = cumsum(d_seq)
+    grpind = cbind(c(1, grpind[1:(p-1)]+1),
+                   grpind[1:p] )
+    col_keep =  lapply(FVE_list, function(x){
+        d = which(x>FVE_thre)[1]
+        col_ind = rep(FALSE,dmax)
+        col_ind[1:d] = TRUE
+        col_ind
+    })
+    col_keep = do.call(c, col_keep)
+    
+    Rmat = Rmat[col_keep,col_keep]
+    
+    ### deal with small/negative eigenvalues of the corr matrix 
+    Rmat_IC = adjust_R(Rmat)
+    
+    ###
+    graph_all = list()
+    res_all = list()
+    
+    ### get sparse corr matrix using GPP method ####
+    
+    # BIC 
+    factor = sqrt(ntrain)
+    # res_GPP_BIC = run_GPP_HT_BIC_v2(Rmat=Rmat_IC, 
+    #                                 grpind=grpind, 
+    #                                 ntrain=ntrain,
+    #                                 factor=factor, 
+    #                                 num_edges=min_edges, 
+    #                                 ncores=ncores)
+    
+    res_GPP_BIC <- run_GPP_HT_BIC_tol(Rmat=Rmat_IC, 
+                                      grpind=grpind, 
+                                      ntrain=ntrain, 
+                                      factor=factor)
+    
+    graph_all[["GPP_BIC"]] = as.matrix((get_groupNorm(res_GPP_BIC, grpind)!=0)+0)
+    res_all[["GPP_BIC"]] = res_GPP_BIC
+    
+    ### save results 
+    
+    save_dir = paste('result_simu/', '.rda', sep = file_ID) # "../result_simu/Tau1_e1_m2vr0_n400.rda"
+    
+    save(graph_all, res_all, file=save_dir)
+    
+    # print for job scheduler
+    print(paste(IDs[i], ' just finished', sep = ''))
+    print(Sys.time())    
+}
+
