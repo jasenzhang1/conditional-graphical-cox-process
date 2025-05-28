@@ -21,7 +21,7 @@ ID2 <- c('Tau1', 'WT1') # our name
 
 n <- 50    #number of replicates
 movements <- c(0, 1, 2)
-movements <- c(1)
+movements <- c(0, 2)
 weeks <- c(18, 22, 26)
 VR <- 0
 min_edges <- 1
@@ -66,8 +66,8 @@ for(week in weeks){ # for each week
             
             data_df3 <- data_df2[, if (.N >= 50) .SD, by = feature_id]
             
-            print(length(unique(data_df2$feature_id)))
-            print(length(unique(data_df3$feature_id)))
+            # print(length(unique(data_df2$feature_id)))
+            # print(length(unique(data_df3$feature_id)))
             
             missing_neurons <- setdiff(unique(data_df2$feature_id),
                                        unique(data_df3$feature_id))
@@ -110,7 +110,7 @@ for(week in weeks){ # for each week
             Rmat = get_cor_gpp(res=Rmat_diag_full$res, rho_diag=Rmat_diag_full$rho_diag,
                                NN=length(patient_sel),dmax=dmax)
             
-            print(min(diag(Rmat)))
+            # print(min(diag(Rmat)))
                         
             print('checkpoint 2')
             
@@ -150,7 +150,7 @@ for(week in weeks){ # for each week
 
             col_keep = do.call(c, col_keep)
             
-            print(table(col_keep))
+            # print(table(col_keep))
             
 
             
@@ -210,10 +210,10 @@ for(week in weeks){ # for each week
             save(graph_all, file=save_file)
             
             # print for job scheduler
-            print(paste(ID2[i], ' just finished', sep = ''))
+            # print(paste(ID2[i], ' just finished', sep = ''))
             
             end_time_i <- Sys.time()
-            elapsed <- as.numeric(end_time_i - start_time_i, units = 'mins')
+            elapsed <- as.numeric(end_time_i - start_time_i, units = 'mins') %>% round(2)
             print(paste('minutes taken: ', elapsed, sep = ''))
 
         }
@@ -222,7 +222,7 @@ for(week in weeks){ # for each week
 }
 print('-----------------------------------------------------------')
 end_time <- Sys.time()
-total_time <- as.numeric(end_time - start_time, units = "mins")
+total_time <- as.numeric(end_time - start_time, units = "mins") %>% round(2)
 print('COMPLETE!!')
 print(paste('total minutes taken: ', total_time, sep = ''))
 
