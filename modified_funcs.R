@@ -731,6 +731,8 @@ adjust_R_troubleshoot <- function(Rmat=NULL){
   
   Rmat = cov2cor(Rmat)
   
+  print(Rmat[45:49, 45:49])
+  
   print('done with cov2cor')
   Rmat[Rmat >= 0.99] = 0.99
   Rmat[Rmat <= -0.99] = -0.99
@@ -740,7 +742,7 @@ adjust_R_troubleshoot <- function(Rmat=NULL){
   print(any(is.na(Rmat)))        # Check for NA
   print(any(is.infinite(Rmat)))  # Check for Inf  
   
-  print(Rmat[45:49, 45:49])
+  
   
   print(which(is.na(Rmat), arr.ind = TRUE)) # print NA's
   
