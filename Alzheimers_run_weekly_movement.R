@@ -155,7 +155,7 @@ for(week in weeks){ # for each week
             
             
             ### deal with small/negative eigenvalues of the corr matrix 
-            Rmat_IC_ts = adjust_R_troubleshoot(Rmat)
+            # Rmat_IC_ts = adjust_R_troubleshoot(Rmat)
             Rmat_IC = adjust_R(Rmat)
             ###
             graph_all = list()
