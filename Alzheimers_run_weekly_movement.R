@@ -21,6 +21,7 @@ ID2 <- c('Tau1', 'WT1') # our name
 
 n <- 50    #number of replicates
 movements <- c(0, 1, 2)
+movements <- c(1)
 weeks <- c(18, 22, 26)
 VR <- 0
 min_edges <- 1
@@ -144,6 +145,8 @@ for(week in weeks){ # for each week
 
             
             Rmat = Rmat[col_keep,col_keep]
+            
+            print(Rmat)
             
             ### deal with small/negative eigenvalues of the corr matrix 
             Rmat_IC = adjust_R(Rmat)
