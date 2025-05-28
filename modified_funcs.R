@@ -244,8 +244,8 @@ run_GPP_HT_BIC_troubleshoot <- function(Rmat=NULL, grpind=NULL,ntrain=NULL, fact
   print('looking at BIC_list_troubleshoot')
   print(class(BIC_list_troubleshoot))
   print(length(BIC_list_troubleshoot))
-  print(dim(BIC_list_troubleshoot[[1]]))
-
+  print(dim(BIC_list_troubleshoot[[2]]))
+  print(BIC_list_troubleshoot[[2]])
 
   
   BIC_list_1 = sapply(BIC_list_troubleshoot, function(x){withCallingHandlers({

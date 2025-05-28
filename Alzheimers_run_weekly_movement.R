@@ -151,18 +151,18 @@ for(week in weeks){ # for each week
             
             # BIC 
             factor = sqrt(ntrain)
-            res_GPP_BIC_v2 = run_GPP_HT_BIC_v2(Rmat=Rmat_IC,
-                                               grpind=grpind,
-                                               ntrain=ntrain,
-                                               factor=factor,
-                                               num_edges=min_edges,
-                                               ncores=ncores)
+            # res_GPP_BIC_v2 = run_GPP_HT_BIC_v2(Rmat=Rmat_IC,
+            #                                    grpind=grpind,
+            #                                    ntrain=ntrain,
+            #                                    factor=factor,
+            #                                    num_edges=min_edges,
+            #                                    ncores=ncores)
             
-            # res_GPP_BIC <- run_GPP_HT_BIC_troubleshoot(Rmat=Rmat_IC,
-            #                                   grpind=grpind,
-            #                                   ntrain=ntrain,
-            #                                   factor=factor,
-            #                                   num_edges=min_edges)
+            res_GPP_BIC <- run_GPP_HT_BIC_troubleshoot(Rmat=Rmat_IC,
+                                              grpind=grpind,
+                                              ntrain=ntrain,
+                                              factor=factor,
+                                              num_edges=min_edges)
             # 
             # res_GPP_BIC_v3 <- run_GPP_HT_BIC_tol(Rmat=Rmat_IC,
             #                                      grpind=grpind,
