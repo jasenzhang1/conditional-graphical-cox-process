@@ -16,18 +16,23 @@ library(dplyr)
 IDs <- c('346', '351', '366', '361', '362', '368')  # mouse ID
 ID2 <- c('Tau1', 'Tau2', 'Tau3', 'WT1', 'WT2', 'WT3') # our name 
 
+IDs <- c('362', '368')  # mouse ID
+ID2 <- c('WT2', 'WT3') # our name 
+
 n <- 400    #number of replicates
 movement <- 2
 VR <- 0
-epoch_num <- 1
+epoch_num <- 2
 min_edges <- 1
 ncores <- parallel::detectCores() - 1
 
-
+print('Number of Cores')
+print(ncores)
 print(Sys.time()) 
+
 for(i in 1:length(IDs)){
     
-    data_root <- "/u/home/j/jasenzz/Graphical_Cox_Process/GMpp-main/spike_data/"
+    data_root <- "spike_data/"
     
     setting_ID <- paste('e', '_m', sep = as.character(epoch_num))           # e1_m
     setting_ID <- paste(setting_ID, 'vr', sep = as.character(movement))     # e1_m2vr
@@ -72,16 +77,26 @@ for(i in 1:length(IDs)){
     
     quantile(data_df3[,(.N),by=c("subject_num","feature_id")]$V1)
     
+    # Rmat_diag_full = get_rho_diag_pp_troubleshoot(data_all=data_df3,
+    #                                  patient_sel=patient_sel,
+    #                                  feature_sel=feature_sel,
+    #                                  Tseq=Tseq,
+    #                                  dmax=dmax,
+    #                                  ncores=ncores)
+    
     Rmat_diag_full = get_rho_diag_pp(data_all=data_df3,
                                      patient_sel=patient_sel,
                                      feature_sel=feature_sel,
-                                     Tseq=Tseq, 
+                                     Tseq=Tseq,
                                      dmax=dmax,
-                                     ncores=ncores)
+                                     ncores=ncores)    
+    
+    print('checkpoint 1')
     
     Rmat = get_cor_gpp(res=Rmat_diag_full$res, rho_diag=Rmat_diag_full$rho_diag,
                        NN=length(patient_sel),dmax=dmax)
     
+    print('checkpoint 2')
     
     ### choose d based on FVE
     FVE_list = lapply(Rmat_diag_full$rho_diag, function(x){x$cumFVE})
@@ -118,11 +133,22 @@ for(i in 1:length(IDs)){
                                        num_edges=min_edges,
                                        ncores=ncores)
     
-    # res_GPP_BIC <- run_GPP_HT_BIC_tol(Rmat=Rmat_IC, 
-    #                                   grpind=grpind, 
-    #                                   ntrain=ntrain, 
+    # res_GPP_BIC <- run_GPP_HT_BIC_troubleshoot(Rmat=Rmat_IC,
+    #                                   grpind=grpind,
+    #                                   ntrain=ntrain,
     #                                   factor=factor)
-
+    # 
+    # res_GPP_BIC_v3 <- run_GPP_HT_BIC_tol(Rmat=Rmat_IC,
+    #                                      grpind=grpind,
+    #                                      ntrain=ntrain,
+    #                                      factor=factor)
+    
+    print('checkpoint 3')
+    
+    # print(table(res_GPP_BIC_v2 == res_GPP_BIC))
+    # print(table(res_GPP_BIC_v2 == res_GPP_BIC_v3))
+    # print(table(res_GPP_BIC == res_GPP_BIC_v3))
+    
     graph_all[["GPP_BIC"]] = as.matrix((get_groupNorm(res_GPP_BIC_v2, grpind)!=0)+0)
     graph_all[['missing_neurons']] <- missing_neurons
     

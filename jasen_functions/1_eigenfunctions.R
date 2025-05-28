@@ -1,7 +1,15 @@
 #
 #
 # part 1: construct the intensity functions
+# 
+# parent function:
+# - get_rho_diag_pp
 #
+# helper functions:
+# - get_gamma
+# - cross_prod
+# - get_diag_mat
+# - get_intensity
 #
 # 
 
