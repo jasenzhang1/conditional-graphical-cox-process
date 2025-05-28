@@ -214,7 +214,7 @@ for(week in weeks){ # for each week
             
             end_time_i <- Sys.time()
             elapsed <- as.numeric(end_time_i - start_time_i, units = 'mins')
-            print('minutes taken: ', elapsed, sep = '')
+            print(paste('minutes taken: ', elapsed, sep = ''))
 
         }
     
