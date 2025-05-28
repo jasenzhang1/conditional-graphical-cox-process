@@ -100,9 +100,12 @@ for(week in weeks){ # for each week
             
             print('checkpoint 1')
             
-            Rmat = get_cor_gpp(res=Rmat_diag_full$res, rho_diag=Rmat_diag_full$rho_diag,
-                               NN=length(patient_sel),dmax=dmax)
-            
+            Rmat = get_cor_gpp_troubleshoot(res=Rmat_diag_full$res, rho_diag=Rmat_diag_full$rho_diag,
+                                            NN=length(patient_sel),dmax=dmax)
+
+            # Rmat = get_cor_gpp(res=Rmat_diag_full$res, rho_diag=Rmat_diag_full$rho_diag,
+            #                    NN=length(patient_sel),dmax=dmax)            
+                        
             print('checkpoint 2')
             
             ### choose d based on FVE

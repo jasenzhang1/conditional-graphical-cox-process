@@ -765,3 +765,36 @@ adjust_R_troubleshoot <- function(Rmat=NULL){
   }
   Rmat
 }
+
+get_cor_gpp_troubleshoot <- function(res=NULL, rho_diag=NULL,NN=NULL,dmax=NULL){
+  
+  
+  p = length(res) ## number of processes
+  cov_est = matrix(0, dmax*p, dmax*p)
+  
+  for(i in 1:p){
+    idx_i = 1:dmax + (i-1)*dmax
+    for(j in i:p){
+      idx_j = 1:dmax + (j-1)*dmax
+      if(i==j){
+        cov_est[idx_i, idx_j] = rho_diag[[i]]$cov
+        
+        if(any(diag(rho_diag[[i]]$cov)) < 0){
+          print('negative diag term!')
+          print(paste('index: ', as.character(i), sep = ''))
+          print(rho_diag[[i]]$cov)
+        }
+        
+      }else{
+        sigma_ij = cross_prod(res[[i]], res[[j]], NN=NN)
+        tmp = t(rho_diag[[i]]$eigenV) %*% sigma_ij %*% rho_diag[[j]]$eigenV
+        cov_est[idx_i, idx_j] = tmp
+      }
+    }
+  }
+  cov_est = cov_est  + t(cov_est) 
+  diag(cov_est) = diag(cov_est)/2
+  #cor_est = cov2cor(cov_est)
+  
+  cov_est
+}
