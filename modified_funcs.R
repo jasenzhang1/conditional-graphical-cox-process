@@ -24,6 +24,11 @@ run_GPP_HT_BIC_v2 <- function(Rmat=NULL, grpind=NULL,ntrain=NULL, factor=NULL, n
     }
     
     Rinv = pinv(Rmat_1st,pinv_eps)
+    
+    if(! isSymmetric(Rinv)){
+      Rinv = 0.5 * (Rinv + t(Rinv))
+    }    
+    
     lamseq_2 = get_lamseq(Rinv, grpind)
     Rinv_thre_2 = Cov_hardT(S=Rinv, grpind=grpind, lamseq=lamseq_2)
     
@@ -79,6 +84,13 @@ run_GPP_HT_BIC_v2 <- function(Rmat=NULL, grpind=NULL,ntrain=NULL, factor=NULL, n
   }
   
   Rinv = pinv(Rmat_1st,pinv_eps)
+  
+  if(! isSymmetric(Rinv)){
+    Rinv = 0.5 * (Rinv + t(Rinv))
+    print('symmetrizing...')
+    print(isSymmetric(Rinv))
+  }  
+  
   lamseq_2 = get_lamseq(Rinv, grpind)
   Rinv_thre_2 = Cov_hardT(S=Rinv, grpind=grpind, lamseq=lamseq_2[mid_ind_2])
   
@@ -288,6 +300,10 @@ run_GPP_HT_BIC_troubleshoot <- function(Rmat=NULL, grpind=NULL,ntrain=NULL, fact
   
   # 7c) get pseudo-inverse 
   Rinv = pinv(Rmat_1st,pinv_eps)
+  
+  if(! isSymmetric(Rinv)){
+    Rinv = 0.5 * (Rinv + t(Rinv))
+  }  
   
   # 7d) keep the j-th pseudo-inverse sparsity level
   lamseq_2 = get_lamseq(Rinv, grpind)
