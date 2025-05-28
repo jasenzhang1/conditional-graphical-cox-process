@@ -779,7 +779,7 @@ get_cor_gpp_troubleshoot <- function(res=NULL, rho_diag=NULL,NN=NULL,dmax=NULL){
       if(i==j){
         cov_est[idx_i, idx_j] = rho_diag[[i]]$cov
         
-        if(any(diag(rho_diag[[i]]$cov)) < 0){
+        if(any(diag(rho_diag[[i]]$cov) < 0)){
           print('negative diag term!')
           print(paste('index: ', as.character(i), sep = ''))
           print(rho_diag[[i]]$cov)

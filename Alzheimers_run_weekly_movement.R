@@ -105,6 +105,8 @@ for(week in weeks){ # for each week
 
             # Rmat = get_cor_gpp(res=Rmat_diag_full$res, rho_diag=Rmat_diag_full$rho_diag,
             #                    NN=length(patient_sel),dmax=dmax)            
+            
+            print(min(diag(Rmat)))
                         
             print('checkpoint 2')
             
