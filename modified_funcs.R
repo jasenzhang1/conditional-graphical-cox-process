@@ -675,9 +675,6 @@ get_rho_diag_pp_troubleshoot <- function(data_all=NULL,patient_sel=NULL,feature_
     
     Sigma_ii = cross_prod(X=xx,NN=NN,remove_diag=remove_diag)
 
-    if(i %in% c(30, 91, 101)){
-      print(Sigma_ii)
-    }    
         
     ## pca with svd
     eigen_res = eigen(Sigma_ii, symmetric = T)
@@ -687,7 +684,6 @@ get_rho_diag_pp_troubleshoot <- function(data_all=NULL,patient_sel=NULL,feature_
     
     if(i %in% c(30, 91, 101)){
       print(eigen_res)
-      print(d)
     }      
     
     
@@ -701,8 +697,7 @@ get_rho_diag_pp_troubleshoot <- function(data_all=NULL,patient_sel=NULL,feature_
     cov_diag = t(eigenV) %*% Sigma_ii %*% eigenV
     
     if(i %in% c(30, 91, 101)){
-      print(eigenV)
-      print(Sigma_ii)
+      print(cov_diag)
     }
     
     if(any(diag(cov_diag) < 0)){
