@@ -17,9 +17,9 @@ IDs <- c('346', '351', '366', '361', '362', '368')  # mouse ID
 ID2 <- c('Tau1', 'Tau2', 'Tau3', 'WT1', 'WT2', 'WT3') # our name 
 
 
-n <- 400    #number of replicates
+n <- 50    #number of replicates
 movements <- c(0, 1, 2)
-weeks <- 17:38
+weeks <- c(18, 22, 26)
 VR <- 0
 min_edges <- 1
 ncores <- parallel::detectCores() - 1
@@ -116,7 +116,6 @@ for(week in weeks){ # for each week
             if(max(d_seq) > dmax){
                 print('needed to trigger dseq truncation!')
                 d_seq <- pmin(d_seq, dmax)
-                print(d_seq)
             }
 
             
