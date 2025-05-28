@@ -129,6 +129,7 @@ for(week in weeks){ # for each week
             grpind = cbind(c(1, grpind[1:(p-1)]+1),
                            grpind[1:p] )
             
+            print(grpind)
 
             
             col_keep =  lapply(FVE_list, function(x){
