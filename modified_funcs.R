@@ -717,7 +717,17 @@ get_gamma_reproduce <- function(tseq=NULL){
 }
 
 adjust_R_troubleshoot <- function(Rmat=NULL){
+  
+  print('is Rmat symmetric?')
+  print(isSymmetric(Rmat))
+  
+  print('checking for NA and Inf')
+  print(any(is.na(Rmat)))        # Check for NA
+  print(any(is.infinite(Rmat)))  # Check for Inf  
+  
   Rmat = cov2cor(Rmat)
+  
+  print('done with cov2cor')
   Rmat[Rmat >= 0.99] = 0.99
   Rmat[Rmat <= -0.99] = -0.99
   diag(Rmat) = 1
