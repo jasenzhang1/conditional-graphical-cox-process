@@ -171,11 +171,11 @@ for(week in weeks){ # for each week
                                                num_edges=min_edges,
                                                ncores=ncores)
 
-            res_GPP_BIC <- run_GPP_HT_BIC_troubleshoot(Rmat=Rmat_IC,
-                                              grpind=grpind,
-                                              ntrain=ntrain,
-                                              factor=factor,
-                                              num_edges=min_edges)
+            # res_GPP_BIC <- run_GPP_HT_BIC_troubleshoot(Rmat=Rmat_IC,
+            #                                   grpind=grpind,
+            #                                   ntrain=ntrain,
+            #                                   factor=factor,
+            #                                   num_edges=min_edges)
             # 
             # res_GPP_BIC_v3 <- run_GPP_HT_BIC_tol(Rmat=Rmat_IC,
             #                                      grpind=grpind,
@@ -184,7 +184,7 @@ for(week in weeks){ # for each week
             
             print('checkpoint 3')
             
-            print(table(res_GPP_BIC_v2 == res_GPP_BIC))
+            # print(table(res_GPP_BIC_v2 == res_GPP_BIC))
             # print(table(res_GPP_BIC_v2 == res_GPP_BIC_v3))
             # print(table(res_GPP_BIC == res_GPP_BIC_v3))
             
