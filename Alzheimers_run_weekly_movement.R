@@ -144,13 +144,11 @@ for(week in weeks){ # for each week
             
             Rmat = Rmat[col_keep,col_keep]
             
-            print('checking for NA and Inf')
-            print(any(is.na(Rmat)))        # Check for NA
-            print(any(is.infinite(Rmat)))  # Check for Inf
+
             
             
             ### deal with small/negative eigenvalues of the corr matrix 
-            Rmat_IC = adjust_R(Rmat)
+            Rmat_IC = adjust_R_troubleshoot(Rmat)
             
             ###
             graph_all = list()

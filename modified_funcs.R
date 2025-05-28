@@ -715,3 +715,21 @@ get_gamma_reproduce <- function(tseq=NULL){
   }
   res
 }
+
+adjust_R_troubleshoot <- function(Rmat=NULL){
+  Rmat = cov2cor(Rmat)
+  Rmat[Rmat >= 0.99] = 0.99
+  Rmat[Rmat <= -0.99] = -0.99
+  diag(Rmat) = 1
+  
+  print('checking for NA and Inf')
+  print(any(is.na(Rmat)))        # Check for NA
+  print(any(is.infinite(Rmat)))  # Check for Inf  
+  
+  min_eig_val = min(find_min_eigen(c(list(Rmat))))
+  if(min_eig_val < pinv_eps){
+    min_eig_val = abs(min_eig_val) + pinv_eps*(1+abs(min_eig_val))/0.99
+    Rmat = adjust_S(Rmat,min_eig_val)
+  }
+  Rmat
+}
