@@ -91,16 +91,16 @@ for(week in weeks){ # for each week
                                              dmax=dmax,
                                              ncores=ncores)
             
-            Rmat_diag_full = get_rho_diag_pp_reproduce(data_all=data_df3,
-                                                       patient_sel=patient_sel,
-                                                       feature_sel=feature_sel,
-                                                       Tseq=Tseq,
-                                                       dmax=dmax,
-                                                       ncores=ncores)    
+            # Rmat_diag_full = get_rho_diag_pp_reproduce(data_all=data_df3,
+            #                                            patient_sel=patient_sel,
+            #                                            feature_sel=feature_sel,
+            #                                            Tseq=Tseq,
+            #                                            dmax=dmax,
+            #                                            ncores=ncores)    
             
             print('checkpoint 1')
             
-            Rmat = get_cor_gpp_troubleshoot(res=Rmat_diag_full$res, rho_diag=Rmat_diag_full$rho_diag,
+            Rmat = get_cor_gpp_troubleshoot(res=Rmat_diag_full_ts$res, rho_diag=Rmat_diag_full_ts$rho_diag,
                                             NN=length(patient_sel),dmax=dmax)
 
             # Rmat = get_cor_gpp(res=Rmat_diag_full$res, rho_diag=Rmat_diag_full$rho_diag,
