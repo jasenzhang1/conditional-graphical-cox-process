@@ -143,7 +143,7 @@ for(week in weeks){ # for each week
             
             print(col_keep)
             
-            print(Rmat[45:48, 45:48])
+            print(Rmat[45:49, 45:49])
 
             
             Rmat = Rmat[col_keep,col_keep]
