@@ -141,9 +141,8 @@ for(week in weeks){ # for each week
 
             col_keep = do.call(c, col_keep)
             
-            print(col_keep)
+            print(table(col_keep))
             
-            print(Rmat[45:49, 45:49])
 
             
             Rmat = Rmat[col_keep,col_keep]

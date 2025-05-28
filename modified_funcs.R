@@ -724,6 +724,8 @@ adjust_R_troubleshoot <- function(Rmat=NULL){
   
   print('is Rmat symmetric?')
   print(isSymmetric(Rmat))
+  print('Rmat dim')
+  print(dim(Rmat))
   
   print('checking for NA and Inf')
   print(any(is.na(Rmat)))        # Check for NA
