@@ -103,17 +103,25 @@ for(week in weeks){ # for each week
             ### choose d based on FVE
             FVE_list = lapply(Rmat_diag_full$rho_diag, function(x){x$cumFVE})
             
+            print(FVE_list)
+            
 
             
             d_seq = sapply(FVE_list, function(x){
                 which(x>FVE_thre)[1]
             })
             
+            print(d_seq)
+            
 
             
             grpind = cumsum(d_seq)
+            
+            print(grpind)
+            
             grpind = cbind(c(1, grpind[1:(p-1)]+1),
                            grpind[1:p] )
+            
             
             print(grpind)
             col_keep =  lapply(FVE_list, function(x){
@@ -122,6 +130,8 @@ for(week in weeks){ # for each week
                 col_ind[1:d] = TRUE
                 col_ind
             })
+            
+            print(col_keep)
             col_keep = do.call(c, col_keep)
             
             # TROUBLESHOOT---------
