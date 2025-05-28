@@ -84,12 +84,12 @@ for(week in weeks){ # for each week
             
             quantile(data_df3[,(.N),by=c("subject_num","feature_id")]$V1)
             
-            # Rmat_diag_full = get_rho_diag_pp_troubleshoot(data_all=data_df3,
-            #                                  patient_sel=patient_sel,
-            #                                  feature_sel=feature_sel,
-            #                                  Tseq=Tseq,
-            #                                  dmax=dmax,
-            #                                  ncores=ncores)
+            Rmat_diag_full_ts = get_rho_diag_pp_troubleshoot(data_all=data_df3,
+                                             patient_sel=patient_sel,
+                                             feature_sel=feature_sel,
+                                             Tseq=Tseq,
+                                             dmax=dmax,
+                                             ncores=ncores)
             
             Rmat_diag_full = get_rho_diag_pp_reproduce(data_all=data_df3,
                                                        patient_sel=patient_sel,

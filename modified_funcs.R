@@ -691,6 +691,12 @@ get_rho_diag_pp_troubleshoot <- function(data_all=NULL,patient_sel=NULL,feature_
     
     cov_diag = t(eigenV) %*% Sigma_ii %*% eigenV
     
+    if(any(diag(cov_diag) < 0)){
+      print('negative diagonal entries!')
+      print(eigenV)
+      print(Sigma_ii)
+    }
+    
     rho_diag3[[i]] <- list(d = d, eigenV = eigenV, cumFVE = FVE, 
                           cov = diag(diag(cov_diag),length(d),length(d)),Sigma_ii=Sigma_ii)
   }
