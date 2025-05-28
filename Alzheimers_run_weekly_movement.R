@@ -103,7 +103,7 @@ for(week in weeks){ # for each week
             ### choose d based on FVE
             FVE_list = lapply(Rmat_diag_full$rho_diag, function(x){x$cumFVE})
             
-            print(FVE_list)
+
             
 
             
@@ -115,21 +115,13 @@ for(week in weeks){ # for each week
                 print('needed to trigger dseq truncation!')
                 d_seq <- pmin(d_seq, dmax)
             }
-            
-            
-            print(d_seq)
-            
 
             
             grpind = cumsum(d_seq)
             
-            print(grpind)
-            
             grpind = cbind(c(1, grpind[1:(p-1)]+1),
                            grpind[1:p] )
             
-            
-            print(grpind)
             col_keep =  lapply(FVE_list, function(x){
                 d = which(x>FVE_thre)[1]
                 col_ind = rep(FALSE,dmax)
@@ -137,13 +129,9 @@ for(week in weeks){ # for each week
                 col_ind
             })
             
-            print(col_keep)
+
             col_keep = do.call(c, col_keep)
-            
-            # TROUBLESHOOT---------
-            print(length(col_keep))
-            print(dim(Rmat))
-            print(col_keep)
+
             
             Rmat = Rmat[col_keep,col_keep]
             
