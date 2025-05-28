@@ -196,6 +196,12 @@ run_GPP_HT_BIC_troubleshoot <- function(Rmat=NULL, grpind=NULL,ntrain=NULL, fact
     print('Performed inversion, checking if pinv is symmetric')
     print(isSymmetric(Rinv))
     
+    if(! isSymmetric(Rinv)){
+      Rinv = 0.5 * (Rinv + t(Rinv))
+      print('symmetrizing...')
+      print(isSymmetric(Rinv))
+    }
+    
     lamseq_2 = get_lamseq(Rinv, grpind) # lamseq the inv
     Rinv_thre_2 = Cov_hardT(S=Rinv, grpind=grpind, lamseq=lamseq_2) # construct omega_arr matrix of increasing sparsity again
     
