@@ -84,27 +84,27 @@ for(week in weeks){ # for each week
             
             quantile(data_df3[,(.N),by=c("subject_num","feature_id")]$V1)
             
-            Rmat_diag_full_ts = get_rho_diag_pp_troubleshoot(data_all=data_df3,
-                                             patient_sel=patient_sel,
-                                             feature_sel=feature_sel,
-                                             Tseq=Tseq,
-                                             dmax=dmax,
-                                             ncores=ncores)
+            # Rmat_diag_full_ts = get_rho_diag_pp_troubleshoot(data_all=data_df3,
+            #                                  patient_sel=patient_sel,
+            #                                  feature_sel=feature_sel,
+            #                                  Tseq=Tseq,
+            #                                  dmax=dmax,
+            #                                  ncores=ncores)
             
-            # Rmat_diag_full = get_rho_diag_pp_reproduce(data_all=data_df3,
-            #                                            patient_sel=patient_sel,
-            #                                            feature_sel=feature_sel,
-            #                                            Tseq=Tseq,
-            #                                            dmax=dmax,
-            #                                            ncores=ncores)    
+            Rmat_diag_full = get_rho_diag_pp_reproduce(data_all=data_df3,
+                                                       patient_sel=patient_sel,
+                                                       feature_sel=feature_sel,
+                                                       Tseq=Tseq,
+                                                       dmax=dmax,
+                                                       ncores=ncores)
             
             print('checkpoint 1')
             
-            Rmat = get_cor_gpp_troubleshoot(res=Rmat_diag_full_ts$res, rho_diag=Rmat_diag_full_ts$rho_diag,
-                                            NN=length(patient_sel),dmax=dmax)
+            # Rmat_ts = get_cor_gpp_troubleshoot(res=Rmat_diag_full_ts$res, rho_diag=Rmat_diag_full_ts$rho_diag,
+            #                                 NN=length(patient_sel),dmax=dmax)
 
-            # Rmat = get_cor_gpp(res=Rmat_diag_full$res, rho_diag=Rmat_diag_full$rho_diag,
-            #                    NN=length(patient_sel),dmax=dmax)            
+            Rmat = get_cor_gpp(res=Rmat_diag_full$res, rho_diag=Rmat_diag_full$rho_diag,
+                               NN=length(patient_sel),dmax=dmax)
             
             print(min(diag(Rmat)))
                         
@@ -134,7 +134,6 @@ for(week in weeks){ # for each week
             grpind = cbind(c(1, grpind[1:(p-1)]+1),
                            grpind[1:p] )
             
-            print(grpind)
 
             
             col_keep =  lapply(FVE_list, function(x){
@@ -155,12 +154,9 @@ for(week in weeks){ # for each week
             
             
             
-
-            
-            
             ### deal with small/negative eigenvalues of the corr matrix 
-            Rmat_IC = adjust_R_troubleshoot(Rmat)
-            Rmat_IC2 = adjust_R(Rmat)
+            Rmat_IC_ts = adjust_R_troubleshoot(Rmat)
+            Rmat_IC = adjust_R(Rmat)
             ###
             graph_all = list()
             
