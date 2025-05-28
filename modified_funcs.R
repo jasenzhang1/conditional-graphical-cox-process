@@ -726,7 +726,8 @@ adjust_R_troubleshoot <- function(Rmat=NULL){
   print(any(is.infinite(Rmat)))  # Check for Inf  
   
   print('Any variances equal to 0?')
-  any(diag(Rmat) == 0)   
+  print(any(diag(Rmat) == 0))
+  print(which(diag(Rmat) == 0))
   
   Rmat = cov2cor(Rmat)
   
