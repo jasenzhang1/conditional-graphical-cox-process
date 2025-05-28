@@ -111,6 +111,12 @@ for(week in weeks){ # for each week
                 which(x>FVE_thre)[1]
             })
             
+            if(max(d_seq) > dmax){
+                print('needed to trigger dseq truncation!')
+                d_seq <- pmin(d_seq, dmax)
+            }
+            
+            
             print(d_seq)
             
 
