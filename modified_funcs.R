@@ -717,7 +717,7 @@ get_gamma_reproduce <- function(tseq=NULL){
 }
 
 cov2cor_manual <- function(Rmat){
-  Rmat / (diag(Rmat) %*% t(diag(Rmat)))
+  Rmat / sqrt(diag(Rmat) %*% t(diag(Rmat)))
 }
 
 adjust_R_troubleshoot <- function(Rmat=NULL){
