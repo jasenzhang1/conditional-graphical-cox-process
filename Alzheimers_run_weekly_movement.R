@@ -88,12 +88,12 @@ for(week in weeks){ # for each week
             #                                  dmax=dmax,
             #                                  ncores=ncores)
             
-            Rmat_diag_full = get_rho_diag_pp(data_all=data_df3,
-                                             patient_sel=patient_sel,
-                                             feature_sel=feature_sel,
-                                             Tseq=Tseq,
-                                             dmax=dmax,
-                                             ncores=ncores)    
+            Rmat_diag_full = get_rho_diag_pp_reproduce(data_all=data_df3,
+                                                       patient_sel=patient_sel,
+                                                       feature_sel=feature_sel,
+                                                       Tseq=Tseq,
+                                                       dmax=dmax,
+                                                       ncores=ncores)    
             
             print('checkpoint 1')
             
@@ -161,7 +161,8 @@ for(week in weeks){ # for each week
             # res_GPP_BIC <- run_GPP_HT_BIC_troubleshoot(Rmat=Rmat_IC,
             #                                   grpind=grpind,
             #                                   ntrain=ntrain,
-            #                                   factor=factor)
+            #                                   factor=factor,
+            #                                   num_edges=min_edges)
             # 
             # res_GPP_BIC_v3 <- run_GPP_HT_BIC_tol(Rmat=Rmat_IC,
             #                                      grpind=grpind,

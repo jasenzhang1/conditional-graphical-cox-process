@@ -7,12 +7,15 @@ library(pbmcapply)
 # tolerance
 # mclapply
 
+pinv_eps = 1e-2
+
 run_GPP_HT_BIC_v2 <- function(Rmat=NULL, grpind=NULL,ntrain=NULL, factor=NULL, num_edges=0, tol = 1e-8, ncores = 1){
   
   lamseq = get_lamseq(Rmat, grpind)
   Rmat_thre_1 = Cov_hardT(S=Rmat, grpind=grpind, lamseq=lamseq)
-  
-  BIC_list = pbmclapply(1:dim(Rmat_thre_1)[3], function(i){
+
+  BIC_list = pbmclapply(1:5, function(i){  
+  # BIC_list = pbmclapply(1:dim(Rmat_thre_1)[3], function(i){
     Rmat_1st  = Rmat_thre_1[,,i]
     min_eig_val = min(find_min_eigen(c(list(Rmat_1st))))
     if(min_eig_val < pinv_eps){
@@ -48,7 +51,17 @@ run_GPP_HT_BIC_v2 <- function(Rmat=NULL, grpind=NULL,ntrain=NULL, factor=NULL, n
   # filter the BIC's with at least 10 edges and then remove # edges 
   
 
-  BIC_list_1 = sapply(BIC_list, function(x){ min(x[1, x[2,] >= num_edges]) })
+  BIC_list_1 = sapply(BIC_list, function(x){withCallingHandlers({
+    min(x[1, x[2,] >= num_edges])
+  },
+  warning = function(w) {
+    if (grepl("no non-missing arguments to min; returning Inf", conditionMessage(w))) {
+      invokeRestart("muffleWarning")
+    }
+  }
+  )}
+  )
+  
   min_ind_1 = which.min(BIC_list_1)
   
   x2 <- BIC_list[[min_ind_1]]
@@ -164,8 +177,8 @@ run_GPP_HT_BIC_troubleshoot <- function(Rmat=NULL, grpind=NULL,ntrain=NULL, fact
   
   BIC_list_troubleshoot <- list()
   
-  for(i in 1:dim(Rmat_thre_1)[3]){
-    
+  #for(i in 1:dim(Rmat_thre_1)[3]){
+  for(i in 1:5){
     print(i)
     
     Rmat_1st  = Rmat_thre_1[,,i] # the i-th 80 x 80 matrix
@@ -191,6 +204,7 @@ run_GPP_HT_BIC_troubleshoot <- function(Rmat=NULL, grpind=NULL,ntrain=NULL, fact
     print("Are all matrices symmetric in Rmat_thre_2 before applying tolerance?") # check if all of them are symmetric
     print(apply(Rinv_thre_2, 3, isSymmetric) %>% all())       
     
+    # thresholding
     Rinv_thre_2[abs(Rinv_thre_2) < tol] <- 0
     
 
@@ -210,9 +224,13 @@ run_GPP_HT_BIC_troubleshoot <- function(Rmat=NULL, grpind=NULL,ntrain=NULL, fact
         diag(x) = diag(x) + min_eig_val
       }
       
+      # obtain BIC + number of edges if we map it 
+      BIC_i <- calc_BIC_1(x, Rmat, ntrain, grpind, factor)
+      graph_i <- as.matrix((get_groupNorm(x, grpind)!=0)+0)
+      num_edges_i <- sum( graph_i[upper.tri(graph_i)] )      
       
-      BIC <- calc_BIC_1(x, Rmat, ntrain, grpind, factor) 
-      BIC_val_troubleshoot <- c(BIC_val_troubleshoot, BIC)
+
+      BIC_val_troubleshoot <- cbind(BIC_val_troubleshoot, c(BIC_i, num_edges_i))
     }
     
     
@@ -222,7 +240,25 @@ run_GPP_HT_BIC_troubleshoot <- function(Rmat=NULL, grpind=NULL,ntrain=NULL, fact
 
   
   # 6) we have a list of vectors. find the minimum BIC for each sparsity level
-  BIC_list_1 = sapply(BIC_list_troubleshoot, function(x){ min(x[1, x[2,] >= num_edges]) })
+  
+  print('looking at BIC_list_troubleshoot')
+  print(class(BIC_list_troubleshoot))
+  print(length(BIC_list_troubleshoot))
+  print(dim(BIC_list_troubleshoot[[1]]))
+
+
+  
+  BIC_list_1 = sapply(BIC_list_troubleshoot, function(x){withCallingHandlers({
+    min(x[1, x[2,] >= num_edges])
+  },
+  warning = function(w) {
+    if (grepl("no non-missing arguments to min; returning Inf", conditionMessage(w))) {
+      invokeRestart("muffleWarning")
+    }
+  }
+  )}
+  )
+  
   min_ind_1 = which.min(BIC_list_1) # which sparsity level got us the least BIC
   
   x2 <- BIC_list_troubleshoot[[min_ind_1]]
@@ -342,6 +378,80 @@ get_cor_gpp_troubleshoot_2 <- function(i, j, res=NULL, rho_diag=NULL,NN=NULL,dma
   return(0)
 }
 
+get_rho_diag_pp_reproduce <- function(data_all=NULL,patient_sel=NULL,feature_sel=NULL,
+                            Tseq=NULL, dmax=4, gamma_ratio = 1, 
+                            gamma_max = 100, remove_diag = TRUE, ncores=3){
+  
+  # Tmax = 1 ## define domain [0,T]
+  # M = 50 ## t_1,...,t_M
+  # Tseq = seq(0.1,Tmax-0.1,length=M)
+  p = length(feature_sel) ## number of processes
+  
+  #### estimate intensity ###
+  NN = length(patient_sel)
+  data_all = data_all[is.element(feature_id, feature_sel),]
+  data_all = data_all[is.element(subject_num, patient_sel),]
+  
+  res = mclapply(feature_sel, function(i){
+    
+    data_i = data_all[feature_id==i,]
+    data_i_count = data_i[,.(count=.N),by="subject_num"]
+
+    
+    gamma = get_gamma_reproduce(data_i$time)*gamma_ratio
+    gamma[is.na(gamma)] = gamma_max
+    # gamma = 1
+    # gamma = 100
+    denom = sapply(Tseq, function(x){
+      truncNorm_denom(x,gamma,0,1)
+    })
+    
+    intensity = data_i[,get_intensity(time,Tseq,gamma,denom),by=c("subject_num")]
+    
+    patient_now = unique(intensity$subject_num)
+    intensity = matrix(intensity$V1,nrow=length(Tseq))
+    data_i_count = data_i_count[match(patient_now, subject_num),]
+    mu = apply(intensity, 1, sum) / NN
+    
+
+    
+    diag_mat = data_i[,get_diag_mat(time,Tseq,gamma,denom),by=c("subject_num")]
+    diag_mat = matrix(diag_mat$V1,nrow=length(Tseq)*length(Tseq))
+    diag_mat = apply(diag_mat, 1, sum)
+    diag_mat = matrix(diag_mat, length(Tseq), length(Tseq))
+    #diag_mat1 = diag_mat
+    
+    list(data_i_count=data_i_count, intensity=intensity, 
+         mu = mu, diag_mat=diag_mat, gamma=gamma)
+  }, mc.cores = ncores)
+  
+  gamma_vec = sapply(res, function(x){
+    x$gamma
+  })
+  
+  rho_diag = mclapply(res, function(xx){
+    
+    Sigma_ii = cross_prod(X=xx,NN=NN,remove_diag=remove_diag)
+    ## pca with svd
+    eigen_res = eigen(Sigma_ii)
+    eigen_res$values[ eigen_res$values<0] = 0 
+    positiveInd = eigen_res$values >= 0
+    d = eigen_res$values[positiveInd]
+    eigenV = eigen_res$vectors[, positiveInd, drop=FALSE]
+    FVE = cumsum(d) / sum(d)
+    
+    d = d[1:dmax]
+    if(any(d < 0)){stop("negative d values!")}
+    eigenV = eigenV[, 1:dmax, drop=FALSE]
+    
+    cov_diag = t(eigenV) %*% Sigma_ii %*% eigenV
+    list(d = d, eigenV = eigenV, cumFVE = FVE, 
+         cov = diag(diag(cov_diag),length(d),length(d)),Sigma_ii=Sigma_ii)
+  }, mc.cores = ncores)
+  
+  list(res=res,rho_diag=rho_diag, gamma_vec=gamma_vec)
+}
+
 get_rho_diag_pp_troubleshoot <- function(data_all=NULL,patient_sel=NULL,feature_sel=NULL,
                             Tseq=NULL, dmax=4, gamma_ratio = 1, 
                             gamma_max = 100, remove_diag = TRUE, ncores=1){
@@ -367,7 +477,7 @@ get_rho_diag_pp_troubleshoot <- function(data_all=NULL,patient_sel=NULL,feature_
     data_i = data_all[feature_id==i,]
     data_i_count = data_i[,.(count=.N),by="subject_num"]
 
-    gamma = get_gamma(data_i$time)*gamma_ratio
+    gamma = get_gamma_reproduce(data_i$time)*gamma_ratio
     gamma[is.na(gamma)] = gamma_max
 
     denom = sapply(Tseq, function(x){
@@ -402,14 +512,9 @@ get_rho_diag_pp_troubleshoot <- function(data_all=NULL,patient_sel=NULL,feature_
     
     data_i = data_all[feature_id==i,]
     data_i_count = data_i[,.(count=.N),by="subject_num"]
-    # gamma_tmp = data_i[,get_gamma(time),
-    #                    by=c("subject_num")]
-    # gamma_tmp = gamma_tmp[!is.na(V1),]
-    # gamma = median(gamma_tmp$V1)
-    # gamma[is.na(gamma)] = gamma_max
-    # gamma[gamma > gamma_max] = gamma_max
+
     
-    gamma = get_gamma(data_i$time)*gamma_ratio
+    gamma = get_gamma_reproduce(data_i$time)*gamma_ratio
     gamma[is.na(gamma)] = gamma_max
     # gamma = 1
     # gamma = 100
@@ -449,14 +554,8 @@ get_rho_diag_pp_troubleshoot <- function(data_all=NULL,patient_sel=NULL,feature_
     
     data_i = data_all[feature_id==i,]
     data_i_count = data_i[,.(count=.N),by="subject_num"]
-    # gamma_tmp = data_i[,get_gamma(time),
-    #                    by=c("subject_num")]
-    # gamma_tmp = gamma_tmp[!is.na(V1),]
-    # gamma = median(gamma_tmp$V1)
-    # gamma[is.na(gamma)] = gamma_max
-    # gamma[gamma > gamma_max] = gamma_max
     
-    gamma = get_gamma(data_i$time)*gamma_ratio
+    gamma = get_gamma_reproduce(data_i$time)*gamma_ratio
     gamma[is.na(gamma)] = gamma_max
     # gamma = 1
     # gamma = 100
@@ -580,5 +679,17 @@ get_rho_diag_pp_troubleshoot <- function(data_all=NULL,patient_sel=NULL,feature_
        rho_diag  = rho_diag,
        rho_diag2 = rho_diag2,
        rho_diag3 = rho_diag3,
-       gamma_vec = gamma_vec)
+       gamma_vec = gamma_vec,
+       gamma_vec2 = gamma_vec2,
+       gamma_vec3 = gamma_vec3)
+}
+
+get_gamma_reproduce <- function(tseq=NULL){
+  n = length(tseq)
+  if(n>2){
+    res = 1/(sum(dist(tseq))*2/n/(n-1))^2
+  }else{
+    res = NaN
+  }
+  res
 }
