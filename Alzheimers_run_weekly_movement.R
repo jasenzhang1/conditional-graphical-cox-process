@@ -16,6 +16,8 @@ library(dplyr)
 IDs <- c('346', '351', '366', '361', '362', '368')  # mouse ID
 ID2 <- c('Tau1', 'Tau2', 'Tau3', 'WT1', 'WT2', 'WT3') # our name 
 
+IDs <- c('346', '361')  # mouse ID
+ID2 <- c('Tau1', 'WT1') # our name 
 
 n <- 50    #number of replicates
 movements <- c(0, 1, 2)
@@ -134,6 +136,8 @@ for(week in weeks){ # for each week
                 col_ind[1:d] = TRUE
                 col_ind
             })
+            
+            print(col_keep)
             
 
             col_keep = do.call(c, col_keep)
