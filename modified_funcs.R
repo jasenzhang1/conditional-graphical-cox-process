@@ -725,6 +725,9 @@ adjust_R_troubleshoot <- function(Rmat=NULL){
   print(any(is.na(Rmat)))        # Check for NA
   print(any(is.infinite(Rmat)))  # Check for Inf  
   
+  print('Any variances equal to 0?')
+  any(diag(Rmat) == 0)   
+  
   Rmat = cov2cor(Rmat)
   
   print('done with cov2cor')
@@ -735,6 +738,8 @@ adjust_R_troubleshoot <- function(Rmat=NULL){
   print('checking for NA and Inf')
   print(any(is.na(Rmat)))        # Check for NA
   print(any(is.infinite(Rmat)))  # Check for Inf  
+  
+  print(which(is.na(Rmat), arr.ind = TRUE)) # print NA's
   
   min_eig_val = min(find_min_eigen(c(list(Rmat))))
   if(min_eig_val < pinv_eps){
