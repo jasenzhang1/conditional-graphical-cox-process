@@ -1,0 +1,8 @@
+spike_data/
+result_simu/
+
+joblog*
+output*
+.*
+*.txt
+*.zip
