@@ -122,11 +122,15 @@ for(week in weeks){ # for each week
             
             grpind = cumsum(d_seq)
             
+
+            
             grpind = cbind(c(1, grpind[1:(p-1)]+1),
                            grpind[1:p] )
             
+
+            
             col_keep =  lapply(FVE_list, function(x){
-                d = which(x>FVE_thre)[1]
+                d = min(which(x>FVE_thre)[1], dmax) # modification to ensure we stay below dmax
                 col_ind = rep(FALSE,dmax)
                 col_ind[1:d] = TRUE
                 col_ind
