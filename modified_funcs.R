@@ -697,7 +697,7 @@ get_rho_diag_pp_troubleshoot <- function(data_all=NULL,patient_sel=NULL,feature_
     cov_diag = t(eigenV) %*% Sigma_ii %*% eigenV
     
     if(i %in% c(30, 91, 101)){
-      print(cov_diag)
+      print(diag(diag(cov_diag),length(d),length(d)))
     }
     
     if(any(diag(cov_diag) < 0)){
@@ -794,7 +794,9 @@ get_cor_gpp_troubleshoot <- function(res=NULL, rho_diag=NULL,NN=NULL,dmax=NULL){
       if(i==j){
         cov_est[idx_i, idx_j] = rho_diag[[i]]$cov
         
-        if(any(diag(rho_diag[[i]]$cov) < 0)){
+        
+        
+        if(i %in% c(30, 91, 101)){
           print('negative diag term!')
           print(paste('index: ', as.character(i), sep = ''))
           print(rho_diag[[i]]$cov)
