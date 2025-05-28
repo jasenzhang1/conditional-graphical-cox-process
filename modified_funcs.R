@@ -740,6 +740,8 @@ adjust_R_troubleshoot <- function(Rmat=NULL){
   print(any(is.na(Rmat)))        # Check for NA
   print(any(is.infinite(Rmat)))  # Check for Inf  
   
+  print(Rmat[45:48, 45:48])
+  
   print(which(is.na(Rmat), arr.ind = TRUE)) # print NA's
   
   min_eig_val = min(find_min_eigen(c(list(Rmat))))
