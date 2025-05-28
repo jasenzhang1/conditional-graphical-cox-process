@@ -85,10 +85,9 @@ run_GPP_HT_BIC_v2 <- function(Rmat=NULL, grpind=NULL,ntrain=NULL, factor=NULL, n
   
   Rinv = pinv(Rmat_1st,pinv_eps)
   
+  # make symmetric after pinv
   if(! isSymmetric(Rinv)){
     Rinv = 0.5 * (Rinv + t(Rinv))
-    print('symmetrizing...')
-    print(isSymmetric(Rinv))
   }  
   
   lamseq_2 = get_lamseq(Rinv, grpind)

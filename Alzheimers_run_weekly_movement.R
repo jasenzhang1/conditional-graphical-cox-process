@@ -1,6 +1,6 @@
 
 # qrsh
-
+start_time <- Sys.time()
 ffs = 1
 set.seed(ffs)
 source("GraphPP_FUN.R")
@@ -29,7 +29,8 @@ ncores <- parallel::detectCores() - 1
 
 print('Number of Cores')
 print(ncores)
-print(Sys.time()) 
+
+
 
 for(week in weeks){ # for each week
     
@@ -37,6 +38,9 @@ for(week in weeks){ # for each week
         
         for(i in 1:length(IDs)){ # for each mouse
             
+            start_time_i <- Sys.time()
+            
+            print('--------------------------------------------------')
             print(paste(as.character(week), as.character(i), sep = as.character(movement)))
             
             data_root <- "spike_data/"
@@ -207,8 +211,19 @@ for(week in weeks){ # for each week
             
             # print for job scheduler
             print(paste(ID2[i], ' just finished', sep = ''))
-            print(Sys.time())    
+            
+            end_time_i <- Sys.time()
+            elapsed <- as.numeric(end_time_i - start_time_i, units = 'mins')
+            print('minutes taken: ', elapsed, sep = '')
+
         }
     
     }
 }
+print('-----------------------------------------------------------')
+end_time <- Sys.time()
+total_time <- as.numeric(end_time - start_time, units = "mins")
+print('COMPLETE!!')
+print(paste('total minutes taken: ', total_time, sep = ''))
+
+      
