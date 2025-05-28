@@ -716,6 +716,10 @@ get_gamma_reproduce <- function(tseq=NULL){
   res
 }
 
+cov2cor_manual <- function(Rmat){
+  Rmat / (diag(Rmat) %*% t(diag(Rmat)))
+}
+
 adjust_R_troubleshoot <- function(Rmat=NULL){
   
   print('is Rmat symmetric?')
@@ -729,7 +733,11 @@ adjust_R_troubleshoot <- function(Rmat=NULL){
   print(any(diag(Rmat) == 0))
   print(which(diag(Rmat) == 0))
   
-  Rmat = cov2cor(Rmat)
+  Rmat_v2 = cov2cor(Rmat)
+  Rmat <- cov2cor_manual(Rmat)
+  
+  print('are the two cov2cor methods the same?')
+  print(table(Rmat_v2 == Rmat))
   
   print(Rmat[45:49, 45:49])
   
