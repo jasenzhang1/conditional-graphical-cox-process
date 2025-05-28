@@ -671,16 +671,27 @@ get_rho_diag_pp_troubleshoot <- function(data_all=NULL,patient_sel=NULL,feature_
     
     xx <- res[[i]]
 
+
     
     Sigma_ii = cross_prod(X=xx,NN=NN,remove_diag=remove_diag)
-    
+
+    if(i %in% c(30, 91, 101)){
+      print(xx)
+      print(NN)
+      print(Sigma_ii)
+    }    
+        
     ## pca with svd
     eigen_res = eigen(Sigma_ii)
     eigen_res$values[ eigen_res$values<0] = 0 
     positiveInd = eigen_res$values >= 0
     d = eigen_res$values[positiveInd]
     
-    print(d)
+    if(i %in% c(30, 91, 101)){
+      print(eigen_res)
+      print(d)
+    }      
+    
     
     eigenV = eigen_res$vectors[, positiveInd, drop=FALSE]
     FVE = cumsum(d) / sum(d)
@@ -690,6 +701,11 @@ get_rho_diag_pp_troubleshoot <- function(data_all=NULL,patient_sel=NULL,feature_
     eigenV = eigenV[, 1:dmax, drop=FALSE]
     
     cov_diag = t(eigenV) %*% Sigma_ii %*% eigenV
+    
+    if(i %in% c(30, 91, 101)){
+      print(eigenV)
+      print(Sigma_ii)
+    }
     
     if(any(diag(cov_diag) < 0)){
       print('negative diagonal entries!')
