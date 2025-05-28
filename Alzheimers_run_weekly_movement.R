@@ -138,15 +138,16 @@ for(week in weeks){ # for each week
                 col_ind
             })
             
-            print(col_keep)
-            
 
             col_keep = do.call(c, col_keep)
 
             
             Rmat = Rmat[col_keep,col_keep]
             
-            print(Rmat)
+            print('checking for NA and Inf')
+            print(any(is.na(Rmat)))        # Check for NA
+            print(any(is.infinite(Rmat)))  # Check for Inf
+            
             
             ### deal with small/negative eigenvalues of the corr matrix 
             Rmat_IC = adjust_R(Rmat)
