@@ -34,6 +34,8 @@ for(week in weeks){ # for each week
         
         for(i in 1:length(IDs)){ # for each mouse
             
+            print(paste(as.character(week), as.character(i), sep = as.character(movement)))
+            
             data_root <- "spike_data/"
             
             setting_ID <- paste('w', '_m', sep = as.character(week))                # w17_m
@@ -114,6 +116,7 @@ for(week in weeks){ # for each week
             if(max(d_seq) > dmax){
                 print('needed to trigger dseq truncation!')
                 d_seq <- pmin(d_seq, dmax)
+                print(d_seq)
             }
 
             
