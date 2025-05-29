@@ -21,7 +21,7 @@ names(num_neurons) <- ID2
 
 n <- 50    #number of replicates
 movements <- c(0, 1, 2)
-weeks <- c(18, 22, 26)
+weeks <- c(17:29, 31, 33, 35, 38)
 VR <- 0
 min_edges <- 1
 ncores <- parallel::detectCores() - 1
@@ -214,7 +214,12 @@ for(week in weeks){ # for each week
             
             ### save results 
             
-            save_dir <- paste('results_alzheimers/', '/', sep = setting_ID2)                       #../result_simu/e1_m2vr0_n400_me1/
+            save_dir <- 'results_alzheimers/week_move_2/'
+            if (!dir.exists(save_dir)) {
+                dir.create(save_dir)
+            }               
+            
+            save_dir <- paste(save_dir, '/', sep = setting_ID2)                       #../result_simu/e1_m2vr0_n400_me1/
             
             # if the folder doesn't exist, create it 
             if (!dir.exists(save_dir)) {
