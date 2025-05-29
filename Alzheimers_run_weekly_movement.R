@@ -16,12 +16,11 @@ library(dplyr)
 IDs <- c('346', '351', '366', '361', '362', '368')  # mouse ID
 ID2 <- c('Tau1', 'Tau2', 'Tau3', 'WT1', 'WT2', 'WT3') # our name 
 
-IDs <- c('346', '361')  # mouse ID
-ID2 <- c('Tau1', 'WT1') # our name 
+num_neurons <- c(169, 250, 240, 249, 235, 294)
+names(num_neurons) <- ID2
 
 n <- 50    #number of replicates
 movements <- c(0, 1, 2)
-movements <- c(0, 2)
 weeks <- c(18, 22, 26)
 VR <- 0
 min_edges <- 1
@@ -36,29 +35,33 @@ for(week in weeks){ # for each week
     
     for(movement in movements){ # for each movement
         
-        for(i in 1:length(IDs)){ # for each mouse
+        data_root <- "spike_data/"
+        
+        setting_ID <- paste('w', '_m', sep = as.character(week))                # w17_m
+        setting_ID <- paste(setting_ID, 'vr', sep = as.character(movement))     # w17_m2vr
+        setting_ID <- paste(setting_ID, '_n', sep = as.character(VR))           # w17_m2vr0_n
+        setting_ID <- paste(setting_ID, as.character(n), sep = '')              # w17_m2vr0_n400
+        setting_ID2 <- paste(setting_ID, as.character(min_edges), sep = '_me')  # w17_m2vr0_n400_me1  
+        
+        data_root <- paste(data_root, '', sep  = setting_ID)                   # ../spike_data/w17_m2vr0_n400/
+        
+        file_names <- list.files(path = data_root, full.names = TRUE)
+        
+        m <- length(file_names)
+        mice_names <-  sub(".*/([^/_]+)_.*", "\\1", file_names)  # get mice names, between last '/' and very next '_'        
+        
+        for(i in 1:m){ # for each mouse
             
             start_time_i <- Sys.time()
             
             print('--------------------------------------------------')
-            print(paste(as.character(week), as.character(i), sep = as.character(movement)))
+            print(paste('week: ', week))
+            print(paste('movement: ', movement))
+            print(paste('mouse: ', mice_names[i]))
+            print('\n')
             
-            data_root <- "spike_data/"
             
-            setting_ID <- paste('w', '_m', sep = as.character(week))                # w17_m
-            setting_ID <- paste(setting_ID, 'vr', sep = as.character(movement))     # w17_m2vr
-            setting_ID <- paste(setting_ID, '_n', sep = as.character(VR))           # w17_m2vr0_n
-            setting_ID <- paste(setting_ID, as.character(n), sep = '')              # w17_m2vr0_n400
-            setting_ID2 <- paste(setting_ID, as.character(min_edges), sep = '_me')  # w17_m2vr0_n400_me1
-            
-            file_ID  <- paste(ID2[i], setting_ID, sep = '_')                        # Tau1_w17_m2vr0_n400
-            file_ID2 <- paste(ID2[i], setting_ID2, sep = '_')                       # Tau1_w17_m2vr0_n400_me1
-            
-            data_root <- paste(data_root, '/', sep  = setting_ID)                   # ../spike_data/w17_m2vr0_n400/
-            
-            data_ID <- paste(data_root, '.RData', sep = file_ID)                    # ../spike_data/w17_m2vr0_n400/Tau1_e1_m2vr0_n400.RData
-            
-            load(data_ID) # data_df2
+            load(file_names[i]) # data_df2
             
             # which neurons fire way too little and must be discarded (under 50 total firings = discard)
             
@@ -66,11 +69,24 @@ for(week in weeks){ # for each week
             
             data_df3 <- data_df2[, if (.N >= 50) .SD, by = feature_id]
             
-            # print(length(unique(data_df2$feature_id)))
-            # print(length(unique(data_df3$feature_id)))
+            
+            neuron_count <- num_neurons[mice_names[i]]
+            
+            silent_neurons <- setdiff(1:neuron_count,
+                                      unique(data_df2$feature_id))
             
             missing_neurons <- setdiff(unique(data_df2$feature_id),
                                        unique(data_df3$feature_id))
+            
+            inactive_neurons <- c(silent_neurons, missing_neurons)
+            
+            # print number of neurons
+            print(paste('total neurons: ', unname(neuron_count)))                     # total neurons
+            print(paste('active neurons: ', length(unique(data_df3$feature_id))))     # active neurons
+            print(paste('discarded neurons: ', length(missing_neurons)))              # discarded neurons
+            print(paste('silent neurons: ', length(silent_neurons)))                  # silent neurons
+            print(paste('do they add up? ', length(unique(data_df3$feature_id)) + length(missing_neurons) + length(silent_neurons) == unname(neuron_count)))
+            
             
             # retroactively get parameters
             
@@ -106,20 +122,20 @@ for(week in weeks){ # for each week
             
             # Rmat_ts = get_cor_gpp_troubleshoot(res=Rmat_diag_full_ts$res, rho_diag=Rmat_diag_full_ts$rho_diag,
             #                                 NN=length(patient_sel),dmax=dmax)
-
+            
             Rmat = get_cor_gpp(res=Rmat_diag_full$res, rho_diag=Rmat_diag_full$rho_diag,
                                NN=length(patient_sel),dmax=dmax)
             
             # print(min(diag(Rmat)))
-                        
+            
             print('checkpoint 2')
             
             ### choose d based on FVE
             FVE_list = lapply(Rmat_diag_full$rho_diag, function(x){x$cumFVE})
             
-
             
-
+            
+            
             
             d_seq = sapply(FVE_list, function(x){
                 which(x>FVE_thre)[1]
@@ -129,16 +145,16 @@ for(week in weeks){ # for each week
                 print('needed to trigger dseq truncation!')
                 d_seq <- pmin(d_seq, dmax)
             }
-
+            
             
             grpind = cumsum(d_seq)
             
-
+            
             
             grpind = cbind(c(1, grpind[1:(p-1)]+1),
                            grpind[1:p] )
             
-
+            
             
             col_keep =  lapply(FVE_list, function(x){
                 d = min(which(x>FVE_thre)[1], dmax) # modification to ensure we stay below dmax
@@ -147,12 +163,12 @@ for(week in weeks){ # for each week
                 col_ind
             })
             
-
+            
             col_keep = do.call(c, col_keep)
             
             # print(table(col_keep))
             
-
+            
             
             Rmat = Rmat[col_keep,col_keep]
             
@@ -174,7 +190,7 @@ for(week in weeks){ # for each week
                                                factor=factor,
                                                num_edges=min_edges,
                                                ncores=ncores)
-
+            
             # res_GPP_BIC <- run_GPP_HT_BIC_troubleshoot(Rmat=Rmat_IC,
             #                                   grpind=grpind,
             #                                   ntrain=ntrain,
@@ -193,17 +209,19 @@ for(week in weeks){ # for each week
             # print(table(res_GPP_BIC == res_GPP_BIC_v3))
             
             graph_all[["GPP_BIC"]] = as.matrix((get_groupNorm(res_GPP_BIC_v2, grpind)!=0)+0)
-            graph_all[['missing_neurons']] <- missing_neurons
+            graph_all[['missing_neurons']] <- inactive_neurons
             
             
             ### save results 
             
-            save_dir <- paste('result_simu/', '/', sep = setting_ID2)                       #../result_simu/e1_m2vr0_n400_me1/
+            save_dir <- paste('results_alzheimers/', '/', sep = setting_ID2)                       #../result_simu/e1_m2vr0_n400_me1/
             
             # if the folder doesn't exist, create it 
             if (!dir.exists(save_dir)) {
                 dir.create(save_dir)
             }    
+            
+            file_ID2 <- paste(mice_names[i], setting_ID2, sep = '_')
             
             save_file <- paste(save_dir, '.rda', sep = file_ID2)                            #../result_simu/e1_m2vr0_n400/me1/Tau1_e1_m2vr0_n400_me1.rda
             
@@ -215,9 +233,9 @@ for(week in weeks){ # for each week
             end_time_i <- Sys.time()
             elapsed <- as.numeric(end_time_i - start_time_i, units = 'mins') %>% round(2)
             print(paste('minutes taken: ', elapsed, sep = ''))
-
+            
         }
-    
+        
     }
 }
 print('-----------------------------------------------------------')
@@ -226,4 +244,4 @@ total_time <- as.numeric(end_time - start_time, units = "mins") %>% round(2)
 print('COMPLETE!!')
 print(paste('total minutes taken: ', total_time, sep = ''))
 
-      
+
