@@ -681,9 +681,9 @@ get_rho_diag_pp_troubleshoot <- function(data_all=NULL,patient_sel=NULL,feature_
     positiveInd = eigen_res$values >= 0
     d = eigen_res$values[positiveInd]
     
-    if(i %in% c(30, 91, 101)){
-      print(eigen_res)
-    }      
+    # if(i %in% c(30, 91, 101)){
+    #   print(eigen_res)
+    # }      
     
     
     eigenV = eigen_res$vectors[, positiveInd, drop=FALSE]
@@ -795,11 +795,11 @@ get_cor_gpp_troubleshoot <- function(res=NULL, rho_diag=NULL,NN=NULL,dmax=NULL){
         
         
         
-        if(i %in% c(30, 91, 101)){
-          print('negative diag term!')
-          print(paste('index: ', as.character(i), sep = ''))
-          print(rho_diag[[i]]$cov)
-        }
+        # if(i %in% c(30, 91, 101)){
+        #   print('negative diag term!')
+        #   print(paste('index: ', as.character(i), sep = ''))
+        #   print(rho_diag[[i]]$cov)
+        # }
         
       }else{
         sigma_ij = cross_prod(res[[i]], res[[j]], NN=NN)

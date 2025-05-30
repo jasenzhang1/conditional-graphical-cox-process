@@ -20,9 +20,9 @@ num_neurons <- c(169, 250, 240, 249, 235, 294)
 names(num_neurons) <- ID2
 
 n <- 50    #number of replicates
-movements <- c(0, 1, 2)
+movements <- c(1, 2)
 weeks <- c(17:29, 31, 33, 35, 38)
-weeks <- c(29, 31, 33, 35, 38)
+weeks <- c(31, 33, 35, 38)
 VR <- 0
 min_edges <- 1
 ncores <- parallel::detectCores() - 1
@@ -68,7 +68,7 @@ for(week in weeks){ # for each week
             
             data_df2 <- as.data.table(data_df2)
             
-            data_df3 <- data_df2[, if (.N >= 50) .SD, by = feature_id]
+            data_df3 <- data_df2[, if (.N >= 100) .SD, by = feature_id]
             
             # there are some rare cases when gamma is so inflated that it makes calculations insane
             
