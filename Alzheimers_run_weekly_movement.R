@@ -20,7 +20,7 @@ num_neurons <- c(169, 250, 240, 249, 235, 294)
 names(num_neurons) <- ID2
 
 n <- 50    #number of replicates
-movements <- c(1, 2)
+movements <- c(0, 1, 2)
 weeks <- c(17:29, 31, 33, 35, 38)
 weeks <- c(31, 33, 35, 38)
 VR <- 0
