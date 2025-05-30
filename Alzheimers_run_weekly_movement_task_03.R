@@ -19,7 +19,7 @@ ID2 <- c('Tau1', 'Tau2', 'Tau3', 'WT1', 'WT2', 'WT3') # our name
 num_neurons <- c(169, 250, 240, 249, 235, 294)
 names(num_neurons) <- ID2
 
-n <- 50    #number of replicates
+n <- 1    #number of replicates
 movements <- c(0, 1, 2)
 weeks <- c(17:29, 31, 33, 35, 38)
 VR <- 0
