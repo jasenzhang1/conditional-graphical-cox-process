@@ -22,6 +22,7 @@ names(num_neurons) <- ID2
 n <- 50    #number of replicates
 movements <- c(0, 1, 2)
 weeks <- c(17:29, 31, 33, 35, 38)
+weeks <- c(29, 31, 33, 35, 38)
 VR <- 0
 min_edges <- 1
 ncores <- parallel::detectCores() - 1
@@ -43,7 +44,7 @@ for(week in weeks){ # for each week
         setting_ID <- paste(setting_ID, as.character(n), sep = '')              # w17_m2vr0_n400
         setting_ID2 <- paste(setting_ID, as.character(min_edges), sep = '_me')  # w17_m2vr0_n400_me1  
         
-        data_root <- paste(data_root, '', sep  = setting_ID)                   # ../spike_data/w17_m2vr0_n400/
+        data_root <- paste(data_root, '', sep  = setting_ID)                    # ../spike_data/w17_m2vr0_n400/
         
         file_names <- list.files(path = data_root, full.names = TRUE)
         
@@ -69,6 +70,28 @@ for(week in weeks){ # for each week
             
             data_df3 <- data_df2[, if (.N >= 50) .SD, by = feature_id]
             
+            # there are some rare cases when gamma is so inflated that it makes calculations insane
+            
+            f_ids <- c()
+            for(f_id in unique(data_df3$feature_id)){
+                data_i = data_df3[feature_id==f_id,]
+                data_i_count = data_i[,.(count=.N),by="subject_num"]
+                
+                gamma = get_gamma_reproduce(data_i$time)
+                if(gamma > 100){
+                    f_ids <- c(f_ids, f_id)
+                }
+            }
+            
+            if(length(f_ids) > 0){
+                print('GAMMA IS INFLATED, WE REMOVED THESE NEURONS')
+                print(f_ids)
+            }
+            
+            data_df4 <- data_df3[!feature_id %in% f_ids]
+
+            
+            
             
             neuron_count <- num_neurons[mice_names[i]]
             
@@ -76,42 +99,42 @@ for(week in weeks){ # for each week
                                       unique(data_df2$feature_id))
             
             missing_neurons <- setdiff(unique(data_df2$feature_id),
-                                       unique(data_df3$feature_id))
+                                       unique(data_df4$feature_id))
             
             inactive_neurons <- c(silent_neurons, missing_neurons)
             
             # print number of neurons
             print(paste('total neurons: ', unname(neuron_count)))                     # total neurons
-            print(paste('active neurons: ', length(unique(data_df3$feature_id))))     # active neurons
+            print(paste('active neurons: ', length(unique(data_df4$feature_id))))     # active neurons
             print(paste('discarded neurons: ', length(missing_neurons)))              # discarded neurons
             print(paste('silent neurons: ', length(silent_neurons)))                  # silent neurons
-            print(paste('do they add up? ', length(unique(data_df3$feature_id)) + length(missing_neurons) + length(silent_neurons) == unname(neuron_count)))
+            print(paste('do they add up? ', length(unique(data_df4$feature_id)) + length(missing_neurons) + length(silent_neurons) == unname(neuron_count)))
             
             
             # retroactively get parameters
             
-            ntrain <- length(unique(data_df3$subject_num))
-            p <- length(unique(data_df3$feature_id))
+            ntrain <- length(unique(data_df4$subject_num))
+            p <- length(unique(data_df4$feature_id))
             
             
             ### get corr matrix for full data
             patient_sel = 1:ntrain
-            feature_sel = unique(data_df3$feature_id) %>% sort()
+            feature_sel = unique(data_df4$feature_id) %>% sort()
             
             Tseq = seq(0.05,0.95,length=19)
             dmax = 3
             FVE_thre = 0.9 # originally 0.9
             
-            quantile(data_df3[,(.N),by=c("subject_num","feature_id")]$V1)
+            quantile(data_df4[,(.N),by=c("subject_num","feature_id")]$V1)
             
-            # Rmat_diag_full_ts = get_rho_diag_pp_troubleshoot(data_all=data_df3,
+            # Rmat_diag_full_ts = get_rho_diag_pp_troubleshoot(data_all=data_df4,
             #                                  patient_sel=patient_sel,
             #                                  feature_sel=feature_sel,
             #                                  Tseq=Tseq,
             #                                  dmax=dmax,
             #                                  ncores=ncores)
             
-            Rmat_diag_full = get_rho_diag_pp_reproduce(data_all=data_df3,
+            Rmat_diag_full = get_rho_diag_pp_reproduce(data_all=data_df4,
                                                        patient_sel=patient_sel,
                                                        feature_sel=feature_sel,
                                                        Tseq=Tseq,
