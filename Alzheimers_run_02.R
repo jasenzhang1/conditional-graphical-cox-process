@@ -1,5 +1,5 @@
 
-# qrsh
+
 start_time <- Sys.time()
 ffs = 1
 set.seed(ffs)
@@ -19,7 +19,7 @@ ID2 <- c('Tau1', 'Tau2', 'Tau3', 'WT1', 'WT2', 'WT3') # our name
 num_neurons <- c(169, 250, 240, 249, 235, 294)
 names(num_neurons) <- ID2
 
-n <- 1    #number of replicates
+n <- 50    #number of replicates
 movements <- c(0, 1, 2)
 weeks <- c(17:29, 31, 33, 35, 38)
 VR <- 0
@@ -35,7 +35,7 @@ for(week in weeks){ # for each week
     
     for(movement in movements){ # for each movement
         
-        data_root <- "spike_data/task_03/"
+        data_root <- "spike_data/task_02/"  # CHANGE THIS # 1
         
         setting_ID <- paste('w', '_m', sep = as.character(week))                # w17_m
         setting_ID <- paste(setting_ID, 'vr', sep = as.character(movement))     # w17_m2vr
@@ -43,7 +43,7 @@ for(week in weeks){ # for each week
         setting_ID <- paste(setting_ID, as.character(n), sep = '')              # w17_m2vr0_n400
         setting_ID2 <- paste(setting_ID, as.character(min_edges), sep = '_me')  # w17_m2vr0_n400_me1  
         
-        data_root <- paste(data_root, '', sep  = setting_ID)                    # ../spike_data/w17_m2vr0_n400/
+        data_root <- paste0(data_root, setting_ID)                    # ../spike_data/w17_m2vr0_n400/
         
         file_names <- list.files(path = data_root, full.names = TRUE)
         
@@ -63,9 +63,14 @@ for(week in weeks){ # for each week
             
             load(file_names[i]) # data_df2
             
-            # which neurons fire way too little and must be discarded (under 50 total firings = discard)
+            time_scale <- data_df2[[2]]
+            print(paste0('timescale of each replicate: ', time_scale, ' secs'))
             
-            data_df2 <- as.data.table(data_df2)
+            
+            # which neurons fire way too little and must be discarded (under 100 total firings = discard)
+            
+        
+            data_df2 <- as.data.table(data_df2[[1]])
             
             data_df3 <- data_df2[, if (.N >= 100) .SD, by = feature_id]
             
@@ -126,12 +131,12 @@ for(week in weeks){ # for each week
             
             quantile(data_df4[,(.N),by=c("subject_num","feature_id")]$V1)
             
-            Rmat_diag_full_ts = get_rho_diag_pp_troubleshoot(data_all=data_df4,
-                                             patient_sel=patient_sel,
-                                             feature_sel=feature_sel,
-                                             Tseq=Tseq,
-                                             dmax=dmax,
-                                             ncores=ncores)
+            # Rmat_diag_full_ts = get_rho_diag_pp_troubleshoot(data_all=data_df4,
+            #                                  patient_sel=patient_sel,
+            #                                  feature_sel=feature_sel,
+            #                                  Tseq=Tseq,
+            #                                  dmax=dmax,
+            #                                  ncores=ncores)
             
             Rmat_diag_full = get_rho_diag_pp_reproduce(data_all=data_df4,
                                                        patient_sel=patient_sel,
@@ -142,8 +147,8 @@ for(week in weeks){ # for each week
             
             print('checkpoint 1')
             
-            Rmat_ts = get_cor_gpp_troubleshoot(res=Rmat_diag_full_ts$res, rho_diag=Rmat_diag_full_ts$rho_diag,
-                                            NN=length(patient_sel),dmax=dmax)
+            # Rmat_ts = get_cor_gpp_troubleshoot(res=Rmat_diag_full_ts$res, rho_diag=Rmat_diag_full_ts$rho_diag,
+            #                                 NN=length(patient_sel),dmax=dmax)
             
             Rmat = get_cor_gpp(res=Rmat_diag_full$res, rho_diag=Rmat_diag_full$rho_diag,
                                NN=length(patient_sel),dmax=dmax)
@@ -206,18 +211,19 @@ for(week in weeks){ # for each week
             
             # BIC 
             factor = sqrt(ntrain)
-            res_GPP_BIC_v2 = run_GPP_HT_BIC_v2(Rmat=Rmat_IC,
+            res_GPP_BIC_v3 = run_GPP_HT_BIC_v3(Rmat=Rmat_IC,
                                                grpind=grpind,
                                                ntrain=ntrain,
                                                factor=factor,
                                                num_edges=min_edges,
                                                ncores=ncores)
             
-            res_GPP_BIC <- run_GPP_HT_BIC_troubleshoot(Rmat=Rmat_IC,
-                                              grpind=grpind,
-                                              ntrain=ntrain,
-                                              factor=factor,
-                                              num_edges=min_edges)
+            
+            # res_GPP_BIC <- run_GPP_HT_BIC_troubleshoot(Rmat=Rmat_IC,
+            #                                   grpind=grpind,
+            #                                   ntrain=ntrain,
+            #                                   factor=factor,
+            #                                   num_edges=min_edges)
             # 
             # res_GPP_BIC_v3 <- run_GPP_HT_BIC_tol(Rmat=Rmat_IC,
             #                                      grpind=grpind,
@@ -230,13 +236,19 @@ for(week in weeks){ # for each week
             # print(table(res_GPP_BIC_v2 == res_GPP_BIC_v3))
             # print(table(res_GPP_BIC == res_GPP_BIC_v3))
             
-            graph_all[["GPP_BIC"]] = as.matrix((get_groupNorm(res_GPP_BIC_v2, grpind)!=0)+0)
+            graph_all[["GPP_BIC"]] = as.matrix((get_groupNorm(res_GPP_BIC_v3[[1]], grpind)!=0)+0)
+            graph_all[["weighted_GPP_BIC"]] = as.matrix((get_groupNorm(res_GPP_BIC_v3[[1]], grpind)))
             graph_all[['missing_neurons']] <- inactive_neurons
+            graph_all[['tuning_parameters']] <- c(res_GPP_BIC_v3[[2]], res_GPP_BIC_v3[[3]])  # params 
+            graph_all[['tuning_parameter_indices']] <- c(res_GPP_BIC_v3[[4]], res_GPP_BIC_v3[[5]])  # indices 
+            graph_all[['tuning_parameter_max_indices']] <- c(res_GPP_BIC_v3[[6]], res_GPP_BIC_v3[[7]])  # max indices 
             
-            
+
+            graph_all[['time_scale']] <- time_scale
+             
             ### save results 
             
-            save_dir <- 'results_alzheimers/week_move_2/'
+            save_dir <- 'results_alzheimers/task_02/'  # CHANGE THIS # 2
             if (!dir.exists(save_dir)) {
                 dir.create(save_dir)
             }               

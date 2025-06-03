@@ -1,0 +1,175 @@
+---
+title: "Untitled"
+author: "Jasen Zhang"
+date: "5/30/2025"
+output: pdf_document
+---
+
+```{r}
+source('unpack_functions.R')
+
+
+load('/u/home/j/jasenzz/Graphical_Cox_Process/GMpp-main/spike_data/Brain_Region.RData')
+
+
+n <- 50   
+movements <- c(0, 1, 2) # movement is either both (0) resting (1) or moving (2)
+VR <- 0
+epoch_or_week <- 'week'
+ew_nums <- c(18, 22, 26)
+min_edges <- 1
+first_root <- "/u/home/j/jasenzz/Graphical_Cox_Process/GMpp-main/results_alzheimers/week_move_1/"
+# IDs <- c('346', '351', '366', '361', '362', '368')  # mouse ID
+# ID2 <- c('Tau1', 'Tau2', 'Tau3', 'WT1', 'WT2', 'WT3') # our name 
+# 
+# IDs <- c('346', '351', '366', '361')  # mouse ID
+# ID2 <- c('Tau1', 'Tau2', 'Tau3', 'WT1') # our name 
+
+for(movement in movements){
+  for(ew_num in ew_nums){
+    unpack(n, movement, VR, epoch_or_week, ew_num, min_edges, df_brain_region, first_root)
+    
+    print('done')
+  }
+}
+
+# moving over time
+ID2 <- c('Tau1', 'WT1')
+movements <- c(0, 1, 2)
+
+for(movement in movements){
+  for(mouse_ID in ID2){
+    unpack_over_time(n, movement, VR, epoch_or_week, ew_nums, mouse_ID, min_edges, df_brain_region, first_root)
+  }
+}
+
+```
+
+## Task 2
+
+- n = 50
+- every week
+- Movement = 0, 1, 2
+- me = 1
+
+```{r}
+source('unpack_functions.R')
+
+
+load('/u/home/j/jasenzz/Graphical_Cox_Process/GMpp-main/spike_data/Brain_Region.RData')
+
+
+n <- 50   
+movements <- c(0, 1, 2) # movement is either both (0) resting (1) or moving (2)
+VR <- 0
+epoch_or_week <- 'week'
+ew_nums <- c(17:29, 31, 33, 35, 38)
+min_edges <- 1
+
+first_root <- "/u/home/j/jasenzz/Graphical_Cox_Process/GMpp-main/results_alzheimers/week_move_2"
+folder_names <- list.files(path = first_root, full.names = TRUE)
+folder_params <- extract_pieces(folder_names)
+
+summary_df <- data.frame()
+first <- T
+
+for(i in 1:length(folder_names)){ # for each folder
+  
+  folder_i <- folder_names[i]
+  
+  n <- folder_params$replicate[i]
+  movement <- folder_params$movement[i]
+  VR <- folder_params$VR[i]
+  ew_num <- folder_params$ew_num[i]
+  
+  file_names <- list.files(path = folder_i, full.names = TRUE) # get the .rda file names within each folder
+  
+  mouse_IDs <- extract_pieces2(file_names) # get the mouse names
+  
+  for(j in 1:length(file_names)){ # for each mouse
+    result_ij <- unpack_tabular_summary(n, movement, VR, epoch_or_week, ew_num, mouse_IDs[j], min_edges, df_brain_region, file_names[j])
+    
+    summary_df <- rbind(summary_df, result_ij)
+  }
+   
+  
+}
+
+summary_df[-which(names(summary_df) == "mouse_ID")] <- lapply(summary_df[-which(names(summary_df) == "mouse_ID")], as.numeric)
+summary_df$mouse_ID <- factor(summary_df$mouse_ID)
+
+movement_factor <- rep('Running', nrow(summary_df))
+movement_factor[summary_df$movement == 0] <- 'Both'
+movement_factor[summary_df$movement == 1] <- 'Resting'
+movement_factor <- factor(movement_factor, levels = c('Both', 'Resting', 'Running'))
+summary_df$movement_factor <- movement_factor
+
+## graphing the summary statistics over time
+
+# average degree over time, stratified by mouse and movement
+
+mice_strains2 <- c(
+  "Tau1" = "lightcoral",
+  "Tau2" = "red",
+  "Tau3" = "darkred",
+  "WT1" = "lightgreen",
+  "WT2" = "green",
+  "WT3" = "darkgreen"
+)
+
+g1 <- ggplot() + 
+  geom_point(data = summary_df, aes(x = ew_num, y = avg_deg, color = mouse_ID)) + 
+  geom_line(data = summary_df, aes(x = ew_num, y = avg_deg, color = mouse_ID)) + 
+  facet_wrap(~ movement_factor) + 
+  ylab('Average Degree') + 
+  xlab('Age (Weeks)') + 
+  theme_bw() + 
+  scale_color_manual(values = mice_strains2)
+
+# proportion of non-singletons
+
+summary_df$pct_non_singletons <- 100 * summary_df$num_con_verts/summary_df$num_candidates
+
+g2 <- ggplot() + 
+  geom_point(data = summary_df, aes(x = ew_num, y = pct_non_singletons, color = mouse_ID)) + 
+  geom_line(data = summary_df, aes(x = ew_num, y = pct_non_singletons, color = mouse_ID)) + 
+  facet_wrap(~ movement_factor) + 
+  ylab('Percentage of non-Singletons') + 
+  xlab('Age (Weeks)') + 
+  theme_bw() + 
+  scale_color_manual(values = mice_strains2)
+
+# proportion of inter-region connections
+
+summary_df$pct_inter_region_edge <- 100 * summary_df$num_HE_edges/summary_df$num_edges
+
+g3 <- ggplot() + 
+  geom_point(data = summary_df, aes(x = ew_num, y = pct_inter_region_edge, color = mouse_ID)) + 
+  geom_line(data = summary_df, aes(x = ew_num, y = pct_inter_region_edge, color = mouse_ID)) + 
+  facet_wrap(~ movement_factor) + 
+  ylab('Percentage of Inter-Region Edges') + 
+  xlab('Age (Weeks)') + 
+  theme_bw() + 
+  scale_color_manual(values = mice_strains2)
+
+# 4) proportion of candidate neurons out of total neurons
+
+summary_df$pct_candidate_neurons <- 100 * summary_df$num_candidates/summary_df$num_neurons
+
+g4 <- ggplot() + 
+  geom_point(data = summary_df, aes(x = ew_num, y = pct_candidate_neurons, color = mouse_ID)) + 
+  geom_line(data = summary_df, aes(x = ew_num, y = pct_candidate_neurons, color = mouse_ID)) + 
+  facet_wrap(~ movement_factor) + 
+  ylab('Percentage of non-discarded Neurons') + 
+  xlab('Age (Weeks)') + 
+  ylim(c(0, 100)) + 
+  theme_bw() + 
+  scale_color_manual(values = mice_strains2)
+```
+
+
+
+
+
+
+

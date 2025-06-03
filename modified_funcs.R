@@ -13,8 +13,10 @@ run_GPP_HT_BIC_v2 <- function(Rmat=NULL, grpind=NULL,ntrain=NULL, factor=NULL, n
   
   lamseq = get_lamseq(Rmat, grpind)
   Rmat_thre_1 = Cov_hardT(S=Rmat, grpind=grpind, lamseq=lamseq)
+  
+  temp_dim <- min(dim(Rmat_thre_1)[3], 5)
 
-  BIC_list = pbmclapply(1:5, function(i){  
+  BIC_list = pbmclapply(1:temp_dim, function(i){  
   # BIC_list = pbmclapply(1:dim(Rmat_thre_1)[3], function(i){
     Rmat_1st  = Rmat_thre_1[,,i]
     min_eig_val = min(find_min_eigen(c(list(Rmat_1st))))
@@ -102,6 +104,114 @@ run_GPP_HT_BIC_v2 <- function(Rmat=NULL, grpind=NULL,ntrain=NULL, factor=NULL, n
   res
 }
 
+run_GPP_HT_BIC_v3 <- function(Rmat=NULL, grpind=NULL,ntrain=NULL, factor=NULL, num_edges=0, tol = 1e-8, ncores = 1){
+  
+  # modified from v2 to also keep track of tuning parameters
+  # also we search over all possible sets of tuning parameters
+  
+  lamseq = get_lamseq(Rmat, grpind) # set of tuning parameters
+  
+  Rmat_thre_1 = Cov_hardT(S=Rmat, grpind=grpind, lamseq=lamseq)
+  
+  
+  BIC_list = pbmclapply(1:dim(Rmat_thre_1)[3], function(i){  
+    # BIC_list = pbmclapply(1:dim(Rmat_thre_1)[3], function(i){
+    Rmat_1st  = Rmat_thre_1[,,i]
+    min_eig_val = min(find_min_eigen(c(list(Rmat_1st))))
+    if(min_eig_val < pinv_eps){
+      min_eig_val = abs(min_eig_val) + pinv_eps*(1+abs(min_eig_val))/0.99
+      Rmat_1st = adjust_S(Rmat_1st,min_eig_val)
+    }
+    
+    Rinv = pinv(Rmat_1st,pinv_eps)
+    
+    if(! isSymmetric(Rinv)){
+      Rinv = 0.5 * (Rinv + t(Rinv))
+    }    
+    
+    lamseq_2 = get_lamseq(Rinv, grpind) # set of second tuning parameters
+    Rinv_thre_2 = Cov_hardT(S=Rinv, grpind=grpind, lamseq=lamseq_2)
+    
+    # thresholding
+    Rinv_thre_2[abs(Rinv_thre_2) < tol] <- 0
+    
+    BIC_val = apply(Rinv_thre_2, 3, function(x){
+      
+      min_eig_val = min(find_min_eigen(c(list(x))))
+      if(min_eig_val < pinv_eps){
+        min_eig_val = abs(min_eig_val) + pinv_eps*(1+abs(min_eig_val))/0.99
+        diag(x) = diag(x) + min_eig_val
+      }
+      
+      # modify this
+      BIC_i <- calc_BIC_1(x, Rmat, ntrain, grpind, factor)
+      graph_i <- as.matrix((get_groupNorm(x, grpind)!=0)+0)
+      num_edges_i <- sum( graph_i[upper.tri(graph_i)] )
+      
+      c(BIC_i, num_edges_i) # return BIC value, number of edges, as well as the tuning parameter
+    })
+    
+    BIC_val
+    
+  }, mc.cores = ncores)
+  
+  # filter the BIC's with at least 10 edges and then remove # edges 
+  
+  
+  BIC_list_1 = sapply(BIC_list, function(x){withCallingHandlers({
+    min(x[1, x[2,] >= num_edges])
+  },
+  warning = function(w) {
+    if (grepl("no non-missing arguments to min; returning Inf", conditionMessage(w))) {
+      invokeRestart("muffleWarning")
+    }
+  }
+  )}
+  )
+  
+  min_ind_1 = which.min(BIC_list_1) # index for the first tuning parameter
+  
+  x2 <- BIC_list[[min_ind_1]]
+  
+  cond <- x2[2, ] >= num_edges
+  idx <- which(cond)            
+  min_ind_2 <- idx[which.min(x2[1,][cond])]  # index for the second tuning parameter
+  
+  
+  Rmat_1st  = Rmat_thre_1[,,min_ind_1]
+  min_eig_val = min(find_min_eigen(c(list(Rmat_1st))))
+  if(min_eig_val < pinv_eps){
+    min_eig_val = abs(min_eig_val) + pinv_eps*(1+abs(min_eig_val))/0.99
+    Rmat_1st = adjust_S(Rmat_1st,min_eig_val)
+  }
+  
+  Rinv = pinv(Rmat_1st,pinv_eps)
+  
+  # make symmetric after pinv
+  if(! isSymmetric(Rinv)){
+    Rinv = 0.5 * (Rinv + t(Rinv))
+  }  
+  
+  lamseq_2 = get_lamseq(Rinv, grpind)
+  Rinv_thre_2 = Cov_hardT(S=Rinv, grpind=grpind, lamseq=lamseq_2[min_ind_2])
+  
+  res = Rinv_thre_2[,,1]
+  min_eig_val = min(find_min_eigen(c(list(res))))
+  if(min_eig_val < pinv_eps){
+    min_eig_val = abs(min_eig_val) + pinv_eps*(1+abs(min_eig_val))/0.99
+    diag(res) = diag(res) + min_eig_val
+  }
+  
+  list(res, 
+       lamseq[min_ind_1], 
+       lamseq_2[min_ind_2], 
+       min_ind_1, 
+       min_ind_2,
+       length(lamseq),
+       length(lamseq_2)) # return a list of the matrix result, and both tuning parameters, their indices, and max indices
+}
+
+
 # modify to add tolerance
 
 run_GPP_HT_BIC_tol <- function(Rmat=NULL, grpind=NULL,ntrain=NULL, factor=NULL, tol = 1e-8){
@@ -188,8 +298,10 @@ run_GPP_HT_BIC_troubleshoot <- function(Rmat=NULL, grpind=NULL,ntrain=NULL, fact
   
   BIC_list_troubleshoot <- list()
   
-  #for(i in 1:dim(Rmat_thre_1)[3]){
-  for(i in 1:5){
+  temp_dim <- min(dim(Rmat_thre_1)[3], 5)
+  
+  for(i in 1:temp_dim){
+
     print(i)
     
     Rmat_1st  = Rmat_thre_1[,,i] # the i-th 80 x 80 matrix
@@ -780,37 +892,3 @@ adjust_R_troubleshoot <- function(Rmat=NULL){
   Rmat
 }
 
-get_cor_gpp_troubleshoot <- function(res=NULL, rho_diag=NULL,NN=NULL,dmax=NULL){
-  
-  
-  p = length(res) ## number of processes
-  cov_est = matrix(0, dmax*p, dmax*p)
-  
-  for(i in 1:p){
-    idx_i = 1:dmax + (i-1)*dmax
-    for(j in i:p){
-      idx_j = 1:dmax + (j-1)*dmax
-      if(i==j){
-        cov_est[idx_i, idx_j] = rho_diag[[i]]$cov
-        
-        
-        
-        # if(i %in% c(30, 91, 101)){
-        #   print('negative diag term!')
-        #   print(paste('index: ', as.character(i), sep = ''))
-        #   print(rho_diag[[i]]$cov)
-        # }
-        
-      }else{
-        sigma_ij = cross_prod(res[[i]], res[[j]], NN=NN)
-        tmp = t(rho_diag[[i]]$eigenV) %*% sigma_ij %*% rho_diag[[j]]$eigenV
-        cov_est[idx_i, idx_j] = tmp
-      }
-    }
-  }
-  cov_est = cov_est  + t(cov_est) 
-  diag(cov_est) = diag(cov_est)/2
-  #cor_est = cov2cor(cov_est)
-  
-  cov_est
-}

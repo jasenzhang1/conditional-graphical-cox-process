@@ -63,11 +63,11 @@ insert_na_symmetric <- function(mat, indices) {
     
     d_i <- dim(mat)[1]
     
-    # print('index and d_i')
-    # print(index)
-    # print(d_i)    
     
-    if(index <= d_i){ # case 1: missing neuron is inserted inside the matrix
+    if(index == 1){          # case 1: missing neuron is neuron 1
+      mat <- rbind(NA, mat)
+      mat <- cbind(NA, mat)
+    } else if(index <= d_i){ # case 2: missing neuron is inserted inside the matrix
     
       mat_1 <- rbind( mat[1:(index-1), ],   # first rows
                       NA,                   # pad NA
@@ -79,13 +79,13 @@ insert_na_symmetric <- function(mat, indices) {
       
       mat <- mat_2
       
-    } else if(index == d_i + 1){ # case 2: missing neuron is the very next one, so we append
+    } else if(index == d_i + 1){ # case 3: missing neuron is the very next one, so we append
       
       mat_1 <- rbind(mat, NA)    # pad a row
       mat_2 <- cbind(mat_1, NA)  # pad a column
       mat <- mat_2
       
-    } else{ # case 3: the index is way beyond d_i
+    } else{ # case 4: the index is way beyond d_i
       stop('ERROR IN insert_na_symmetric')
     }
     
@@ -122,24 +122,39 @@ get_network <- function(adj_mat, ID){
   #      main = ID)  
 }
 
-get_summary_statistics <- function(adj_mat_fill, adj_mat_og){
+get_summary_statistics <- function(adj_mat_fill, adj_mat_og, brain_region_cutoff){
   
-  # number statistics
-  num_edges <- 0.5 * (sum(adj_mat_og) - dim(adj_mat_og)[1])     # number of edges            (121)
+  # brain_region_cutoff = x.5, number between the HIP and EHC ID numbers
+  
+  # vertex statistics
   num_neurons <- dim(adj_mat_fill)[1]                           # number of neurons in total (169)
-  num_NA <- sum(is.na(diag(adj_mat_fill)))                      # number of NA neurons       (12)
-  num_islands <- length(which(apply(adj_mat_og,2,sum) == 1))    # number of island neurons   (102)
+  num_NA <- sum(is.na(diag(adj_mat_fill)))                      # number of NA neurons       (42)
+  num_candidates <- num_neurons - num_NA                        # number of non-NA neurons   (127)
   
-  # simple statistics
-  avg_deg <- round(2 * num_edges/num_neurons, 2)
+  
+  num_islands <- length(which(apply(adj_mat_og,2,sum) == 1))    # number of island neurons   (86)
   
   adj_mat2 <- adj_mat_og
   diag(adj_mat2) <- 0
   verts <- which(apply(adj_mat2,2,sum) > 0)
-  num_con_verts <- length(verts)                                # number of connected neurons (55)
+  num_con_verts <- length(verts)                                # number of connected neurons (41)
   
   
+  # edge
+  num_edges <- 0.5 * (sum(adj_mat_og) - dim(adj_mat_og)[1])     # number of edges            (61)
   
+  off_diag_adj_mat <- adj_mat_fill[1:(brain_region_cutoff - 0.5), (brain_region_cutoff + 0.5):num_neurons]
+  HH_adj_mat <- adj_mat_fill[1:(brain_region_cutoff - 0.5), 1:(brain_region_cutoff - 0.5)]
+  EE_adj_mat <- adj_mat_fill[(brain_region_cutoff + 0.5):num_neurons, (brain_region_cutoff + 0.5):num_neurons]
+  
+  num_HE_edges <- sum(off_diag_adj_mat, na.rm = T)                                        # Hippocampus-EHC edges (17)
+  num_HH_edges <- 0.5 * (sum(HH_adj_mat, na.rm = T) - sum(diag(HH_adj_mat), na.rm = T))   # Hip-Hip edges (28)
+  num_EE_edges <- 0.5 * (sum(EE_adj_mat, na.rm = T) - sum(diag(EE_adj_mat), na.rm = T))   # EHC-EHC edges (16)
+  
+  
+  # connectivity statistics
+  avg_deg <- round(2 * num_edges/num_candidates, 2)                                       # average degree of candidate neurons               
+
   # distribution of degrees
   adj_mat3 <- adj_mat2[verts, verts]
   
@@ -147,22 +162,38 @@ get_summary_statistics <- function(adj_mat_fill, adj_mat_og){
   
   # number of components
   g <- graph_from_adjacency_matrix(adj_mat3, mode = "undirected")
-  num_comps <- components(g)$no  
+  num_comps <- components(g)$no                                                           # number of components
   
   sum_stats <- list()
+  detailed_stats <- list()
+  total_stats <- list()
+  
   sum_stats[['num_neurons']] <- num_neurons
   sum_stats[['num_NA']] <- num_NA
+  sum_stats[['num_candidates']] <- num_candidates
   sum_stats[['num_islands']] <- num_islands
   sum_stats[['num_con_verts']] <- num_con_verts
+  # edges
   sum_stats[['num_edges']] <- num_edges
-  sum_stats[['num_comps']] <- num_comps
-  sum_stats[['degs']] <- degs
-  sum_stats[['verts']] <- verts
+  sum_stats[['num_HE_edges']] <- num_HE_edges
+  sum_stats[['num_HH_edges']] <- num_HH_edges
+  sum_stats[['num_EE_edges']] <- num_EE_edges
+  
+  # misc stats
   sum_stats[['avg_deg']] <- avg_deg
+  sum_stats[['num_comps']] <- num_comps
+  
+  # detailed stats
+  detailed_stats[['degs']] <- degs
+  detailed_stats[['verts']] <- verts
+
+  
+  # merge
+  total_stats[['sum_stats']] <- sum_stats
+  total_stats[['detailed_stats']] <- detailed_stats
   
   
-  
-  return(sum_stats)
+  return(total_stats)
   
 }
 
@@ -229,9 +260,84 @@ save_summary_statistics <- function(figures_root, figure_name, settings_kept, su
   sink()  
 }
 
+
+extract_pieces <- function(x) {
+  
+  # if our string is "week_move_2/w33_m2vr0_n50_me1"
+  # I want to keep
+  # - 33 to denote the week
+  # - 2 to denote the movement
+  # - 0 to denote the VR
+  # - 50 to denote the replicate count
+  # - 1 to denote the minimum edges
+  
+  # 1️⃣ Between last '/' and next '_', then delete first character
+  first_piece <- sub("^.*/([^_]+)_.*$", "\\1", x) %>% substring(2) %>% as.numeric()
+  
+  # 2️⃣ After 'm' after the 3rd-to-last underscore
+  # Find positions of underscores
+  us_pos <- gregexpr("_", x)[[1]]
+  third_last_us <- us_pos[length(us_pos) - 2]
+  char_pos <- third_last_us + 2
+  second_piece <- substring(x, char_pos, char_pos) %>% as.numeric()
+  
+  # 3️⃣ After 'vr' before second-to-last underscore
+  second_last_us <- us_pos[length(us_pos) - 1]
+  char_pos <- second_last_us - 1
+  third_piece <- substring(x, char_pos, char_pos) %>% as.numeric()
+
+  
+  # 4️⃣ Before last underscore
+  last_us <- us_pos[length(us_pos)]
+  start_pos <- second_last_us + 2
+  end_pos <- last_us - 1
+  fourth_piece <- substring(x, start_pos, end_pos) %>% as.numeric()
+  
+  # 5️⃣ Last character
+  fifth_piece <- substring(x, nchar(x)) %>% as.numeric()
+  
+  # Return all pieces as a named list
+  list(
+    ew_num = first_piece,
+    movement = second_piece,
+    VR = third_piece,
+    replicate = fourth_piece,
+    min_edge = fifth_piece
+  )
+}
+
+extract_pieces2 <- function(x) {
+  
+  # character between last / and next _
+  # /w17_m0vr0_n50_me1/Tau1_w17_m0vr0_n50_me1.rda
+  # return 'Tau1'
+  
+  result <- sapply(x, function(s) {
+    last_slash_pos <- max(gregexpr("/", s)[[1]])
+    next_us_pos <- regexpr("_", substring(s, last_slash_pos + 1))
+    if (next_us_pos == -1) return(NA_character_)
+    substring(s, last_slash_pos + 1, last_slash_pos + next_us_pos - 1)
+  }) 
+  
+  return(unname(result))
+}
+
 unpack <- function(n, movement, VR, epoch_or_week, ew_num, min_edges, df_brain_region, first_root){
   
-  
+  # 
+  # inputs:
+  # 
+  # - n (number): replicate count
+  # - movement(number): 2 = running, 1 = resting, 0 = both
+  # - VR (number):      2 = on, 1 = off, 0 = do not filter
+  # - epoch_or_week (string): 'week' or 'epoch' to describe which unit of time we're working with
+  # - ew_num (integer): week or epoch number 
+  # - min_edges (integer): mininum number of edges in our network, usually 0 or 1
+  # - df_brain_region (dataframe)
+  # - first_root (string): path to the set of folders
+  #
+  #
+  # 
   
   # 1) obtain file directory
   if(epoch_or_week == 'week'){
@@ -389,6 +495,64 @@ unpack <- function(n, movement, VR, epoch_or_week, ew_num, min_edges, df_brain_r
   
   
   return(NULL)
+}
+
+unpack_tabular_summary <- function(n, movement, VR, epoch_or_week, ew_num, mouse_ID, min_edges, df_brain_region, file_name){
+  
+  # 
+  # inputs:
+  # 
+  # - n (number): replicate count
+  # - movement(number): 2 = running, 1 = resting, 0 = both
+  # - VR (number):      2 = on, 1 = off, 0 = do not filter
+  # - epoch_or_week (string): 'week' or 'epoch' to describe which unit of time we're working with
+  # - mouse_ID (string): 'Tau1'
+  # - ew_num (integer): week or epoch number 
+  # - min_edges (integer): mininum number of edges in our network, usually 0 or 1
+  # - df_brain_region (dataframe)
+  # - file_name (string): the file of interest "/u/home/j/jasenzz/Graphical_Cox_Process/GMpp-main/results_alzheimers/week_move_2/w17_m0vr0_n50_me1/Tau1_w17_m0vr0_n50_me1.rda"
+  #
+  #
+  # 
+  
+  
+  # 1) prepare to store results
+  
+  first <- F
+  result_df <- data.frame()
+  
+  # 2) loading
+  load(file_name)
+  
+  # 3) fill in NA's
+  adj_mat_og <- graph_all[['GPP_BIC']]
+  missing_neurons <- sort(graph_all[['missing_neurons']])
+  adj_mat_fill <- insert_na_symmetric(adj_mat_og, missing_neurons)
+  
+  # 3.1) summary stats
+  brain_region_cutoff <- max(which(df_brain_region$Brain_Region[df_brain_region$ID2 == mouse_ID] == 'Hippocampus')) + 0.5
+  
+  all_stats <- get_summary_statistics(adj_mat_fill, adj_mat_og, brain_region_cutoff)
+
+  
+  # 4) package results
+  results <- c(mouse_ID,
+               ew_num,
+               movement,
+               VR,
+               n,
+               min_edges,
+               unlist(all_stats[['sum_stats']])
+
+               )
+  
+  names(results) <- c('mouse_ID', 'ew_num', 'movement', 'VR', 'n', 'min_edges', names(unlist(all_stats[['sum_stats']])))
+    
+
+  results_df <- t(as.data.frame(results))
+  rownames(results_df) <- NULL
+  
+  return(results_df)
 }
 
 unpack_over_time <- function(n, movement, VR, epoch_or_week, ew_nums, mouse_ID, min_edges, df_brain_region, first_root){
