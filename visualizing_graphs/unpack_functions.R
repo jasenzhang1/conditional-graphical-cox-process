@@ -265,11 +265,14 @@ extract_pieces <- function(x) {
   
   # if our string is "week_move_2/w33_m2vr0_n50_me1"
   # I want to keep
+  # - 'w' to denote that we are working in weeks
   # - 33 to denote the week
   # - 2 to denote the movement
   # - 0 to denote the VR
   # - 50 to denote the replicate count
   # - 1 to denote the minimum edges
+  
+  epoch_or_week <- sub(".*/(.)?.*", "\\1", x)
   
   # 1️⃣ Between last '/' and next '_', then delete first character
   first_piece <- sub("^.*/([^_]+)_.*$", "\\1", x) %>% substring(2) %>% as.numeric()
@@ -298,6 +301,7 @@ extract_pieces <- function(x) {
   
   # Return all pieces as a named list
   list(
+    epoch_or_week = epoch_or_week,
     ew_num = first_piece,
     movement = second_piece,
     VR = third_piece,
@@ -500,6 +504,12 @@ unpack <- function(n, movement, VR, epoch_or_week, ew_num, min_edges, df_brain_r
 unpack_tabular_summary <- function(n, movement, VR, epoch_or_week, ew_num, mouse_ID, min_edges, df_brain_region, file_name){
   
   # 
+  # goal: 
+  #
+  # for each fitted model, we want to extract key settings, fitting parameters, and graph statistics
+  # 
+  # 
+  # 
   # inputs:
   # 
   # - n (number): replicate count
@@ -513,6 +523,26 @@ unpack_tabular_summary <- function(n, movement, VR, epoch_or_week, ew_num, mouse
   # - file_name (string): the file of interest "/u/home/j/jasenzz/Graphical_Cox_Process/GMpp-main/results_alzheimers/week_move_2/w17_m0vr0_n50_me1/Tau1_w17_m0vr0_n50_me1.rda"
   #
   #
+  # outputs:
+  # 
+  # a single vector with the following attributes:
+  # 
+  # 1) mouse_ID
+  # 2) ew_num
+  # 3) movement
+  # 4) VR
+  # 5) min_edges
+  # 6) num_neurons
+  # 7) num_NA
+  # 8) num_candidates
+  # 9) num_islands
+  # 10) num_con_verts
+  # 11) num_edges
+  # 12) num_HE_edges
+  # 13) num_HH_edges
+  # 14) num_EE_edges
+  # 15) avg_deg
+  # 16) num_comps
   # 
   
   
@@ -542,11 +572,20 @@ unpack_tabular_summary <- function(n, movement, VR, epoch_or_week, ew_num, mouse
                VR,
                n,
                min_edges,
+               graph_all[['tuning_parameters']],
+               graph_all[['tuning_parameter_indices']],
+               graph_all[['tuning_parameter_max_indices']],
+               graph_all[['time_scale']],
                unlist(all_stats[['sum_stats']])
 
                )
   
-  names(results) <- c('mouse_ID', 'ew_num', 'movement', 'VR', 'n', 'min_edges', names(unlist(all_stats[['sum_stats']])))
+  names(results) <- c('mouse_ID', 'ew_num', 'movement', 'VR', 'n', 'min_edges',   # settings for the simulation
+                      'tau_c', 'tau_p',                                           # parameters of the result of the simulation
+                      'tau_c_i', 'tau_p_i',
+                      'tau_c_max', 'tau_p_max',
+                      'replicate_time_scale',
+                      names(unlist(all_stats[['sum_stats']])))                    # graph statistics from the simulation
     
 
   results_df <- t(as.data.frame(results))
