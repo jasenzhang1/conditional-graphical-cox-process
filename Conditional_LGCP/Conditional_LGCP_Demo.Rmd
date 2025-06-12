@@ -1,0 +1,311 @@
+---
+title: "Untitled"
+author: "Jasen Zhang"
+date: "6/9/2025"
+output: pdf_document
+---
+
+# task 1: retrieve week 1 of WT1 mouse, and partition it into 4 chunks (running/resting vs VR on/off)
+
+```{r message=FALSE, warning=FALSE}
+source('/u/home/j/jasenzz/Alzheimers/utils/0_Dependencies.R')
+data_dir <- '/u/home/j/jasenzz/Alzheimers/Data/'
+library(tidyverse)
+
+```
+
+
+```{r}
+weekly_dataset <- load_realigned_dataset(data_dir)[[1]]
+neuron_df <- load_brain_region_dataset(data_dir)[[1]]
+
+
+ID <- '361'
+ID2 <- 'WT1'
+
+weekly_dataset_i <- weekly_dataset[[ID]]
+df_neuron_info <- neuron_info(ID, neuron_df)
+n_neurons <- nrow(df_neuron_info)
+
+# only keep the first week
+
+week_j <- names(weekly_dataset_i)[3]
+
+df_ij <- weekly_dataset_i[[week_j]]
+
+raw_ij <- df_ij[[1]]  # the raw data for the week
+AP_ij <- df_ij[[2]]   # the AP firings for the week
+
+# create binary running variable
+
+running_binary <- label_activity_mode(raw_ij$velocity)
+running_binary_v2 <- rep(0, length(running_binary))
+running_binary_v2[running_binary == 'running'] <- 1
+raw_ij$running <- running_binary_v2
+
+table(raw_ij$isVisible, raw_ij$running)
+```
+
+## now we visualize the data and shade in the 4 regions
+
+```{r}
+
+    
+graph_title <- paste0(ID2, ', week ', week_j, ', discrete stratas')
+
+# preprocessing
+
+shade_df_VR <- get_shade_regions(raw_ij$time, raw_ij$isVisible)
+shade_df_Running <- get_shade_regions(raw_ij$time, raw_ij$running)
+
+spikes_ij_df <- enframe(AP_ij, name = "neuron", value = "spike_times") %>%
+    unnest(spike_times)  
+
+num_hip_neurons <- max(df_neuron_info$Neuron_Num[df_neuron_info$Brain_Region == 'Hippocampus'])
+
+electrode_borders <- df_neuron_info %>% 
+  group_by(Electrode_Num) %>% 
+  summarise(electrode_border = max(Neuron_Num))
+
+electrode_borders <- electrode_borders$electrode_border[1:(nrow(electrode_borders)-1)] 
+
+pt_size <- 0.05
+pt_alpha <- 0.5
+
+# basic plot with just points
+
+n_total <- nrow(spikes_ij_df)
+n_sampled <- floor(n_total * 0.2)
+spikes_ij_df_sparse <- spikes_ij_df[sample(n_total, n_sampled), ]
+
+g_full <- ggplot() + 
+  geom_point(data = spikes_ij_df, aes(x = spike_times, y = neuron), 
+             size = pt_size, 
+             alpha = pt_alpha) +  
+  theme_bw() + 
+  ylab('Neuron Number') + 
+  xlab('Time (sec)') + 
+  ggtitle(graph_title)  
+
+g_sparse <- ggplot() + 
+  geom_point(data = spikes_ij_df_sparse, aes(x = spike_times, y = neuron), 
+             size = pt_size, 
+             alpha = pt_alpha) +  
+  theme_bw() + 
+  ylab('Neuron Number') + 
+  xlab('Time (sec)') + 
+  ggtitle(graph_title)  
+
+# shade in running
+g2 <- g_sparse +
+  geom_rect(data = shade_df_Running,
+            aes(xmin = xmin, xmax = xmax, ymin = -Inf, ymax = Inf),
+            inherit.aes = FALSE,
+            fill = "lightcoral", alpha = 0.5)  
+
+# shade in VR 
+
+g3 <- g2 + 
+  geom_rect(data = shade_df_VR,
+            aes(xmin = xmin, xmax = xmax, ymin = -Inf, ymax = Inf),
+            inherit.aes = FALSE,
+            fill = "lightgreen", alpha = 0.5)
+
+
+# brain region border
+g4 <- g3 + geom_hline(yintercept = num_hip_neurons + 0.5, color = 'red', size = 0.25)
+
+#electode border
+g5 <- g3 + 
+  geom_hline(yintercept = electrode_borders + 0.5, color = 'dodgerblue', size = 0.25) +
+  geom_hline(yintercept = num_hip_neurons + 0.5, color = 'red', size = 0.25) 
+      
+# plot covariates over time
+
+g_covariates <- ggplot() + geom_line(data = raw_ij, aes(x = time, y = 2 * isVisible + running)) + 
+  ylab('Covariate Value') + 
+  xlab('Time (sec)') + 
+  theme_bw() +
+  ggtitle('VR On (2, 3), Running (1, 3)')
+
+pdf('raw_data_demo.pdf', width = 10, height = 6)
+g_full
+g_sparse
+g2
+g3
+g4
+g5
+g_covariates
+dev.off()
+
+```
+
+
+## estimation on just one week, 2 binary covariates (4 levels)
+
+- We can start here
+
+```{r}
+ffs = 1
+set.seed(ffs)
+source("../GraphPP_FUN.R")
+source("../modified_funcs.R")
+source("Conditional_LGCP_funcs.R")
+
+library(dplyr)
+
+load('data/WT1_w19_demo_data.rda')
+
+ncores <- parallel::detectCores() - 1
+
+data_df <- LGCP_data[[1]]
+y_d_df <- LGCP_data[[2]]
+y_c_df <- LGCP_data[[3]]
+
+# extract the binary levels
+cov_df <- y_d_df %>% dplyr::select(- subject_num)
+
+discrete_strata <- cov_df %>% unique()
+
+min_edges <- 0
+
+for(y_ind in 1:nrow(discrete_strata)){ # 1) for each discrete variable level
+  
+  yd_i <- discrete_strata[y_ind, ]
+  s_yd <- y_d_df$subject_num[apply(cov_df, 1, function(x) all(x == yd_i))]  # s_yd = indices
+  data_df2 <- data_df %>% filter(subject_num %in% s_yd)
+  
+  # 2a) we now have the dataframe with replicates and are ready to do inference
+  
+  data_df3 <- data_df2[, if (.N >= 100) .SD, by = feature_id]
+  
+  # 2b) there are some rare cases when gamma is so inflated that it makes calculations insane
+  
+  f_ids <- c()
+  for(f_id in unique(data_df3$feature_id)){
+      data_i = data_df3[feature_id==f_id,]
+      data_i_count = data_i[,.(count=.N),by="subject_num"]
+      
+      gamma = get_gamma_reproduce(data_i$time)
+      if(gamma > 100){
+          f_ids <- c(f_ids, f_id)
+      }
+  }
+  
+  if(length(f_ids) > 0){
+      print('GAMMA IS INFLATED, WE REMOVED THESE NEURONS')
+      print(f_ids)
+  }
+  
+  data_df4 <- data_df3[!feature_id %in% f_ids] 
+  
+  # 3) counting neurons
+  
+  neuron_count <- 249
+  
+  silent_neurons <- setdiff(1:neuron_count,
+                            unique(data_df2$feature_id))
+  
+  missing_neurons <- setdiff(unique(data_df2$feature_id),
+                             unique(data_df4$feature_id))
+  
+  inactive_neurons <- c(silent_neurons, missing_neurons)
+  
+  # print number of neurons
+  print(paste('total neurons: ', unname(neuron_count)))                     # total neurons
+  print(paste('active neurons: ', length(unique(data_df4$feature_id))))     # active neurons
+  print(paste('discarded neurons: ', length(missing_neurons)))              # discarded neurons
+  print(paste('silent neurons: ', length(silent_neurons)))                  # silent neurons
+  print(paste('do they add up? ', length(unique(data_df4$feature_id)) + length(missing_neurons) + length(silent_neurons) == unname(neuron_count)))
+  
+  
+  # retroactively get parameters
+  
+  ntrain <- length(unique(data_df4$subject_num))
+  p <- length(unique(data_df4$feature_id))
+  
+  
+  ### get corr matrix for full data
+  patient_sel = unique(data_df4$subject_num) %>% sort()
+  feature_sel = unique(data_df4$feature_id) %>% sort()
+  
+  Tseq = seq(0.05,0.95,length=19)
+  dmax = 4
+  FVE_thre = 0.9 # originally 0.9  
+  
+  # estimation of rho
+  
+  Rmat_diag_full = get_rho_diag_pp_reproduce(data_all=data_df4,
+                                             patient_sel=patient_sel,
+                                             feature_sel=feature_sel,
+                                             Tseq=Tseq,
+                                             dmax=dmax,
+                                             ncores=ncores)
+  
+  print('checkpoint 1')
+  
+  Rmat = get_cor_gpp(res=Rmat_diag_full$res, 
+                     rho_diag=Rmat_diag_full$rho_diag,
+                     NN=length(patient_sel),
+                     dmax=dmax)  
+  
+  print('checkpoint 2')
+  
+  ### choose d based on FVE
+  FVE_list = lapply(Rmat_diag_full$rho_diag, function(x){x$cumFVE})
+  
+  d_seq = sapply(FVE_list, function(x){
+      which(x>FVE_thre)[1]
+  })
+
+  if(max(d_seq) > dmax){
+      print('needed to trigger dseq truncation!')
+      d_seq <- pmin(d_seq, dmax)
+  }
+  
+  
+  grpind = cumsum(d_seq)
+  grpind = cbind(c(1, grpind[1:(p-1)]+1),
+                 grpind[1:p] )
+  col_keep =  lapply(FVE_list, function(x){
+      d = min(which(x>FVE_thre)[1], dmax) # modification to ensure we stay below dmax
+      col_ind = rep(FALSE,dmax)
+      col_ind[1:d] = TRUE
+      col_ind
+  })
+  
+  col_keep = do.call(c, col_keep)
+  Rmat = Rmat[col_keep,col_keep]
+  
+  
+  ### deal with small/negative eigenvalues of the corr matrix 
+  # Rmat_IC_ts = adjust_R_troubleshoot(Rmat)
+  Rmat_IC = adjust_R(Rmat)
+  
+  # obtain the continuous variable kernel 
+  
+  mat_continuous <- y_c_df %>% dplyr::select(- subject_num) %>% as.matrix()
+  
+  kappa_c <- kernel_RBF(s_yd, mat_continuous, 1)
+  
+  ###
+  
+  graph_all = list()
+  
+  ### get sparse corr matrix using GPP method ####
+  
+  # BIC 
+  factor = sqrt(ntrain)
+  res_GPP_BIC_v3 = run_GPP_HT_BIC_v3(Rmat=Rmat_IC,
+                                     grpind=grpind,
+                                     ntrain=ntrain,
+                                     factor=factor,
+                                     num_edges=min_edges,
+                                     ncores=ncores)  
+}
+```
+
+
+
+
+
