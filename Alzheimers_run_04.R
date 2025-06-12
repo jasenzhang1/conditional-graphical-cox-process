@@ -28,7 +28,7 @@ ew_symb <- 'e'
 VR <- 0
 
 tn_symb <- 't'
-tns <- 20  # replicates or timescale
+tns <- 10  # replicates or timescale
 
 min_edges <- 1
 ncores <- parallel::detectCores() - 1

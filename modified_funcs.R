@@ -11,6 +11,9 @@ pinv_eps = 1e-2
 
 run_GPP_HT_BIC_v2 <- function(Rmat=NULL, grpind=NULL,ntrain=NULL, factor=NULL, num_edges=0, tol = 1e-8, ncores = 1){
   
+  # tolerance factor
+  # only search through a subspace of the tuning parameters
+  
   lamseq = get_lamseq(Rmat, grpind)
   Rmat_thre_1 = Cov_hardT(S=Rmat, grpind=grpind, lamseq=lamseq)
   
