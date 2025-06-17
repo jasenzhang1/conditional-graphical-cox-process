@@ -124,7 +124,24 @@ get_network <- function(adj_mat, ID){
 
 get_summary_statistics <- function(adj_mat_fill, adj_mat_og, brain_region_cutoff){
   
-  # brain_region_cutoff = x.5, number between the HIP and EHC ID numbers
+  # ---------------------------------------------------------------------------- 
+  #
+  # graphical summary statistics such as:
+  # - average degree
+  # - number of singletons
+  #
+  # input:
+  #
+  # - adj_mat_fill    (matrix):    the full nxn matrix of neurons with NA's denoting discarded neurons
+  # - adj_mat_og      (matrix):    a square matrix that doesn't include discarded neurons
+  # - brain_region_cutoff (number): y + 0.5, which divides the y-th neuron and y+1-th neuron which are in different brain regions
+  #
+  # output:
+  # 
+  # -
+  #
+  # ---------------------------------------------------------------------------- 
+  
   
   # vertex statistics
   num_neurons <- dim(adj_mat_fill)[1]                           # number of neurons in total (169)
@@ -153,16 +170,16 @@ get_summary_statistics <- function(adj_mat_fill, adj_mat_og, brain_region_cutoff
   
   
   # connectivity statistics
-  avg_deg <- round(2 * num_edges/num_candidates, 2)                                       # average degree of candidate neurons               
+  avg_deg <- round(2 * num_edges/num_candidates, 2)                                       # average degree of candidate neurons (1.59)              
 
   # distribution of degrees
-  adj_mat3 <- adj_mat2[verts, verts]
-  
-  degs <- table(apply(adj_mat3, 2, sum))
+  degs <- table(apply(adj_mat2, 2, sum))
+
   
   # number of components
+  adj_mat3 <- adj_mat2[verts, verts] # only keep the vertices that are connected
   g <- graph_from_adjacency_matrix(adj_mat3, mode = "undirected")
-  num_comps <- components(g)$no                                                           # number of components
+  num_comps <- components(g)$no                                                           # number of components (2)
   
   sum_stats <- list()
   detailed_stats <- list()
@@ -272,32 +289,36 @@ extract_pieces <- function(x) {
   # - 50 to denote the replicate count
   # - 1 to denote the minimum edges
   
-  epoch_or_week <- sub(".*/(.)?.*", "\\1", x)
+
+  epoch_or_week <- sub(".*/(.)?.*", "\\1", x) #w
   
   # 1️⃣ Between last '/' and next '_', then delete first character
-  first_piece <- sub("^.*/([^_]+)_.*$", "\\1", x) %>% substring(2) %>% as.numeric()
+  first_piece <- sub("^.*/([^_]+)_.*$", "\\1", x) %>% substring(2) %>% as.numeric() #33
   
   # 2️⃣ After 'm' after the 3rd-to-last underscore
   # Find positions of underscores
   us_pos <- gregexpr("_", x)[[1]]
   third_last_us <- us_pos[length(us_pos) - 2]
   char_pos <- third_last_us + 2
-  second_piece <- substring(x, char_pos, char_pos) %>% as.numeric()
+  second_piece <- substring(x, char_pos, char_pos) %>% as.numeric() #2
   
   # 3️⃣ After 'vr' before second-to-last underscore
   second_last_us <- us_pos[length(us_pos) - 1]
   char_pos <- second_last_us - 1
-  third_piece <- substring(x, char_pos, char_pos) %>% as.numeric()
+  third_piece <- substring(x, char_pos, char_pos) %>% as.numeric() #0
 
+  
+  char_pos <- second_last_us + 1
+  rep_or_time_scale = substring(x, char_pos, char_pos) #n
   
   # 4️⃣ Before last underscore
   last_us <- us_pos[length(us_pos)]
   start_pos <- second_last_us + 2
   end_pos <- last_us - 1
-  fourth_piece <- substring(x, start_pos, end_pos) %>% as.numeric()
+  fourth_piece <- substring(x, start_pos, end_pos) %>% as.numeric() #50
   
   # 5️⃣ Last character
-  fifth_piece <- substring(x, nchar(x)) %>% as.numeric()
+  fifth_piece <- substring(x, nchar(x)) %>% as.numeric() #1
   
   # Return all pieces as a named list
   list(
@@ -305,7 +326,8 @@ extract_pieces <- function(x) {
     ew_num = first_piece,
     movement = second_piece,
     VR = third_piece,
-    replicate = fourth_piece,
+    rep_or_ts = rep_or_time_scale,
+    rep_ts_num = fourth_piece,
     min_edge = fifth_piece
   )
 }
@@ -501,7 +523,7 @@ unpack <- function(n, movement, VR, epoch_or_week, ew_num, min_edges, df_brain_r
   return(NULL)
 }
 
-unpack_tabular_summary <- function(n, movement, VR, epoch_or_week, ew_num, mouse_ID, min_edges, df_brain_region, file_name){
+unpack_tabular_summary <- function(n, movement, VR, epoch_or_week, ew_num, rep_or_ts, rep_ts_num, mouse_ID, min_edges, df_brain_region, file_name){
   
   # 
   # goal: 
@@ -515,9 +537,12 @@ unpack_tabular_summary <- function(n, movement, VR, epoch_or_week, ew_num, mouse
   # - n (number): replicate count
   # - movement(number): 2 = running, 1 = resting, 0 = both
   # - VR (number):      2 = on, 1 = off, 0 = do not filter
-  # - epoch_or_week (string): 'week' or 'epoch' to describe which unit of time we're working with
+  # - epoch_or_week   (string): 'week' or 'epoch' to describe which unit of time we're working with
+  # - ew_num          (integer): week or epoch number 
+  # - rep_or_ts        (string): 't' or 'n' denoting whether we are partitioning by timescale or number of replicates
+  # - rep_ts_num       (integer): length of time scale, or number of replicates
+  #
   # - mouse_ID (string): 'Tau1'
-  # - ew_num (integer): week or epoch number 
   # - min_edges (integer): mininum number of edges in our network, usually 0 or 1
   # - df_brain_region (dataframe)
   # - file_name (string): the file of interest "/u/home/j/jasenzz/Graphical_Cox_Process/GMpp-main/results_alzheimers/week_move_2/w17_m0vr0_n50_me1/Tau1_w17_m0vr0_n50_me1.rda"
@@ -547,8 +572,6 @@ unpack_tabular_summary <- function(n, movement, VR, epoch_or_week, ew_num, mouse
   
   
   # 1) prepare to store results
-  
-  first <- F
   result_df <- data.frame()
   
   # 2) loading
@@ -558,6 +581,9 @@ unpack_tabular_summary <- function(n, movement, VR, epoch_or_week, ew_num, mouse
   adj_mat_og <- graph_all[['GPP_BIC']]
   missing_neurons <- sort(graph_all[['missing_neurons']])
   adj_mat_fill <- insert_na_symmetric(adj_mat_og, missing_neurons)
+  
+  adj_mat_w_og <- graph_all[['weighted_GPP_BIC']]
+  adj_mat_w_fill <- insert_na_symmetric(adj_mat_w_og, missing_neurons)
   
   # 3.1) summary stats
   brain_region_cutoff <- max(which(df_brain_region$Brain_Region[df_brain_region$ID2 == mouse_ID] == 'Hippocampus')) + 0.5
@@ -570,22 +596,21 @@ unpack_tabular_summary <- function(n, movement, VR, epoch_or_week, ew_num, mouse
                ew_num,
                movement,
                VR,
-               n,
+               graph_all[['time_scale']],
+               graph_all[['num_replicates']],
                min_edges,
                graph_all[['tuning_parameters']],
                graph_all[['tuning_parameter_indices']],
                graph_all[['tuning_parameter_max_indices']],
-               graph_all[['time_scale']],
                unlist(all_stats[['sum_stats']])
 
                )
   
-  names(results) <- c('mouse_ID', 'ew_num', 'movement', 'VR', 'n', 'min_edges',   # settings for the simulation
-                      'tau_c', 'tau_p',                                           # parameters of the result of the simulation
+  names(results) <- c('mouse_ID', 'ew_num', 'movement', 'VR', 'time_scale', 'num_replicates', 'min_edges',   # settings for the simulation
+                      'tau_c', 'tau_p',                                                                      # parameters of the result of the simulation
                       'tau_c_i', 'tau_p_i',
                       'tau_c_max', 'tau_p_max',
-                      'replicate_time_scale',
-                      names(unlist(all_stats[['sum_stats']])))                    # graph statistics from the simulation
+                      names(unlist(all_stats[['sum_stats']])))                                                # graph statistics from the simulation
     
 
   results_df <- t(as.data.frame(results))
