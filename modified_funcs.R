@@ -214,6 +214,138 @@ run_GPP_HT_BIC_v3 <- function(Rmat=NULL, grpind=NULL,ntrain=NULL, factor=NULL, n
        length(lamseq_2)) # return a list of the matrix result, and both tuning parameters, their indices, and max indices
 }
 
+run_GPP_HT_BIC_v4 <- function(Rmat=NULL, grpind=NULL,ntrain=NULL, factor=NULL, num_edges=0, tol = 1e-8, ncores = 1){
+  
+  # v3: modified from v2 to also keep track of tuning parameters
+  # also we search over all possible sets of tuning parameters
+  
+  # v4: modified to also automatically keep the case where me = 0
+  
+  lamseq = get_lamseq(Rmat, grpind) # set of tuning parameters
+  
+  Rmat_thre_1 = Cov_hardT(S=Rmat, grpind=grpind, lamseq=lamseq)
+  
+  
+  BIC_list = pbmclapply(1:dim(Rmat_thre_1)[3], function(i){  
+    # BIC_list = pbmclapply(1:dim(Rmat_thre_1)[3], function(i){
+    Rmat_1st  = Rmat_thre_1[,,i]
+    min_eig_val = min(find_min_eigen(c(list(Rmat_1st))))
+    if(min_eig_val < pinv_eps){
+      min_eig_val = abs(min_eig_val) + pinv_eps*(1+abs(min_eig_val))/0.99
+      Rmat_1st = adjust_S(Rmat_1st,min_eig_val)
+    }
+    
+    Rinv = pinv(Rmat_1st,pinv_eps)
+    
+    if(! isSymmetric(Rinv)){
+      Rinv = 0.5 * (Rinv + t(Rinv))
+    }    
+    
+    lamseq_2 = get_lamseq(Rinv, grpind) # set of second tuning parameters
+    Rinv_thre_2 = Cov_hardT(S=Rinv, grpind=grpind, lamseq=lamseq_2)
+    
+    # thresholding
+    Rinv_thre_2[abs(Rinv_thre_2) < tol] <- 0
+    
+    BIC_val = apply(Rinv_thre_2, 3, function(x){
+      
+      min_eig_val = min(find_min_eigen(c(list(x))))
+      if(min_eig_val < pinv_eps){
+        min_eig_val = abs(min_eig_val) + pinv_eps*(1+abs(min_eig_val))/0.99
+        diag(x) = diag(x) + min_eig_val
+      }
+      
+      # modify this
+      BIC_i <- calc_BIC_1(x, Rmat, ntrain, grpind, factor)
+      graph_i <- as.matrix((get_groupNorm(x, grpind)!=0)+0)
+      num_edges_i <- sum( graph_i[upper.tri(graph_i)] )
+      
+      c(BIC_i, num_edges_i) # return BIC value, number of edges
+    })
+    
+    BIC_val
+    
+  }, mc.cores = ncores)
+  
+  # obtain graph for both me = min_edges and me = 0 (default)
+  edge_vec <- c(num_edges, 0)
+  for(i in 1:length(edge_vec)){
+    
+    edge_i <- edge_vec[i]
+  
+    # filter the BIC's with at least 1 edges and then remove # edges 
+    BIC_list_1 = sapply(BIC_list, function(x){withCallingHandlers({
+      min(x[1, x[2,] >= edge_i])
+    },
+    warning = function(w) {
+      if (grepl("no non-missing arguments to min; returning Inf", conditionMessage(w))) {
+        invokeRestart("muffleWarning")
+      }
+    }
+    )}
+    )
+    
+    
+    min_ind_1 = which.min(BIC_list_1) # index for the first tuning parameter
+    
+    x2 <- BIC_list[[min_ind_1]]
+    
+    cond <- x2[2, ] >= edge_i
+    idx <- which(cond)            
+    min_ind_2 <- idx[which.min(x2[1,][cond])]  # index for the second tuning parameter
+    
+    
+    # we now have min_ind_1 and min_ind_2, we find the result that arises from these tuning parameters
+    Rmat_1st  = Rmat_thre_1[,,min_ind_1]
+    min_eig_val = min(find_min_eigen(c(list(Rmat_1st))))
+    if(min_eig_val < pinv_eps){
+      min_eig_val = abs(min_eig_val) + pinv_eps*(1+abs(min_eig_val))/0.99
+      Rmat_1st = adjust_S(Rmat_1st,min_eig_val)
+    }
+    
+    Rinv = pinv(Rmat_1st,pinv_eps)
+    
+    # make symmetric after pinv
+    if(! isSymmetric(Rinv)){
+      Rinv = 0.5 * (Rinv + t(Rinv))
+    }  
+    
+    lamseq_2 = get_lamseq(Rinv, grpind)
+    Rinv_thre_2 = Cov_hardT(S=Rinv, grpind=grpind, lamseq=lamseq_2[min_ind_2])
+    
+    res = Rinv_thre_2[,,1]
+    min_eig_val = min(find_min_eigen(c(list(res))))
+    if(min_eig_val < pinv_eps){
+      min_eig_val = abs(min_eig_val) + pinv_eps*(1+abs(min_eig_val))/0.99
+      diag(res) = diag(res) + min_eig_val
+    }
+    
+    # storing
+    if(i == 1){
+      
+      # list of the matrix result, and both tuning parameters, their indices, and max indices
+      me_nonzero_result <-   list(res,  
+                                  lamseq[min_ind_1], 
+                                  lamseq_2[min_ind_2], 
+                                  min_ind_1, 
+                                  min_ind_2,
+                                  length(lamseq),
+                                  length(lamseq_2))
+    } else{
+      me_zero_result <-   list(res, 
+                               lamseq[min_ind_1], 
+                               lamseq_2[min_ind_2], 
+                               min_ind_1, 
+                               min_ind_2,
+                               length(lamseq),
+                               length(lamseq_2))      
+    }
+    
+  } # end of for loop for both cases
+  
+  list(me_nonzero_result, me_zero_result) # return two lists 
+}
+
 
 # modify to add tolerance
 
