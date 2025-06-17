@@ -1,11 +1,12 @@
-# task 2b 6/17/2025 - record unweighted and weighted graphs (me1) and (me0)
+# 4b: 6/17/2025 - save weighted and unweighted graphs (me1) and (me0)
 
 start_time <- Sys.time()
 ffs = 1
 set.seed(ffs)
 source("GraphPP_FUN.R")
 source("modified_funcs.R")
-library(dplyr)
+source("main_funcs.R")
+
 
 
 
@@ -13,16 +14,27 @@ library(dplyr)
 
 # 1) Open 99_Create_Spiketrain_Dataset and load the data_df file
 
+# 1a) Parameters that don't change
+
 IDs <- c('346', '351', '366', '361', '362', '368')  # mouse ID
 ID2 <- c('Tau1', 'Tau2', 'Tau3', 'WT1', 'WT2', 'WT3') # our name 
 
 num_neurons <- c(169, 250, 240, 249, 235, 294)
 names(num_neurons) <- ID2
 
-n <- 50    #number of replicates
+# 1b) Parameters that change, double check!!!
+
+task_num <- '04'
+
 movements <- c(0, 1, 2)
-weeks <- c(17:29, 31, 33, 35, 38)
 VR <- 0
+
+ews <- 1:4
+ew_symb <- 'e'
+
+tn_symb <- 't'
+tns <- 10  # replicates or timescale
+
 min_edges <- 1
 ncores <- parallel::detectCores() - 1
 
@@ -31,17 +43,14 @@ print(ncores)
 
 
 
-for(week in weeks){ # for each week
+for(ew in ews){ # for each epoch/week
     
     for(movement in movements){ # for each movement
         
-        data_root <- "spike_data/task_02/"  # CHANGE THIS # 1
+        data_root <- paste0("spike_data/task_", task_num, '/') # spike_data/task_04/
         
-        setting_ID <- paste('w', '_m', sep = as.character(week))                # w17_m
-        setting_ID <- paste(setting_ID, 'vr', sep = as.character(movement))     # w17_m2vr
-        setting_ID <- paste(setting_ID, '_n', sep = as.character(VR))           # w17_m2vr0_n
-        setting_ID <- paste(setting_ID, as.character(n), sep = '')              # w17_m2vr0_n400
-        setting_ID2 <- paste(setting_ID, as.character(min_edges), sep = '_me')  # w17_m2vr0_n400_me1  
+        setting_ID <- paste0(ew_symb, ew, '_m', movement, 'vr', VR, '_', tn_symb, tns) # e1_m0vr0_t20
+        setting_ID2 <- paste0(setting_ID, '_me', min_edges)                            # e1_m0vr0_t20_me1
         
         data_root <- paste0(data_root, setting_ID)                    # ../spike_data/w17_m2vr0_n400/
         
@@ -55,7 +64,7 @@ for(week in weeks){ # for each week
             start_time_i <- Sys.time()
             
             print('--------------------------------------------------')
-            print(paste('week: ', week))
+            print(paste('week or epoch: ', ew))
             print(paste('movement: ', movement))
             print(paste('mouse: ', mice_names[i]))
             print('\n')
@@ -63,14 +72,13 @@ for(week in weeks){ # for each week
             
             load(file_names[i]) # data_df2
             
-            time_scale <- data_df2[[2]]
+            time_scale <- tns
+            num_replicates <- unique(data_df2$subject_num) %>% length()
             print(paste0('timescale of each replicate: ', time_scale, ' secs'))
-            
+            print(paste0('number of replicates: ', num_replicates))
             
             # which neurons fire way too little and must be discarded (under 100 total firings = discard)
             
-        
-            data_df2 <- as.data.table(data_df2[[1]])
             
             data_df3 <- data_df2[, if (.N >= 100) .SD, by = feature_id]
             
@@ -245,15 +253,16 @@ for(week in weeks){ # for each week
             
 
             graph_all[['time_scale']] <- time_scale
-             
+            graph_all[['num_replicates']] <- num_replicates
+            
             ### save results 
             
-            save_dir <- 'results_alzheimers/task_02/'  # CHANGE THIS # 2
+            save_dir <- paste0('results_alzheimers/task_', task_num, '/')  # results_alzheimers/task_04/
             if (!dir.exists(save_dir)) {
                 dir.create(save_dir)
             }               
             
-            save_dir <- paste(save_dir, '/', sep = setting_ID2)                       #../result_simu/e1_m2vr0_n400_me1/
+            save_dir <- paste0(save_dir, setting_ID2, '/')                       #../task_04/e1_m2vr0_t10_me1/
             
             # if the folder doesn't exist, create it 
             if (!dir.exists(save_dir)) {
@@ -274,7 +283,6 @@ for(week in weeks){ # for each week
             print(paste('minutes taken: ', elapsed, sep = ''))
             
         }
-        
     }
 }
 print('-----------------------------------------------------------')

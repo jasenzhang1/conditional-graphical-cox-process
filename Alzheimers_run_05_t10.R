@@ -1,4 +1,4 @@
-# 4b: 6/17/2025 - save weighted and unweighted graphs (me1) and (me0)
+# introduce parallelization tools 
 
 start_time <- Sys.time()
 ffs = 1
@@ -6,7 +6,6 @@ set.seed(ffs)
 source("GraphPP_FUN.R")
 source("modified_funcs.R")
 source("main_funcs.R")
-
 
 
 
@@ -22,18 +21,18 @@ ID2 <- c('Tau1', 'Tau2', 'Tau3', 'WT1', 'WT2', 'WT3') # our name
 num_neurons <- c(169, 250, 240, 249, 235, 294)
 names(num_neurons) <- ID2
 
-# 1b) Parameters that change, double check!!! ------------------------------
+# 1b) Parameters that change, double check!!! ---------------------------------
 
-task_num <- '04'
+task_num <- '05'
 
 movements <- c(0, 1, 2)
 VR <- 0
 
-ews <- 1:4
-ew_symb <- 'e'
+ews <- c(17:29, 31, 33, 35, 38) # 1:4
+ew_symb <- 'w'
 
 tn_symb <- 't'
-tns <- 10  # replicates or timescale
+tn_vec <- c(10) # tns <- 10  # replicates or timescale
 
 min_edges <- 1
 ncores <- parallel::detectCores() - 1
@@ -41,11 +40,13 @@ ncores <- parallel::detectCores() - 1
 print('Number of Cores')
 print(ncores)
 
-# algorithm ------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
-main_algorithm(ews, ew_symb, movements, task_num, tn_symb, tns, min_edgges, ncores)
-    
-# end    
+for(tns in tn_vec){
+    main_algorithm(ews, ew_symb, movements, task_num, tn_symb, tns, min_edgges, ncores)
+}
+
+
 print('-----------------------------------------------------------')
 end_time <- Sys.time()
 total_time <- as.numeric(end_time - start_time, units = "mins") %>% round(2)
