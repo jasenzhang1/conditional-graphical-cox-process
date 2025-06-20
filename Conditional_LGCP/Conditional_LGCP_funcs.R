@@ -31,3 +31,8 @@ kernel_RBF <- function(s_yd, df_cont_cov, gamma){
   return(kernel_mat)
 
 }
+
+## kernel density destimation --------------------------------------
+
+
+

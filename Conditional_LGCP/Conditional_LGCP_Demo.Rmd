@@ -148,9 +148,12 @@ dev.off()
 ```{r}
 ffs = 1
 set.seed(ffs)
-source("../GraphPP_FUN.R")
-source("../modified_funcs.R")
-source("Conditional_LGCP_funcs.R")
+# source("../GraphPP_FUN.R")
+# source("../modified_funcs.R")
+# source("Conditional_LGCP_funcs.R")
+
+source('functions/01_kernel_estimation.R')
+source('functions/02_intensity_estimation.R')
 
 library(dplyr)
 
@@ -186,7 +189,7 @@ for(y_ind in 1:nrow(discrete_strata)){ # 1) for each discrete variable level
       data_i = data_df3[feature_id==f_id,]
       data_i_count = data_i[,.(count=.N),by="subject_num"]
       
-      gamma = get_gamma_reproduce(data_i$time)
+      gamma = get_gamma(data_i$time)
       if(gamma > 100){
           f_ids <- c(f_ids, f_id)
       }
@@ -229,18 +232,27 @@ for(y_ind in 1:nrow(discrete_strata)){ # 1) for each discrete variable level
   patient_sel = unique(data_df4$subject_num) %>% sort()
   feature_sel = unique(data_df4$feature_id) %>% sort()
   
+  #Tseq = seq(0.01,0.99,length=99)
   Tseq = seq(0.05,0.95,length=19)
+  
   dmax = 4
   FVE_thre = 0.9 # originally 0.9  
   
   # estimation of rho
   
-  Rmat_diag_full = get_rho_diag_pp_reproduce(data_all=data_df4,
-                                             patient_sel=patient_sel,
-                                             feature_sel=feature_sel,
-                                             Tseq=Tseq,
-                                             dmax=dmax,
-                                             ncores=ncores)
+  rho_list <- estimate_intensities_stratum(data_df4, patient_sel, feature_sel, Tseq)
+  
+  
+  # res$mu = \hat{rho}_i
+  # rho_diag$d = KL coeffients
+  # rho_diag$Sigma_ii = G_{ii}(s, t)
+  
+  # Rmat_diag_full = get_rho_diag_pp_reproduce(data_all=data_df4,
+  #                                            patient_sel=patient_sel,
+  #                                            feature_sel=feature_sel,
+  #                                            Tseq=Tseq,
+  #                                            dmax=dmax,
+  #                                            ncores=ncores)
   
   print('checkpoint 1')
   
