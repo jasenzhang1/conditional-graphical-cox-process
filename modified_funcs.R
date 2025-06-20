@@ -294,51 +294,75 @@ run_GPP_HT_BIC_v4 <- function(Rmat=NULL, grpind=NULL,ntrain=NULL, factor=NULL, n
     idx <- which(cond)            
     min_ind_2 <- idx[which.min(x2[1,][cond])]  # index for the second tuning parameter
     
-    
-    # we now have min_ind_1 and min_ind_2, we find the result that arises from these tuning parameters
-    Rmat_1st  = Rmat_thre_1[,,min_ind_1]
-    min_eig_val = min(find_min_eigen(c(list(Rmat_1st))))
-    if(min_eig_val < pinv_eps){
-      min_eig_val = abs(min_eig_val) + pinv_eps*(1+abs(min_eig_val))/0.99
-      Rmat_1st = adjust_S(Rmat_1st,min_eig_val)
-    }
-    
-    Rinv = pinv(Rmat_1st,pinv_eps)
-    
-    # make symmetric after pinv
-    if(! isSymmetric(Rinv)){
-      Rinv = 0.5 * (Rinv + t(Rinv))
-    }  
-    
-    lamseq_2 = get_lamseq(Rinv, grpind)
-    Rinv_thre_2 = Cov_hardT(S=Rinv, grpind=grpind, lamseq=lamseq_2[min_ind_2])
-    
-    res = Rinv_thre_2[,,1]
-    min_eig_val = min(find_min_eigen(c(list(res))))
-    if(min_eig_val < pinv_eps){
-      min_eig_val = abs(min_eig_val) + pinv_eps*(1+abs(min_eig_val))/0.99
-      diag(res) = diag(res) + min_eig_val
-    }
-    
-    # storing
-    if(i == 1){
+    # in the case where there is no graph with >= me edges, do nothing
+    if(is.integer(min_ind_2) && length(min_ind_2) == 0){
+      if(i == 1){
+        
+        # list of the matrix result, and both tuning parameters, their indices, and max indices
+        me_nonzero_result <-   list(NA,  
+                                    NA, 
+                                    NA, 
+                                    NA, 
+                                    NA,
+                                    NA,
+                                    NA)
+      } else{
+        me_zero_result <-   list(NA,  
+                                 NA, 
+                                 NA, 
+                                 NA, 
+                                 NA,
+                                 NA,
+                                 NA)     
+      }
+    } else{ 
       
-      # list of the matrix result, and both tuning parameters, their indices, and max indices
-      me_nonzero_result <-   list(res,  
-                                  lamseq[min_ind_1], 
-                                  lamseq_2[min_ind_2], 
-                                  min_ind_1, 
-                                  min_ind_2,
-                                  length(lamseq),
-                                  length(lamseq_2))
-    } else{
-      me_zero_result <-   list(res, 
-                               lamseq[min_ind_1], 
-                               lamseq_2[min_ind_2], 
-                               min_ind_1, 
-                               min_ind_2,
-                               length(lamseq),
-                               length(lamseq_2))      
+      # we now have min_ind_1 and min_ind_2, we find the result that arises from these tuning parameters
+      Rmat_1st  = Rmat_thre_1[,,min_ind_1]
+      min_eig_val = min(find_min_eigen(c(list(Rmat_1st))))
+      if(min_eig_val < pinv_eps){
+        min_eig_val = abs(min_eig_val) + pinv_eps*(1+abs(min_eig_val))/0.99
+        Rmat_1st = adjust_S(Rmat_1st,min_eig_val)
+      }
+      
+      Rinv = pinv(Rmat_1st,pinv_eps)
+      
+      # make symmetric after pinv
+      if(! isSymmetric(Rinv)){
+        Rinv = 0.5 * (Rinv + t(Rinv))
+      }  
+      
+      lamseq_2 = get_lamseq(Rinv, grpind)
+      Rinv_thre_2 = Cov_hardT(S=Rinv, grpind=grpind, lamseq=lamseq_2[min_ind_2])
+      
+      res = Rinv_thre_2[,,1]
+      min_eig_val = min(find_min_eigen(c(list(res))))
+      if(min_eig_val < pinv_eps){
+        min_eig_val = abs(min_eig_val) + pinv_eps*(1+abs(min_eig_val))/0.99
+        diag(res) = diag(res) + min_eig_val
+      }
+      
+      # storing
+      if(i == 1){
+        
+        # list of the matrix result, and both tuning parameters, their indices, and max indices
+        me_nonzero_result <-   list(res,  
+                                    lamseq[min_ind_1], 
+                                    lamseq_2[min_ind_2], 
+                                    min_ind_1, 
+                                    min_ind_2,
+                                    length(lamseq),
+                                    length(lamseq_2))
+      } else{
+        me_zero_result <-   list(res, 
+                                 lamseq[min_ind_1], 
+                                 lamseq_2[min_ind_2], 
+                                 min_ind_1, 
+                                 min_ind_2,
+                                 length(lamseq),
+                                 length(lamseq_2))      
+      }
+      
     }
     
   } # end of for loop for both cases
@@ -942,9 +966,9 @@ get_rho_diag_pp_troubleshoot <- function(data_all=NULL,patient_sel=NULL,feature_
     
     cov_diag = t(eigenV) %*% Sigma_ii %*% eigenV
     
-    if(i %in% c(30, 91, 101)){
-      print(diag(diag(cov_diag),length(d),length(d)))
-    }
+    # if(i %in% c(30, 91, 101)){
+    #   print(diag(diag(cov_diag),length(d),length(d)))
+    # }
     
     if(any(diag(cov_diag) < 0)){
       print('negative diagonal entries!')

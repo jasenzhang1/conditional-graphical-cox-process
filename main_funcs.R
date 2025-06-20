@@ -58,6 +58,8 @@ main_algorithm <- function(ews, ew_symb, movements, task_num, tn_symb, tns, min_
         print(paste0('timescale of each replicate: ', time_scale, ' secs'))
         print(paste0('number of replicates: ', num_replicates))
         
+
+        
         # which neurons fire way too little and must be discarded (under 100 total firings = discard)
         
         
@@ -104,113 +106,168 @@ main_algorithm <- function(ews, ew_symb, movements, task_num, tn_symb, tns, min_
         print(paste('do they add up? ', length(unique(data_df4$feature_id)) + length(missing_neurons) + length(silent_neurons) == unname(neuron_count)))
         
         
-        # retroactively get parameters
-        
-        ntrain <- length(unique(data_df4$subject_num))
-        p <- length(unique(data_df4$feature_id))
-        
-        
-        ### get corr matrix for full data
-        patient_sel = 1:ntrain
-        feature_sel = unique(data_df4$feature_id) %>% sort()
-        
-        Tseq = seq(0.05,0.95,length=19)
-        dmax = 4
-        FVE_thre = 0.9 # originally 0.9
-        
-        
-        Rmat_diag_full = get_rho_diag_pp_reproduce(data_all=data_df4,
-                                                   patient_sel=patient_sel,
-                                                   feature_sel=feature_sel,
-                                                   Tseq=Tseq,
-                                                   dmax=dmax,
-                                                   ncores=ncores)
-        
-        print('checkpoint 1')
+        if(num_replicates < 5){ # don't fit and return NA
+          
+          graph_all[["GPP_BIC"]] = NA
+          graph_all[["weighted_GPP_BIC"]] = NA        
+          
+          
+          graph_all[['tuning_parameters']] <- NA
+          graph_all[['tuning_parameter_indices']] <- NA
+          graph_all[['tuning_parameter_max_indices']] <- NA
+          
+          graph_all[["GPP_BIC_me0"]] = NA
+          graph_all[["weighted_GPP_BIC_me0"]] = NA
+          graph_all[['tuning_parameters_me0']] <- NA
+          graph_all[['tuning_parameter_indices_me0']] <- NA
+          graph_all[['tuning_parameter_max_indices_me0']] <- NA
+          
+          graph_all[['missing_neurons']] <- inactive_neurons
+          graph_all[['time_scale']] <- time_scale
+          graph_all[['num_replicates']] <- num_replicates
+        } else{ # fit and save variables
+          
         
         
-        Rmat = get_cor_gpp(res=Rmat_diag_full$res, rho_diag=Rmat_diag_full$rho_diag,
-                           NN=length(patient_sel),dmax=dmax)
-        
-        
-        print('checkpoint 2')
-        
-        ### choose d based on FVE
-        FVE_list = lapply(Rmat_diag_full$rho_diag, function(x){x$cumFVE})
-        
-        
-        d_seq = sapply(FVE_list, function(x){
-          which(x>FVE_thre)[1]
-        })
-        
-        if(max(d_seq) > dmax){
-          print('needed to trigger dseq truncation!')
-          d_seq <- pmin(d_seq, dmax)
+          # retroactively get parameters
+          
+          ntrain <- length(unique(data_df4$subject_num))
+          p <- length(unique(data_df4$feature_id))
+          
+          
+          ### get corr matrix for full data
+          patient_sel = 1:ntrain
+          feature_sel = unique(data_df4$feature_id) %>% sort()
+          
+          Tseq = seq(0.05,0.95,length=19)
+          dmax = 4
+          FVE_thre = 0.9 # originally 0.9
+          
+          
+          Rmat_diag_full = get_rho_diag_pp_reproduce(data_all=data_df4,
+                                                     patient_sel=patient_sel,
+                                                     feature_sel=feature_sel,
+                                                     Tseq=Tseq,
+                                                     dmax=dmax,
+                                                     ncores=ncores)
+          
+          # remove any additional neurons that gave NA cum_FVE
+          
+          indices_with_na <- sapply(Rmat_diag_full$rho_diag, function(x) any(is.na(x$cumFVE))) 
+          
+          if(TRUE %in% indices_with_na){
+            missing_neurons <- c(missing_neurons,  feature_sel[indices_with_na])  # update missing_neurons
+            feature_sel <- feature_sel[! indices_with_na]
+            
+            data_df4 <- data_df4 %>% filter(feature_id %in% feature_sel)
+            p <- length(feature_sel)
+            
+            # try again
+            Rmat_diag_full = get_rho_diag_pp_reproduce(data_all=data_df4,
+                                                       patient_sel=patient_sel,
+                                                       feature_sel=feature_sel,
+                                                       Tseq=Tseq,
+                                                       dmax=dmax,
+                                                       ncores=ncores)            
+            
+            
+          }
+          
+          print('checkpoint 1')
+          
+          
+          Rmat = get_cor_gpp(res=Rmat_diag_full$res, rho_diag=Rmat_diag_full$rho_diag,
+                             NN=length(patient_sel),dmax=dmax)
+          
+          
+          print('checkpoint 2')
+          
+          ### choose d based on FVE
+          FVE_list = lapply(Rmat_diag_full$rho_diag, function(x){x$cumFVE})
+          
+          
+          d_seq = sapply(FVE_list, function(x){
+            which(x>FVE_thre)[1]
+          })
+          
+          if(max(d_seq) > dmax){
+            print('needed to trigger dseq truncation!')
+            d_seq <- pmin(d_seq, dmax)
+          }
+          
+          
+          grpind = cumsum(d_seq)
+          
+          
+          
+          grpind = cbind(c(1, grpind[1:(p-1)]+1),
+                         grpind[1:p] )
+          
+          
+          
+          col_keep =  lapply(FVE_list, function(x){
+            d = min(which(x>FVE_thre)[1], dmax) # modification to ensure we stay below dmax
+            col_ind = rep(FALSE,dmax)
+            col_ind[1:d] = TRUE
+            col_ind
+          })
+          
+          
+          col_keep = do.call(c, col_keep)
+          
+          Rmat = Rmat[col_keep,col_keep]
+          
+          
+          
+          ### deal with small/negative eigenvalues of the corr matrix 
+          # Rmat_IC_ts = adjust_R_troubleshoot(Rmat)
+          Rmat_IC = adjust_R(Rmat)
+          ###
+          graph_all = list()
+          
+          ### get sparse corr matrix using GPP method ####
+          
+          # BIC 
+          factor = sqrt(ntrain)
+          res_GPP_BIC_v4 = run_GPP_HT_BIC_v4(Rmat=Rmat_IC,
+                                             grpind=grpind,
+                                             ntrain=ntrain,
+                                             factor=factor,
+                                             num_edges=min_edges,
+                                             ncores=ncores)
+          
+          
+          print('checkpoint 3')
+  
+          # keep statistics
+          res_GPP_BIC_v3  <- res_GPP_BIC_v4[[1]]
+          res_GPP_BIC_me0 <- res_GPP_BIC_v4[[2]]
+          
+          # case when we have no graph
+          if(is.atomic(res_GPP_BIC_v3[[1]]) && length(res_GPP_BIC_v3[[1]]) == 1 && is.na(res_GPP_BIC_v3[[1]])){
+            graph_all[["GPP_BIC"]] <- NA
+            graph_all[["weighted_GPP_BIC"]] <- NA
+          } else{
+            graph_all[["GPP_BIC"]] = as.matrix((get_groupNorm(res_GPP_BIC_v3[[1]], grpind)!=0)+0)
+            graph_all[["weighted_GPP_BIC"]] = as.matrix((get_groupNorm(res_GPP_BIC_v3[[1]], grpind)))          
+          }
+          
+  
+          graph_all[['tuning_parameters']] <- c(res_GPP_BIC_v3[[2]], res_GPP_BIC_v3[[3]])  # params 
+          graph_all[['tuning_parameter_indices']] <- c(res_GPP_BIC_v3[[4]], res_GPP_BIC_v3[[5]])  # indices 
+          graph_all[['tuning_parameter_max_indices']] <- c(res_GPP_BIC_v3[[6]], res_GPP_BIC_v3[[7]])  # max indices 
+          
+          graph_all[["GPP_BIC_me0"]] = as.matrix((get_groupNorm(res_GPP_BIC_me0[[1]], grpind)!=0)+0)
+          graph_all[["weighted_GPP_BIC_me0"]] = as.matrix((get_groupNorm(res_GPP_BIC_me0[[1]], grpind)))
+          graph_all[['tuning_parameters_me0']] <- c(res_GPP_BIC_me0[[2]], res_GPP_BIC_me0[[3]])  # params 
+          graph_all[['tuning_parameter_indices_me0']] <- c(res_GPP_BIC_me0[[4]], res_GPP_BIC_me0[[5]])  # indices 
+          graph_all[['tuning_parameter_max_indices_me0']] <- c(res_GPP_BIC_me0[[6]], res_GPP_BIC_me0[[7]])  # max indices 
+          
+          graph_all[['missing_neurons']] <- inactive_neurons
+          graph_all[['time_scale']] <- time_scale
+          graph_all[['num_replicates']] <- num_replicates
+          
         }
-        
-        
-        grpind = cumsum(d_seq)
-        
-        
-        
-        grpind = cbind(c(1, grpind[1:(p-1)]+1),
-                       grpind[1:p] )
-        
-        
-        
-        col_keep =  lapply(FVE_list, function(x){
-          d = min(which(x>FVE_thre)[1], dmax) # modification to ensure we stay below dmax
-          col_ind = rep(FALSE,dmax)
-          col_ind[1:d] = TRUE
-          col_ind
-        })
-        
-        
-        col_keep = do.call(c, col_keep)
-        
-        Rmat = Rmat[col_keep,col_keep]
-        
-        
-        
-        ### deal with small/negative eigenvalues of the corr matrix 
-        # Rmat_IC_ts = adjust_R_troubleshoot(Rmat)
-        Rmat_IC = adjust_R(Rmat)
-        ###
-        graph_all = list()
-        
-        ### get sparse corr matrix using GPP method ####
-        
-        # BIC 
-        factor = sqrt(ntrain)
-        res_GPP_BIC_v4 = run_GPP_HT_BIC_v4(Rmat=Rmat_IC,
-                                           grpind=grpind,
-                                           ntrain=ntrain,
-                                           factor=factor,
-                                           num_edges=min_edges,
-                                           ncores=ncores)
-        
-        
-        print('checkpoint 3')
-
-        # keep statistics
-        res_GPP_BIC_v3  <- res_GPP_BIC_v4[[1]]
-        res_GPP_BIC_me0 <- res_GPP_BIC_v4[[2]]
-        
-        graph_all[["GPP_BIC"]] = as.matrix((get_groupNorm(res_GPP_BIC_v3[[1]], grpind)!=0)+0)
-        graph_all[["weighted_GPP_BIC"]] = as.matrix((get_groupNorm(res_GPP_BIC_v3[[1]], grpind)))
-        graph_all[['missing_neurons']] <- inactive_neurons
-        graph_all[['tuning_parameters']] <- c(res_GPP_BIC_v3[[2]], res_GPP_BIC_v3[[3]])  # params 
-        graph_all[['tuning_parameter_indices']] <- c(res_GPP_BIC_v3[[4]], res_GPP_BIC_v3[[5]])  # indices 
-        graph_all[['tuning_parameter_max_indices']] <- c(res_GPP_BIC_v3[[6]], res_GPP_BIC_v3[[7]])  # max indices 
-        
-        graph_all[["GPP_BIC_me0"]] = as.matrix((get_groupNorm(res_GPP_BIC_me0[[1]], grpind)!=0)+0)
-        graph_all[["weighted_GPP_BIC_me0"]] = as.matrix((get_groupNorm(res_GPP_BIC_me0[[1]], grpind)))
-        graph_all[['tuning_parameters_me0']] <- c(res_GPP_BIC_me0[[2]], res_GPP_BIC_me0[[3]])  # params 
-        graph_all[['tuning_parameter_indices_me0']] <- c(res_GPP_BIC_me0[[4]], res_GPP_BIC_me0[[5]])  # indices 
-        graph_all[['tuning_parameter_max_indices_me0']] <- c(res_GPP_BIC_me0[[6]], res_GPP_BIC_me0[[7]])  # max indices 
-        
-        graph_all[['time_scale']] <- time_scale
-        graph_all[['num_replicates']] <- num_replicates
         
         ### save results 
         
