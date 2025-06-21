@@ -1,0 +1,141 @@
+---
+title: "Conditional_LGCP_Visualization"
+author: "Jasen Zhang"
+date: "6/20/2025"
+output: html_document
+---
+
+# task 1: retrieve week 1 of WT1 mouse, and partition it into 4 chunks (running/resting vs VR on/off)
+
+```{r message=FALSE, warning=FALSE}
+source('/u/home/j/jasenzz/Alzheimers/utils/0_Dependencies.R')
+data_dir <- '/u/home/j/jasenzz/Alzheimers/Data/'
+library(tidyverse)
+
+```
+
+
+```{r}
+weekly_dataset <- load_realigned_dataset(data_dir)[[1]]
+neuron_df <- load_brain_region_dataset(data_dir)[[1]]
+
+
+ID <- '361'
+ID2 <- 'WT1'
+
+weekly_dataset_i <- weekly_dataset[[ID]]
+df_neuron_info <- neuron_info(ID, neuron_df)
+n_neurons <- nrow(df_neuron_info)
+
+# only keep the first week
+
+week_j <- names(weekly_dataset_i)[3]
+
+df_ij <- weekly_dataset_i[[week_j]]
+
+raw_ij <- df_ij[[1]]  # the raw data for the week
+AP_ij <- df_ij[[2]]   # the AP firings for the week
+
+# create binary running variable
+
+running_binary <- label_activity_mode(raw_ij$velocity)
+running_binary_v2 <- rep(0, length(running_binary))
+running_binary_v2[running_binary == 'running'] <- 1
+raw_ij$running <- running_binary_v2
+
+table(raw_ij$isVisible, raw_ij$running)
+```
+
+## now we visualize the data and shade in the 4 regions
+
+```{r}
+
+    
+graph_title <- paste0(ID2, ', week ', week_j, ', discrete stratas')
+
+# preprocessing
+
+shade_df_VR <- get_shade_regions(raw_ij$time, raw_ij$isVisible)
+shade_df_Running <- get_shade_regions(raw_ij$time, raw_ij$running)
+
+spikes_ij_df <- enframe(AP_ij, name = "neuron", value = "spike_times") %>%
+    unnest(spike_times)  
+
+num_hip_neurons <- max(df_neuron_info$Neuron_Num[df_neuron_info$Brain_Region == 'Hippocampus'])
+
+electrode_borders <- df_neuron_info %>% 
+  group_by(Electrode_Num) %>% 
+  summarise(electrode_border = max(Neuron_Num))
+
+electrode_borders <- electrode_borders$electrode_border[1:(nrow(electrode_borders)-1)] 
+
+pt_size <- 0.05
+pt_alpha <- 0.5
+
+# basic plot with just points
+
+n_total <- nrow(spikes_ij_df)
+n_sampled <- floor(n_total * 0.2)
+spikes_ij_df_sparse <- spikes_ij_df[sample(n_total, n_sampled), ]
+
+g_full <- ggplot() + 
+  geom_point(data = spikes_ij_df, aes(x = spike_times, y = neuron), 
+             size = pt_size, 
+             alpha = pt_alpha) +  
+  theme_bw() + 
+  ylab('Neuron Number') + 
+  xlab('Time (sec)') + 
+  ggtitle(graph_title)  
+
+g_sparse <- ggplot() + 
+  geom_point(data = spikes_ij_df_sparse, aes(x = spike_times, y = neuron), 
+             size = pt_size, 
+             alpha = pt_alpha) +  
+  theme_bw() + 
+  ylab('Neuron Number') + 
+  xlab('Time (sec)') + 
+  ggtitle(graph_title)  
+
+# shade in running
+g2 <- g_sparse +
+  geom_rect(data = shade_df_Running,
+            aes(xmin = xmin, xmax = xmax, ymin = -Inf, ymax = Inf),
+            inherit.aes = FALSE,
+            fill = "lightcoral", alpha = 0.5)  
+
+# shade in VR 
+
+g3 <- g2 + 
+  geom_rect(data = shade_df_VR,
+            aes(xmin = xmin, xmax = xmax, ymin = -Inf, ymax = Inf),
+            inherit.aes = FALSE,
+            fill = "lightgreen", alpha = 0.5)
+
+
+# brain region border
+g4 <- g3 + geom_hline(yintercept = num_hip_neurons + 0.5, color = 'red', size = 0.25)
+
+#electode border
+g5 <- g3 + 
+  geom_hline(yintercept = electrode_borders + 0.5, color = 'dodgerblue', size = 0.25) +
+  geom_hline(yintercept = num_hip_neurons + 0.5, color = 'red', size = 0.25) 
+      
+# plot covariates over time
+
+g_covariates <- ggplot() + geom_line(data = raw_ij, aes(x = time, y = 2 * isVisible + running)) + 
+  ylab('Covariate Value') + 
+  xlab('Time (sec)') + 
+  theme_bw() +
+  ggtitle('VR On (2, 3), Running (1, 3)')
+
+pdf('raw_data_demo.pdf', width = 10, height = 6)
+g_full
+g_sparse
+g2
+g3
+g4
+g5
+g_covariates
+dev.off()
+
+```
