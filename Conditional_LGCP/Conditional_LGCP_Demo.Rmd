@@ -5,145 +5,9 @@ date: "6/9/2025"
 output: pdf_document
 ---
 
-# task 1: retrieve week 1 of WT1 mouse, and partition it into 4 chunks (running/resting vs VR on/off)
-
-```{r message=FALSE, warning=FALSE}
-source('/u/home/j/jasenzz/Alzheimers/utils/0_Dependencies.R')
-data_dir <- '/u/home/j/jasenzz/Alzheimers/Data/'
-library(tidyverse)
-
-```
-
-
-```{r}
-weekly_dataset <- load_realigned_dataset(data_dir)[[1]]
-neuron_df <- load_brain_region_dataset(data_dir)[[1]]
-
-
-ID <- '361'
-ID2 <- 'WT1'
-
-weekly_dataset_i <- weekly_dataset[[ID]]
-df_neuron_info <- neuron_info(ID, neuron_df)
-n_neurons <- nrow(df_neuron_info)
-
-# only keep the first week
-
-week_j <- names(weekly_dataset_i)[3]
-
-df_ij <- weekly_dataset_i[[week_j]]
-
-raw_ij <- df_ij[[1]]  # the raw data for the week
-AP_ij <- df_ij[[2]]   # the AP firings for the week
-
-# create binary running variable
-
-running_binary <- label_activity_mode(raw_ij$velocity)
-running_binary_v2 <- rep(0, length(running_binary))
-running_binary_v2[running_binary == 'running'] <- 1
-raw_ij$running <- running_binary_v2
-
-table(raw_ij$isVisible, raw_ij$running)
-```
-
-## now we visualize the data and shade in the 4 regions
-
-```{r}
-
-    
-graph_title <- paste0(ID2, ', week ', week_j, ', discrete stratas')
-
-# preprocessing
-
-shade_df_VR <- get_shade_regions(raw_ij$time, raw_ij$isVisible)
-shade_df_Running <- get_shade_regions(raw_ij$time, raw_ij$running)
-
-spikes_ij_df <- enframe(AP_ij, name = "neuron", value = "spike_times") %>%
-    unnest(spike_times)  
-
-num_hip_neurons <- max(df_neuron_info$Neuron_Num[df_neuron_info$Brain_Region == 'Hippocampus'])
-
-electrode_borders <- df_neuron_info %>% 
-  group_by(Electrode_Num) %>% 
-  summarise(electrode_border = max(Neuron_Num))
-
-electrode_borders <- electrode_borders$electrode_border[1:(nrow(electrode_borders)-1)] 
-
-pt_size <- 0.05
-pt_alpha <- 0.5
-
-# basic plot with just points
-
-n_total <- nrow(spikes_ij_df)
-n_sampled <- floor(n_total * 0.2)
-spikes_ij_df_sparse <- spikes_ij_df[sample(n_total, n_sampled), ]
-
-g_full <- ggplot() + 
-  geom_point(data = spikes_ij_df, aes(x = spike_times, y = neuron), 
-             size = pt_size, 
-             alpha = pt_alpha) +  
-  theme_bw() + 
-  ylab('Neuron Number') + 
-  xlab('Time (sec)') + 
-  ggtitle(graph_title)  
-
-g_sparse <- ggplot() + 
-  geom_point(data = spikes_ij_df_sparse, aes(x = spike_times, y = neuron), 
-             size = pt_size, 
-             alpha = pt_alpha) +  
-  theme_bw() + 
-  ylab('Neuron Number') + 
-  xlab('Time (sec)') + 
-  ggtitle(graph_title)  
-
-# shade in running
-g2 <- g_sparse +
-  geom_rect(data = shade_df_Running,
-            aes(xmin = xmin, xmax = xmax, ymin = -Inf, ymax = Inf),
-            inherit.aes = FALSE,
-            fill = "lightcoral", alpha = 0.5)  
-
-# shade in VR 
-
-g3 <- g2 + 
-  geom_rect(data = shade_df_VR,
-            aes(xmin = xmin, xmax = xmax, ymin = -Inf, ymax = Inf),
-            inherit.aes = FALSE,
-            fill = "lightgreen", alpha = 0.5)
-
-
-# brain region border
-g4 <- g3 + geom_hline(yintercept = num_hip_neurons + 0.5, color = 'red', size = 0.25)
-
-#electode border
-g5 <- g3 + 
-  geom_hline(yintercept = electrode_borders + 0.5, color = 'dodgerblue', size = 0.25) +
-  geom_hline(yintercept = num_hip_neurons + 0.5, color = 'red', size = 0.25) 
-      
-# plot covariates over time
-
-g_covariates <- ggplot() + geom_line(data = raw_ij, aes(x = time, y = 2 * isVisible + running)) + 
-  ylab('Covariate Value') + 
-  xlab('Time (sec)') + 
-  theme_bw() +
-  ggtitle('VR On (2, 3), Running (1, 3)')
-
-pdf('raw_data_demo.pdf', width = 10, height = 6)
-g_full
-g_sparse
-g2
-g3
-g4
-g5
-g_covariates
-dev.off()
-
-```
-
-
 ## estimation on just one week, 2 binary covariates (4 levels)
 
-- We can start here
+# week 19, WT1
 
 ```{r}
 ffs = 1
@@ -154,8 +18,14 @@ set.seed(ffs)
 
 source('functions/01_kernel_estimation.R')
 source('functions/02_intensity_estimation.R')
+source('functions/03_covariance_function_estimation.R')
+source('functions/04_eigendecomposition.R')
+source('functions/05_KL_coefficients.R')
+source('functions/06_kernel_matrix.R')
+source('functions/07_regression_operator.R')
 
 library(dplyr)
+library(data.table)
 
 load('data/WT1_w19_demo_data.rda')
 
@@ -178,31 +48,35 @@ for(y_ind in 1:nrow(discrete_strata)){ # 1) for each discrete variable level
   s_yd <- y_d_df$subject_num[apply(cov_df, 1, function(x) all(x == yd_i))]  # s_yd = indices
   data_df2 <- data_df %>% filter(subject_num %in% s_yd)
   
+  y_c_strata <- y_c_df %>% filter(subject_num %in% s_yd) %>% select(-subject_num) %>% as.matrix()
+  
   # 2a) we now have the dataframe with replicates and are ready to do inference
   
-  data_df3 <- data_df2[, if (.N >= 100) .SD, by = feature_id]
+  # data_df3 <- data_df2[, if (.N >= 100) .SD, by = feature_id]
   
   # 2b) there are some rare cases when gamma is so inflated that it makes calculations insane
   
-  f_ids <- c()
-  for(f_id in unique(data_df3$feature_id)){
-      data_i = data_df3[feature_id==f_id,]
-      data_i_count = data_i[,.(count=.N),by="subject_num"]
-      
-      gamma = get_gamma(data_i$time)
-      if(gamma > 100){
-          f_ids <- c(f_ids, f_id)
-      }
-  }
-  
-  if(length(f_ids) > 0){
-      print('GAMMA IS INFLATED, WE REMOVED THESE NEURONS')
-      print(f_ids)
-  }
-  
-  data_df4 <- data_df3[!feature_id %in% f_ids] 
+  # f_ids <- c()
+  # for(f_id in unique(data_df3$feature_id)){
+  #     data_i = data_df3[feature_id==f_id,]
+  #     data_i_count = data_i[,.(count=.N),by="subject_num"]
+  #     
+  #     gamma = get_gamma(data_i$time)
+  #     if(gamma > 100){
+  #         f_ids <- c(f_ids, f_id)
+  #     }
+  # }
+  # 
+  # if(length(f_ids) > 0){
+  #     print('GAMMA IS INFLATED, WE REMOVED THESE NEURONS')
+  #     print(f_ids)
+  # }
+  # 
+  # data_df4 <- data_df3[!feature_id %in% f_ids] 
   
   # 3) counting neurons
+  
+  data_df4 <- data_df2 %>% filter(feature_id %in% 1:5)
   
   neuron_count <- 249
   
@@ -240,19 +114,30 @@ for(y_ind in 1:nrow(discrete_strata)){ # 1) for each discrete variable level
   
   # estimation of rho
   
+  
+  
   rho_list <- estimate_intensities_stratum(data_df4, patient_sel, feature_sel, Tseq)
   
+  rho_list <- estimate_intensities_stratum_parallel(data_df4, patient_sel, feature_sel, Tseq, ncores)
   
-  # res$mu = \hat{rho}_i
-  # rho_diag$d = KL coeffients
-  # rho_diag$Sigma_ii = G_{ii}(s, t)
+  # part 3
+  g_ij_st <- estimate_covariance_functions(rho_list$rho_hat, rho_list$rho_hat_pairs)
   
-  # Rmat_diag_full = get_rho_diag_pp_reproduce(data_all=data_df4,
-  #                                            patient_sel=patient_sel,
-  #                                            feature_sel=feature_sel,
-  #                                            Tseq=Tseq,
-  #                                            dmax=dmax,
-  #                                            ncores=ncores)
+  # part 4
+  eigen_decomp <- compute_eigendecomposition(g_ij_st)
+  
+  # part 5
+  
+  kl_coeffs <- estimate_kl_coefficients(data_df4, eigen_decomp$eigenfunctions, eigen_decomp$n_dims, 
+                                        patient_sel, feature_sel, Tseq)
+  
+  # part 6
+  gamma_c <- select_gamma_c_bandwidth(y_c_strata)
+  K_c <- construct_kernel_matrix_step_6(y_c_strata, gamma_c)
+  
+  # part 7
+  V_YcXij <- construct_cross_covariance_matrix(kl_coeffs)
+  M_hat <- estimate_regression_operators(K_c, V_YcXij, gamma_c, p)
   
   print('checkpoint 1')
   
