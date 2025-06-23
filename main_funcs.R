@@ -106,7 +106,7 @@ main_algorithm <- function(ews, ew_symb, movements, task_num, tn_symb, tns, min_
         print(paste('do they add up? ', length(unique(data_df4$feature_id)) + length(missing_neurons) + length(silent_neurons) == unname(neuron_count)))
         
         
-        if(num_replicates < 5){ # don't fit and return NA
+        if(num_replicates < 5 || nrow(data_df4) == 0){ # don't fit and return NA
           
           graph_all[["GPP_BIC"]] = NA
           graph_all[["weighted_GPP_BIC"]] = NA        
