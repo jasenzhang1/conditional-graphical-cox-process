@@ -23,6 +23,10 @@ source('functions/04_eigendecomposition.R')
 source('functions/05_KL_coefficients.R')
 source('functions/06_kernel_matrix.R')
 source('functions/07_regression_operator.R')
+source('functions/08_conditional_covariance.R')
+source('functions/09_conditional_correlation.R')
+source('functions/10_precision_operator.R')
+source('functions/11_graph_estimation.R')
 
 library(dplyr)
 library(data.table)
@@ -118,7 +122,7 @@ for(y_ind in 1:nrow(discrete_strata)){ # 1) for each discrete variable level
   
   rho_list <- estimate_intensities_stratum(data_df4, patient_sel, feature_sel, Tseq)
   
-  rho_list <- estimate_intensities_stratum_parallel(data_df4, patient_sel, feature_sel, Tseq, ncores)
+  rho_list_parallel <- estimate_intensities_stratum_parallel(data_df4, patient_sel, feature_sel, Tseq, ncores)
   
   # part 3
   g_ij_st <- estimate_covariance_functions(rho_list$rho_hat, rho_list$rho_hat_pairs)
@@ -138,6 +142,22 @@ for(y_ind in 1:nrow(discrete_strata)){ # 1) for each discrete variable level
   # part 7
   V_YcXij <- construct_cross_covariance_matrix(kl_coeffs)
   M_hat <- estimate_regression_operators(K_c, V_YcXij, gamma_c, p)
+  
+  # part 8
+  query_y_c <- 20
+  V_cond <- evaluate_regression_at_query(M_hat, y_c_strata, query_y_c, eigen_decomp$eigenfunctions, gamma_c, p)
+  
+  # part 9
+  gamma1 <- 0.1
+  C_cond <- estimate_conditional_correlation(V_cond, gamma1, p)
+  
+  # part 10
+  gamma2 <- 0.01
+  P_cond <- estimate_precision_operator(C_cond, gamma2, p)
+  
+  # part 11
+  threshold <- select_threshold_by_stability(P_cond, p)
+  final_graph_estimates <- estimate_graph(P_cond, threshold, p)
   
   print('checkpoint 1')
   

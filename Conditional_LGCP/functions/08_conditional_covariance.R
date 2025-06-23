@@ -1,24 +1,56 @@
 evaluate_kernel_weights_at_query <- function(Y_continuous_stratum, query_y_c, gamma_c) {
   
+  # ---------------------------------------------------------------------------
   #
   #
-  # Compute kernel weights for a query point
-  n_stratum <- nrow(Y_continuous_stratum)
-  kernel_weights <- numeric(n_stratum)
+  # GOAL: Compute kernel weights, w_k(y_c), for a query point
+  #
+  # - each row of Y_continuous_stratum is a vector of continuous covariates
+  # - feed this vector into the kernel wrt query_y_c and gamma_c
+  # 
+  # Input:
+  # 
+  # - Y_continuous_stratum   (n_stratum x q_c matrix)
+  # - query_y_c              (q_c dim vector)
+  # - gamma_c                (scalar)
+  #
+  # 
+  # Output:
+  #
+  # - kernel_weights (n_stratum dim vector)
+  # 
+  #
+  # ---------------------------------------------------------------------------
   
-  for (k in 1:n_stratum) {
-    y_k <- Y_continuous_stratum[k, ]  # q_c x 1
-    kernel_weights[k] <- rbf_kernel(query_y_c, y_k, gamma_c)  # scalar
-  }
+  
+  kernel_weights <- apply(Y_continuous_stratum, 1, step_6_kernel, y2 = query_y_c, gamma_c = gamma_c)
   
   return(kernel_weights)
 }
 
 evaluate_regression_at_query <- function(M_hat, Y_continuous_stratum, query_y_c, 
                                          eigenfunctions, gamma_c, p) {
-  # Input: M_hat (list), Y_continuous_stratum (n_stratum x q_c)
-  #        query_y_c (q_c x 1), eigenfunctions (list of p matrices m x d)
-  # Output: V_conditional (list of length p^2, each element is m x m matrix)
+  
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: evaluate regression at query
+  #
+  #
+  # Input: 
+  #
+  # - M_hat                  (p^2 length list where each entry is 'i_j') 
+  # - Y_continuous_stratum   (n_stratum x q_c matrix)
+  # - query_y_c              (q_c dim vector)
+  # - eigenfunctions         (list of p matrices, each of which is m x d_i)
+  #
+  #
+  # Output: 
+  #
+  # - V_conditional (list of length p^2, each element is m x m matrix)
+  #
+  #
+  # ----------------------------------------------------------------------------
   
   max_components <- ncol(eigenfunctions[[1]])  # d
   n_time <- nrow(eigenfunctions[[1]])          # m
@@ -44,7 +76,7 @@ evaluate_regression_at_query <- function(M_hat, Y_continuous_stratum, query_y_c,
           eta_ia <- eigenfunctions[[i]][, a]  # m x 1 vector
           eta_jb <- eigenfunctions[[j]][, b]  # m x 1 vector
           # Tensor product: (m x 1) %*% (1 x m) = (m x m)
-          tensor_prod <- tensor_product(eta_ia, eta_jb)
+          tensor_prod <- outer(eta_ia, eta_jb)
           # Weighted sum: scalar * (m x m) + (m x m) = (m x m)
           V_cond_ij <- V_cond_ij + M_ab_at_query * tensor_prod
         }

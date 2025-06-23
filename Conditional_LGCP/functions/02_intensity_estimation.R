@@ -154,9 +154,7 @@ estimate_intensities_stratum_parallel <- function(data_all, patient_sel, feature
   #
   # ---------------------------------------------------------------------------
   
-  library(future.apply)
-  library(dplyr)
-  library(data.table)  
+
   
   plan(multisession, workers = ncores)
   
