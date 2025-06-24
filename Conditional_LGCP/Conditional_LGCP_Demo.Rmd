@@ -10,77 +10,47 @@ output: pdf_document
 # week 19, WT1
 
 ```{r}
+t_start <- Sys.time()
 ffs = 1
 set.seed(ffs)
-# source("../GraphPP_FUN.R")
-# source("../modified_funcs.R")
-# source("Conditional_LGCP_funcs.R")
 
-source('functions/01_kernel_estimation.R')
-source('functions/02_intensity_estimation.R')
-source('functions/03_covariance_function_estimation.R')
-source('functions/04_eigendecomposition.R')
-source('functions/05_KL_coefficients.R')
-source('functions/06_kernel_matrix.R')
-source('functions/07_regression_operator.R')
-source('functions/08_conditional_covariance.R')
-source('functions/09_conditional_correlation.R')
-source('functions/10_precision_operator.R')
-source('functions/11_graph_estimation.R')
 
-library(dplyr)
-library(data.table)
+source('functions/00_function_wrapper.R')
 
-load('data/WT1_w19_demo_data.rda')
+load('data/WT1_data.rda')
 
 ncores <- parallel::detectCores() - 1
 
-data_df <- LGCP_data[[1]]
+data_df <- LGCP_data[[1]] 
 y_d_df <- LGCP_data[[2]]
 y_c_df <- LGCP_data[[3]]
+
+query_y_cs <- 17:28
 
 # extract the binary levels
 cov_df <- y_d_df %>% dplyr::select(- subject_num)
 
 discrete_strata <- cov_df %>% unique()
 
-min_edges <- 0
+results <- list()
 
 for(y_ind in 1:nrow(discrete_strata)){ # 1) for each discrete variable level
   
   yd_i <- discrete_strata[y_ind, ]
+  discrete_strata_name <- paste0('m', yd_i$movement, 'vr', yd_i$VR)
+    
   s_yd <- y_d_df$subject_num[apply(cov_df, 1, function(x) all(x == yd_i))]  # s_yd = indices
   data_df2 <- data_df %>% filter(subject_num %in% s_yd)
   
-  y_c_strata <- y_c_df %>% filter(subject_num %in% s_yd) %>% select(-subject_num) %>% as.matrix()
+  y_c_strata <- y_c_df %>% filter(subject_num %in% s_yd) %>% dplyr::select(-subject_num) %>% as.matrix()
   
-  # 2a) we now have the dataframe with replicates and are ready to do inference
-  
-  # data_df3 <- data_df2[, if (.N >= 100) .SD, by = feature_id]
-  
-  # 2b) there are some rare cases when gamma is so inflated that it makes calculations insane
-  
-  # f_ids <- c()
-  # for(f_id in unique(data_df3$feature_id)){
-  #     data_i = data_df3[feature_id==f_id,]
-  #     data_i_count = data_i[,.(count=.N),by="subject_num"]
-  #     
-  #     gamma = get_gamma(data_i$time)
-  #     if(gamma > 100){
-  #         f_ids <- c(f_ids, f_id)
-  #     }
-  # }
-  # 
-  # if(length(f_ids) > 0){
-  #     print('GAMMA IS INFLATED, WE REMOVED THESE NEURONS')
-  #     print(f_ids)
-  # }
-  # 
-  # data_df4 <- data_df3[!feature_id %in% f_ids] 
   
   # 3) counting neurons
   
-  data_df4 <- data_df2 %>% filter(feature_id %in% 1:5)
+  data_df4 <- data_df2 
+  
+  s_yd <- unique(data_df4$subject_num)
+  y_c_strata <- y_c_df %>% filter(subject_num %in% s_yd) %>% dplyr::select(-subject_num) %>% as.matrix()
   
   neuron_count <- 249
   
@@ -98,7 +68,7 @@ for(y_ind in 1:nrow(discrete_strata)){ # 1) for each discrete variable level
   print(paste('discarded neurons: ', length(missing_neurons)))              # discarded neurons
   print(paste('silent neurons: ', length(silent_neurons)))                  # silent neurons
   print(paste('do they add up? ', length(unique(data_df4$feature_id)) + length(missing_neurons) + length(silent_neurons) == unname(neuron_count)))
-  
+  print('-------------------------------------')
   
   # retroactively get parameters
   
@@ -118,108 +88,79 @@ for(y_ind in 1:nrow(discrete_strata)){ # 1) for each discrete variable level
   
   # estimation of rho
   
+  t1 <- Sys.time()
   
+  # rho_list <- estimate_intensities_stratum(data_df4, patient_sel, feature_sel, Tseq)
+  # t2 <- Sys.time()
   
-  rho_list <- estimate_intensities_stratum(data_df4, patient_sel, feature_sel, Tseq)
+  rho_list <- estimate_intensities_stratum_parallel(data_df4, patient_sel, feature_sel, Tseq, ncores)
+  t2 <- Sys.time()
   
-  rho_list_parallel <- estimate_intensities_stratum_parallel(data_df4, patient_sel, feature_sel, Tseq, ncores)
+  time_elapsed <- round(as.numeric(difftime(t2, t1, units = 'mins')), 2)
+  print(paste0('checkpoint 1: ', time_elapsed, ' mins'))
   
   # part 3
   g_ij_st <- estimate_covariance_functions(rho_list$rho_hat, rho_list$rho_hat_pairs)
+
   
   # part 4
   eigen_decomp <- compute_eigendecomposition(g_ij_st)
+
   
   # part 5
-  
+  # redundant alphas are set to 0
   kl_coeffs <- estimate_kl_coefficients(data_df4, eigen_decomp$eigenfunctions, eigen_decomp$n_dims, 
                                         patient_sel, feature_sel, Tseq)
+
   
   # part 6
   gamma_c <- select_gamma_c_bandwidth(y_c_strata)
   K_c <- construct_kernel_matrix_step_6(y_c_strata, gamma_c)
+
   
   # part 7
   V_YcXij <- construct_cross_covariance_matrix(kl_coeffs)
   M_hat <- estimate_regression_operators(K_c, V_YcXij, gamma_c, p)
+
+  t3 <- Sys.time()
+  
+  time_elapsed <- round(as.numeric(difftime(t3, t2, units = 'mins')), 2)
+  print(paste0('checkpoint 2: ', time_elapsed, ' mins'))  
   
   # part 8
-  query_y_c <- 20
-  V_cond <- evaluate_regression_at_query(M_hat, y_c_strata, query_y_c, eigen_decomp$eigenfunctions, gamma_c, p)
+  for(query_y_c_ in query_y_cs){
+    
   
-  # part 9
-  gamma1 <- 0.1
-  C_cond <- estimate_conditional_correlation(V_cond, gamma1, p)
-  
-  # part 10
-  gamma2 <- 0.01
-  P_cond <- estimate_precision_operator(C_cond, gamma2, p)
-  
-  # part 11
-  threshold <- select_threshold_by_stability(P_cond, p)
-  final_graph_estimates <- estimate_graph(P_cond, threshold, p)
-  
-  print('checkpoint 1')
-  
-  Rmat = get_cor_gpp(res=Rmat_diag_full$res, 
-                     rho_diag=Rmat_diag_full$rho_diag,
-                     NN=length(patient_sel),
-                     dmax=dmax)  
-  
-  print('checkpoint 2')
-  
-  ### choose d based on FVE
-  FVE_list = lapply(Rmat_diag_full$rho_diag, function(x){x$cumFVE})
-  
-  d_seq = sapply(FVE_list, function(x){
-      which(x>FVE_thre)[1]
-  })
-
-  if(max(d_seq) > dmax){
-      print('needed to trigger dseq truncation!')
-      d_seq <- pmin(d_seq, dmax)
+    query_y_c <- 20 # regress on week 20
+    V_cond <- evaluate_regression_at_query(M_hat, y_c_strata, query_y_c, eigen_decomp$eigenfunctions, gamma_c, p)
+    
+    # part 9
+    gamma1 <- 0.01
+    C_cond <- estimate_conditional_correlation(V_cond, gamma1, p)
+    
+    # part 10
+    gamma2 <- 0.01
+    P_cond <- estimate_precision_operator(C_cond, gamma2, p)
+    
+    # part 11
+    threshold <- select_threshold_by_stability(P_cond, p)
+    final_graph_estimates <- estimate_graph(P_cond, threshold, p)
+    
+    results_name <- paste0(discrete_strata_name, '_w', query_y_c)
+    
+    results[[results_name]] <- final_graph_estimates
   }
   
+  t4 <- Sys.time()
   
-  grpind = cumsum(d_seq)
-  grpind = cbind(c(1, grpind[1:(p-1)]+1),
-                 grpind[1:p] )
-  col_keep =  lapply(FVE_list, function(x){
-      d = min(which(x>FVE_thre)[1], dmax) # modification to ensure we stay below dmax
-      col_ind = rep(FALSE,dmax)
-      col_ind[1:d] = TRUE
-      col_ind
-  })
-  
-  col_keep = do.call(c, col_keep)
-  Rmat = Rmat[col_keep,col_keep]
-  
-  
-  ### deal with small/negative eigenvalues of the corr matrix 
-  # Rmat_IC_ts = adjust_R_troubleshoot(Rmat)
-  Rmat_IC = adjust_R(Rmat)
-  
-  # obtain the continuous variable kernel 
-  
-  mat_continuous <- y_c_df %>% dplyr::select(- subject_num) %>% as.matrix()
-  
-  kappa_c <- kernel_RBF(s_yd, mat_continuous, 1)
-  
-  ###
-  
-  graph_all = list()
-  
-  ### get sparse corr matrix using GPP method ####
-  
-  # BIC 
-  factor = sqrt(ntrain)
-  res_GPP_BIC_v3 = run_GPP_HT_BIC_v3(Rmat=Rmat_IC,
-                                     grpind=grpind,
-                                     ntrain=ntrain,
-                                     factor=factor,
-                                     num_edges=min_edges,
-                                     ncores=ncores)  
+  time_elapsed <- round(as.numeric(difftime(t4, t1, units = 'mins')), 2)
+  print(paste0('strata ', y_ind, ' total time: ', time_elapsed, ' mins'))   
+  print('-------------------------------------')
 }
+
+t_end <- Sys.time()
+t_total <- round(as.numeric(difftime(t_end, t_start, units = 'mins')), 2)
+print(paste0('DONE, total time taken: ', t_total, ' mins'))
 ```
 
 
