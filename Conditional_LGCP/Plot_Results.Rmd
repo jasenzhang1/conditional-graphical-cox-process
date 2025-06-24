@@ -1,0 +1,54 @@
+---
+title: "Visualize Output"
+author: "Jasen Zhang"
+date: "6/24/2025"
+output: pdf_document
+---
+
+```{r}
+library(igraph)
+library(dplyr)
+results_dir <- './results'
+
+files <- list.files(path = results_dir, full.names = TRUE)
+
+for(file in files){
+  
+  load(file)
+  
+  node_names <- names(final_graph_estimates$edge_strengths)
+  
+  split_mat <- do.call(rbind, strsplit(node_names, "_"))
+  
+  # Extract numeric vectors
+  first_nums <- as.numeric(split_mat[, 1])
+  second_nums <- as.numeric(split_mat[, 2])  
+  
+  df_graph <- data.frame(first_nums, second_nums, unlist(final_graph_estimates$edge_strengths),
+                         1/unlist(final_graph_estimates$edge_strengths))
+  colnames(df_graph) <- c('from', 'to', 'weight', 'distance')
+  
+  
+  df_graph2 <- df_graph %>% arrange(distance)
+  n_trunc <- floor(nrow(df_graph2) * 0.01)
+  df_graph3 <- df_graph2[1:n_trunc,]
+  
+  # graph
+  
+  g <- graph_from_data_frame(df_graph3, directed = FALSE)
+  
+  layout <- layout_with_fr(g, weights = df_graph3$distance)
+  V(g)$size <- 10
+  V(g)$label.cex <- 2
+  # Plot the graph
+  plot(g,
+       layout = layout,
+       edge.width = df_graph3$weight,       # Thicker lines for higher weight
+       edge.label = df_graph3$weight) 
+  
+  png("results/graphs/my_graph.png", width = 2000, height = 1500)  # Open PNG device
+  
+  plot(g)  
+  dev.off() 
+}
+```
