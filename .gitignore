@@ -2,6 +2,8 @@ spike_data/
 results_alzheimers/
 
 Conditional_LGCP/data/
+Conditional_LGCP/figures/
+Conditional_LGCP/results/
 
 joblog*
 output*
