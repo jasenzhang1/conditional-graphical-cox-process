@@ -8,16 +8,21 @@ source('functions/00_function_wrapper.R')
 load('data/WT1_data.rda')
 ID2 <- 'WT1'
 
-included_neurons_vec <- c(5, 20, 50, 100)
+
 
 ncores <- parallel::detectCores() - 1
 # ncores <- 6
+
+print('Starting ----------------------------')
+print(paste0('number of cores: ', ncores))
 
 data_df <- LGCP_data[[1]] 
 y_d_df <- LGCP_data[[2]]
 y_c_df <- LGCP_data[[3]]
 
+# what to query
 query_y_cs <- c(17, 23, 28)
+included_neurons_vec <- c(5, 20, 50, 100)
 
 # extract the binary levels
 cov_df <- y_d_df %>% dplyr::select(- subject_num)
