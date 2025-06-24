@@ -46,7 +46,13 @@ compute_eigendecomposition <- function(G_hat, var_explained = 0.9) {
     # Keep only top d components
 
     eigenvalues[[i]] <- lambdas[1:d_i]        # d x 1 vector
-    eigenfunctions[[i]] <- etas[, 1:d_i]      # m x d matrix
+    
+    if(d_i == 1){
+      eigenfunctions[[i]] <- matrix(etas[, 1:d_i], nrow = n_time)
+    } else{
+      eigenfunctions[[i]] <- etas[, 1:d_i]      # m x d matrix
+    }
+    
     n_dims[[i]] <- d_i
   }
   

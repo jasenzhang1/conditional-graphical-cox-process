@@ -29,8 +29,16 @@ construct_cross_covariance_matrix <- function(alpha_hat_stratum) {
       # - outer product among the d dimensions
       # - elementwise concatenation along the n dimension
       
-      A <- alpha_hat_stratum[ , i ,]
-      B <- alpha_hat_stratum[ , j ,]
+      if(max_components == 1){
+        A <- alpha_hat_stratum[ , i ,]
+        A <- matrix(A, nrow = length(A))
+        B <- alpha_hat_stratum[ , j ,]   
+        B <- matrix(B, nrow = length(B))
+      } else{
+        A <- alpha_hat_stratum[ , i ,]
+        B <- alpha_hat_stratum[ , j ,]        
+      }
+
       
       V_matrix <- abind(
         lapply(1:n_stratum, function(i) A[i, ] %o% B[i, ]),

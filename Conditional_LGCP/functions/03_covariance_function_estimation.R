@@ -2,8 +2,10 @@
 
 estimate_covariance_functions <- function(rho_hat, rho_hat_pairs, regularization=1e-10) {
   
-  # 
-  # Want to estimate G_{ij}(s, t)  across all p x p pairs of processes
+  # ----------------------------------------------------------------------------
+  #
+  #
+  # GOAL: Want to estimate G_{ij}(s, t)  across all p x p pairs of processes
   #
   # 
   # Input: 
@@ -14,7 +16,9 @@ estimate_covariance_functions <- function(rho_hat, rho_hat_pairs, regularization
   #
   # Output: 
   #
-  # - G_hat (p x p x m x m array)
+  # - G_hat           (p x p x m x m array)
+  #
+  # ----------------------------------------------------------------------------
   
   p <- nrow(rho_hat)
   n_time <- ncol(rho_hat)

@@ -23,7 +23,7 @@ get_gamma <- function(tseq=NULL, gamma_max = 100){
   if(is.na(gamma)){
     return(gamma_max)
   } else{
-    return(gamma)
+    return(min(gamma, gamma_max))
   }
   
 }
@@ -109,14 +109,19 @@ estimate_density <- function(t_event, t_seq){
   gamma_hat = apply(kernel_evals,1,mean)/denom   # 19-dim vec / 19-dim vec
   names(gamma_hat) = paste("V",1:length(t_seq),sep="")
   
-  return(gamma_hat) # 19-dim vec
+  rho_hat = apply(kernel_evals,1,sum)/denom   # 19-dim vec / 19-dim vec
+  names(rho_hat) = paste("V",1:length(t_seq),sep="")  
+  
+  
+  
+  return(list(gamma_hat = gamma_hat, rho_hat = rho_hat, denom = denom, gamma = gamma)) # 19-dim vec
   
 }
 
 
 
 estimate_bivariate_density <- function(event_times_i, event_times_j, 
-                                       eval_grid_s, eval_grid_t) {
+                                       eval_grid_s, eval_grid_t, d_or_i) {
   
   # ------------------------------------------------------------------------
   #
@@ -130,10 +135,11 @@ estimate_bivariate_density <- function(event_times_i, event_times_j,
   # - event_times_j (n_j vector of times)
   # - eval_grid_s   (m_s-dimensional vector of realized times)
   # - eval_grid_t   (m_t-dimensional vector of realized times)
+  # - d_or_i        (string):  density or intensity
   # 
   # output:
   # 
-  # - density2   (m_s x m_t matrix) : bivariate density estimate
+  # - density2   (m_s x m_t matrix) : bivariate density/intensity estimate
   #
   # ------------------------------------------------------------------------
   
@@ -156,6 +162,7 @@ estimate_bivariate_density <- function(event_times_i, event_times_j,
   }
   
   density <- matrix(0, nrow=length(eval_grid_s), ncol=length(eval_grid_t))
+  intensity <- matrix(0, nrow=length(eval_grid_s), ncol=length(eval_grid_t))
   
   # correction factors
   
@@ -168,7 +175,7 @@ estimate_bivariate_density <- function(event_times_i, event_times_j,
   })  
   
   ws_wt <- outer(ws, wt, '*')   # matrix of all m_s x m_t combinations
-  
+
   # 2) iterate over all (s, t) combos
   
   for (i in 1:length(eval_grid_s)) {
@@ -182,23 +189,30 @@ estimate_bivariate_density <- function(event_times_i, event_times_j,
       
       #kernel_prod_mat <- outer(as.numeric(ks_vec), as.numeric(kt_vec), '*')  # n_i x n_j
       kernel_prod_mat <- t(ks_vec) %*% kt_vec # n_i x n_j
-
       
       if (identical(event_times_i, event_times_j)) {  # Same process (diagonal)
-        
-        kernel_prod_mat_remove_diag <- kernel_prod_mat - diag(kernel_prod_mat)  # remove cases where l = l'
-        kernel_sum <- sum(kernel_prod_mat_remove_diag)
+        kernel_sum <- sum(kernel_prod_mat) - sum(diag(kernel_prod_mat))
         kernel_mean <- kernel_sum / (xi_i * (xi_i - 1))
       } else{ # different process 
         kernel_sum <- sum(kernel_prod_mat)
         kernel_mean <- kernel_sum / (xi_i * xi_j)
       }
       
+      
       density[i, j] <- kernel_mean
+      intensity[i, j] <- kernel_sum
     }
   }
   
   density2 <- density/ws_wt 
+  intensity2 <- intensity/ws_wt 
   
-  return(density2)
+  if(d_or_i == 'd'){
+    return(density2)
+  } 
+  if(d_or_i == 'i'){
+    return(intensity2)
+  }
+  
+  return(NULL)
 }

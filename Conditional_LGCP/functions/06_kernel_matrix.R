@@ -98,3 +98,46 @@ select_gamma_c_bandwidth <- function(Y_continuous_stratum) {
 }
 
 
+select_gamma_c_bandwidth_v2 <- function(Y_continuous_stratum) {
+  
+  
+  # Heuristic for selecting gamma_c based on median pairwise distance
+  #
+  # - faster?
+  #
+  #
+  # Iinput: 
+  #
+  # - Y_continuous_stratum    (n_stratum x q_c matrix)
+  # 
+  #
+  # Output:
+  #
+  # - gamma_c
+  #
+  # 
+  # -------------------------
+  
+  q_c <- ncol(Y_continuous_stratum)
+  n_stratum <- nrow(Y_continuous_stratum)
+  if (n_stratum < 2) {
+    return(1.0)
+  }
+  
+  pairs <- combn(n_stratum, 2)  # All unique index pairs (2 x K matrix)
+  diffs <- Y_continuous_stratum[pairs[1, ], ] - Y_continuous_stratum[pairs[2, ], ]
+  if(q_c == 1){
+    distances <- abs(diffs)
+  } else{
+    distances <- sqrt(rowSums(diffs^2))
+  }
+
+  
+  median_dist <- median(distances)
+  
+  if(median_dist > 0){
+    return(1.0 / (median_dist^2))
+  } else{
+    return(1.0)
+  }
+}

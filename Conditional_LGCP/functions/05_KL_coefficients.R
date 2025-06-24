@@ -16,12 +16,8 @@ estimate_log_intensity_function <- function(event_times, t_seq) {
     return(rep(-10.0, length(t_seq)))  # Large negative value
   }
   
-  # Estimate density: returns m x 1 vector
-  gamma_hat <- estimate_density(event_times, t_seq)
-  
-  # Convert to intensity: Lambda^k_i(t) = xi^k_i * Gamma^k_i(t)
-  xi_ki <- length(event_times)  # scalar
-  lambda_hat <- xi_ki * gamma_hat  # scalar * (m x 1) = (m x 1)
+  # Estimate intensity: returns m x 1 vector
+  lambda_hat <- estimate_density(event_times, t_seq)$rho_hat
   
   # Take logarithm: (m x 1) -> (m x 1)
   X_hat <- log(pmax(lambda_hat, 1e-10))
@@ -32,22 +28,24 @@ estimate_log_intensity_function <- function(event_times, t_seq) {
 estimate_kl_coefficients <- function(data_all, eigenfunctions, truncations, patient_sel, feature_sel, 
                                      t_seq) {
 
+  # ----------------------------------------------------------------------------
+  #
   # GOAL: Obtain KL coefficients for subject k, process i
   #
   #
   # Input: 
   # 
-  # - data_all (data frame)  'feature_id', 'time', 'subject_num'
-  # - eigenfunctions (list of p matrices m x d_i) 
-  # - patient_sel (vector of patient_ID's in this stratum)
-  # - t_seq (vector of length m)
-  # - p      (number of processes)
+  # - data_all          (data frame for all processes, all subjects)  'feature_id', 'time', 'subject_num'
+  # - eigenfunctions    (list of p matrices of dimension m x d_i) 
+  # - patient_sel       (vector of patient_ID's in this stratum)
+  # - t_seq             (vector of length m)
+  # - p                 (number of processes)
   #
   # Output: 
   #
   # - alpha_hat (n_stratum x p x d array)
   #
-  #
+  # ----------------------------------------------------------------------------
   
   p <- length(feature_sel)
   
@@ -56,7 +54,7 @@ estimate_kl_coefficients <- function(data_all, eigenfunctions, truncations, pati
   n_stratum <- length(patient_sel)
   max_components <- ncol(eigenfunctions[[1]])  # d
   
-  max_components <- max(sapply(eigenfunctions, ncol))
+  max_components <- max(sapply(eigenfunctions, ncol) %>% unlist())
   
   # KL coefficients: n_stratum x p x d array
   alpha_hat <- array(0, dim=c(n_stratum, p, max_components))

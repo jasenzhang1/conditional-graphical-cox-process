@@ -43,6 +43,8 @@ evaluate_regression_at_query <- function(M_hat, Y_continuous_stratum, query_y_c,
   # - Y_continuous_stratum   (n_stratum x q_c matrix)
   # - query_y_c              (q_c dim vector)
   # - eigenfunctions         (list of p matrices, each of which is m x d_i)
+  # - gamma_c                (number)
+  # - p                      (integer)
   #
   #
   # Output: 
@@ -52,7 +54,8 @@ evaluate_regression_at_query <- function(M_hat, Y_continuous_stratum, query_y_c,
   #
   # ----------------------------------------------------------------------------
   
-  max_components <- ncol(eigenfunctions[[1]])  # d
+  components <- sapply(eigenfunctions, ncol) %>% unlist()
+  max_components <- max(components)  # d
   n_time <- nrow(eigenfunctions[[1]])          # m
   n_stratum <- nrow(Y_continuous_stratum)
   
@@ -68,8 +71,8 @@ evaluate_regression_at_query <- function(M_hat, Y_continuous_stratum, query_y_c,
       # Construct conditional covariance operator: m x m matrix
       V_cond_ij <- matrix(0, nrow=n_time, ncol=n_time)
       
-      for (a in 1:max_components) {
-        for (b in 1:max_components) {
+      for (a in 1:components[i]) {
+        for (b in 1:components[j]) {
           # Evaluate regression coefficient at query point: scalar
           M_ab_at_query <- sum(kernel_weights * M_hat[[key]][, a, b])
           
