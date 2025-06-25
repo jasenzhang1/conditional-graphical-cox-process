@@ -80,3 +80,55 @@ estimate_conditional_correlation <- function(V_conditional, gamma1, p) {
   
   return(C_conditional)
 }
+
+estimate_conditional_correlation_v2 <- function(V_conditional, gamma1, p) {
+  
+  # ---------------------------------------------------------------------
+  #
+  # GOAL: estimate conditional correlation
+  #
+  #
+  # Input: 
+  #
+  # - V_conditional      (list of length p^2, each element m x m)
+  # - gamma1             (scalar)
+  # - p                  (scalar)
+  #
+  #
+  # Output: 
+  #
+  # - C_conditional      (list of length p^2, each element m x m matrix)
+  #
+  #
+  #------------------------------------------------------------------------
+  
+  n_time <- nrow(V_conditional[[1]])  # m
+  C_conditional <- list()
+  
+  for (i in 1:p) {
+    for (j in i:p) {
+      key <- paste(i, j, sep="_")
+      
+      if (i == j) {
+        # Diagonal elements are identity: m x m
+        C_conditional[[key]] <- diag(n_time)
+      } else {
+        # Off-diagonal correlation
+        key_ii <- paste(i, i, sep="_")
+        key_jj <- paste(j, j, sep="_")
+        
+        V_ii <- V_conditional[[key_ii]] + gamma1 * diag(n_time)   # m x m
+        V_jj <- V_conditional[[key_jj]] + gamma1 * diag(n_time)   # m x m  
+        V_ij <- V_conditional[[key]]                              # m x m
+        
+        # Matrix operations: (m x m) %*% (m x m) %*% (m x m) = (m x m)
+        V_ii_inv_sqrt <- matrix_inv_sqrt(V_ii)  # m x m
+        V_jj_inv_sqrt <- matrix_inv_sqrt(V_jj)  # m x m
+        
+        C_conditional[[key]] <- V_ii_inv_sqrt %*% V_ij %*% V_jj_inv_sqrt
+      }
+    }
+  }
+  
+  return(C_conditional)
+}
