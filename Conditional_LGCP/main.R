@@ -129,8 +129,6 @@ for(included_neurons in included_neurons_vec){ # vary number of included neurons
 
     # V_YcXij_og <- construct_cross_covariance_matrix(kl_coeffs)
     V_YcXij <- construct_cross_covariance_matrix_v2(kl_coeffs)
-    # M_hat <- estimate_regression_operators(K_c, V_YcXij, gamma_c, p)
-    # M_hat_v2 <- estimate_regression_operators_v2(K_c, V_YcXij_v2, gamma_c, p)
     # M_hat_og <- estimate_regression_operators(K_c, V_YcXij_og, gamma_c, p)
     M_hat <- estimate_regression_operators_v3(K_c, V_YcXij, gamma_c, p)
     
@@ -146,19 +144,25 @@ for(included_neurons in included_neurons_vec){ # vary number of included neurons
     for(query_y_c in query_y_cs){
       
 
-      V_cond_og <- evaluate_regression_at_query(M_hat_og, y_c_strata, query_y_c, eigen_decomp$eigenfunctions, gamma_c, p)
-      #V_cond <- evaluate_regression_at_query_diag_only(M_hat, y_c_strata, query_y_c, eigen_decomp$eigenfunctions, gamma_c, p)
+      # V_cond_og <- evaluate_regression_at_query(M_hat_og, y_c_strata, query_y_c, eigen_decomp$eigenfunctions, gamma_c, p)
+      # V_cond <- evaluate_regression_at_query_diag_only(M_hat, y_c_strata, query_y_c, eigen_decomp$eigenfunctions, gamma_c, p)
       V_cond <- evaluate_regression_at_query_v2(M_hat, y_c_strata, query_y_c, eigen_decomp$eigenfunctions, gamma_c, p)
 
       
       # part 9
       gamma1 <- 0.01
+      # C_cond_og <- estimate_conditional_correlation(V_cond_og, gamma1, p)
       C_cond <- estimate_conditional_correlation_v2(V_cond, gamma1, p)
+      
+
       
 
       # part 10
       gamma2 <- 0.01
+      # P_cond_og <- estimate_precision_operator(C_cond_og, gamma2, p)
       P_cond <- estimate_precision_operator_v2(C_cond, gamma2, p)
+      
+
       
       # part 11
       threshold <- select_threshold_by_stability(P_cond, p)
