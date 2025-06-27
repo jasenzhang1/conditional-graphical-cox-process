@@ -134,6 +134,9 @@ get_summary_statistics <- function(adj_mat_fill, adj_mat_og, brain_region_cutoff
   #
   # - adj_mat_fill    (matrix):    the full nxn matrix of neurons with NA's denoting discarded neurons
   # - adj_mat_og      (matrix):    a square matrix that doesn't include discarded neurons
+  #   - BOTH OF THESE MATRICES NEED 1'S ON THE DIAGONAL
+  # 
+  # 
   # - brain_region_cutoff (number): y + 0.5, which divides the y-th neuron and y+1-th neuron which are in different brain regions
   #
   # output:
@@ -277,6 +280,22 @@ save_summary_statistics <- function(figures_root, figure_name, settings_kept, su
   sink()  
 }
 
+get_graph_laplacian_stats <- function(adj_mat){
+  
+  # 
+  # adj_mat (n x n adjacency matrix): symmetric. diagonal entries are 0
+  # 
+  
+  lap_mat <- diag(rowSums(adj_mat)) - adj_mat
+  
+  lap_eigen <- eigen(lap_mat, symmetric = T)
+  lap_eval <- lap_eigen$values
+  
+  library(igraph)
+  
+  g <- make_ring(10)
+  L <- laplacian_matrix(g, sparse = FALSE)  
+}
 
 extract_pieces <- function(x) {
   
@@ -771,4 +790,198 @@ unpack_over_time <- function(n, movement, VR, epoch_or_week, ew_nums, mouse_ID, 
   
   
   return(NULL)
+}
+
+
+plot_graph_stats <- function(summary_df, final_results_dir){
+  
+  # 
+  #
+  # GOAL: plot graph statistics over time
+  #
+  # - average degree
+  # - percent of HH edges
+  # - percent of EE edges
+  # 
+  # 
+  # Input:
+  # 
+  # - summary_df (data.frame)
+  #
+  #   - movement (0 = rest, 1 = run, 2 = both)
+  #   - VR       (0 = off, 1 = on, 2 = both)
+  #
+  # Output:
+  # 
+  # - saved pdf of all the graphs
+  # - save summary_df as well
+  #
+  #
+  
+  
+  
+  # make everything but mouse_ID numeric, make mouse_ID factor
+  summary_df[-which(names(summary_df) == "mouse_ID")] <- lapply(summary_df[-which(names(summary_df) == "mouse_ID")], as.numeric)
+  summary_df$mouse_ID <- factor(summary_df$mouse_ID)
+  
+  # change movement from 0, 1, 2 to 'resting', 'running', 'both' respectively
+  
+  movement_factor <- rep('Resting', nrow(summary_df))
+  # movement_factor[summary_df$movement == 0] <- 'Resting'
+  movement_factor[summary_df$movement == 1] <- 'Running'
+  movement_factor <- factor(movement_factor, levels = c('Resting', 'Running'))
+  summary_df$movement_factor <- movement_factor
+  
+  # same for VR: 0, 1, 2 are 'off', 'on', 'both' respectively
+  
+  VR_factor <- rep('VR_Off', nrow(summary_df))
+  # VR_factor[summary_df$VR == 0] <- 'Off'
+  VR_factor[summary_df$VR == 1] <- 'VR_On'
+  VR_factor <- factor(VR_factor, levels = c('VR_Off', 'VR_On'))
+  summary_df$VR_factor <- VR_factor
+  
+  # and create a combined factor
+  summary_df$m_vr_factor <- interaction(summary_df$movement_factor, summary_df$VR_factor)
+  
+  
+  
+  ## graphing the summary statistics over time
+  
+  mice_strains2 <- c(
+    "Tau1" = "lightcoral",
+    "Tau2" = "red",
+    "Tau3" = "darkred",
+    "WT1" = "lightgreen",
+    "WT2" = "green",
+    "WT3" = "darkgreen"
+  )
+  
+  x_graph_title <- ('Week')
+  graphs <- list()
+  
+  # average degree over time
+  # - ew_num
+  # - avg_deg
+  # - mouse_ID
+  
+  graphs[['avg_deg']] <- ggplot() + 
+    geom_point(data = summary_df, aes(x = ew_num, y = avg_deg, color = mouse_ID)) + 
+    geom_line(data = summary_df, aes(x = ew_num, y = avg_deg, color = mouse_ID)) + 
+    facet_wrap(~ m_vr_factor) + 
+    ylab('Average Degree') + 
+    xlab(x_graph_title) + 
+    theme_bw() + 
+    scale_color_manual(values = mice_strains2)
+  
+  # proportion of non-singletons
+  
+  summary_df$pct_non_singletons <- 100 * summary_df$num_con_verts/summary_df$num_candidates
+  
+  graphs[['pct_non_singleton']] <- ggplot() + 
+    geom_point(data = summary_df, aes(x = ew_num, y = pct_non_singletons, color = mouse_ID)) + 
+    geom_line(data = summary_df, aes(x = ew_num, y = pct_non_singletons, color = mouse_ID)) + 
+    facet_wrap(~ m_vr_factor) + 
+    ylab('Percentage of non-Singletons') + 
+    ylim(c(0, 100)) + 
+    xlab(x_graph_title) + 
+    theme_bw() + 
+    scale_color_manual(values = mice_strains2)
+  
+  # proportion of inter-region connections
+  
+  summary_df$pct_inter_region_edge <- 100 * summary_df$num_HE_edges/summary_df$num_edges
+  summary_df$pct_HH_edge <- 100 * summary_df$num_HH_edges/summary_df$num_edges
+  summary_df$pct_EE_edge <- 100 * summary_df$num_EE_edges/summary_df$num_edges
+  
+  graphs[['pct_HE']] <- ggplot() + 
+    geom_point(data = summary_df, aes(x = ew_num, y = pct_inter_region_edge, color = mouse_ID)) + 
+    geom_line(data = summary_df, aes(x = ew_num, y = pct_inter_region_edge, color = mouse_ID)) + 
+    facet_wrap(~ m_vr_factor) + 
+    ylab('Percentage of Inter-Region Edges') + 
+    ylim(c(0, 100)) + 
+    xlab(x_graph_title) + 
+    theme_bw() + 
+    scale_color_manual(values = mice_strains2)
+  
+  # pct HH edges
+  
+  graphs[['pct_HH']] <- ggplot() + 
+    geom_point(data = summary_df, aes(x = ew_num, y = pct_HH_edge, color = mouse_ID)) + 
+    geom_line(data = summary_df, aes(x = ew_num, y = pct_HH_edge, color = mouse_ID)) + 
+    facet_wrap(~ m_vr_factor) + 
+    ylab('Percentage of HIP-HIP Edges') + 
+    ylim(c(0, 100)) + 
+    xlab(x_graph_title) + 
+    theme_bw() + 
+    scale_color_manual(values = mice_strains2)
+  
+  # pct EE edges
+  
+  graphs[['pct_EE']] <- ggplot() + 
+    geom_point(data = summary_df, aes(x = ew_num, y = pct_EE_edge, color = mouse_ID)) + 
+    geom_line(data = summary_df, aes(x = ew_num, y = pct_EE_edge, color = mouse_ID)) + 
+    facet_wrap(~ m_vr_factor) + 
+    ylab('Percentage of EHC-EHC Edges') + 
+    ylim(c(0, 100)) + 
+    xlab(x_graph_title) + 
+    theme_bw() + 
+    scale_color_manual(values = mice_strains2)
+  
+  # 4) proportion of candidate neurons out of total neurons
+  
+  summary_df$pct_candidate_neurons <- 100 * summary_df$num_candidates/summary_df$num_neurons
+  
+  graphs[['pct_candidates']] <- ggplot() + 
+    geom_point(data = summary_df, aes(x = ew_num, y = pct_candidate_neurons, color = mouse_ID)) + 
+    geom_line(data = summary_df, aes(x = ew_num, y = pct_candidate_neurons, color = mouse_ID)) + 
+    facet_wrap(~ m_vr_factor) + 
+    ylab('Percentage of non-discarded Neurons') + 
+    ylim(c(0, 100)) + 
+    xlab(x_graph_title) +  
+    theme_bw() + 
+    scale_color_manual(values = mice_strains2)
+  
+  # 5) number of components
+  
+  graphs[['num_components']] <- ggplot() + 
+    geom_point(data = summary_df, aes(x = ew_num, y = num_comps, color = mouse_ID)) + 
+    geom_line(data = summary_df, aes(x = ew_num, y = num_comps, color = mouse_ID)) + 
+    facet_wrap(~ m_vr_factor) + 
+    ylab('Number of Components') + 
+    xlab(x_graph_title) +  
+    theme_bw() + 
+    scale_color_manual(values = mice_strains2)
+  
+  # 6) number of replicates  - not relevant for conditional model
+  
+  # graphs[['num_replicates']] <- ggplot() + 
+  #   geom_point(data = summary_df, aes(x = ew_num, y = num_replicates, color = mouse_ID)) + 
+  #   geom_line(data = summary_df, aes(x = ew_num, y = num_replicates, color = mouse_ID)) + 
+  #   facet_wrap(~ m_vr_factor) + 
+  #   ylab('Number of Replicates') + 
+  #   xlab(x_graph_title) +  
+  #   theme_bw() + 
+  #   scale_color_manual(values = mice_strains2)
+  
+  # save data
+  
+  
+  
+  if (!dir.exists(final_results_dir)) {
+    dir.create(final_results_dir)
+  }
+  
+  # store summary statistics of each fit
+  
+  write.csv(summary_df, file = paste0(final_results_dir, 'graph_statistics.csv'), row.names = FALSE)
+  
+  # graphs
+  
+  pdf(paste0(final_results_dir, 'graph_statistics.pdf'), width = 8, height = 3)
+  for(name_i in names(graphs)){
+    print(graphs[[name_i]])
+  }
+  dev.off()  
+  
+  # no return
 }
