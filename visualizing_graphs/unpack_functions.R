@@ -1,15 +1,29 @@
-# I have a bunch of .rda results
-
-# now I want to visualize them in a graph
+# - After fitting LGCP models, I have several .rda results
+# - I want to calculate and plot graph statistics and visualize them over time
+#
+# - good for unconditional and conditional models!
 
 library(ggplot2)
 library(igraph) # visualize graphs
 
 adjacency_heatmap <- function(adj_mat, ID, region_border=NULL){
   
-  # adj_mat = matrix of 0's and 1's
-  # ID = name of mouse for the title
-  # region_border = neuron num cutoff between HIP and EHC
+  # ----------------------------------------------------------------------------
+  # 
+  # GOAL: plot an adjacency matrix graph 
+  #
+  # 
+  # input:
+  #
+  # - adj_mat          (p x p matrix of 0's and 1's)
+  # - ID               (string, name of mouse for the title)
+  # - region_border    (integer)    neuron num cutoff between HIP and EHC
+  #
+  # output:
+  #
+  # - g3 (ggplot2)  adjacency matrix heatmap
+  #
+  # ----------------------------------------------------------------------------
   
   n <- dim(adj_mat)[1]
   m2_melt <- reshape2::melt(adj_mat)
@@ -44,11 +58,26 @@ adjacency_heatmap <- function(adj_mat, ID, region_border=NULL){
 
 insert_na_symmetric <- function(mat, indices) {
   
-  # reconstruct the adjacency matrix with all neurons, since we removed some originally
-  # we insert NA rows and columns in ascending order of neuron ID number
-  
-  # mat = truncated adjacency matrix
-  # indices = sorted array of neuron numbers that were removed during estimation
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: 
+  #
+  # - recall that in the unconditional model, some neurons were discarded and not included in the fitting procedure
+  # - thus, our adjancency matrix is smaller
+  # - we want to reconstruct the adjacency matrix with all neurons, since we removed some originally
+  # - so we insert NA rows and columns in ascending order of neuron ID number
+  #
+  # 
+  # input:
+  # 
+  # - mat     (matrix)                     truncated adjacency matrix
+  # - indices (sorted array of integers)   sorted array of neuron numbers that were removed during estimation
+  #
+  # output:
+  #
+  # - mat    (p x p matrix)   recovered full adjacency matrix
+  #
+  # ----------------------------------------------------------------------------
   
   # print('starting conditions')
   # print(dim(mat)[1])
@@ -96,11 +125,23 @@ insert_na_symmetric <- function(mat, indices) {
 
 get_network <- function(adj_mat, ID){
   
-  # visualize the graph with nodes and edges
-  # only keep vertices that have edges
+  # ----------------------------------------------------------------------------
+  # 
+  # GOAL:
   #
-  # adj_mat = adjacency matrix
-  # ID = 
+  # - with an unweighted adjacency matrix, we wish to visualize the graph
+  # - visualize the graph with nodes and edges
+  # - omit singletons
+  #
+  #
+  # input:
+  #
+  # - adj_mat  (p x p matrix of 0's and 1's) adjacency matrix
+  # - ID = 
+  #
+  # output:
+  #
+  # ----------------------------------------------------------------------------
   
   diag(adj_mat) <- 0
   verts <- which(apply(adj_mat,2,function(x){sum(x, na.rm = T)}) > 0)
@@ -280,21 +321,97 @@ save_summary_statistics <- function(figures_root, figure_name, settings_kept, su
   sink()  
 }
 
-get_graph_laplacian_stats <- function(adj_mat){
+get_graph_laplacian_stats <- function(adj_mat, zero_tol = 1e-8){
   
   # 
-  # adj_mat (n x n adjacency matrix): symmetric. diagonal entries are 0
+  # GOAL: get graph laplacian statistics
+  #
   # 
-  
+  # input:
+  # 
+  # - adj_mat (p x p adjacency matrix): symmetric. diagonal entries are 0
+  # 
+  p <- dim(adj_mat)[1]
   lap_mat <- diag(rowSums(adj_mat)) - adj_mat
   
   lap_eigen <- eigen(lap_mat, symmetric = T)
   lap_eval <- lap_eigen$values
+  lap_eval[abs(lap_eval) < zero_tol] <- 0
   
-  library(igraph)
+  fiedler_value <- lap_eval[length(lap_eval) - 1] # lambda_2
+  lambda_max <- max(lap_eval)     # largest eigenvalue
+  num_zeros <- sum(lap_eval == 0) # number of zeros
   
-  g <- make_ring(10)
-  L <- laplacian_matrix(g, sparse = FALSE)  
+  # weighted laplacian
+  
+  deg_inv_sqrt <- diag(1 / sqrt(rowSums(adj_mat)))
+  lap_mat_sym <- diag(rep(1, p)) - deg_inv_sqrt %*% adj_mat %*% deg_inv_sqrt
+  
+  lap_sym_eval <- eigen(lap_mat_sym, symmetric = T)$values
+  lap_sym_eval[abs(lap_sym_eval) < zero_tol] <- 0
+  
+  lambda_max_sym <- max(lap_sym_eval)  # largest eigenvalue of symmetric laplacian
+  
+  # compile and print results
+  
+  results <- list(num_zeros=num_zeros,            # number of zero eigenvalues
+                  fiedler_value=fiedler_value,    # fiedler value
+                  lambda_max=lambda_max,          # lambda max
+                  lambda_max_sym=lambda_max_sym)  # lambda max of symmetric matrix
+  
+}
+
+get_node_stats_over_time <- function(weighted_edge_lists, week_nums, node_num, threshold = 0){
+  
+  #
+  # GOAL: 
+  #
+  # - We have a longitudinal collection of lists of weighted edges
+  # - For a single neuron, how does its stats change over time?
+  #
+  #
+  # input:
+  #
+  # - weighted_edge_lists (list of lists)
+  #   - each inner list contains entries of the form [['i_j']], which stores scalars (weight value)
+  # - week_nums           (vector of week numbers)
+  # - node_num            (number)
+  # - threshold           (number) anything below threshold will be set to 0
+  #
+  # output:
+  #
+  # - df_total (data.frame) 'weight', 'week', 'connected_node'
+  # 
+  
+  list_names <- names(weighted_edge_lists)
+  n_lists <- length(weighted_edge_lists)
+  
+  df_total <- data.frame()
+  
+  for(i in 1:n_lists){
+    list_name_i <- list_names[i]
+    weighted_edge_list <- weighted_edge_lists[[list_name_i]]
+    
+    # unpack
+    
+    v_i <- sub("_.*", "", names(weighted_edge_list)) %>% as.numeric()
+    v_j <- sub(".*_", "", names(weighted_edge_list)) %>% as.numeric()
+    
+    df_adj <- data.frame(v_i, v_j, unlist(weighted_edge_list))   
+    colnames(df_adj) <- c('node_i', 'node_j', 'weight')
+    
+    df_node <- df_adj %>% dplyr::filter(node_i == node_num | node_j == node_num) %>% 
+      mutate(weight = weight * (weight > threshold)) %>% 
+      mutate(week = week_nums[i]) %>% 
+      mutate(connected_node = ifelse(node_i == node_num, node_j, node_i)) %>% 
+      select(-c('node_i', 'node_j'))
+    
+    # store
+    df_total <- rbind(df_total, df_node)
+  }
+  
+  return(df_total)
+  
 }
 
 extract_pieces <- function(x) {

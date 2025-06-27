@@ -145,13 +145,16 @@ dev.off()
 ## Part 2) We notice a natural threshold for an edge weight of log(1) = 0
 
 ```{r}
+
+# packages 
 library(dplyr)
 library(ggplot2)
 source('functions/31_unpacking_results.R')
 source('../visualizing_graphs/unpack_functions.R') # visualization tools from the unconditional model
 
 
-results_dir <- './results/task_01'
+# load files and get their names
+results_dir <- './results/task_demo'
 
 load(paste0(results_dir, '/run_time/run_time_results.RData'))
 
@@ -161,31 +164,42 @@ rda_files <- files[grepl("\\.rda$", files)]
 file_parameters <- extract_pieces_cond(rda_files)
 
 
+
+# mice info
+IDs <- c('346', '351', '366', '361', '362', '368')  # mouse ID
+ID2 <- c('Tau1', 'Tau2', 'Tau3', 'WT1', 'WT2', 'WT3') # our name 
+
+num_neurons <- c(169, 250, 240, 249, 235, 294)
+names(num_neurons) <- ID2
+brain_region_cutoffs <- c(83, 156, 106, 164, 130, 137) + 0.5
+names(brain_region_cutoffs) <- ID2
+
+# parameters 
 thresh_value <- 10
-
-n_neurons <- 249
-brain_region_cutoff <- 164.5
-
-
 df_stat <- data.frame()
 
-for(f_ind in 1:length(rda_files)){
+for(f_ind in 1:length(rda_files)){ # 1) for each file
+  
+  # 1.1) load it
   f <- rda_files[f_ind]
   f2 <-  sub("\\.rda$", "", f)
   load(paste0(results_dir, '/', f))
   
+  # 1.2) load features of this run
   
-  # 1) explore weight distributions
+  f_params <- file_parameters[f_ind,]
+  f_mouse <- f_params$mouse_ID
+  
+  n_neurons <- num_neurons[f_mouse]
+  brain_region_cutoff <- brain_region_cutoffs[f_mouse]
+  
+  # 2) keep edges that are above the threshold
   
   weights <- unlist(final_graph_estimates$edge_strengths)
-  
-  # 2) threshold by taking the top 1%
-  
   kept_indices <- weights > thresh_value
-  
   kept_edges <- final_graph_estimates$edge_strengths[kept_indices]
   
-  # 3) make adjacency matrix
+  # 3) make adjacency matrix (adj_mat, adj_mat_w_diag)
 
   v_i <- sub("_.*", "", names(kept_edges)) %>% as.numeric()
   v_j <- sub(".*_", "", names(kept_edges)) %>% as.numeric()
@@ -215,7 +229,7 @@ for(f_ind in 1:length(rda_files)){
 }
 
 summary_df <- df_stat
-final_results_dir <- "/u/home/j/jasenzz/Graphical_Cox_Process/GMpp-main/Conditional_LGCP/results/task_01_figures/"
+final_results_dir <- "/u/home/j/jasenzz/Graphical_Cox_Process/GMpp-main/Conditional_LGCP/results/task_demo_figures/"
 
 plot_graph_stats(summary_df, final_results_dir)
 ```
