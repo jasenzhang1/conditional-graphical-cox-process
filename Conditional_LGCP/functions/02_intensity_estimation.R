@@ -402,3 +402,76 @@ estimate_intensities_stratum_parallel_v2 <- function(data_all, patient_sel, feat
   return(list(rho_hat = rho_hat, rho_hat_pairs = rho_hat_pairs))  
   
 }
+
+estimate_intensities_stratum_parallel_v3 <- function(data_all, patient_sel, feature_sel, 
+                                                     t_seq, ncores) {
+  
+  # ----------------------------------------------------------------------------
+  #
+  #  
+  # GOAL: estimate the first and second order intensities
+  #
+  # - using pbmclapply
+  # - rho_i  (p x m matrix)
+  # - rho_{ij} (m x m matrix) for all (p x p) pairs
+  #
+  # - in v3, we only care about i = j entries for bivariate estimates
+  #  
+  #
+  # Input: 
+  #
+  #
+  # - data_all   (data.table):  'feature_id', 'time', 'subject_num' 
+  # - patient_sel (vector)    ID's of non-discarded subjects
+  # - feature_sel (vector)    ID's of non-discarded features
+  # - t_seq   (vector of length m), 
+  #
+  #
+  #
+  # Output: 
+  #
+  # - rho_i_list (list of p entries)
+  #   - each entry is a list of 2 matrices
+  #     - rho_i      (m-dim vector)            univariate intensity
+  #     - rho_ii_mat (m x m dim matrix)        bivariate intensity
+  #
+  # ---------------------------------------------------------------------------
+  
+  
+  NN = length(patient_sel) # 89
+  p <- length(feature_sel) # 249
+  n_time <- length(t_seq)  # 19
+  
+
+  rho_i_list <- pbmclapply(1:p, function(i) {
+    data_i <- data_all[feature_id == i, ]
+    
+    if (nrow(data_i) == 0) {
+      rho_i <- rep(0, n_time)
+      rho_ii_mat <- matrix(0, nrow = n_time, ncol = n_time)
+    } else {
+      
+      # univariate
+      Gamma_i <- data_i[, estimate_density(time, t_seq), by = "subject_num"]
+      rho_mat <- matrix(Gamma_i$rho_hat, nrow = n_time)
+      rho_i <- apply(rho_mat, 1, sum) / NN
+      
+      # bivariate
+      times_i <- data_i[, .(event_times_i = list(time)), by = subject_num]
+      Gamma_ii <- times_i[, estimate_bivariate_density(
+        event_times_i[[1]], event_times_i[[1]],
+        t_seq, t_seq, 'i'), by = 'subject_num']
+      
+      bivariate_intensity <- matrix(Gamma_ii$V1, nrow = n_time^2)
+      rho_ii <- apply(bivariate_intensity, 1, sum) / NN
+      rho_ii_mat <- matrix(rho_ii, nrow = n_time)      
+    }
+    
+    list(rho_i=rho_i,
+         rho_ii_mat=rho_ii_mat)
+  }, mc.cores = ncores)
+  
+  
+  return(rho_i_list)  
+  
+}

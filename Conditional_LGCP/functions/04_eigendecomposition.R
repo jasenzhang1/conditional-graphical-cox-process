@@ -64,6 +64,73 @@ compute_eigendecomposition <- function(G_hat, var_explained = 0.9) {
   return(list(eigenvalues = eigenvalues, eigenfunctions = eigenfunctions, n_dims = n_dims))
 }
 
+compute_eigendecomposition_ii <- function(G_hat, var_explained = 0.9) {
+  
+  # ----------------------------------------------------------------------------
+  #
+  #
+  # GOAL: from G_{i,i}(s,t), estimate the eigendecomposition
+  #
+  # - note that we only have G_{i, i} entries 
+  #
+  # Input: 
+  # 
+  # - G_hat (m x m array) (p x m x m)
+  # 
+  # 
+  # Output: 
+  #
+  # - eigenvalues    (list of p vectors)
+  # - eigenfunctions (list of p matrices)
+  # - n_dims         (list of p numbers denoting d_i)
+  #
+  # ----------------------------------------------------------------------------
+  
+  p <- dim(G_hat)[1]
+  n_time <- dim(G_hat)[3]  # m
+  
+  eigenvalues <- list()
+  eigenfunctions <- list()
+  n_dims <- list()
+  
+  for (i in 1:p) {
+    # Extract marginal covariance matrix: m x m
+    G_ii <- G_hat[i, , ]  
+    
+    # Ensure symmetry for numerical stability
+    G_ii <- (G_ii + t(G_ii)) / 2
+    
+    # Compute eigendecomposition
+    # eigen() returns: values (m x 1), vectors (m x m)
+    eigen_result <- eigen(G_ii, symmetric=TRUE)
+    lambdas <- eigen_result$values  # m x 1 vector
+    lambdas2 <- lambdas
+    lambdas2[lambdas2 < 0] <- 0
+    
+    cum_var <- cumsum(lambdas2) / sum(lambdas2)
+    d_i <- which(cum_var > var_explained)[1]
+    etas <- eigen_result$vectors    # m x m matrix
+    
+    
+    
+    # Keep only top d components
+    
+    eigenvalues[[i]] <- lambdas[1:d_i]        # d x 1 vector
+    
+    if(d_i == 1){
+      eigenfunctions[[i]] <- matrix(etas[, 1:d_i], nrow = n_time)
+    } else{
+      eigenfunctions[[i]] <- etas[, 1:d_i]      # m x d matrix
+    }
+    
+    n_dims[[i]] <- d_i
+  }
+  
+  # keep track of how many components are needed to explain 90%
+  
+  return(list(eigenvalues = eigenvalues, eigenfunctions = eigenfunctions, n_dims = n_dims))
+}
+
 compute_eigendecomposition_dmax <- function(G_hat, d_max = 10) {
   
   
