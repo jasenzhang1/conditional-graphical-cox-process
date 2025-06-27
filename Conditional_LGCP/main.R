@@ -11,7 +11,7 @@ load('data/WT1_data.rda')
 ID2 <- 'WT1'
 neuron_count <- 249
 
-task_name <- 'task_01'
+task_name <- 'task_demo'
 
 ncores <- parallel::detectCores() - 1
 # ncores <- 6
@@ -26,7 +26,7 @@ y_c_df <- LGCP_data[[3]]
 # continuous variables to query ------------------------------------------------
 
 query_y_cs <- c(17, 23, 28)
-included_neurons_vec <- c(1000)
+included_neurons_vec <- c(10)
 
 # obtain discrete strata -------------------------------------------------------
 
