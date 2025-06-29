@@ -177,7 +177,7 @@ for(i in 1:length(IDs)){
         
         # part 11
         threshold <- select_threshold_by_stability(P_cond, p)
-        final_graph_estimates <- estimate_graph(P_cond, threshold, p)
+        final_graph_estimates <- estimate_graph(P_cond, threshold, p, c(silent_neurons, missing_neurons))
         
         
         # 8) save graphs -------------------------------------------------------
