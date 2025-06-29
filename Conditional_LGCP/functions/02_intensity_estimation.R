@@ -444,7 +444,7 @@ estimate_intensities_stratum_parallel_v3 <- function(data_all, patient_sel, feat
   
 
   rho_i_list <- pbmclapply(1:p, function(i) {
-    data_i <- data_all[feature_id == i, ]
+    data_i <- data_all[feature_id == feature_sel[i], ]
     
     if (nrow(data_i) == 0) {
       rho_i <- rep(0, n_time)
