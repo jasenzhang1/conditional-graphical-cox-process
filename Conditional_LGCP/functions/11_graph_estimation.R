@@ -21,7 +21,7 @@ hilbert_schmidt_norm <- function(A) {
   return(sqrt(sum(A^2)))  # sqrt(sum of all squared elements)
 }
 
-estimate_graph <- function(P_conditional, threshold, p) {
+estimate_graph <- function(P_conditional, threshold, p, discarded_neurons) {
   
   # ------------------------------------------------------------------------
   #
@@ -33,6 +33,7 @@ estimate_graph <- function(P_conditional, threshold, p) {
   # - P_conditional   (list of length p^2, each element m x m)
   # - threshold       (scalar)
   # - p               (scalar)
+  # - discarded_neurons (list of integers)
   #
   # 
   # Output: 
@@ -60,7 +61,7 @@ estimate_graph <- function(P_conditional, threshold, p) {
     }
   }
   
-  return(list(edges = edges, edge_strengths = edge_strengths))
+  return(list(edges = edges, edge_strengths = edge_strengths, discarded_neurons = discarded_neurons))
 }
 
 select_threshold_by_stability <- function(P_conditional, p) {
