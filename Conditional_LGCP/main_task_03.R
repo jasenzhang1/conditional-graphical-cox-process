@@ -59,7 +59,7 @@ for(i in 1:length(IDs)){
   cov_df <- y_d_df %>% dplyr::select(- subject_num)
   discrete_strata <- cov_df %>% unique()
   
-  
+  options(warn = 1)
   for(included_neurons in included_neurons_vec){ # 2) vary number of included neurons
     
     for(y_ind in 1:nrow(discrete_strata)){ # 3) for each discrete variable level 
