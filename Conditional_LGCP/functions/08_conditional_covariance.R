@@ -1,3 +1,4 @@
+# helper, in use
 evaluate_kernel_weights_at_query <- function(Y_continuous_stratum, query_y_c, gamma_c) {
   
   # ---------------------------------------------------------------------------
@@ -28,6 +29,7 @@ evaluate_kernel_weights_at_query <- function(Y_continuous_stratum, query_y_c, ga
   return(kernel_weights)
 }
 
+# deprecated
 evaluate_regression_at_query <- function(M_hat, Y_continuous_stratum, query_y_c, 
                                          eigenfunctions, gamma_c, p) {
   
@@ -92,14 +94,15 @@ evaluate_regression_at_query <- function(M_hat, Y_continuous_stratum, query_y_c,
   return(V_conditional)
 }
 
-evaluate_regression_at_query_diag_only <- function(M_hat, Y_continuous_stratum, query_y_c, 
-                                         eigenfunctions, gamma_c, p) {
+# deprecated
+evaluate_regression_at_query_diag_only <- function(M_hat, Y_continuous_stratum, query_y_c, eigenfunctions, gamma_c, p) {
   
   
   # ----------------------------------------------------------------------------
   #
   # GOAL: evaluate regression at query
   #
+  #   - but we only evaluate for j >= i
   #
   # Input: 
   #
@@ -156,6 +159,7 @@ evaluate_regression_at_query_diag_only <- function(M_hat, Y_continuous_stratum, 
   return(V_conditional)
 }
 
+# in use
 evaluate_regression_at_query_v2 <- function(M_hat, Y_continuous_stratum, query_y_c, 
                                          eigenfunctions, gamma_c, p) {
   
@@ -165,6 +169,7 @@ evaluate_regression_at_query_v2 <- function(M_hat, Y_continuous_stratum, query_y
   # GOAL: evaluate regression at query
   #
   # - v2: j >= i only
+  # - but also vectorize each (i, j) calculation wrt the eigenfunctions
   #
   # Input: 
   #
