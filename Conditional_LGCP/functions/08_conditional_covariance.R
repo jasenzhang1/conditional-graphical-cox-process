@@ -205,26 +205,42 @@ evaluate_regression_at_query_v2 <- function(M_hat, Y_continuous_stratum, query_y
       # Construct conditional covariance operator: m x m matrix
       V_cond_ij <- matrix(0, nrow=n_time, ncol=n_time)
       
-      M_hat_ij_flat <- matrix(M_hat[[key]], nrow = n_stratum, ncol = max_components^2) # flattening should make it A_1 B_1, A_1 B_2, ...
-      M_at_query <- apply(kernel_weights * M_hat_ij_flat, 2, sum) 
+      # recall M_hat[[key]] = n x comps x comps
+      # flatten it to be n x (comps^2)
+      M_hat_ij_flat <- matrix(M_hat[[key]], nrow = n_stratum, ncol = max_components^2) 
+      M_at_query <- apply(kernel_weights * M_hat_ij_flat, 2, sum) # (comps^2) length vector
       
-
+      
       
       # Split columns into vectors
       A_cols <- asplit(eigenfunctions[[i]], 2)  # list of m vectors (length 19)
       B_cols <- asplit(eigenfunctions[[j]], 2)  # list of n vectors
       
       
-      # Compute all m × n outer products using tcrossprod
-      # Result: list of m * n matrices
+      # append A_cols and B_cols with 0's so that they have a list of (comps) vectors
+      
+      while(length(A_cols) < max_components){
+        A_cols[[length(A_cols) + 1]] <- rep(0, n_time)
+      } 
+      
+      while(length(B_cols) < max_components){
+        B_cols[[length(B_cols) + 1]] <- rep(0, n_time)
+      }       
+      
+      # Compute all d × d outer products using tcrossprod
+      # Result: list of d * d matrices
+      
+      # BE CAREFUL!!! B_cols needs to be repeated for the amount of components of i
+      #               A_cols needs to be repeated for the amount of components of j
       outer_products <- Map(tcrossprod,
-                            rep(A_cols, times = components[i]),
-                            rep(B_cols, each = components[j]))
+                            rep(A_cols, times = max_components),
+                            rep(B_cols,  each = max_components))
       
       # Weighted sum of all outer products
       result <- Reduce(`+`, Map(`*`, M_at_query, outer_products))
       
       V_conditional[[key]] <- result
+      
     }
   }
   
