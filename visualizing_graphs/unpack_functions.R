@@ -163,7 +163,7 @@ get_network <- function(adj_mat, ID){
   #      main = ID)  
 }
 
-get_summary_statistics <- function(adj_mat_fill, adj_mat_og, brain_region_cutoff){
+get_summary_statistics <- function(adj_mat_fill, weight_mat, brain_region_cutoff){
   
   # ---------------------------------------------------------------------------- 
   #
@@ -173,9 +173,10 @@ get_summary_statistics <- function(adj_mat_fill, adj_mat_og, brain_region_cutoff
   #
   # input:
   #
-  # - adj_mat_fill    (matrix):    the full nxn matrix of neurons with NA's denoting discarded neurons
-  # - adj_mat_og      (matrix):    a square matrix that doesn't include discarded neurons
+  # - adj_mat_fill           (matrix):    the full nxn matrix of neurons with NA's denoting discarded neurons
+  # - weight_mat             (matrix):    symmetric weight matrix that discards silent neurons
   #   - BOTH OF THESE MATRICES NEED 1'S ON THE DIAGONAL
+  #   - diagonals of missing neurons are NA
   # 
   # 
   # - brain_region_cutoff (number): y + 0.5, which divides the y-th neuron and y+1-th neuron which are in different brain regions
@@ -186,6 +187,11 @@ get_summary_statistics <- function(adj_mat_fill, adj_mat_og, brain_region_cutoff
   #
   # ---------------------------------------------------------------------------- 
   
+  adj_mat_og <- adj_mat_fill[!apply(is.na(adj_mat_fill), 1, all),  # remove rows where all are NA
+                             !apply(is.na(adj_mat_fill), 2, all)]  # still has 1's on the diagonal
+  
+  adj_mat2 <- adj_mat_og
+  diag(adj_mat2) <- 0    # remove 1's on the diagonal
   
   # vertex statistics
   num_neurons <- dim(adj_mat_fill)[1]                           # number of neurons in total (169)
@@ -195,14 +201,14 @@ get_summary_statistics <- function(adj_mat_fill, adj_mat_og, brain_region_cutoff
   
   num_islands <- length(which(apply(adj_mat_og,2,sum) == 1))    # number of island neurons   (86)
   
-  adj_mat2 <- adj_mat_og
-  diag(adj_mat2) <- 0
+
+  
   verts <- which(apply(adj_mat2,2,sum) > 0)
   num_con_verts <- length(verts)                                # number of connected neurons (41)
   
   
   # edge
-  num_edges <- 0.5 * (sum(adj_mat_og) - dim(adj_mat_og)[1])     # number of edges            (61)
+  num_edges <- 0.5 * sum(adj_mat2)                              # number of edges            (61)
   
   off_diag_adj_mat <- adj_mat_fill[1:(brain_region_cutoff - 0.5), (brain_region_cutoff + 0.5):num_neurons]
   HH_adj_mat <- adj_mat_fill[1:(brain_region_cutoff - 0.5), 1:(brain_region_cutoff - 0.5)]
@@ -214,7 +220,8 @@ get_summary_statistics <- function(adj_mat_fill, adj_mat_og, brain_region_cutoff
   
   
   # connectivity statistics
-  avg_deg <- round(2 * num_edges/num_candidates, 2)                                       # average degree of candidate neurons (1.59)              
+  avg_deg <- round(2 * num_edges/num_candidates, 2)                                       # average degree of candidate neurons (1.59) 
+  avg_deg_normalized <- avg_deg/num_candidates
 
   # distribution of degrees
   degs <- table(apply(adj_mat2, 2, sum))
@@ -225,16 +232,51 @@ get_summary_statistics <- function(adj_mat_fill, adj_mat_og, brain_region_cutoff
   g <- graph_from_adjacency_matrix(adj_mat3, mode = "undirected")
   num_comps <- components(g)$no                                                           # number of components (2)
   
+  # subgraph statistics
+  
+  num_neurons_HIP <- dim(HH_adj_mat)[1]                           # number of neurons in total 
+  num_NA_HIP <- sum(is.na(diag(HH_adj_mat)))                      # number of NA neurons       
+  num_candidates_HIP <- num_neurons_HIP - num_NA_HIP              # number of non-NA neurons   
+  avg_deg_HIP <- round(2 * num_HH_edges/num_candidates_HIP, 2)
+  avg_deg_HIP_normalized <- avg_deg_HIP/num_candidates_HIP
+    
+  num_neurons_EHC <- dim(EE_adj_mat)[1]                           # number of neurons in total 
+  num_NA_EHC <- sum(is.na(diag(EE_adj_mat)))                      # number of NA neurons       
+  num_candidates_EHC <- num_neurons_EHC - num_NA_EHC              # number of non-NA neurons   
+  avg_deg_EHC <- round(2 * num_EE_edges/num_candidates_EHC, 2)
+  avg_deg_EHC_normalized <- avg_deg_EHC/num_candidates_EHC
+  
+  # weighted graph statistics
+  
+  g <- graph_from_adjacency_matrix(weight_mat, mode = "undirected", weighted = TRUE, diag = FALSE)
+  
+  avg_strength <- mean(strength(g, weights = E(g)$weight)) # average weight per node
+  avg_edge_weight <- mean(E(g)$weight)                     # average weight per edge
+  
+  E(g)$weight <- 1 / E(g)$weight # now weight is inverted. The lower, the better.
+  
+
+  dist_mat <- distances(g, weights = E(g)$weight)  # path lengths between all pairs of nodes
+  avg_dist <- mean(dist_mat[lower.tri(dist_mat)])  # average path length 
+  
+  graph_diameter <- diameter(g)        # diameter (worst case scenario for shortest path length)
+  
+  
+
+  
   sum_stats <- list()
   detailed_stats <- list()
   total_stats <- list()
   
+  # number of nodes
   sum_stats[['num_neurons']] <- num_neurons
   sum_stats[['num_NA']] <- num_NA
   sum_stats[['num_candidates']] <- num_candidates
   sum_stats[['num_islands']] <- num_islands
   sum_stats[['num_con_verts']] <- num_con_verts
-  # edges
+  
+  # number of edges
+  
   sum_stats[['num_edges']] <- num_edges
   sum_stats[['num_HE_edges']] <- num_HE_edges
   sum_stats[['num_HH_edges']] <- num_HH_edges
@@ -242,7 +284,19 @@ get_summary_statistics <- function(adj_mat_fill, adj_mat_og, brain_region_cutoff
   
   # misc stats
   sum_stats[['avg_deg']] <- avg_deg
+  sum_stats[['avg_deg_HIP']] <- avg_deg_HIP
+  sum_stats[['avg_deg_EHC']] <- avg_deg_EHC
+  sum_stats[['avg_deg_normalized']] <- avg_deg_normalized
+  sum_stats[['avg_deg_HIP_normalized']] <- avg_deg_HIP_normalized
+  sum_stats[['avg_deg_EHC_normalized']] <- avg_deg_EHC_normalized
+  
   sum_stats[['num_comps']] <- num_comps
+  
+  # weighted graph stats
+  sum_stats[['avg_node_strength']] <- avg_strength
+  sum_stats[['avg_edge_strength']] <- avg_edge_weight
+  sum_stats[['avg_dist']] <- avg_dist
+  sum_stats[['diameter']] <- graph_diameter
   
   # detailed stats
   detailed_stats[['degs']] <- degs
@@ -329,10 +383,23 @@ get_graph_laplacian_stats <- function(adj_mat, zero_tol = 1e-8){
   # 
   # input:
   # 
-  # - adj_mat (p x p adjacency matrix): symmetric. diagonal entries are 0
-  # 
+  # - adj_mat (p x p adjacency matrix): symmetric 
+  # - zero_tol (number): if eigenvalues are below this, set them equal to 0
+  #
+  #
+  # output:
+  #
+  # - list of graph laplacian statistics
+  
+  # if we feed in the adj_mat with NA's, set them to 0 except the diagonal (to make them singletons)
+  adj_mat[is.na(adj_mat)] <- 0
+  diag(adj_mat) <- 1
+  
   p <- dim(adj_mat)[1]
   lap_mat <- diag(rowSums(adj_mat)) - adj_mat
+  
+  
+  # eigendecomposition
   
   lap_eigen <- eigen(lap_mat, symmetric = T)
   lap_eval <- lap_eigen$values
@@ -341,6 +408,9 @@ get_graph_laplacian_stats <- function(adj_mat, zero_tol = 1e-8){
   fiedler_value <- lap_eval[length(lap_eval) - 1] # lambda_2
   lambda_max <- max(lap_eval)     # largest eigenvalue
   num_zeros <- sum(lap_eval == 0) # number of zeros
+  lambda_median <- median(lap_eval)
+  lambda_lower <- quantile(lap_eval, 0.25) %>% unname()
+  lambda_upper <- quantile(lap_eval, 0.75) %>% unname()
   
   # weighted laplacian
   
@@ -351,13 +421,23 @@ get_graph_laplacian_stats <- function(adj_mat, zero_tol = 1e-8){
   lap_sym_eval[abs(lap_sym_eval) < zero_tol] <- 0
   
   lambda_max_sym <- max(lap_sym_eval)  # largest eigenvalue of symmetric laplacian
-  
+  lambda_median_sym <- median(lap_sym_eval)  
+  lambda_lower_sym <- quantile(lap_sym_eval, 0.25) %>% unname() 
+  lambda_upper_sym <- quantile(lap_sym_eval, 0.75) %>% unname()
   # compile and print results
   
   results <- list(num_zeros=num_zeros,            # number of zero eigenvalues
                   fiedler_value=fiedler_value,    # fiedler value
                   lambda_max=lambda_max,          # lambda max
-                  lambda_max_sym=lambda_max_sym)  # lambda max of symmetric matrix
+                  lambda_median=lambda_median,
+                  lambda_25=lambda_lower,
+                  lambda_75=lambda_upper,
+                  lambda_max_sym=lambda_max_sym,  # lambda max of symmetric matrix
+                  lambda_median_sym=lambda_median_sym,
+                  lambda_25_sym=lambda_lower_sym,
+                  lambda_75_sym=lambda_upper_sym)
+  
+  return(unlist(results))
   
 }
 
@@ -909,10 +989,26 @@ unpack_over_time <- function(n, movement, VR, epoch_or_week, ew_nums, mouse_ID, 
   return(NULL)
 }
 
-
-plot_graph_stats <- function(summary_df, final_results_dir){
+type_1_graphs <- function(summary_df, value, color_var, group_var, mice_strains2){
   
+  #
   # 
+  
+  g <- ggplot(summary_df, aes(x = ew_num, y = .data[[value]], color = .data[[color_var]])) + 
+    geom_point() + 
+    geom_line() + 
+    facet_wrap(vars(.data[[group_var]])) + 
+    ylab(value) + 
+    xlab('Week') + 
+    theme_bw() + 
+    scale_color_manual(values = mice_strains2)
+  
+  return(g)
+}
+
+plot_graph_stats <- function(summary_df, final_results_dir, thresh_value){
+  
+  # ----------------------------------------------------------------------------
   #
   # GOAL: plot graph statistics over time
   #
@@ -923,23 +1019,41 @@ plot_graph_stats <- function(summary_df, final_results_dir){
   # 
   # Input:
   # 
-  # - summary_df (data.frame)
+  # - thresh_value   (number)
+  # - summary_df     (data.frame)
   #
+  #   - mouse_ID (string)
   #   - movement (0 = rest, 1 = run, 2 = both)
   #   - VR       (0 = off, 1 = on, 2 = both)
+  #   - ew_num
+  #   - num_neurons
+  #   - num_NA
+  #   - num_candidates
+  #   - num_islands
+  #   - num_con_verts
+  #   - num_edges
+  #   - num_HE_edges
+  #   - num_EE_edges
+  #   - avg_deg
+  #   - avg_deg_HIP
+  #   - avg_deg_EHC
+  #   - num_comps
   #
   # Output:
   # 
   # - saved pdf of all the graphs
   # - save summary_df as well
   #
-  #
+  # ----------------------------------------------------------------------------
   
   
   
-  # make everything but mouse_ID numeric, make mouse_ID factor
+  # 1) make everything but mouse_ID numeric, make mouse_ID factor
   summary_df[-which(names(summary_df) == "mouse_ID")] <- lapply(summary_df[-which(names(summary_df) == "mouse_ID")], as.numeric)
   summary_df$mouse_ID <- factor(summary_df$mouse_ID)
+  
+  
+  # 2) factors
   
   # change movement from 0, 1, 2 to 'resting', 'running', 'both' respectively
   
@@ -960,9 +1074,17 @@ plot_graph_stats <- function(summary_df, final_results_dir){
   # and create a combined factor
   summary_df$m_vr_factor <- interaction(summary_df$movement_factor, summary_df$VR_factor)
   
+  # more statistics
+  summary_df$pct_non_singletons <- 100 * summary_df$num_con_verts/summary_df$num_candidates
   
   
-  ## graphing the summary statistics over time
+  summary_df$pct_inter_region_edge <- 100 * summary_df$num_HE_edges/summary_df$num_edges
+  summary_df$pct_HH_edge <- 100 * summary_df$num_HH_edges/summary_df$num_edges
+  summary_df$pct_EE_edge <- 100 * summary_df$num_EE_edges/summary_df$num_edges  
+  
+  summary_df$pct_candidate_neurons <- 100 * summary_df$num_candidates/summary_df$num_neurons
+  
+  ## 3) graphing the summary statistics over time
   
   mice_strains2 <- c(
     "Tau1" = "lightcoral",
@@ -975,99 +1097,30 @@ plot_graph_stats <- function(summary_df, final_results_dir){
   
   x_graph_title <- ('Week')
   graphs <- list()
+  graphs_group_by_mouse <- list()
   
-  # average degree over time
+  # 3.1) average degree over time
   # - ew_num
   # - avg_deg
   # - mouse_ID
   
-  graphs[['avg_deg']] <- ggplot() + 
-    geom_point(data = summary_df, aes(x = ew_num, y = avg_deg, color = mouse_ID)) + 
-    geom_line(data = summary_df, aes(x = ew_num, y = avg_deg, color = mouse_ID)) + 
-    facet_wrap(~ m_vr_factor) + 
-    ylab('Average Degree') + 
-    xlab(x_graph_title) + 
-    theme_bw() + 
-    scale_color_manual(values = mice_strains2)
+  value_names <- c('avg_deg', 'normalized_avg_deg', 'avg_deg_HIP', 'avg_deg_HIP_normalized',
+                   'avg_deg_EHC', 'avg_deg_EHC_normalized',
+                   'pct_non_singleton', 'pct_HE', 'pct_HH', 'pct_EE', 'pct_candidates',
+                   'num_components',
+                   'lap_eval', 'median_lap_eval', 'max_lap_eval',
+                   'lap_eval_sym', 'median_lap_eval_sym', 'max_lap_eval_sym',
+                   'avg_node_strength', 'avg_edge_strength', 'avg_dist', 'diameter')
+  color_var <- 'mouse_ID'
+  group_var <- 'm_vr_factor'
   
-  # proportion of non-singletons
+  for(k in 1:length(value_names)){
+    graphs[[value_names[k]]] <-                type_1_graphs(summary_df, value_names[k], color_var, group_var, mice_strains2)
+    graphs_group_by_mouse[[value_names[k]]] <- type_1_graphs(summary_df, value_names[k], group_var, color_var, mice_strains2)
   
-  summary_df$pct_non_singletons <- 100 * summary_df$num_con_verts/summary_df$num_candidates
+  }
   
-  graphs[['pct_non_singleton']] <- ggplot() + 
-    geom_point(data = summary_df, aes(x = ew_num, y = pct_non_singletons, color = mouse_ID)) + 
-    geom_line(data = summary_df, aes(x = ew_num, y = pct_non_singletons, color = mouse_ID)) + 
-    facet_wrap(~ m_vr_factor) + 
-    ylab('Percentage of non-Singletons') + 
-    ylim(c(0, 100)) + 
-    xlab(x_graph_title) + 
-    theme_bw() + 
-    scale_color_manual(values = mice_strains2)
-  
-  # proportion of inter-region connections
-  
-  summary_df$pct_inter_region_edge <- 100 * summary_df$num_HE_edges/summary_df$num_edges
-  summary_df$pct_HH_edge <- 100 * summary_df$num_HH_edges/summary_df$num_edges
-  summary_df$pct_EE_edge <- 100 * summary_df$num_EE_edges/summary_df$num_edges
-  
-  graphs[['pct_HE']] <- ggplot() + 
-    geom_point(data = summary_df, aes(x = ew_num, y = pct_inter_region_edge, color = mouse_ID)) + 
-    geom_line(data = summary_df, aes(x = ew_num, y = pct_inter_region_edge, color = mouse_ID)) + 
-    facet_wrap(~ m_vr_factor) + 
-    ylab('Percentage of Inter-Region Edges') + 
-    ylim(c(0, 100)) + 
-    xlab(x_graph_title) + 
-    theme_bw() + 
-    scale_color_manual(values = mice_strains2)
-  
-  # pct HH edges
-  
-  graphs[['pct_HH']] <- ggplot() + 
-    geom_point(data = summary_df, aes(x = ew_num, y = pct_HH_edge, color = mouse_ID)) + 
-    geom_line(data = summary_df, aes(x = ew_num, y = pct_HH_edge, color = mouse_ID)) + 
-    facet_wrap(~ m_vr_factor) + 
-    ylab('Percentage of HIP-HIP Edges') + 
-    ylim(c(0, 100)) + 
-    xlab(x_graph_title) + 
-    theme_bw() + 
-    scale_color_manual(values = mice_strains2)
-  
-  # pct EE edges
-  
-  graphs[['pct_EE']] <- ggplot() + 
-    geom_point(data = summary_df, aes(x = ew_num, y = pct_EE_edge, color = mouse_ID)) + 
-    geom_line(data = summary_df, aes(x = ew_num, y = pct_EE_edge, color = mouse_ID)) + 
-    facet_wrap(~ m_vr_factor) + 
-    ylab('Percentage of EHC-EHC Edges') + 
-    ylim(c(0, 100)) + 
-    xlab(x_graph_title) + 
-    theme_bw() + 
-    scale_color_manual(values = mice_strains2)
-  
-  # 4) proportion of candidate neurons out of total neurons
-  
-  summary_df$pct_candidate_neurons <- 100 * summary_df$num_candidates/summary_df$num_neurons
-  
-  graphs[['pct_candidates']] <- ggplot() + 
-    geom_point(data = summary_df, aes(x = ew_num, y = pct_candidate_neurons, color = mouse_ID)) + 
-    geom_line(data = summary_df, aes(x = ew_num, y = pct_candidate_neurons, color = mouse_ID)) + 
-    facet_wrap(~ m_vr_factor) + 
-    ylab('Percentage of non-discarded Neurons') + 
-    ylim(c(0, 100)) + 
-    xlab(x_graph_title) +  
-    theme_bw() + 
-    scale_color_manual(values = mice_strains2)
-  
-  # 5) number of components
-  
-  graphs[['num_components']] <- ggplot() + 
-    geom_point(data = summary_df, aes(x = ew_num, y = num_comps, color = mouse_ID)) + 
-    geom_line(data = summary_df, aes(x = ew_num, y = num_comps, color = mouse_ID)) + 
-    facet_wrap(~ m_vr_factor) + 
-    ylab('Number of Components') + 
-    xlab(x_graph_title) +  
-    theme_bw() + 
-    scale_color_manual(values = mice_strains2)
+
   
   # 6) number of replicates  - not relevant for conditional model
   
@@ -1090,15 +1143,21 @@ plot_graph_stats <- function(summary_df, final_results_dir){
   
   # store summary statistics of each fit
   
-  write.csv(summary_df, file = paste0(final_results_dir, 'graph_statistics.csv'), row.names = FALSE)
+  write.csv(summary_df, file = paste0(final_results_dir, 'graph_statistics_thresh_', thresh_value, '.csv'), row.names = FALSE)
   
   # graphs
   
-  pdf(paste0(final_results_dir, 'graph_statistics.pdf'), width = 8, height = 3)
+  pdf(paste0(final_results_dir, 'graph_statistics_group_by_strata_thresh_', thresh_value, '.pdf'), width = 8, height = 3)
   for(name_i in names(graphs)){
     print(graphs[[name_i]])
   }
   dev.off()  
+  
+  pdf(paste0(final_results_dir, 'graph_statistics_group_by_mouse_thresh_', thresh_value, '.pdf'), width = 8, height = 3)
+  for(name_i in names(graphs)){
+    print(graphs[[name_i]])
+  }
+  dev.off()    
   
   # no return
 }
