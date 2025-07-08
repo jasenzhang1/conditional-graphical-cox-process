@@ -12,20 +12,19 @@ ID2 <- c('Tau1', 'Tau2', 'Tau3', 'WT1', 'WT2', 'WT3') # our name
 
 num_neurons <- c(169, 250, 240, 249, 235, 294)
 
+IDs <- c('346',  '368')  # mouse ID
+ID2 <- c('Tau1', 'WT3') # our name 
 
-task_name <- 'task_03'
+num_neurons <- c(169,  294)
+
+task_name <- 'task_02a'
 data_folder_name <- 'data/with_ts/'
 ncores <- parallel::detectCores() - 1
 # ncores <- 6
 
 # continuous variables to query ------------------------------------------------
 
-age_query <- c(1/4, 2/4, 3/4)
-timestamp_query <- c(1/4, 2/4, 3/4)
-query_y_cs <- data.frame(rep(age_query, length(timestamp_query)),
-                         rep(timestamp_query, each = length(age_query))) # age, timestamp
-colnames(query_y_cs) <- c('age', 'timestamp')
-  
+query_y_cs <- c(0.25, 0.5, 0.75) #normalized age
 included_neurons_vec <- c(1000)
 Tseq = seq(0.05,0.95,length=19)
 
@@ -33,8 +32,6 @@ Tseq = seq(0.05,0.95,length=19)
 
 print('Starting ----------------------------')
 print(paste0('number of cores: ', ncores))
-
-strata_stats <- data.frame()
 
 for(i in 1:length(IDs)){ 
   
@@ -46,7 +43,7 @@ for(i in 1:length(IDs)){
   
   data_df <- LGCP_data[[1]] 
   y_d_df <- LGCP_data[[2]]
-  y_c_df <- LGCP_data[[3]]
+  y_c_df <- LGCP_data[[3]] %>% select(c('subject_num', 'age'))
   
   
   
@@ -54,8 +51,8 @@ for(i in 1:length(IDs)){
   
   cov_df <- y_d_df %>% dplyr::select(- subject_num)
   discrete_strata <- cov_df %>% unique()
+  strata_stats <- data.frame()
   
-
   for(included_neurons in included_neurons_vec){ # 2) vary number of included neurons
     
     for(y_ind in 1:nrow(discrete_strata)){ # 3) for each discrete variable level 
@@ -161,9 +158,8 @@ for(i in 1:length(IDs)){
       print(paste0('checkpoint 2: ', time_elapsed, ' mins'))  
       
       # part 8
-      for(cont_ind in 1:nrow(query_y_cs)){
+      for(query_y_c in query_y_cs){
         
-        query_y_c <- query_y_cs[cont_ind, ] %>% as.numeric()
   
         # V_cond_og <- evaluate_regression_at_query(M_hat_og, y_c_strata, query_y_c, eigen_decomp$eigenfunctions, gamma_c, p)
         # V_cond <- evaluate_regression_at_query_diag_only(M_hat, y_c_strata, query_y_c, eigen_decomp$eigenfunctions, gamma_c, p)
@@ -192,9 +188,7 @@ for(i in 1:length(IDs)){
         
         # 8) save graphs -------------------------------------------------------
         
-        query_name <- paste0('age_', query_y_c[1], '_ts_', query_y_c[2])
-        
-        results_name <- paste0(discrete_strata_name, '_', query_name)
+        results_name <- paste0(discrete_strata_name, '_w', query_y_c)
         
         save_dir <- 'results/'  
         if (!dir.exists(save_dir)) {
