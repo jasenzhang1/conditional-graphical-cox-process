@@ -115,6 +115,8 @@ get_mvr_interaction <- function(summary_df){
   # assume summary_df has movement (0, 1) and VR (0, 1) as columns
   #
   # create m_vr_factor
+  #
+  # returns summary_df
   
   movement_factor <- rep('Resting', nrow(summary_df))
   movement_factor[summary_df$movement == 1] <- 'Running'

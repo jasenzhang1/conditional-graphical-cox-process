@@ -8,7 +8,7 @@ type_1_graphs <- function(summary_df, graph_type, x_graph_title, x_var, y_var, c
   # - x_graph_title   (string) display name of the x-axis 
   # - x_var           (string) name of x-axis variable
   # - y_var           (string) name of y-axis variable 
-  # - color_var       (string) name of the color variable
+  # - color_var       (string) name of the color variable, can admit NA values, for which they will be black
   # - group_var       (string) name of the grouping variable in facet_wrap 
   # 
   # - color_palette   (named vector) to denote color scheme for color_var
@@ -36,7 +36,7 @@ type_1_graphs <- function(summary_df, graph_type, x_graph_title, x_var, y_var, c
       ylab(y_var) + 
       xlab(x_graph_title) + 
       theme_bw() + 
-      scale_color_gradientn(colors = c(color_low, color_high)) # continuous palette
+      scale_color_gradientn(colors = c(color_low, color_high), na.value = "black") # continuous palette
   }
     
   
@@ -46,15 +46,13 @@ type_1_graphs <- function(summary_df, graph_type, x_graph_title, x_var, y_var, c
 
 
 
-plot_graph_stats <- function(summary_df, graph_type, x_graph_title, x_var, color_var, group_var, iter_var, final_results_dir, thresh_value){
+plot_graph_stats_ts <- function(summary_df, graph_type, x_graph_title, x_var, color_var, group_var, mouse_var, final_results_dir, thresh_value){
   
   # ----------------------------------------------------------------------------
   #
   # GOAL: plot graph statistics over time
   #
-  # - average degree
-  # - percent of HH edges
-  # - percent of EE edges
+  # - see how timestamp affects estimates
   # 
   # 
   # Input:
@@ -62,9 +60,9 @@ plot_graph_stats <- function(summary_df, graph_type, x_graph_title, x_var, color
   # - thresh_value       (number)
   # - x_graph_title      (string)          name of x-axis to visualize 
   # - x_var              (string)          name of variable to plot along x axis
-  # - color_var          (string)          name of variable to create different colors
+  # - color_var          (string)          name of variable to create different colors, can admit NA, and we make it black
   # - group_var          (string)          name of variable to facet_wrap() group by 
-  # - iter_var           (string)          name of variable to filter and iterate by
+  # - mouse_var          (string)          name of variable to filter and iterate by
   # - final_results_dir  (string)   where to store final results
   # - thresh_value       (numeric)  value for which we chose to threshold by
   # - summary_df         (data.frame) each row captures information about a specific E(y_c, y_d) estimated graph 
@@ -118,29 +116,15 @@ plot_graph_stats <- function(summary_df, graph_type, x_graph_title, x_var, color
 
   
   # 1) make everything but mouse_ID numeric, make mouse_ID factor
+  # if "NA" is found, which is intended if ts_norm isn't used, we set it to NA
   
-  summary_df[-which(names(summary_df) == "mouse_ID")] <- lapply(summary_df[-which(names(summary_df) == "mouse_ID")], as.numeric)
+  summary_df[-which(names(summary_df) == "mouse_ID")] <- lapply(summary_df[-which(names(summary_df) == "mouse_ID")], function(x) as.numeric(na_if(x, "NA")))
   summary_df$mouse_ID <- factor(summary_df$mouse_ID)
   
   
   # 2) factors (movement_factor, VR_factor, m_vr_factor)
   
-  # 2.1) change movement from 0, 1, to 'resting', 'running', respectively
-  
-  movement_factor <- rep('Resting', nrow(summary_df))
-  movement_factor[summary_df$movement == 1] <- 'Running'
-  movement_factor <- factor(movement_factor, levels = c('Resting', 'Running'))
-  summary_df$movement_factor <- movement_factor
-  
-  # 2.2) same for VR: 0, 1,  are 'off', 'on',  respectively
-  
-  VR_factor <- rep('VR_Off', nrow(summary_df))
-  VR_factor[summary_df$VR == 1] <- 'VR_On'
-  VR_factor <- factor(VR_factor, levels = c('VR_Off', 'VR_On'))
-  summary_df$VR_factor <- VR_factor
-  
-  # 2.3) and create a combined factor
-  summary_df$m_vr_factor <- interaction(summary_df$movement_factor, summary_df$VR_factor)
+  summary_df <- get_mvr_interaction(summary_df)
   
   
   # 2.4) more statistics
@@ -165,7 +149,7 @@ plot_graph_stats <- function(summary_df, graph_type, x_graph_title, x_var, color
 
   
   graphs <- list() # group by discrete strata
-  graphs_group_by_mouse <- list()
+  graphs_no_ts <- list()
   
 
   value_names <- c('avg_deg', 'avg_deg_normalized',          # average_degree
@@ -181,15 +165,20 @@ plot_graph_stats <- function(summary_df, graph_type, x_graph_title, x_var, color
   
   # plot each outcome
   
-  iter_var_levels <- unique(summary_df[,iter_var])  # vector
+  mouse_var_levels <- unique(summary_df[,mouse_var])  # vector
   for(k in 1:length(value_names)){
-    for(k2 in iter_var_levels){
-      summary_df2 <- summary_df[dplyr::pull(summary_df, iter_var) == k2, ]
+    for(k2 in mouse_var_levels){
+      summary_df2 <- summary_df[dplyr::pull(summary_df, iter_var) == k2, ]      # all of one mouse
+      
       
       graph_index <- paste0(value_names[k], '_', k2)
       
-      graphs[[graph_index]] <-   type_1_graphs(summary_df2, graph_type, x_graph_title, x_var, value_names[k], color_var, group_var, color_palette=mice_strains2) + ggtitle(graph_index)
+      graphs[[graph_index]] <-   type_1_graphs(summary_df2, 2, x_graph_title, x_var, value_names[k], color_var, group_var, color_palette=mice_strains2) + ggtitle(graph_index)
+      
     }
+    
+    summary_df3 <- summary_df[is.na(dplyr::pull(summary_df, color_var)), ]  # keep all mice, filter for ts_norm = NA
+    graphs_no_ts[[value_names[k]]] <- type_1_graphs(summary_df3, 1, x_graph_title, x_var, value_names[k], mouse_var, group_var, color_palette = mice_strains2)
      
   }
 
@@ -205,10 +194,15 @@ plot_graph_stats <- function(summary_df, graph_type, x_graph_title, x_var, color
   
   # graphs
   
-  pdf(paste0(final_results_dir, 'graph_statistics_group_by_', group_var, '_thresh_', thresh_value, '.pdf'), width = 8, height = 3)
+  pdf(paste0(final_results_dir, 'graph_statistics_vary_ts_thresh_', thresh_value, '.pdf'), width = 8, height = 3)
   for(name_i in names(graphs)){
     print(graphs[[name_i]])
   }
   dev.off()  
   
+  pdf(paste0(final_results_dir, 'graph_statistics_NA_ts_thresh_', thresh_value, '.pdf'), width = 8, height = 3)
+  for(name_i in names(graphs_no_ts)){
+    print(graphs_no_ts[[name_i]])
+  }
+  dev.off()    
 }

@@ -84,6 +84,8 @@ insert_na_symmetric <- function(mat, indices) {
   # print(indices)
   # print(dim(mat)[1] + length(indices))
   
+  indices <- sort(indices)
+  
   if(length(indices) == 0){
     return(mat)
   }
