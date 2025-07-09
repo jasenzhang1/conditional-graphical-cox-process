@@ -150,12 +150,21 @@ dev.off()
 library(dplyr)
 library(ggplot2)
 source('functions/31_unpacking_results.R')
+source('functions/35_plot_graph_stats.R')
 source('../visualizing_graphs/unpack_functions.R') # visualization tools from the unconditional model
 
 # parameters -------------------------------------------------------------------
 
-thresh_values <- c(1, 3, 10)
-results_dir <- './results/task_02'
+thresh_values <- c(1, 3, 10, 20)
+results_dir <- './results/task_03'
+final_results_dir <- "./results/task_03_figures/"
+
+graph_type <- 2 # 1: discrete, 2: continuous 
+x_graph_title <- 'Normalized Age'
+x_var <- 'age_norm'
+color_var <- 'ts_norm'
+group_var <- 'm_vr_factor'  
+iter_var <- 'mouse_ID'
 
 # mice info --------------------------------------------------------------------
 
@@ -170,6 +179,19 @@ names(brain_region_cutoffs) <- ID2
 weeks <- list(17:38, 17:38, 18:38, 17:28, 18:28, 17:38) # observed weeks for each mouse
 names(weeks) <- ID2
 
+# specific mice info -------
+
+IDs <- c('346', '368')    # mouse ID
+ID2 <- c('Tau1', 'WT3') # our name 
+
+num_neurons <- c(169,  294)          # neurons for each mouse
+names(num_neurons) <- ID2
+brain_region_cutoffs <- c(83, 137) + 0.5 # brain region cutoffs for each mouse
+names(brain_region_cutoffs) <- ID2
+
+weeks <- list(17:38, 17:38) # observed weeks for each mouse
+names(weeks) <- ID2
+
 # load files and get their names -----------------------------------------------
 
 
@@ -178,17 +200,22 @@ names(weeks) <- ID2
 files <- list.files(path = results_dir, full.names = F)
 rda_files <- files[grepl("\\.rda$", files)]
 
-file_parameters <- extract_pieces_cond(rda_files)
+file_parameters <- extract_pieces_cond_v2(rda_files) 
+
+kept_rows <- file_parameters$mouse_ID %in% ID2
+
+file_parameters <- file_parameters[kept_rows,]
+rda_files <- rda_files[kept_rows]
 
 
+# which files to keep (because some mice only last 28 weeks)
 
-
-keep_rows <- mapply(function(m, w) w %in% weeks[[m]],
-                    file_parameters$mouse_ID, file_parameters$ew_num)
-
-rda_files <- rda_files[keep_rows] # final rda_files
-
-file_parameters <- file_parameters[keep_rows, ] # final file_parameters
+# keep_rows <- mapply(function(m, w) w %in% weeks[[m]],
+#                     file_parameters$mouse_ID, file_parameters$ew_num)
+# 
+# rda_files <- rda_files[keep_rows] # final rda_files
+# 
+# file_parameters <- file_parameters[keep_rows, ] # final file_parameters
 
 
 
@@ -273,9 +300,14 @@ for(thresh_value in thresh_values){
   
   # we have our final data.frame to plot stats over time
   summary_df <- df_stat
-  final_results_dir <- "/u/home/j/jasenzz/Graphical_Cox_Process/GMpp-main/Conditional_LGCP/results/task_02_figures/"
   
-  plot_graph_stats(summary_df, final_results_dir, thresh_value)
+  # if dir doesn't exist, create it 
+  if (!dir.exists(final_results_dir)) {
+    dir.create(final_results_dir)
+  }   
+  
+  #plot_graph_stats(summary_df, final_results_dir, thresh_value)
+  plot_graph_stats(summary_df, graph_type, x_graph_title, x_var, color_var, group_var, iter_var, final_results_dir, thresh_value)
 }
 ```
 
@@ -283,6 +315,7 @@ for(thresh_value in thresh_values){
 
 ```{r}
 # packages and functions -------------------------------------------------------
+
 library(dplyr)
 library(ggplot2)
 library(gridExtra)
@@ -292,23 +325,14 @@ source('../visualizing_graphs/unpack_functions.R') # visualization tools from th
 # parameters -------------------------------------------------------------------
 
 
-
-results_dir <- './results/task_02'
-final_results_dir <- "/u/home/j/jasenzz/Graphical_Cox_Process/GMpp-main/Conditional_LGCP/results/task_02_figures/"
+results_dir <- './results/task_03'
+final_results_dir <- "./results/task_03_figures/"
 
 thresh_indicators <- log(c(0.1, 1, 10))
 
-# load files and get their names -----------------------------------------------
-
-
-# load(paste0(results_dir, '/run_time/run_time_results.RData'))
-
-files <- list.files(path = results_dir, full.names = F)
-rda_files <- files[grepl("\\.rda$", files)]
-
-file_parameters <- extract_pieces_cond(rda_files)
-
-
+cont_var_group <- 'age_norm'
+cont_var_alpha <- 'ts_norm'
+cont_vars <- c(cont_var_group, cont_var_alpha)
 
 # mice info --------------------------------------------------------------------
 
@@ -325,70 +349,117 @@ names(num_neurons) <- ID2
 brain_region_cutoffs <- c(83, 156, 106, 164, 130, 137) + 0.5
 names(brain_region_cutoffs) <- ID2
 
+# mice info small case ---------------------------------------------------------
+
+IDs <- c('346', '368')  # mouse ID
+ID2 <- c('Tau1',  'WT3') # our name 
+
+movements <- c(0, 1)
+VRs <- c(0, 1)
+weeks <- list(17:38, 17:38)
+names(weeks) <- ID2
+
+num_neurons <- c(169, 294)
+names(num_neurons) <- ID2
+brain_region_cutoffs <- c(83, 137) + 0.5
+names(brain_region_cutoffs) <- ID2
+
+# load files and get their names -----------------------------------------------
+
+
+# load(paste0(results_dir, '/run_time/run_time_results.RData'))
+
+files <- list.files(path = results_dir, full.names = F)
+rda_files <- files[grepl("\\.rda$", files)]
+
+file_parameters <- extract_pieces_cond_v2(rda_files) # v2 for age_norm, ts_norm
+
+kept_rows <- file_parameters$mouse_ID %in% ID2
+
+file_parameters <- file_parameters[kept_rows,]
+rda_files <- rda_files[kept_rows]
+
 # start ------------------------------------------------------------------------
 
 all_graphs <- list()
 
-for(ID in ID2){
-  
-  graphs_one_mouse <- list()
+for(ID in ID2){ # for each mouse 
   
   
-  n_neurons <- num_neurons[ID]
-  brain_region_cutoff <- brain_region_cutoffs[ID]
+  weight_df <- data.frame()
   
-  for(movement in movements){
+  for(movement in movements){  # for each discrete strata
     for(VR in VRs){
       
-      setting_name <- paste0('m', movement, 'vr', VR)
+      kept_rows2 <- (file_parameters$mouse_ID == ID) & (file_parameters$movement == movement) & (file_parameters$VR == VR)
+      rda_files2 <- rda_files[kept_rows2]
+      y_c_df <- file_parameters[kept_rows2,] %>% select(cont_vars)
       
-      weight_df <- data.frame()
       
-      for(week in weeks[[ID]]){
+      
+      
+      for(f_index in 1:length(rda_files2)){ # each week/ts combo
         
-        # 1.1) craft file name and load it
         
-        f <- paste0(ID, '_m', movement, 'vr', VR, '_w', week, '.rda')
-        f2 <-  sub("\\.rda$", "", f)
-        load(paste0(results_dir, '/', f)) # called final_graph_estimates
+        # 1.1)  load file
+        f_name <- rda_files2[f_index]
+        load(paste0(results_dir, '/', f_name)) # called final_graph_estimates
         
-        n_neurons_not_discarded <- n_neurons - length(final_graph_estimates$discarded_neurons)
-        
+        # 1.2) keep weights
+
         weights <- unlist(final_graph_estimates$edge_strengths)
-        
-        weight_df <- rbind(weight_df, data.frame(weights, week))
+        weight_df <- rbind(weight_df, data.frame(weights, movement, VR, y_c_df[f_index,]))
         
       } # done for each week
       
-      # densities of the weights
-      g_weights <- ggplot() + geom_density(data = weight_df, aes(x = log(weights), group = week, color = week)) + 
-        geom_vline(xintercept = thresh_indicators, size = 0.2) + 
-        scale_color_gradientn(colors = c("red", "green")) + 
-        theme_bw() + 
-        ggtitle(paste0(ID, '_', setting_name)) + 
-        xlim(-30, 15) 
-      
-      graphs_one_mouse[[setting_name]] <- g_weights
-      
-      median_weights <- tapply(log(weight_df$weights), weight_df$week, median)
-      lower_weights <- tapply(log(weight_df$weights), weight_df$week, function(x){quantile(x, 0.025)})
-      upper_weights <- tapply(log(weight_df$weights), weight_df$week, function(x){quantile(x, 0.975)})
-      weight_dist_df <- data.frame(names(median_weights), median_weights, lower_weights, upper_weights)
-      colnames(weight_dist_df) <- c('week', 'median_value', 'lower_value', 'upper_value')
-      weight_dist_df$week <- as.numeric(weight_dist_df$week)
-      
-      # 95% CI of the weights
-      g_weight_dist <- ggplot() + geom_point(data = weight_dist_df, aes(x = week, y = median_weights)) + 
-        geom_errorbar(data = weight_dist_df, aes(x = week, ymin = lower_weights, ymax = upper_weights), width = 0.2) +
-        theme_bw() + 
-        ggtitle(paste0(ID, '_', setting_name)) +
-        ylab('Log(edge weight)') + 
-        xlab('Week')
-    }
-  }
-  print(ID)
+
+    } 
+  } # done for discrete strata
   
-  all_graphs[[ID]] <- graphs_one_mouse
+  
+  # pre-processing. Make everything numeric
+  weight_df[] <- lapply(weight_df, function(x) as.numeric(as.character(x)))
+  # then introduce interaction factor
+  weight_df <- get_mvr_interaction(weight_df)
+  
+  # 2) densities of the weights
+  
+
+  
+  g_weights <- ggplot() + geom_density(data = weight_df, aes(x = log(weights), 
+                                                             group = interaction(.data[[cont_var_group]], .data[[cont_var_alpha]]), 
+                                                             color = .data[[cont_var_group]],
+                                                             size = .data[[cont_var_alpha]]),
+                                       alpha = 0.1) + 
+    facet_wrap(~ m_vr_factor) + 
+    scale_color_gradientn(colors = c("red", "green")) + 
+    scale_size_continuous(range = c(0.2, 0.6)) + 
+    theme_bw() + 
+    ggtitle(ID) + 
+    xlim(-20, 15) 
+  
+  all_graphs[[ID]] <- g_weights
+  
+  # variability of weights (to do later)
+  
+  # median_weights <- tapply(log(weight_df$weights), weight_df$week, median)
+  # lower_weights <- tapply(log(weight_df$weights), weight_df$week, function(x){quantile(x, 0.025)})
+  # upper_weights <- tapply(log(weight_df$weights), weight_df$week, function(x){quantile(x, 0.975)})
+  # weight_dist_df <- data.frame(names(median_weights), median_weights, lower_weights, upper_weights)
+  # colnames(weight_dist_df) <- c('week', 'median_value', 'lower_value', 'upper_value')
+  # weight_dist_df$week <- as.numeric(weight_dist_df$week)
+  # 
+  # # 95% CI of the weights
+  # g_weight_dist <- ggplot() + geom_point(data = weight_dist_df, aes(x = week, y = median_weights)) + 
+  #   geom_errorbar(data = weight_dist_df, aes(x = week, ymin = lower_weights, ymax = upper_weights), width = 0.2) +
+  #   theme_bw() + 
+  #   ggtitle(paste0(ID, '_', setting_name)) +
+  #   ylab('Log(edge weight)') + 
+  #   xlab('Week')  
+  
+  
+  print(ID)
+
 }
 
 
@@ -397,7 +468,7 @@ for(ID in ID2){
 pdf(paste0(final_results_dir, 'edge_weight_distributions.pdf'), width = 10, height = 6)
 
 for(ID in ID2){
-  grid.arrange(grobs = all_graphs[[ID]], ncol = 2, nrow = 2)
+  print(all_graphs[[ID]])
 }
 
 dev.off()
