@@ -179,23 +179,9 @@ names(brain_region_cutoffs) <- ID2
 weeks <- list(17:38, 17:38, 18:38, 17:28, 18:28, 17:38) # observed weeks for each mouse
 names(weeks) <- ID2
 
-# specific mice info -------
-
-IDs <- c('346', '368')    # mouse ID
-ID2 <- c('Tau1', 'WT3') # our name 
-
-num_neurons <- c(169,  294)          # neurons for each mouse
-names(num_neurons) <- ID2
-brain_region_cutoffs <- c(83, 137) + 0.5 # brain region cutoffs for each mouse
-names(brain_region_cutoffs) <- ID2
-
-weeks <- list(17:38, 17:38) # observed weeks for each mouse
-names(weeks) <- ID2
 
 # load files and get their names -----------------------------------------------
 
-
-# load(paste0(results_dir, '/run_time/run_time_results.RData')) # runtime stats
 
 files <- list.files(path = results_dir, full.names = F)
 rda_files <- files[grepl("\\.rda$", files)]
@@ -262,14 +248,16 @@ for(thresh_value in thresh_values){
     adj_mat <- matrix(0, nrow = n_neurons_not_discarded, ncol = n_neurons_not_discarded)
     weight_mat <- matrix(0, nrow = n_neurons_not_discarded, ncol = n_neurons_not_discarded)
     
-    for(k in 1:nrow(df_adj)){
-      i <- df_adj[k,1]
-      j <- df_adj[k,2]
-      ij <- df_adj[k,3]
-      adj_mat[i,j] <- 1
-      adj_mat[j,i] <- 1
-      weight_mat[i,j] <- ij
-      weight_mat[j,i] <- ij
+    if(nrow(df_adj) > 0){
+      for(k in 1:nrow(df_adj)){
+        i <- df_adj[k,1]
+        j <- df_adj[k,2]
+        ij <- df_adj[k,3]
+        adj_mat[i,j] <- 1
+        adj_mat[j,i] <- 1
+        weight_mat[i,j] <- ij
+        weight_mat[j,i] <- ij
+      }
     }
     
     adj_mat_w_diag <- adj_mat + diag(rep(1, n_neurons_not_discarded))
@@ -349,25 +337,9 @@ names(num_neurons) <- ID2
 brain_region_cutoffs <- c(83, 156, 106, 164, 130, 137) + 0.5
 names(brain_region_cutoffs) <- ID2
 
-# mice info small case ---------------------------------------------------------
-
-IDs <- c('346', '368')  # mouse ID
-ID2 <- c('Tau1',  'WT3') # our name 
-
-movements <- c(0, 1)
-VRs <- c(0, 1)
-weeks <- list(17:38, 17:38)
-names(weeks) <- ID2
-
-num_neurons <- c(169, 294)
-names(num_neurons) <- ID2
-brain_region_cutoffs <- c(83, 137) + 0.5
-names(brain_region_cutoffs) <- ID2
 
 # load files and get their names -----------------------------------------------
 
-
-# load(paste0(results_dir, '/run_time/run_time_results.RData'))
 
 files <- list.files(path = results_dir, full.names = F)
 rda_files <- files[grepl("\\.rda$", files)]
@@ -385,12 +357,15 @@ all_graphs <- list()
 
 for(ID in ID2){ # for each mouse 
   
+  # 1) create a dataframe with all weight values and jot down discrete and continuous covariates
   
   weight_df <- data.frame()
   
   for(movement in movements){  # for each discrete strata
     for(VR in VRs){
       
+      # only consider the files that match (mouse, movement, VR)
+      # thus, they only differ in their continuous variables
       kept_rows2 <- (file_parameters$mouse_ID == ID) & (file_parameters$movement == movement) & (file_parameters$VR == VR)
       rda_files2 <- rda_files[kept_rows2]
       y_c_df <- file_parameters[kept_rows2,] %>% select(cont_vars)
@@ -417,12 +392,14 @@ for(ID in ID2){ # for each mouse
   } # done for discrete strata
   
   
-  # pre-processing. Make everything numeric
+  # 2) pre-processing ----------------------------------------------------------
+  
+  # Make everything numeric
   weight_df[] <- lapply(weight_df, function(x) as.numeric(as.character(x)))
   # then introduce interaction factor
   weight_df <- get_mvr_interaction(weight_df)
   
-  # 2) densities of the weights
+  # 3) create weight density plot ----------------------------------------------
   
 
   
