@@ -36,11 +36,21 @@ query_y_cs <- list(query_y_cs_both, query_y_cs_age)
 
 # additional parameters --------------------------------------------------------
 
-included_neurons <- 1000
+included_neurons <- 50
 Tseq = seq(0.05,0.95,length=19)
 task_name <- 'task_03a'
 data_folder_name <- 'data/with_ts/'
 ncores <- parallel::detectCores() - 1
+
+save_dir <- 'results/'  
+if (!dir.exists(save_dir)) {
+  dir.create(save_dir)
+}     
+
+save_dir <- paste0(save_dir, task_name, '/')  
+if (!dir.exists(save_dir)) {
+  dir.create(save_dir)
+} 
 
 # starting ---------------------------------------------------------------------
 
@@ -69,8 +79,16 @@ for(i in 1:length(IDs)){
   discrete_strata <- cov_df %>% unique()
   
 
+ 
+  
+
     
   for(y_ind in 1:nrow(discrete_strata)){ # 3) for each discrete variable level 
+    
+    # prepare times
+    t6_total <- 0
+    t7_total <- 0
+    t8_total <- 0 
     
     t0 <- Sys.time()
     
@@ -146,17 +164,15 @@ for(i in 1:length(IDs)){
                                                    patient_sel, feature_sel, Tseq, ncores)
     t5 <- Sys.time()
     
-    # checking
-    # rho_list_old <- estimate_intensities_stratum_parallel_v2(data_df4, patient_sel, feature_sel, Tseq, ncores)
-    # g_ij_st_old <- estimate_covariance_functions(rho_list_old$rho_hat, rho_list_old$rho_hat_pairs)
-    # eigen_decomp_old <- compute_eigendecomposition(g_ij_st_old)
-    # kl_coeffs_old <- estimate_kl_coefficients(data_df4, eigen_decomp_old$eigenfunctions, eigen_decomp_old$n_dims, 
-    #                                           patient_sel, feature_sel, Tseq)      
+    time_elapsed <- round(as.numeric(difftime(t5, t2, units = 'mins')), 2)
+    print(paste0('checkpoint 2: ', time_elapsed, ' mins'))    
     
     
     # here, we fit to y_c_strata and y_c_strata_age
     
     for(y_case in 1:length(y_c_strata)){
+      
+      t6a <- Sys.time()
       
       # part 6
       gamma_c <- select_gamma_c_bandwidth_v2(y_c_strata[[y_case]])
@@ -164,6 +180,7 @@ for(i in 1:length(IDs)){
       
       
       t6 <- Sys.time()
+      t6_total <- t6_total + round(as.numeric(difftime(t6, t6a, units = 'mins')), 2)
       
       # part 7
   
@@ -173,13 +190,16 @@ for(i in 1:length(IDs)){
       M_hat <- estimate_regression_operators_v3(K_c, V_YcXij, gamma_c, p)
       
       t7 <- Sys.time()
+      t7_total <- t7_total + round(as.numeric(difftime(t7, t6, units = 'mins')), 2)
       
+      time_elapsed <- round(as.numeric(difftime(t7, t6a, units = 'mins')), 2)
+      print(paste0('checkpoint 3: ', time_elapsed, ' mins'))  
       
-      time_elapsed <- round(as.numeric(difftime(t7, t2, units = 'mins')), 2)
-      print(paste0('checkpoint 2: ', time_elapsed, ' mins'))  
+      # part 8 - parallelize this
       
-      # part 8
-      for(cont_ind in 1:nrow(query_y_cs[[y_case]])){
+      cont_inds <- 1:nrow(query_y_cs[[y_case]])
+      pbmclapply(cont_inds, function(cont_ind) {
+        
         
         query_y_c <- query_y_cs[[y_case]][cont_ind, ] %>% as.numeric()
   
@@ -219,29 +239,35 @@ for(i in 1:length(IDs)){
         
         results_name <- paste0(discrete_strata_name, '_', query_name)
         
-        save_dir <- 'results/'  
-        if (!dir.exists(save_dir)) {
-          dir.create(save_dir)
-        }     
-        
-        save_dir <- paste0(save_dir, task_name, '/')  
-        if (!dir.exists(save_dir)) {
-          dir.create(save_dir)
-        } 
+
         
         save_file <- paste0(save_dir, ID2[i], '_', results_name, '.rda')
         save(final_graph_estimates, file=save_file)
         
-      } # done with all y_c levels
+        return(NULL)
+        
+      }, mc.cores = ncores) # done with all y_c levels
+      
+      t8 <- Sys.time()
+
+      
+      time_elapsed <- round(as.numeric(difftime(t8, t7, units = 'mins')), 2)
+      print(paste0('checkpoint 4: ', time_elapsed, ' mins'))   
+      t8_total <- t8_total + time_elapsed
+      
     } # done with both cases (only age, both age and ts)
     
-    t8 <- Sys.time()
+    t9 <- Sys.time()
   
     # 9) save runtimes ---------------------------------------------------------
     
-    times_end   <- c(t1, t2, t3, t4, t5, t6, t7, t8, t8)
-    times_start <- c(t0, t1, t2, t3, t4, t5, t6, t7, t0)
+    times_end   <- c(t1, t2, t3, t4, t5, t9)
+    times_start <- c(t0, t1, t2, t3, t4, t0)    
     times_diff <- difftime(times_end, times_start, units = 'mins') %>% as.numeric() %>% round(2)
+    
+    times_diff <- c(times_diff[1:5], t6_total, t7_total, t8_total, times_diff[6])
+
+    
     
     strata_stat_vec <- c(ID2[i],                              # mouse ID
                          yd_i$movement,                       # movement
