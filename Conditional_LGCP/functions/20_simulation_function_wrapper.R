@@ -1,0 +1,11 @@
+source('functions/21_graph_structure_generation.R')
+source('functions/22_generate_random_variables.R')
+source('functions/23_conditional_dependence_functions.R')
+source('functions/24_log_intensity_generation.R')
+source('functions/25_point_generation_process.R')
+source('functions/26_complete_data_generation_pipeline.R')
+source('functions/27_performance_evaluation_functions.R')
+
+
+library(dplyr)
+library(data.table)
