@@ -176,6 +176,7 @@ dev.off()
 library(dplyr)
 library(ggplot2)
 source('functions/31_unpacking_results.R')
+source('functions/33_get_graph_statistics.R')
 source('functions/35_plot_graph_stats.R')
 source('../visualizing_graphs/unpack_functions.R') # visualization tools from the unconditional model
 
@@ -263,37 +264,12 @@ for(thresh_value in thresh_values){
     n_neurons_not_discarded <- n_neurons - length(final_graph_estimates$discarded_neurons)
       
   
-    # 2) keep edges that are above the threshold
+    # 3) construct adjacency matrix, adjacency matrix with 1's on diag, and weighted matrix
     
-    
-    weights <- unlist(final_graph_estimates$edge_strengths)
-    kept_indices <- weights > thresh_value
-    kept_edges <- final_graph_estimates$edge_strengths[kept_indices]
-    
-    # 3) make adjacency matrix (adj_mat, adj_mat_w_diag) and weighted adjacency matrix (weight_mat)
-  
-    v_i <- sub("_.*", "", names(kept_edges)) %>% as.numeric()
-    v_j <- sub(".*_", "", names(kept_edges)) %>% as.numeric()
-    e_ij <- unlist(kept_edges)
-    
-    df_adj <- data.frame(v_i, v_j, e_ij)
-    
-    adj_mat <- matrix(0, nrow = n_neurons_not_discarded, ncol = n_neurons_not_discarded)
-    weight_mat <- matrix(0, nrow = n_neurons_not_discarded, ncol = n_neurons_not_discarded)
-    
-    if(nrow(df_adj) > 0){
-      for(k in 1:nrow(df_adj)){
-        i <- df_adj[k,1]
-        j <- df_adj[k,2]
-        ij <- df_adj[k,3]
-        adj_mat[i,j] <- 1
-        adj_mat[j,i] <- 1
-        weight_mat[i,j] <- ij
-        weight_mat[j,i] <- ij
-      }
-    }
-    
-    adj_mat_w_diag <- adj_mat + diag(rep(1, n_neurons_not_discarded))
+    mat_list <- get_adj_matrix(final_graph_estimates, thresh_value, n_neurons_not_discarded)
+    adj_mat <- mat_list[['adj_mat']]
+    adj_mat_w_diag <- mat_list[['adj_mat_w_diag']]
+    weight_mat <- mat_list[['weight_mat']]
     
     # 3.1) augmented adjacency matrix with discarded neurons
     
@@ -304,8 +280,8 @@ for(thresh_value in thresh_values){
     
     # 4) graph statistics
     
-    g_stats <- get_summary_statistics(adj_mat2_w_diag, weight_mat, brain_region_cutoff)
-    g_lap_stats <- t(get_graph_laplacian_stats(adj_mat2_w_diag)) %>% as.data.frame()
+    g_stats <- get_summary_statistics(adj_mat, adj_mat2, weight_mat, brain_region_cutoff)
+    g_lap_stats <- t(get_graph_laplacian_stats(adj_mat)) %>% as.data.frame()
     
     # 5) parameters + statistcs = dataframe row
     stat_vec1 <- file_parameters[f_ind,] 

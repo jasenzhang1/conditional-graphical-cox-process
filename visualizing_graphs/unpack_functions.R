@@ -165,7 +165,7 @@ get_network <- function(adj_mat, ID){
   #      main = ID)  
 }
 
-get_summary_statistics <- function(adj_mat_fill, weight_mat, brain_region_cutoff){
+get_summary_statistics <- function(adj_mat2, adj_mat_fill, weight_mat, brain_region_cutoff){
   
   # ---------------------------------------------------------------------------- 
   #
@@ -175,10 +175,10 @@ get_summary_statistics <- function(adj_mat_fill, weight_mat, brain_region_cutoff
   #
   # input:
   #
-  # - adj_mat_fill           (matrix):    the full nxn matrix of neurons with NA's denoting discarded neurons
-  # - weight_mat             (matrix):    symmetric weight matrix that discards silent neurons
-  #   - BOTH OF THESE MATRICES NEED 1'S ON THE DIAGONAL
-  #   - diagonals of missing neurons are NA
+  # - adj_mat2               (matrix):    original adjacency matrix, no NA neurons, with 0's on diagonal
+  # - adj_mat_fill           (matrix):    the full nxn matrix of neurons with NA's denoting discarded neurons. 
+  #                                       NA's are on diagonal of NA neurons. Otherwise 0 on diag.
+  # - weight_mat             (matrix):    fully connected symmetric weight matrix that doesn't have NA's. 0's on diagonal.
   # 
   # 
   # - brain_region_cutoff (number): y + 0.5, which divides the y-th neuron and y+1-th neuron which are in different brain regions
@@ -189,27 +189,28 @@ get_summary_statistics <- function(adj_mat_fill, weight_mat, brain_region_cutoff
   #
   # ---------------------------------------------------------------------------- 
   
-  adj_mat_og <- adj_mat_fill[!apply(is.na(adj_mat_fill), 1, all),  # remove rows where all are NA
-                             !apply(is.na(adj_mat_fill), 2, all)]  # still has 1's on the diagonal
+  brain_region_cutoff <- unname(brain_region_cutoff)
   
-  adj_mat2 <- adj_mat_og
-  diag(adj_mat2) <- 0    # remove 1's on the diagonal
+  # 1) vertex statistics -------------------------------------------------------
   
-  # vertex statistics
   num_neurons <- dim(adj_mat_fill)[1]                           # number of neurons in total (169)
+  
+  num_neurons_HIP <- brain_region_cutoff - 0.5                  # number of neurons in HIP
+  num_neurons_EHC <- num_neurons - num_neurons_HIP              # number of neurons in EHC
+  
   num_NA <- sum(is.na(diag(adj_mat_fill)))                      # number of NA neurons       (42)
   num_candidates <- num_neurons - num_NA                        # number of non-NA neurons   (127)
   
   
-  num_islands <- length(which(apply(adj_mat_og,2,sum) == 1))    # number of island neurons   (86)
+  num_islands <- length(which(apply(adj_mat2,2,sum) == 0))    # number of island neurons   (86)
   
-
   
   verts <- which(apply(adj_mat2,2,sum) > 0)
   num_con_verts <- length(verts)                                # number of connected neurons (41)
   
   
-  # edge
+  # 2) edge statistics ---------------------------------------------------------
+  
   num_edges <- 0.5 * sum(adj_mat2)                              # number of edges            (61)
   
   off_diag_adj_mat <- adj_mat_fill[1:(brain_region_cutoff - 0.5), (brain_region_cutoff + 0.5):num_neurons]
@@ -221,9 +222,10 @@ get_summary_statistics <- function(adj_mat_fill, weight_mat, brain_region_cutoff
   num_EE_edges <- 0.5 * (sum(EE_adj_mat, na.rm = T) - sum(diag(EE_adj_mat), na.rm = T))   # EHC-EHC edges (16)
   
   
-  # connectivity statistics
+  # 3) connectivity statistics -------------------------------------------------
+  
   avg_deg <- round(2 * num_edges/num_candidates, 2)                                       # average degree of candidate neurons (1.59) 
-  avg_deg_normalized <- avg_deg/num_candidates
+  avg_deg_normalized <- avg_deg/(num_candidates - 1)                                      # normalized average degree
 
   # distribution of degrees
   degs <- table(apply(adj_mat2, 2, sum))
@@ -234,21 +236,26 @@ get_summary_statistics <- function(adj_mat_fill, weight_mat, brain_region_cutoff
   g <- graph_from_adjacency_matrix(adj_mat3, mode = "undirected")
   num_comps <- components(g)$no                                                           # number of components (2)
   
-  # subgraph statistics
   
-  num_neurons_HIP <- dim(HH_adj_mat)[1]                           # number of neurons in total 
-  num_NA_HIP <- sum(is.na(diag(HH_adj_mat)))                      # number of NA neurons       
-  num_candidates_HIP <- num_neurons_HIP - num_NA_HIP              # number of non-NA neurons   
-  avg_deg_HIP <- round(2 * num_HH_edges/num_candidates_HIP, 2)
-  avg_deg_HIP_normalized <- avg_deg_HIP/num_candidates_HIP
+  # 4) subgraph statistics -----------------------------------------------------
+  
+  
+  num_NA_HIP <- sum(is.na(diag(HH_adj_mat)))                           # number of NA neurons in HIP     
+  num_candidates_HIP <- num_neurons_HIP - num_NA_HIP                   # number of non-NA neurons in HIP
+  avg_deg_HIP <- round(2 * num_HH_edges/num_candidates_HIP, 2)         # average degree of a HIP neuron
+  avg_deg_HIP_normalized <- avg_deg_HIP/(num_candidates_HIP - 1)       # normalized degree
     
-  num_neurons_EHC <- dim(EE_adj_mat)[1]                           # number of neurons in total 
-  num_NA_EHC <- sum(is.na(diag(EE_adj_mat)))                      # number of NA neurons       
-  num_candidates_EHC <- num_neurons_EHC - num_NA_EHC              # number of non-NA neurons   
-  avg_deg_EHC <- round(2 * num_EE_edges/num_candidates_EHC, 2)
-  avg_deg_EHC_normalized <- avg_deg_EHC/num_candidates_EHC
   
-  # weighted graph statistics
+  num_NA_EHC <- sum(is.na(diag(EE_adj_mat)))                           # number of NA neurons in EHC   
+  num_candidates_EHC <- num_neurons_EHC - num_NA_EHC                   # number of non-NA neurons in EHC
+  avg_deg_EHC <- round(2 * num_EE_edges/num_candidates_EHC, 2)         # average degree of a EHC neuron
+  avg_deg_EHC_normalized <- avg_deg_EHC/(num_candidates_EHC - 1)       # normalized degree
+  
+  pct_HH_connections <- num_HH_edges / choose(num_candidates_HIP, 2)
+  pct_EE_connections <- num_EE_edges / choose(num_candidates_EHC, 2)
+  pct_HE_connections <- num_HE_edges / (num_candidates_HIP * num_candidates_EHC)
+  
+  # 5) weighted graph statistics -----------------------------------------------
   
   g <- graph_from_adjacency_matrix(weight_mat, mode = "undirected", weighted = TRUE, diag = FALSE)
   
@@ -258,49 +265,59 @@ get_summary_statistics <- function(adj_mat_fill, weight_mat, brain_region_cutoff
   E(g)$weight <- 1 / E(g)$weight # now weight is inverted. The lower, the better.
   
 
-  dist_mat <- distances(g, weights = E(g)$weight)  # path lengths between all pairs of nodes
-  avg_dist <- mean(dist_mat[lower.tri(dist_mat)])  # average path length 
+  dist_mat <- distances(g, weights = E(g)$weight)          # path lengths between all pairs of nodes
+  avg_dist <- mean(dist_mat[lower.tri(dist_mat)])          # average path length 
   
   graph_diameter <- diameter(g)        # diameter (worst case scenario for shortest path length)
   
   
-
+  # 6) put together the stats --------------------------------------------------
   
   sum_stats <- list()
   detailed_stats <- list()
   total_stats <- list()
   
-  # number of nodes
+  # 6.1) vertex statistics 
   sum_stats[['num_neurons']] <- num_neurons
+  sum_stats[['num_neurons_HIP']] <- num_neurons_HIP
+  sum_stats[['num_neurons_EHC']] <- num_neurons_EHC
   sum_stats[['num_NA']] <- num_NA
+  sum_stats[['num_NA_HIP']] <- num_NA_HIP
+  sum_stats[['num_NA_EHC']] <- num_NA_EHC
   sum_stats[['num_candidates']] <- num_candidates
+  sum_stats[['num_candidates_HIP']] <- num_candidates_HIP
+  sum_stats[['num_candidates_EHC']] <- num_candidates_EHC
   sum_stats[['num_islands']] <- num_islands
   sum_stats[['num_con_verts']] <- num_con_verts
   
-  # number of edges
-  
+  # 6.2) edge statistics 
   sum_stats[['num_edges']] <- num_edges
   sum_stats[['num_HE_edges']] <- num_HE_edges
   sum_stats[['num_HH_edges']] <- num_HH_edges
   sum_stats[['num_EE_edges']] <- num_EE_edges
   
-  # misc stats
+  # 6.3) connectivity statistics
   sum_stats[['avg_deg']] <- avg_deg
   sum_stats[['avg_deg_HIP']] <- avg_deg_HIP
   sum_stats[['avg_deg_EHC']] <- avg_deg_EHC
   sum_stats[['avg_deg_normalized']] <- avg_deg_normalized
   sum_stats[['avg_deg_HIP_normalized']] <- avg_deg_HIP_normalized
   sum_stats[['avg_deg_EHC_normalized']] <- avg_deg_EHC_normalized
-  
   sum_stats[['num_comps']] <- num_comps
   
-  # weighted graph stats
+  # 6.4) subgraph statistics - out of all the possible # of edges, how many are present
+  
+  sum_stats[['pct_HH_connections']] <- pct_HH_connections
+  sum_stats[['pct_EE_connections']] <- pct_EE_connections
+  sum_stats[['pct_HE_connections']] <- pct_HE_connections
+  
+  # 6.5) weighted graph stats
   sum_stats[['avg_node_strength']] <- avg_strength
   sum_stats[['avg_edge_strength']] <- avg_edge_weight
   sum_stats[['avg_dist']] <- avg_dist
   sum_stats[['diameter']] <- graph_diameter
   
-  # detailed stats
+  # 7) detailed stats
   detailed_stats[['degs']] <- degs
   detailed_stats[['verts']] <- verts
 
@@ -379,53 +396,65 @@ save_summary_statistics <- function(figures_root, figure_name, settings_kept, su
 
 get_graph_laplacian_stats <- function(adj_mat, zero_tol = 1e-8){
   
+  
+  # ----------------------------------------------------------------------------
+  # 
   # 
   # GOAL: get graph laplacian statistics
   #
   # 
   # input:
   # 
-  # - adj_mat (p x p adjacency matrix): symmetric 
+  # - adj_mat (p x p adjacency matrix): adj matrix with no NA's. Diag entries = 0
   # - zero_tol (number): if eigenvalues are below this, set them equal to 0
   #
   #
   # output:
   #
   # - list of graph laplacian statistics
+  #
+  #
+  # ----------------------------------------------------------------------------
   
-  # if we feed in the adj_mat with NA's, set them to 0 except the diagonal (to make them singletons)
-  adj_mat[is.na(adj_mat)] <- 0
-  diag(adj_mat) <- 1
+  
   
   p <- dim(adj_mat)[1]
-  lap_mat <- diag(rowSums(adj_mat)) - adj_mat
+  lap_mat <- diag(rowSums(adj_mat)) - adj_mat # L = D - A
   
   
   # eigendecomposition
   
-  lap_eigen <- eigen(lap_mat, symmetric = T)
-  lap_eval <- lap_eigen$values
+  lap_eval <- eigen(lap_mat, symmetric = T)$values
   lap_eval[abs(lap_eval) < zero_tol] <- 0
   
-  fiedler_value <- lap_eval[length(lap_eval) - 1] # lambda_2
-  lambda_max <- max(lap_eval)     # largest eigenvalue
-  num_zeros <- sum(lap_eval == 0) # number of zeros
-  lambda_median <- median(lap_eval)
-  lambda_lower <- quantile(lap_eval, 0.25) %>% unname()
-  lambda_upper <- quantile(lap_eval, 0.75) %>% unname()
+  # statistics regarding the eigenvalue distribution (lap_eval)
   
-  # weighted laplacian
+  fiedler_value <- lap_eval[length(lap_eval) - 1]       # lambda_2
+  lambda_max <- max(lap_eval)                           # largest eigenvalue
+  num_zeros <- sum(lap_eval == 0)                       # number of zeros
+  lambda_median <- median(lap_eval)                     # median
+  lambda_lower <- quantile(lap_eval, 0.25) %>% unname() # Q1
+  lambda_upper <- quantile(lap_eval, 0.75) %>% unname() # Q3
   
-  deg_inv_sqrt <- diag(1 / sqrt(rowSums(adj_mat)))
+  # weighted laplacian - if degree is 0, keep the inverse 0
+  
+  sqrt_degs <- sqrt(rowSums(adj_mat))
+  deg_inv_sqrt <- ifelse(sqrt_degs == 0, 0, 1 / sqrt_degs) %>% diag()
+  
   lap_mat_sym <- diag(rep(1, p)) - deg_inv_sqrt %*% adj_mat %*% deg_inv_sqrt
+  
+  # eigendecomposition
   
   lap_sym_eval <- eigen(lap_mat_sym, symmetric = T)$values
   lap_sym_eval[abs(lap_sym_eval) < zero_tol] <- 0
   
-  lambda_max_sym <- max(lap_sym_eval)  # largest eigenvalue of symmetric laplacian
+  # max, median, Q1, Q3 
+  lambda_max_sym <- max(lap_sym_eval)  
   lambda_median_sym <- median(lap_sym_eval)  
   lambda_lower_sym <- quantile(lap_sym_eval, 0.25) %>% unname() 
   lambda_upper_sym <- quantile(lap_sym_eval, 0.75) %>% unname()
+  
+  
   # compile and print results
   
   results <- list(num_zeros=num_zeros,            # number of zero eigenvalues
