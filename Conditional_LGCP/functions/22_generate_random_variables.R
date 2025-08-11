@@ -1,6 +1,10 @@
 
 library(mvtnorm)
 
+# 1) generate continuous and discrete RV's
+# 2) generate only continuous RV's because we assume 1 strata
+# 3) generate continuous RV's that reflect week; assume 1 strata
+
 generate_conditioning_variables <- function(n, q_c, K, seed = NULL) {
   
   
@@ -63,5 +67,95 @@ generate_conditioning_variables <- function(n, q_c, K, seed = NULL) {
       Sigma_c = Sigma_c,
       K_per_var = K_per_var
     )
+  ))
+}
+
+generate_conditioning_variables_one_strata <- function(n, q_c, seed = NULL) {
+  
+  
+  # ----------------------------------------------------------------------------
+  # 
+  # GOAL: Generate continuous conditioning variables (assuming one discrete strata)
+  #
+  # - continuous variables sampled from multivariate normal
+  #
+  # 
+  # Input: 
+  #
+  # - n     (integer)  sample size
+  # - q_c   (integer)  dimension of continuous covariates
+  # - seed  (integer)  randomization seed
+  # 
+  # Output: 
+  # 
+  # - list with Y_continuous (n x q_c)
+  #
+  #
+  # ----------------------------------------------------------------------------
+  
+  if (!is.null(seed)) set.seed(seed)
+  
+  # 1) Continuous variables: multivariate normal with moderate correlation -----
+  
+  # Sigma_c = sigma_c^2 * I + rho_c * 1*1^T  
+  sigma_c <- 1.0  # Marginal variance
+  rho_c <- 0.3    # Off-diagonal correlation
+  Sigma_c <- sigma_c^2 * diag(q_c) + rho_c * matrix(1, q_c, q_c)
+  mu_c <- rep(0, q_c)  # Mean vector
+  
+  Y_continuous <- rmvnorm(n, mean = mu_c, sigma = Sigma_c)
+  
+  
+
+  
+  return(list(
+    Y_continuous = Y_continuous,
+    q_c = q_c,
+    parameters = list(
+      sigma_c = sigma_c,
+      rho_c = rho_c,
+      mu_c = mu_c,
+      Sigma_c = Sigma_c
+    )
+  ))
+}
+
+generate_conditioning_variables_one_strata_weeks <- function(n, week_start, week_end, seed = NULL) {
+  
+  
+  # ----------------------------------------------------------------------------
+  # 
+  # GOAL: Generate variables that are similar to weeks (assuming one discrete strata)
+  #
+  # - continuous variables sampled from multimodal dist
+  #
+  # 
+  # Input: 
+  #
+  # - n             (integer)  sample size
+  # - week_start    (integer)
+  # - week_end      (integer)
+  # - seed          (integer)  randomization seed
+  # 
+  # Output: 
+  # 
+  # - list with Y_continuous (n x 1)
+  #
+  #
+  # ----------------------------------------------------------------------------
+  
+  if (!is.null(seed)) set.seed(seed)
+  
+  # 1) Continuous variables: multimodal dist 
+
+  
+  Y_continuous <-  sample(week_start:week_end, n, replace = TRUE)
+  
+  
+  
+  
+  return(list(
+    Y_continuous = Y_continuous,
+    q_c = 1
   ))
 }

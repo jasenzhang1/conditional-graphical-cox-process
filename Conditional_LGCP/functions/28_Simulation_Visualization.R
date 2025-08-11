@@ -79,8 +79,16 @@ HS_heatmap <- function(precision_op, delta_t){
 
 visualize_log_intensity <- function(X_k, time_grid){
   
+  #
+  # visualize the log intensities
+  # 
   # X_k = (p x m matrix)
   # time_grid = (m-dim vec of timepoints)
+  #
+  #
+  # output:
+  # 
+  # graph of all p log intensites at m timepoints
   
   p <- dim(X_k)[1]
   m <- dim(X_k)[2]
@@ -106,8 +114,19 @@ visualize_log_intensity <- function(X_k, time_grid){
 
 ground_truth_rho_ij <- function(my_list){
   
+
+  #
   # Assuming your list is called my_list
   # Each element has a matrix called X_functions of dimension p x m
+  #   
+  #
+  # generate rho_ij estimate:
+  #
+  # 1) exponentiate log-intensity (X) to get intensity
+  # 2) take cross product to get rho_ij
+  #  
+  #     mean( X %*% t(X) )
+  #
   
   p <- nrow(my_list[[1]]$X_functions)
   m <- ncol(my_list[[1]]$X_functions)

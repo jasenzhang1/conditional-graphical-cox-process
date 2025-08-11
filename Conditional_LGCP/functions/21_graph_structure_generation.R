@@ -4,6 +4,7 @@ library(igraph)
 library(MASS)
 
 # these functions create the adjacency matrix ground truth
+# 0's on the diagonal
 
 generate_random_graph <- function(p, sparsity, seed = NULL) {
   
@@ -119,4 +120,3 @@ generate_block_diagonal_graph <- function(p, sparsity, n_blocks = 3, seed = NULL
   
   return(adj_matrix)
 }
-

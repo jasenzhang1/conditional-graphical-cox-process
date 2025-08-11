@@ -416,6 +416,9 @@ estimate_intensities_stratum_parallel_v3 <- function(data_all, patient_sel, feat
   # - rho_{ij} (m x m matrix) for all (p x p) pairs
   #
   # - in v3, we only care about i = j entries for bivariate estimates
+  #
+  # - 8/5/2025
+  #   need to tune gamma for KDE 
   #  
   #
   # Input: 

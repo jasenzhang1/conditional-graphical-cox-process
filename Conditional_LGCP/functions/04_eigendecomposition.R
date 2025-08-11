@@ -64,7 +64,7 @@ compute_eigendecomposition <- function(G_hat, var_explained = 0.9) {
   return(list(eigenvalues = eigenvalues, eigenfunctions = eigenfunctions, n_dims = n_dims))
 }
 
-compute_eigendecomposition_ii <- function(G_hat, var_explained = 0.9) {
+compute_eigendecomposition_ii <- function(G_hat, var_explained = 0.99) {
   
   # ----------------------------------------------------------------------------
   #

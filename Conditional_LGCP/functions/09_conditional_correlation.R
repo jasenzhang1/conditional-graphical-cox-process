@@ -132,3 +132,56 @@ estimate_conditional_correlation_v2 <- function(V_conditional, gamma1, p) {
   
   return(C_conditional)
 }
+
+estimate_conditional_correlation_v3 <- function(V_conditional, p, pinv_eps = 1e-6) {
+  
+  # ---------------------------------------------------------------------
+  #
+  # GOAL: estimate conditional correlation
+  #
+  # - v3: we adaptively estimate gamma depending on the negative eigenvalues
+  # -     use psd_jitter in 00a_matrix_massaging
+  #
+  # Input: 
+  #
+  # - V_conditional      (list of length p^2, each element m x m)
+  # - p                  (scalar)
+  #
+  #
+  # Output: 
+  #
+  # - C_conditional      (list of length p^2, each element m x m matrix)
+  #
+  #
+  #------------------------------------------------------------------------
+  
+  n_time <- nrow(V_conditional[[1]])  # m
+  C_conditional <- list()
+  
+  for (i in 1:p) {
+    for (j in i:p) {
+      key <- paste(i, j, sep="_")
+      
+      if (i == j) {
+        # Diagonal elements are identity: m x m
+        C_conditional[[key]] <- diag(n_time)
+      } else {
+        # Off-diagonal correlation
+        key_ii <- paste(i, i, sep="_")
+        key_jj <- paste(j, j, sep="_")
+        
+        V_ii <- psd_jitter(V_conditional[[key_ii]])  # m x m
+        V_jj <- psd_jitter(V_conditional[[key_jj]])  # m x m  
+        V_ij <- V_conditional[[key]]                 # m x m
+        
+        # Matrix operations: (m x m) %*% (m x m) %*% (m x m) = (m x m)
+        V_ii_inv_sqrt <- matrix_inv_sqrt(V_ii)  # m x m
+        V_jj_inv_sqrt <- matrix_inv_sqrt(V_jj)  # m x m
+        
+        C_conditional[[key]] <- V_ii_inv_sqrt %*% V_ij %*% V_jj_inv_sqrt
+      }
+    }
+  }
+  
+  return(C_conditional)
+}

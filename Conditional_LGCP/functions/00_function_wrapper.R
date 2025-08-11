@@ -9,6 +9,8 @@ source('functions/08_conditional_covariance.R')
 source('functions/09_conditional_correlation.R')
 source('functions/10_precision_operator.R')
 source('functions/11_graph_estimation.R')
+source('functions/12_full_estimation_procedure.R')
+source('functions/13_estimation_validation.R')
 
 library(dplyr)
 library(data.table)

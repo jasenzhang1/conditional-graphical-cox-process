@@ -5,6 +5,9 @@ get_gamma <- function(tseq=NULL, gamma_max = 100){
   # we want a custom bandwidth parameter in KDE depending on the data
   # Taken from Sun Lee Li Cai
   #
+  # calculate the average time between all pairs of events. 
+  # then take the inverse square
+  #
   # input:
   # 
   # - tseq   (vector of event times)
@@ -15,7 +18,10 @@ get_gamma <- function(tseq=NULL, gamma_max = 100){
   n = length(tseq)
   
   if(n>2){
-    gamma = 1/(sum(dist(tseq))*2/n/(n-1))^2
+    
+    avg_dist <- sum(dist(tseq)) / (n * (n-1) / 2)
+    
+    gamma = 1/(avg_dist^4)
   }else{
     return(gamma_max)
   }
@@ -26,6 +32,36 @@ get_gamma <- function(tseq=NULL, gamma_max = 100){
     return(min(gamma, gamma_max))
   }
   
+}
+
+get_gamma_silverman <- function(event_times){
+  
+  n <- length(event_times)
+  
+  bw <- 1.06 * sd(event_times) * n^(-1/5)
+  gamma <- 1 / (2 * bw^2)  
+  
+  return(gamma)
+}
+
+# https://stats.stackexchange.com/questions/6670/which-is-the-formula-from-silverman-to-calculate-the-bandwidth-in-a-kernel-densi
+get_gamma_silverman_v2 <- function(event_times){
+  
+  m <- min(sd(event_times), IQR(event_times) / 1.349)
+  
+  
+  n <- length(event_times)
+  
+  bw <- 0.9 * m * n^(-1/5)
+
+  gamma <- 1 / (2 * bw^2)
+  return(gamma)
+}
+
+get_gamma_adaptive <- function(event_times){
+  bw <- bw.SJ(event_times)  # or use bw.ucv(event_times)
+  gamma <- 1 / (2 * bw^2)
+  return(gamma)
 }
 
 truncNorm_denom <- function(t=NULL, gamma=1 ,a=0, b=1){
@@ -80,6 +116,9 @@ estimate_density <- function(t_event, t_seq){
   #
   # Checked 6/20/2025
   #
+  # 8/5/2025
+  # Need to tune gamma of KDE to be more adaptive to density. KDE is too smooth.
+  #
   # Input:
   #
   # t_event  (3805-dim vector)         all timestamps for mark i, subject k 
@@ -96,6 +135,11 @@ estimate_density <- function(t_event, t_seq){
   # 1) Calculate density estimate \Lambda_i^k 
   
   gamma <- get_gamma(t_event)
+  gamma <- get_gamma_silverman(t_event)
+  gamma <- get_gamma_silverman_v2(t_event)
+  gamma <- get_gamma_adaptive(t_event)    # currently the best gamma method 
+  
+  print(gamma)
   
   kernel_evals <- gaussian_kernel(t_seq, t_event, gamma) # 19 x 3805 matrix
   
