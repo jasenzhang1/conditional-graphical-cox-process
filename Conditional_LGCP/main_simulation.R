@@ -7,7 +7,7 @@ t0 <- Sys.time()
 source('functions/20_simulation_function_wrapper.R')
 source('functions/00_function_wrapper.R')
 
-ns <- c(100, 300, 1000)     # Sample size (n)
+ns <- c(10, 30, 100)     # Sample size (n)
 n_large <- max(ns)
 
                      
@@ -70,13 +70,16 @@ for(n in ns){
   
   graph_results_i <- full_conditional_estimation_with_truths(dataset_i, ncores)
   
-  # file_dir <- paste0('simu_results/n_', n, '.RData')
-  # save(graph_results_i, file = file_dir)
+  file_dir <- paste0('simu_results/n_', n, '.RData')
+  save(graph_results_i, file = file_dir)
   
   t_n_end <- Sys.time()
   
   rm(graph_results_i)
   rm(dataset_i)
+  unlink("~/.RData")
+  unlink("~/.Rhistory")
+  unlink("~/.local/share/rstudio/sessions", recursive = TRUE)  
   
   print(paste0('All Loops: ', paste(ns, collapse = ' ')))
   print(paste0('Current Loop: ', n))
