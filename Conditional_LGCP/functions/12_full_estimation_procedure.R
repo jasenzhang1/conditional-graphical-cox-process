@@ -280,6 +280,7 @@ full_conditional_estimation_with_truths <- function(dataset, ncores){
   
   # g_data_2_one_subject <- visualize_log_intensity(exp(dataset$X_k_truth[1:5,,1]), time_grid, 'Rho i Truth from X_Truth') + geom_hline(yintercept = rho_i_mean)
   
+  print(rho_i_mean)
   g_data_2 <- visualize_log_intensity(rho_simu[1:5,], time_grid, 'Rho i Truth from X_Truth') + geom_hline(yintercept = rho_i_mean) # average intensities across all subjects
   
   g_22 <- grid.arrange(g_data_2, g_GP_baseline, nrow = 1) # compare graphs
