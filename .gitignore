@@ -5,6 +5,7 @@ scrap/
 Conditional_LGCP/data/
 Conditional_LGCP/figures/
 Conditional_LGCP/results/
+Conditional_LGCP/simu_results/
 
 joblog*
 output*
