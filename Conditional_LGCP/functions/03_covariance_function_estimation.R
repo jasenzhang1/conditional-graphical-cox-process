@@ -66,13 +66,13 @@ estimate_covariance_functions_ii <- function(rho_i_list, regularization=1e-10) {
   #
   # Output: 
   #
-  # - G_hat           (p x m x m array)
+  # - G_hat           (m x m x p array)
   #
   # ----------------------------------------------------------------------------
   
   p <- length(rho_i_list)
   n_time <- length(rho_i_list[[1]]$rho_i)
-  G_hat <- array(0, dim=c(p, n_time, n_time))
+  G_hat <- array(0, dim=c(n_time, n_time, p))
   
   for (i in 1:p) {
 
@@ -84,7 +84,7 @@ estimate_covariance_functions_ii <- function(rho_i_list, regularization=1e-10) {
     numerator <- pmax(numerator, regularization)
     denominator <- pmax(denominator, regularization)
     
-    G_hat[i, , ] <- log(numerator / denominator)
+    G_hat[, , i] <- log(numerator / denominator)
 
     
   }

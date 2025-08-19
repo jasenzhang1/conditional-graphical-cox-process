@@ -112,20 +112,31 @@ gaussian_kernel <- function(t_1, t_2, gamma){
 estimate_density <- function(t_event, t_seq){
   
   # -----------------------------------------------
-  # GOAL: obtain \Gamma_i^k(t) density estimate
+  # GOAL: 
+  #
+  # obtain \Gamma_i^k(t) density estimate and \rho_i^k(t) intensity estimate
   #
   # Checked 6/20/2025
   #
   # 8/5/2025
   # Need to tune gamma of KDE to be more adaptive to density. KDE is too smooth.
   #
+  #
   # Input:
   #
   # t_event  (3805-dim vector)         all timestamps for mark i, subject k 
-  # t_seq    (19-dim vector)           evenly spaced out times between  0 and 1
+  # t_seq    (m-dim vector)           evenly spaced out times between  0 and 1
   #
-  # output:
-  # - res    (19-dim vector)           density estimates for each Tseq time for subject k 
+  # 
+  # Output:
+  #
+  # - list of intensity/density values for subject k 
+  #
+  #   - gamma_hat     (m-dim vector)           density estimates for each Tseq time for subject k 
+  #   - rho_hat       (m-dim vector)           intensity estimates for each Tseq time for subject k
+  #   - denom         (m-dim vector)           denominator 
+  #   - gamma         (number)                 KDE gamma parameter, obtained adaptively
+  # 
   # -----------------------------------------------
   
   if (length(t_event) == 0) { # moot case when the density is zero
@@ -139,7 +150,6 @@ estimate_density <- function(t_event, t_seq){
   gamma <- get_gamma_silverman_v2(t_event)
   gamma <- get_gamma_adaptive(t_event)    # currently the best gamma method 
   
-  print(gamma)
   
   kernel_evals <- gaussian_kernel(t_seq, t_event, gamma) # 19 x 3805 matrix
   
@@ -158,7 +168,7 @@ estimate_density <- function(t_event, t_seq){
   
   
   
-  return(list(gamma_hat = gamma_hat, rho_hat = rho_hat, denom = denom, gamma = gamma)) # 19-dim vec
+  return(list(gamma_hat = gamma_hat, rho_hat = rho_hat, denom = denom, gamma = gamma)) 
   
 }
 

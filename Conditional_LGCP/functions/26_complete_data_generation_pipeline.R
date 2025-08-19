@@ -543,6 +543,7 @@ simulate_conditional_cox_data_v4 <- function(
   theta = 1.0,                # Signal strength (theta)
   dependence_type = "constant", # Conditional dependence type
   time_grid,                    # Time discretization (m)
+  time_grid_est, 
   base_kernel_params,
   seed = NULL,
   ncores
@@ -551,11 +552,13 @@ simulate_conditional_cox_data_v4 <- function(
   # same as v3 but parallelized
   
   m <- length(time_grid)
-
+  m_est <- length(time_grid_est)
+  time_grid_both <- sort(union(time_grid, time_grid_est))
+  m2 <- length(time_grid_both)
   
   # 1) collect beta coefficients
   
-  simu_settings <- collect_beta_and_parameters(p, time_grid, theta, q_c, 
+  simu_settings <- collect_beta_and_parameters(p, time_grid, time_grid_est, theta, q_c, 
                                                y_c_borders,
                                                sparsity,
                                                base_kernel_params,
@@ -599,12 +602,16 @@ simulate_conditional_cox_data_v4 <- function(
   
     
     # generate log-intensity functions
-    X_k <- generate_log_intensity_functions_full_mat(
-      mats_k$P_block_kronecker$GP_simu_var, 
+    X_k_list <- generate_log_intensity_functions_full_mat(
+      mats_k$P_block_kronecker$GP_simu_var_both, 
       time_grid, 
-      baseline_mean = mats_k$P_block_kronecker$GP_simu_mean,
+      time_grid_est,
+      baseline_mean = mats_k$P_block_kronecker$GP_simu_mean_both,
       sample_mode = 'multi', 
       seed = seed + k)
+    
+    X_k_full <- X_k_list[[1]]
+    X_k <- X_k_list[[2]]
     
 
     # Generate point process events
@@ -623,7 +630,9 @@ simulate_conditional_cox_data_v4 <- function(
     list(
       region_id = region_id,
       Y_continuous = y_c_k,
+      X_functions_full = X_k_full,
       X_functions = X_k,
+      X_functions_coarse = X_k_list[[3]],
       precision_and_graph = mats_k,
       event_times = events_k$event_times,
       event_counts = events_k$event_counts
@@ -643,6 +652,22 @@ simulate_conditional_cox_data_v4 <- function(
     }
   }
   
+  # 5.1) get every single X_k vector (n x p x m)
+  
+  X_k_truth <- array(
+    unlist(lapply(subject_data, function(x) x$X_functions)),
+    dim = c(p, m, length(subject_data))
+  )
+  
+  X_k_coarse_truth <- array(
+    unlist(lapply(subject_data, function(x) x$X_functions_coarse)),
+    dim = c(p, m_est, length(subject_data))
+  )  
+  
+  X_k_both_truth <- array(
+    unlist(lapply(subject_data, function(x) x$X_functions_full)),
+    dim = c(p, m2, length(subject_data))
+  )    
   
   # 6) get true graphs
   
@@ -669,8 +694,13 @@ simulate_conditional_cox_data_v4 <- function(
     # event times and subject data
     event_times = event_times_list,      # List: key = "k_i" -> event times
     subject_data = subject_data,         # Complete subject-level data
+    X_k_truth = X_k_truth,               # all log intensities used to generate data (p x m x n)
+    X_k_coarse_truth = X_k_coarse_truth, # all log intensities used to generate data coarsely (p x m_est x n)
+    X_k_both_truth = X_k_both_truth,
     Y_continuous = Y_continuous,         # n x q_c matrix
     time_grid = time_grid,               # m x 1 vector
+    time_grid_est = time_grid_est,
+    time_grid_both = time_grid_both,
     
     # Simulation parameters
     simulation_params = list(

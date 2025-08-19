@@ -2,17 +2,23 @@ library(abind)
 
 estimate_log_intensity_function <- function(event_times, t_seq) {
   
+  
+  # ----------------------------------------------------------------------------
   #
   # GOAL: Obtain X_ik(t) estimate
   #
   # Input: 
   #
-  # - event_times    (vector of length xi_k_i)
+  # - event_times    (vector of length xi_k_i)  subject k, process i 
   # - t_seq          (vector of length m)
   #
+  # 
   # Output: 
   #
-  # - X_hat (vector of length m)
+  # - X_hat           (vector of length m)    subject k, process i
+  #
+  #
+  # ----------------------------------------------------------------------------
   
   if (length(event_times) == 0) {
     return(rep(-10.0, length(t_seq)))  # Large negative value
@@ -111,6 +117,11 @@ estimate_kl_coefficients_parallel <- function(data_all, eigenfunctions, truncati
   #
   # ----------------------------------------------------------------------------
   
+  if(dim(eigenfunctions[[1]])[1] != length(t_seq)){
+    print('t_seq and eigenvectors dont match')
+    return(NULL)
+  }
+  
   p <- length(feature_sel)
   
   dt <- if (length(t_seq) > 1) t_seq[2] - t_seq[1] else 1.0
@@ -159,8 +170,8 @@ estimate_kl_coefficients_parallel <- function(data_all, eigenfunctions, truncati
 }
 
 
-estimate_kl_coefficients_parallel_v2 <- function(X_mat, eigenfunctions, truncations,  
-                                              t_seq, ncores) {
+estimate_kl_coefficients_parallel_v2 <- function(X_k_est, eigenfunctions, 
+                                                 t_seq, ncores) {
   
   # ----------------------------------------------------------------------------
   #
@@ -168,29 +179,33 @@ estimate_kl_coefficients_parallel_v2 <- function(X_mat, eigenfunctions, truncati
   #
   # - use pbmclapply to parallelize for each subject + process
   #
+  # - 8/11/2025 faster, assumes we already have log-intensities
+  # - 8/12/2025 I DON'T NEED TO MULTIPLY BY DT HUH
+  #
   #
   # Input: 
   # 
-  # - X_mat             (p x m matrix)
-  # - data_all          (data frame for all processes, all subjects)  'feature_id', 'time', 'subject_num'
+  # - X_k_est           (p x m x n matrix)
   # - eigenfunctions    (list of p matrices of dimension m x d_i) 
-  # - truncations       (list of integers denoting how many eigenfunctions are needed)
-  # - patient_sel       (vector of patient_ID's in this stratum)
   # - t_seq             (vector of length m)
-  # - p                 (number of processes)
+  # - ncores            
   #
   # Output: 
   #
-  # - alpha_hat (n_stratum x p x d array)
+  # - alpha_tensor (n_stratum x p x d array)
   #
   # ----------------------------------------------------------------------------
   
-  p <- dim(X_mat)[1]
-  m <- dim(X_mat)[2]
+  if(length(t_seq) != dim(eigenfunctions[[1]])[1]){
+    print('tseq and eigenfunction dimensions are incompatible')
+    return(NULL)
+  }
+  
+  p <- dim(X_k_est)[1]
+  m <- dim(X_k_est)[2]
+  n <- dim(X_k_est)[3]
   
   dt <- if (length(t_seq) > 1) t_seq[2] - t_seq[1] else 1.0
-  
-  n_stratum <- length(patient_sel)
   
   max_components <- max(sapply(eigenfunctions, ncol) %>% unlist())
   
@@ -198,29 +213,26 @@ estimate_kl_coefficients_parallel_v2 <- function(X_mat, eigenfunctions, truncati
   
   
   # list of n entries, each is a (p x d) matrix
-  alpha_list <- pbmclapply(1:n_stratum, function(k_idx) {
+  alpha_list <- pbmclapply(1:n, function(k_idx) {
     
     alpha_slice <- array(0, dim = c(p, max_components)) # p x d
-    k <- patient_sel[k_idx]
     
     for (i in 1:p) {
       
-      event_times_ki <- data_all %>% filter(feature_id == i & subject_num == k) %>% dplyr::pull(time) # event times of subject k, process i
-      if (is.null(event_times_ki)) event_times_ki <- c()
-      
       # Estimate log-intensity function: returns m x 1 vector
-      X_hat_ki <- estimate_log_intensity_function(event_times_ki, t_seq)
+      X_hat_ki <- X_k_est[i, , k_idx]
       
       # Compute KL coefficients for all components
       
       eta_i <- eigenfunctions[[i]]  # m x d_i matrix
+      
       # Numerical integration: scalar result
-      integrand <- X_hat_ki * eta_i      # (m x 1 vector) .* (m x d_i matrix) = (m x d_i matrix)
+      integrand <- X_hat_ki * eta_i      # (m x 1 vector) * (m x d_i matrix) = (m x d_i matrix)
       
       # pad some zeros if needed
-      integrand_sum <- colSums(integrand)
-      integrand_pad <- c(integrand_sum, rep(0, max_components - dim(eta_i)[2]))
-      alpha_slice[i, ] <- integrand_pad * dt  # scalar
+      integrand_sum <- colSums(integrand) # d_i-dim vector
+      integrand_pad <- c(integrand_sum, rep(0, max_components - length(integrand_sum))) # d-dim vector
+      alpha_slice[i, ] <- integrand_pad   # NO DT 
       
     }
     
@@ -232,4 +244,5 @@ estimate_kl_coefficients_parallel_v2 <- function(X_mat, eigenfunctions, truncati
   
   return(alpha_tensor)
 }
+
 

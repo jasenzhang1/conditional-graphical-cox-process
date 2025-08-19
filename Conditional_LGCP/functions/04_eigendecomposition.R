@@ -64,7 +64,7 @@ compute_eigendecomposition <- function(G_hat, var_explained = 0.9) {
   return(list(eigenvalues = eigenvalues, eigenfunctions = eigenfunctions, n_dims = n_dims))
 }
 
-compute_eigendecomposition_ii <- function(G_hat, var_explained = 0.99) {
+compute_eigendecomposition_ii <- function(G_hat, var_explained = 0.999) {
   
   # ----------------------------------------------------------------------------
   #
@@ -75,7 +75,7 @@ compute_eigendecomposition_ii <- function(G_hat, var_explained = 0.99) {
   #
   # Input: 
   # 
-  # - G_hat (m x m array) (p x m x m)
+  # - G_hat (m x m array) (m x m x p)
   # 
   # 
   # Output: 
@@ -86,8 +86,8 @@ compute_eigendecomposition_ii <- function(G_hat, var_explained = 0.99) {
   #
   # ----------------------------------------------------------------------------
   
-  p <- dim(G_hat)[1]
-  n_time <- dim(G_hat)[3]  # m
+  p <- dim(G_hat)[3]
+  n_time <- dim(G_hat)[1]  # m
   
   eigenvalues <- list()
   eigenfunctions <- list()
@@ -95,7 +95,7 @@ compute_eigendecomposition_ii <- function(G_hat, var_explained = 0.99) {
   
   for (i in 1:p) {
     # Extract marginal covariance matrix: m x m
-    G_ii <- G_hat[i, , ]  
+    G_ii <- G_hat[, , i]  
     
     # Ensure symmetry for numerical stability
     G_ii <- (G_ii + t(G_ii)) / 2

@@ -2,6 +2,64 @@
 library(reshape2)
 library(ggplot2)
 
+visualize_pm_block_matrix_heatmap <- function(pm_block_matrix, g_title = NULL){
+  
+  
+  # ---------------------------------------------------------
+  # 
+  # GOAL: visualize the pm block matrix in a heatmap 
+  #
+  # pm_block_matrix (pm x pm)
+  #
+  #
+  # 
+  
+  df <- reshape2::melt(pm_block_matrix)
+  colnames(df) <- c("Row", "Col", "Value")
+  
+  # Plot heatmap
+  g <- ggplot(df, aes(x = Col, y = Row, fill = Value)) +
+    geom_tile(color = "white") +
+    scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0) +
+    theme_minimal() +
+    scale_y_reverse() +
+    coord_fixed() +
+    labs(title = "Matrix Heatmap", fill = "Value") + 
+    ggtitle(g_title)
+  
+  return(g)
+  
+}
+
+visualize_matrix_heatmap <- function(mat, g_title = NULL, zmin = NULL, zmax = NULL) {
+  
+  # plot a simple heatmap with optional arguments for max and min values
+  # low = blue
+  # mid = white
+  # max = red
+  
+  # Convert matrix to data frame for ggplot
+  df <- reshape2::melt(mat)
+  colnames(df) <- c("x", "y", "value")
+  
+  # Set defaults for color scale
+  if (is.null(zmin)) zmin <- min(df$value, na.rm = TRUE)
+  if (is.null(zmax)) zmax <- max(df$value, na.rm = TRUE)
+  
+  ggplot(df, aes(x = x, y = y, fill = value)) +
+    geom_tile() +
+    scale_fill_gradientn(
+      colours = c("blue", "white", "red"),
+      limits = c(zmin, zmax),
+      oob = scales::squish
+    ) +
+    coord_fixed() +
+    theme_minimal() +
+    scale_y_reverse() +  # So origin is at top-left like a matrix
+    labs(x = NULL, y = NULL, fill = "Value") + 
+    ggtitle(g_title)
+}
+
 visualize_precision_matrix <- function(precision_op){
   
   # precision_op = (p x p x m x m) matrix
@@ -77,7 +135,7 @@ HS_heatmap <- function(precision_op, delta_t){
 }
 
 
-visualize_log_intensity <- function(X_k, time_grid){
+visualize_log_intensity <- function(X_k, time_grid, g_title){
   
   #
   # visualize the log intensities
@@ -104,7 +162,7 @@ visualize_log_intensity <- function(X_k, time_grid){
   g <- ggplot(df, aes(x = Time, y = Value, color = Process)) +
     geom_line() +
     theme_minimal() +
-    labs(title = "Log Intensities", x = "Time", y = "Value") +
+    labs(title = g_title, x = "Time", y = "Value") +
     theme(legend.position = "right")  
   
   return(g)

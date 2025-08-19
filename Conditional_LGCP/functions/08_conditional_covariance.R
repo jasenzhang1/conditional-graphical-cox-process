@@ -61,7 +61,7 @@ evaluate_regression_at_query <- function(M_hat, Y_continuous_stratum, query_y_c,
   n_time <- nrow(eigenfunctions[[1]])          # m
   n_stratum <- nrow(Y_continuous_stratum)      # n 
   
-  # Compute kernel weights: n_stratum x 1 vector
+  # Compute kernel weights: n_stratum-dim vector
   kernel_weights <- evaluate_kernel_weights_at_query(Y_continuous_stratum, query_y_c, gamma_c)
   
   V_conditional <- list()
@@ -193,7 +193,7 @@ evaluate_regression_at_query_v2 <- function(M_hat, Y_continuous_stratum, query_y
   n_time <- nrow(eigenfunctions[[1]])          # m
   n_stratum <- nrow(Y_continuous_stratum)      # n 
   
-  # Compute kernel weights: n_stratum x 1 vector
+  # Compute kernel weights: n_stratum-dim vector
   kernel_weights <- evaluate_kernel_weights_at_query(Y_continuous_stratum, query_y_c, gamma_c)
   
   V_conditional <- list()

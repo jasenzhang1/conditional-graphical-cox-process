@@ -424,10 +424,10 @@ estimate_intensities_stratum_parallel_v3 <- function(data_all, patient_sel, feat
   # Input: 
   #
   #
-  # - data_all   (data.table):  'feature_id', 'time', 'subject_num' 
-  # - patient_sel (vector)    ID's of non-discarded subjects
-  # - feature_sel (vector)    ID's of non-discarded features
-  # - t_seq   (vector of length m), 
+  # - data_all          (data.table)      'feature_id', 'time', 'subject_num' 
+  # - patient_sel       (vector)          ID's of non-discarded subjects
+  # - feature_sel       (vector)          ID's of non-discarded features
+  # - t_seq             (m-dim vector) 
   #
   #
   #
@@ -449,7 +449,8 @@ estimate_intensities_stratum_parallel_v3 <- function(data_all, patient_sel, feat
   rho_i_list <- pbmclapply(1:p, function(i) {
     data_i <- data_all[feature_id == feature_sel[i], ]
     
-    if (nrow(data_i) == 0) {
+    
+    if (nrow(data_i) == 0) { # if there's no events, return a density of 0 and bivariate density of 0
       rho_i <- rep(0, n_time)
       rho_ii_mat <- matrix(0, nrow = n_time, ncol = n_time)
     } else {

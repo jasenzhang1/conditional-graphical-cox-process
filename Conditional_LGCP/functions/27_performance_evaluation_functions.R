@@ -99,3 +99,22 @@ compute_operator_error <- function(estimated_precision, true_precision) {
     frobenius_norm = frobenius_norm_error   # ||P_hat - P*||_F
   ))
 }
+
+library(pracma)
+
+compute_operator_error_v2 <- function(A_on_grid1, A_hat_on_grid2, grid1, grid2){
+  
+  # A_on_grid1: matrix on grid1
+  # A_hat_on_grid2: matrix on grid2
+  
+  dt1 <- grid1[2] - grid1[1]
+  dt2 <- grid2[2] - grid2[1]
+  
+  HS1 <- dt1 * sqrt(sum(A_on_grid1^2))
+  HS2 <- dt2 * sqrt(sum(A_hat_on_grid2^2))
+
+  
+  return(abs(HS2 - HS1))
+}
+
+

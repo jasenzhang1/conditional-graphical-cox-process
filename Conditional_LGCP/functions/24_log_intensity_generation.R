@@ -85,7 +85,7 @@ generate_sparse_precision_matrix <- function(p, graph_type = 'banded'){
   # - list of precision matrix features
   #   - adj_mat      (p x p matrix)    adjacency matrix with 0's on the diagonal. 1 = dependent, 0 = independent
   #   - prec_mat     (p x p matrix)    precision matrix from the massaged correlation matrix
-  #   - cor_at       (p x p matrix)    correlation matrix 
+  #   - cor_mat      (p x p matrix)    correlation matrix 
   #   - threshold_p  (number)          smallest non-zero off-diagonal value. Anything less than this threshold will be assumed to be 0
   # 
   # 
@@ -102,6 +102,12 @@ generate_sparse_precision_matrix <- function(p, graph_type = 'banded'){
     
     prec_mat2 <- solve(cor_mat)
     
+    # partial correlation 
+    
+    D <- diag(1 / sqrt(diag(prec_mat2))) 
+    partial_cor_mat <- -D %*% prec_mat2 %*% D  
+    diag(partial_cor_mat) <- 1
+    
     # define the threshold as the min value that should not be nonzero
     threshold_p <- min(abs(prec_mat2[prec_mat != 0]))  
     
@@ -111,7 +117,7 @@ generate_sparse_precision_matrix <- function(p, graph_type = 'banded'){
     
   }
   
-  return(list(adj_mat = adj_mat, prec_mat = prec_mat2, cor_mat = cor_mat, threshold_p = threshold_p))
+  return(list(adj_mat = adj_mat, prec_mat = prec_mat2, cor_mat = cor_mat, partial_cor_mat = partial_cor_mat, threshold_p = threshold_p))
   
 
 }
@@ -218,6 +224,7 @@ sample_conditional_precision_v3 <- function(simu_settings,
   #   - p = p,
   #   - q_c = q_c
   #   - time_grid
+  #   - time_grid_est
   #   - base_kernel
   #     - base_gamma
   #     - base_kernel
@@ -228,6 +235,7 @@ sample_conditional_precision_v3 <- function(simu_settings,
   #   - adj_mat
   #   - prec_mat
   #   - cov_mat
+  #   - partial_cor_mat
   #   - threshold_p
   # 
   # - y_c            (q_c x 1 vector of continuous covariates)
@@ -254,15 +262,41 @@ sample_conditional_precision_v3 <- function(simu_settings,
   
   
   # Base covariance and precision for temporal structure (m x m)
-  base_cov <- generate_covariance_matrix(time_grid, 
+  # base_cov <- generate_covariance_matrix(time_grid, 
+  #                                        kernel = simu_settings$base_kernel_params$base_kernel, 
+  #                                        gamma = simu_settings$base_kernel_params$base_gamma, 
+  #                                        variance = simu_settings$base_kernel_params$base_variance) # (m x m matrix)
+  # 
+  # base_cov <- psd_jitter(base_cov)
+  
+  # merge time_grids
+  
+  time_grid_both <- union(time_grid, time_grid_est) %>% sort()
+  
+  time_grid_idx <- match(time_grid, time_grid_both)
+  time_grid_est_idx <- match(time_grid_est, time_grid_both)
+  
+  base_cov_both <- generate_covariance_matrix(time_grid_both, 
                                          kernel = simu_settings$base_kernel_params$base_kernel, 
                                          gamma = simu_settings$base_kernel_params$base_gamma, 
-                                         variance = simu_settings$base_kernel_params$base_variance) # (m x m matrix)
-  base_cov <- psd_jitter(base_cov)
+                                         variance = simu_settings$base_kernel_params$base_variance) # (m_est x m_est matrix)
   
+  base_cov_both <- psd_jitter(base_cov_both)
+  
+  base_cov <- base_cov_both[time_grid_idx, time_grid_idx]
+  
+  base_cov_est <- base_cov_both[time_grid_est_idx, time_grid_est_idx]
+  
+  
+  # now keep precision of just base_cov
   base_precision <- solve(base_cov)  # K_base^{-1}
+  base_precision_both <- solve(base_cov_both)
+  base_precision_est <- solve(base_cov_est)
+  
   
   base_precision <- (base_precision + t(base_precision))/2
+  base_precision_both <- (base_precision_both + t(base_precision_both))/2
+  base_precision_est <- (base_precision_est + t(base_precision_est))/2
   
   delta_t <- time_grid[2] - time_grid[1]
   
@@ -333,8 +367,18 @@ sample_conditional_precision_v3 <- function(simu_settings,
   # H_mat_cor_thresh <- solve(H_mat_prec_thresh) %>% cov2cor()
   # H_mat_cor_thresh <- (H_mat_cor_thresh + t(H_mat_cor_thresh))/2
   
-  GP_simu_var = kronecker(prec_mat_truth$cor_mat, base_cov)
-  GP_simu_mean <- rep(base_kernel_params$base_GP_mean, m)
+  GP_simu_var_both = kronecker(prec_mat_truth$cor_mat, base_cov_both)
+  GP_simu_prec_both <- kronecker(prec_mat_truth$prec_mat, base_precision_both)
+  GP_simu_mean_both <- rep(base_kernel_params$base_GP_mean, length(time_grid_both))
+  
+  GP_simu_var <- kronecker(prec_mat_truth$cor_mat, base_cov)
+  GP_simu_prec <- kronecker(prec_mat_truth$prec_mat, base_precision)
+  GP_simu_mean <- rep(base_kernel_params$base_GP_mean, length(time_grid))
+  
+  GP_simu_var_est <- kronecker(prec_mat_truth$cor_mat, base_cov_est)
+  GP_simu_prec_est <- kronecker(prec_mat_truth$prec_mat, base_precision_est)
+  GP_simu_mean_est <- rep(base_kernel_params$base_GP_mean, length(time_grid_est))
+
   
   # with our ground truth precision matrix H_mat_prec_thresh, find threshold for which below it are just 0's
   
@@ -349,8 +393,12 @@ sample_conditional_precision_v3 <- function(simu_settings,
   total_possible_edges <- p * (p-1)/2
   obs_sparsity <- num_edges / total_possible_edges
   
-  return(list(P_block_kronecker = list(base_cov = base_cov,
+  return(list(P_block_kronecker = list(base_cov = base_cov, # m x m
                                        base_precision = base_precision,  # m x m
+                                       base_cov_est = base_cov_est, # m_est x m_est
+                                       base_precision_est = base_precision_est,
+                                       base_cov_both = base_cov_both,
+                                       base_precision_both = base_precision_both,
                                        base_gamma = base_kernel_params$base_gamma,
                                        base_kernel = base_kernel_params$base_kernel,
                                        base_variance = base_kernel_params$base_variance,
@@ -362,8 +410,17 @@ sample_conditional_precision_v3 <- function(simu_settings,
                                       
                                        prec_mat = prec_mat_truth$prec_mat,  # p x p
                                        cor_mat  = prec_mat_truth$cor_mat,   # p x p 
-                                       GP_simu_mean = GP_simu_mean,         # pm x 1 vec
-                                       GP_simu_var = GP_simu_var),          # pm x pm mat
+                                       
+                                       # simu
+                                       GP_simu_mean = GP_simu_mean,
+                                       GP_simu_var = GP_simu_var,
+                                       GP_simu_prec = GP_simu_prec,
+                                       GP_simu_mean_est = GP_simu_mean_est,
+                                       GP_simu_var_est = GP_simu_var_est,
+                                       GP_simu_prec_est = GP_simu_prec_est,
+                                       GP_simu_mean_both = GP_simu_mean_both,         # pm x 1 vec
+                                       GP_simu_var_both = GP_simu_var_both,
+                                       GP_simu_prec_both = GP_simu_prec_both),  # pm_est x pm_est     
               
          
               
@@ -583,7 +640,8 @@ generate_log_intensity_functions <- function(precision_operators, time_grid, sam
   return(X_functions)
 }
 
-generate_log_intensity_functions_full_mat <- function(cov_matrix, time_grid, sample_mode = 'simple',
+generate_log_intensity_functions_full_mat <- function(cov_matrix_both, time_grid, time_grid_est, 
+                                                      sample_mode = 'simple',
                                                       baseline_mean, seed = NULL) {
   
   
@@ -595,15 +653,16 @@ generate_log_intensity_functions_full_mat <- function(cov_matrix, time_grid, sam
   # 
   # Input: 
   #
-  # - cov_matrix (pm x pm matrix)
-  # - time_grid (m x 1)
-  # - baseline_mean (m x 1 vector)
-  # - seed
+  # - cov_matrix_both (pm2 x pm2 matrix)
+  # - time_grid       (m x 1)
+  # - time_grid_est   (m_est vector)
+  # - baseline_mean   (m x 1 vector)
+  # - seed            (number)
   #
   #
   # Output:
   # 
-  # - X_functions (p x m matrix) - log-intensity functions
+  # - X_functions      (p x m matrix) - log-intensity functions
   #
   #
   #
@@ -611,8 +670,15 @@ generate_log_intensity_functions_full_mat <- function(cov_matrix, time_grid, sam
   
   if (!is.null(seed)) set.seed(seed)
   
-  m <- length(time_grid)
-  p <- dim(cov_matrix)[1] / m
+  time_grid_both <- sort(union(time_grid, time_grid_est))
+  time_grid_idx <- match(time_grid, time_grid_both)
+  time_grid_est_idx <- match(time_grid_est, time_grid_both)
+  
+  m <- length(time_grid_both)
+  
+  
+  
+  p <- dim(cov_matrix_both)[1] / m
   
   
   
@@ -630,7 +696,7 @@ generate_log_intensity_functions_full_mat <- function(cov_matrix, time_grid, sam
       end_ind <- i*m
       
       # Marginal precision for process i: [P]_{i,i}
-      marginal_cov <- cov_matrix[start_ind:end_ind, start_ind:end_ind]
+      marginal_cov <- cov_matrix_both[start_ind:end_ind, start_ind:end_ind]
 
       
       # Sample from GP: X_i ~ GP(baseline_mean, marginal_cov)
@@ -642,12 +708,13 @@ generate_log_intensity_functions_full_mat <- function(cov_matrix, time_grid, sam
     
     # method 1: full inverse into MVNorm ---------------------------------------
 
-    sample_vec <- mvrnorm(1, mu = rep(baseline_mean, p), Sigma = cov_matrix)
+    sample_vec <- mvrnorm(1, mu = rep(baseline_mean, p), Sigma = cov_matrix_both)
     X_functions <- matrix(sample_vec, nrow = p, ncol = m, byrow = TRUE)
     
-    
+    X_functions_base <- X_functions[, time_grid_idx]
+    X_functions_est <- X_functions[, time_grid_est_idx]
   }
   
-  return(X_functions)
+  return(list(X_functions, X_functions_base, X_functions_est))
 }
 

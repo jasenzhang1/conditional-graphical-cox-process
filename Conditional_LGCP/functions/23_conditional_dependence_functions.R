@@ -196,7 +196,7 @@ generate_precision_operators_and_matrix <- function(p, theta, q_c,
 }
 
 
-collect_beta_and_parameters <- function(p, time_grid, theta, q_c, 
+collect_beta_and_parameters <- function(p, time_grid, time_grid_est, theta, q_c, 
                                         y_c_borders,
                                         sparsity,
                                         base_kernel_params,
@@ -212,6 +212,7 @@ collect_beta_and_parameters <- function(p, time_grid, theta, q_c,
   #
   # - p                  (number)          dimension of process
   # - time_grid          (number)          time-grid points
+  # - time_grid_est      (vector) 
   # - theta              (number)          signal strength
   # - q_c                (integer)         dimension of continuous covariates
   # - y_c_borders        (list of q_c vectors)   each list tells us the bordering values to create new ground truth graphs
@@ -252,6 +253,7 @@ collect_beta_and_parameters <- function(p, time_grid, theta, q_c,
     signal_strength = theta,             # theta               (scalar)
     dependence_type = dependence_type,   # Type of h_ij(y_c)   (string)
     time_grid = time_grid,               # time grid
+    time_grid_est = time_grid_est,
     base_kernel_params = base_kernel_params,
     y_c_borders = y_c_borders,
     sparsity = sparsity,

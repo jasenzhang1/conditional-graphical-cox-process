@@ -166,6 +166,43 @@ extract_block_structure_v2 <- function(block_matrix, p, block_size) {
   return(operator_list)
 }
 
+extract_block_structure_ij <- function(block_matrix, p, block_size, i, j) {
+  
+  # ------------------------------------------------------------------------
+  #
+  # GOAL: extract block sub-matrices from a block matrix
+  #
+  # - we only want to exctract the i_j entry for j >= i
+  #
+  # 
+  # Input: 
+  #
+  # - block_matrix   (pm x pm matrix)
+  # - p              (scalar)
+  # - block_size     (scalar)
+  # - i
+  # - j
+  #
+  # 
+  # Output: 
+  #
+  # -  the [i, j] block (m x m matrix)
+  #
+  # ------------------------------------------------------------------------
+  
+
+  row_start <- (i-1) * block_size + 1
+  row_end <- i * block_size
+  col_start <- (j-1) * block_size + 1
+  col_end <- j * block_size
+      
+
+  # Extract m x m block from pm x pm matrix
+  block_ij <- block_matrix[row_start:row_end, col_start:col_end]
+
+  return(block_ij)
+}
+
 estimate_precision_operator <- function(C_conditional, gamma2, p) {
   
   # ------------------------------------------------------------------------
