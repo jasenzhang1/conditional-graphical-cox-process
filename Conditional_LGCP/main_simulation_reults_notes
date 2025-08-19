@@ -1,0 +1,34 @@
+g_21: X_truth vs X_hat
+
+g_22: bivariate intensities
+
+g_31: covariance function estimation
+
+g_41: eigenfunctions (lots of trig funcs)
+
+g_42: eigen-recovery of covariance function
+
+g_51: 
+g_52: 
+g_53: 
+g_71: inner products of KL coeffs
+g_72: inner products of KL coeffs %*% K_c
+
+g_81: conditional covariance operator (V_ij) [1_2]
+g_82: conditional covariance operator (V_ij) [3_6]
+g_83: conditional covariance operator (V_ij) (pm x pm) (est vs truth theory vs GT)
+g_84: conditional covariance operator (V_ij) (pm x pm) (GT vs TT vs TX vs CTT vs CTX vs Est)
+
+g_91: conditional corrrelation operator (C_ij) [1_2]
+g_92: conditional corrrelation operator (C_ij) [3_6]
+g_93: conditional corrrelation operator (C_ij) (pm x pm) (est vs truth theory vs GT)
+g_94: conditional corrrelation operator (C_ij) (pm x pm) (GT vs TT vs TX vs CTT vs CTX vs Est)
+
+g_101: conditional precision operator (P_ij) [1_2]
+g_102: conditional precision operator (P_ij) [3_6] (should be much lower)
+g_103: conditional precision operator (P_ij) (pm x pm) (est vs truth theory vs GT)
+g_104: conditional precision operator (P_ij) (pm x pm) (GT vs TT vs TX vs CTT vs CTX vs Est)
+
+g_111: adj_mat vs HS norms of off-diagonals
+g_112: HS norm of ground truth vs HS norm of off-diagonals
+g_113: ROC curves
