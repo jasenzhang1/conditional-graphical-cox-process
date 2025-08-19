@@ -7,10 +7,10 @@ t0 <- Sys.time()
 source('functions/20_simulation_function_wrapper.R')
 source('functions/00_function_wrapper.R')
 
-ns <- c(10, 30, 100)
+ns <- c(100, 300, 1000)     # Sample size (n)
 n_large <- max(ns)
 
-n = 200                     # Sample size (n)
+                     
 p = 10                      # Number of processes (p)  
 T_max = 1                   # Time horizon (T)
 q_c = 1                     # Continuous conditioning dimension (q_c)
