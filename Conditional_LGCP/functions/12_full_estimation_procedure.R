@@ -280,7 +280,6 @@ full_conditional_estimation_with_truths <- function(dataset, ncores){
   
   # g_data_2_one_subject <- visualize_log_intensity(exp(dataset$X_k_truth[1:5,,1]), time_grid, 'Rho i Truth from X_Truth') + geom_hline(yintercept = rho_i_mean)
   
-  print(rho_i_mean)
   g_data_2 <- visualize_log_intensity(rho_simu[1:5,], time_grid, 'Rho i Truth from X_Truth') + geom_hline(yintercept = rho_i_mean) # average intensities across all subjects
   
   g_22 <- grid.arrange(g_data_2, g_GP_baseline, nrow = 1) # compare graphs
@@ -411,9 +410,12 @@ full_conditional_estimation_with_truths <- function(dataset, ncores){
   
   # visualization of part 2
   
-  g_est_21 <- grid.arrange(visualize_log_intensity(recovered_intensities[1:5,], Tseq_est, 'Rho i est from X_hat') + geom_hline(yintercept = rho_i_truth), # rho_i_truth vs rho_i_est
+  print('before the supposed error')
+  g_est_21 <- grid.arrange(visualize_log_intensity(recovered_intensities[1:5,], Tseq_est, 'Rho i est from X_hat') + geom_hline(yintercept = rho_i_mean), # rho_i_truth vs rho_i_est
                            g_data_2, 
                            g_GP_baseline, nrow = 1)
+  
+  print('after the supposed error! :D')
   
   g_est_22 <- grid.arrange(visualize_matrix_heatmap(rho_ii_truth[,,1], 'Truth Theory', 50000, 170000),
                            visualize_matrix_heatmap(rho_ii_coarse_truth[,,1], 'Coarse Truth Theory', 50000, 170000),
