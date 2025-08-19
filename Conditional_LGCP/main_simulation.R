@@ -8,6 +8,7 @@ source('functions/20_simulation_function_wrapper.R')
 source('functions/00_function_wrapper.R')
 
 ns <- c(100, 300, 1000, 3000, 10000)     # Sample size (n)
+
 n_large <- max(ns)
 
                      
@@ -23,6 +24,7 @@ dependence_type = "constant"  # Conditional dependence type
 time_grid_size = 50         # Time discretization (m)
 seed = 1
 ncores = parallel::detectCores() - 1
+terse = TRUE
 
 # m x m GP kernel parameters
 
@@ -68,7 +70,7 @@ for(n in ns){
   dataset_i$Y_continuous <- matrix(dataset$Y_continuous[1:n,], nrow = n)
   dataset_i$simulation_params$n <- n
   
-  graph_results_i <- full_conditional_estimation_with_truths(dataset_i, ncores)
+  graph_results_i <- full_conditional_estimation_with_truths(dataset_i, terse, ncores)
   
   file_dir <- paste0('simu_results/n_', n, '.RData')
   save(graph_results_i, file = file_dir)
@@ -77,6 +79,7 @@ for(n in ns){
   
   rm(graph_results_i)
   rm(dataset_i)
+  
   unlink("~/.RData")
   unlink("~/.Rhistory")
   unlink("~/.local/share/rstudio/sessions", recursive = TRUE)  
