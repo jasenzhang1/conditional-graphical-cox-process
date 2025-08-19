@@ -159,8 +159,8 @@ visualize_log_intensity <- function(X_k, time_grid, g_title){
   
   df$Time <- time_grid[df$TimeIndex]
   df$Process <- factor(df$Process)
-  g <- ggplot(df, aes(x = Time, y = Value, color = Process)) +
-    geom_line() +
+  g <- ggplot() +
+    geom_line(data = df, aes(x = Time, y = Value, color = Process)) +
     theme_minimal() +
     labs(title = g_title, x = "Time", y = "Value") +
     theme(legend.position = "right")  
