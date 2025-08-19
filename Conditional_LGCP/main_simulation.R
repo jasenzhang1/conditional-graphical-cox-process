@@ -87,5 +87,7 @@ for(n in ns){
 }
 
 
+print(paste0('Grand total time: ', round(as.numeric(t_n_end - t0, units = "hours"), 2), ' hours'))  
+
 
 
