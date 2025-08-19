@@ -172,7 +172,7 @@ full_conditional_estimation <- function(data_df, y_c_strata, query_y_cs, Tseq, t
 
 }
 
-full_conditional_estimation_with_truths <- function(dataset, ncores){
+full_conditional_estimation_with_truths <- function(dataset, terse, ncores){
   
   
   # ----------------------------------------------------------------------------
@@ -182,11 +182,8 @@ full_conditional_estimation_with_truths <- function(dataset, ncores){
   #
   # Input:
   #
-  # - data_df         (data.table with 'feature_id', 'time', and 'subject_num')
-  # - y_c_strata      (n x q_c matrix of continuous values for each subject)
-  # - query_y_cs      (matrix, each row is a y_c query to do estimation on)
-  # - Tseq            (values from 0 to Tmax to approximate at)
-  # - threshold       (number, HS norm threshold value to recover adj_mat)
+  # - dataset
+  # - terse    (boolean) if true, return much less
   # - ncores
   #
   # 
@@ -885,6 +882,10 @@ full_conditional_estimation_with_truths <- function(dataset, ncores){
     
     w_mat_ground_truth        <- hilbert_schmidt_norm_pm(prec_truth, p, m)
     w_mat_coarse_ground_truth <- hilbert_schmidt_norm_pm(prec_coarse_truth, p, m_est)
+    
+    diag(w_mat_ground_truth) <- 0
+    diag(w_mat_coarse_ground_truth) <- 0
+    
     w_mat_X_coarse_truth      <- hilbert_schmidt_norm_pm(P_cond_X_coarse_truth_full, p, m_est)
     w_mat_X_truth             <- hilbert_schmidt_norm_pm(P_cond_X_truth_full, p, m)    
     w_mat_coarse_truth        <- hilbert_schmidt_norm_pm(P_cond_coarse_truth_full, p, m_est)
@@ -940,18 +941,24 @@ full_conditional_estimation_with_truths <- function(dataset, ncores){
   names(estimated_graphs_v2) <- apply(query_y_cs, 1, function(x){paste(x, collapse = '_')})
 
   
-  # original graphs
+  # what to output
   
-  estimated_graphs_part_1 <- list(g_21 = g_est_21, g_22 = g_est_22,
-                                  g_31 = g_est_31,
-                                  g_41 = g_est_41, g_42 = g_est_42,
-                                  g_51 = g_est_51, g_52 = g_est_52, g_53 = g_est_53,
-                                  g_71 = g_est_71, g_72 = g_est_72)
+  if(terse){
+    estimated_graphs_part_1 <- list(g_21 = g_est_21, g_22 = g_est_22)
+    temp <- estimated_graphs_v2$`1`
+    estimated_graphs_v2 <- temp[c("g_84", "g_94", "g_104", "g_112",  "g_113")]
+    
+  } else{
+    estimated_graphs_part_1 <- list(g_21 = g_est_21, g_22 = g_est_22,
+                                    g_31 = g_est_31,
+                                    g_41 = g_est_41, g_42 = g_est_42,
+                                    g_51 = g_est_51, g_52 = g_est_52, g_53 = g_est_53,
+                                    g_71 = g_est_71, g_72 = g_est_72)
   
-  
+  }
   
   return(list(estimated_graphs_part_1 = estimated_graphs_part_1,      
-              estimated_graphs_part_2 = estimated_graphs_v2))
+              estimated_graphs_part_2 = estimated_graphs_v2))  
   
 }
 
