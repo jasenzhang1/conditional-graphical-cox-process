@@ -222,6 +222,7 @@ roc_with_threshold <- function(w_mat, adj_mat, g_title = NULL) {
   
   # Compute ROC
   roc_obj <- roc(labels, scores, quiet = TRUE)
+  auc_value <- auc(roc_obj)   
   
   # Get thresholds, sensitivities, specificities
   coords_df <- coords(roc_obj, x = "all", ret = c("threshold", "sensitivity", "specificity"))
@@ -251,6 +252,10 @@ roc_with_threshold <- function(w_mat, adj_mat, g_title = NULL) {
     annotate("text", x = 1 - ideal_spec, y = ideal_sens, 
              label = paste0("Threshold=", round(ideal_threshold, 3)),
              hjust = -0.1, vjust = -0.5, color = "red") +
+    
+    annotate("text", x = 0.6, y = 0.2,            # position for AUC label
+             label = paste0("AUC = ", round(auc_value, 3)),
+             color = "darkgreen", size = 5) +    
     theme_minimal() + 
     ggtitle(g_title)
   
