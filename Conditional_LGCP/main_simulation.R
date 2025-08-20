@@ -25,7 +25,7 @@ dependence_type = "constant"  # Conditional dependence type
 time_grid_size = 50         # Time discretization (m)
 seed = 1
 ncores = parallel::detectCores() - 1
-terse = TRUE
+terse = FALSE
 
 # m x m GP kernel parameters
 
@@ -57,6 +57,8 @@ t1 <- Sys.time()
 
 print(paste0('Time to generate data: ', round(as.numeric(t1 - t0, units = "mins"), 2), ' minutes'))
 
+print(strrep("-", 50))
+
 all_results <- list()
 
 for(n in ns){
@@ -85,9 +87,11 @@ for(n in ns){
   unlink("~/.Rhistory")
   unlink("~/.local/share/rstudio/sessions", recursive = TRUE)  
   
+  print('Done --------------------------------')
   print(paste0('All Loops: ', paste(ns, collapse = ' ')))
   print(paste0('Current Loop: ', n))
   print(paste0('Time to finish: ', round(as.numeric(t_n_end - t_n_start, units = "mins"), 2), ' minutes'))  
+  print(strrep("-", 50))
 }
 
 
