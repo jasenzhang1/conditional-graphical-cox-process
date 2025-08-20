@@ -25,7 +25,7 @@ dependence_type = "constant"  # Conditional dependence type
 time_grid_size = 50         # Time discretization (m)
 seed = 1
 ncores = parallel::detectCores() - 1
-terse = FALSE
+terse = TRUE
 
 # m x m GP kernel parameters
 

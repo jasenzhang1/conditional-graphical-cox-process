@@ -944,7 +944,10 @@ full_conditional_estimation_with_truths <- function(dataset, terse, ncores){
   if(terse){
     estimated_graphs_part_1 <- list(g_21 = g_est_21, g_22 = g_est_22)
     temp <- estimated_graphs_v2$`1`
-    estimated_graphs_v2 <- temp[c("g_84", "g_94", "g_104", "g_112",  "g_113")]
+    temp2 <- temp[c("g_84", "g_94", "g_104", "g_112",  "g_113")]
+    
+    return(list(estimated_graphs_part_1 = estimated_graphs_part_1,      
+                estimated_graphs_part_2 = temp2))      
     
   } else{
     estimated_graphs_part_1 <- list(g_21 = g_est_21, g_22 = g_est_22,
@@ -952,11 +955,13 @@ full_conditional_estimation_with_truths <- function(dataset, terse, ncores){
                                     g_41 = g_est_41, g_42 = g_est_42,
                                     g_51 = g_est_51, g_52 = g_est_52, g_53 = g_est_53,
                                     g_71 = g_est_71, g_72 = g_est_72)
+    
+    return(list(estimated_graphs_part_1 = estimated_graphs_part_1,      
+                estimated_graphs_part_2 = estimated_graphs_v2))        
   
   }
   
-  return(list(estimated_graphs_part_1 = estimated_graphs_part_1,      
-              estimated_graphs_part_2 = estimated_graphs_v2))  
+
   
 }
 

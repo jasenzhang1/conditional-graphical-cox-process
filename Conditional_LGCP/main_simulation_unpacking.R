@@ -4,7 +4,7 @@ library(gridExtra)
 
 
 
-load('simu_results_v3/n_100.RData')
+load('simu_results_v3/n_10.RData')
 
 grid.newpage()
 #grid.draw(graph_results_i$estimated_graphs_part_1$g_71)
