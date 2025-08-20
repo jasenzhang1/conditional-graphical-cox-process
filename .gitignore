@@ -6,7 +6,8 @@ Conditional_LGCP/data/
 Conditional_LGCP/figures/
 Conditional_LGCP/results/
 Conditional_LGCP/simu_results/
-
+Conditional_LGCP/simu_results_v2/
+Conditional_LGCP/simu_results_v3/
 joblog*
 output*
 .*
