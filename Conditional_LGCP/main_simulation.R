@@ -8,7 +8,6 @@ source('functions/20_simulation_function_wrapper.R')
 source('functions/00_function_wrapper.R')
 
 ns <- c(100, 300, 1000, 3000, 10000)     # Sample size (n)
-ns <- c(10, 30, 100)  
 
 n_large <- max(ns)
 
