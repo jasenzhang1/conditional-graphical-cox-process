@@ -200,7 +200,9 @@ collect_beta_and_parameters <- function(p, time_grid, time_grid_est, theta, q_c,
                                         y_c_borders,
                                         sparsity,
                                         base_kernel_params,
-                                        dependence_type = "constant", seed = NULL) {
+                                        dependence_type, 
+                                        adj_type, 
+                                        seed = NULL) {
   
   # ----------------------------------------------------------------------------
   #
@@ -225,6 +227,7 @@ collect_beta_and_parameters <- function(p, time_grid, time_grid_est, theta, q_c,
   #   - base_GP_mean     (number)          constant mean value in GP
   #
   # - dependence_type    (string)          how do the continuous covariates affect ground truth?
+  # - adj_type           (string)          pxp adjacency matrix and how it changes via covariates
   # - seed               (number)          simulation seed number
   # 
   # 
@@ -252,6 +255,7 @@ collect_beta_and_parameters <- function(p, time_grid, time_grid_est, theta, q_c,
     beta_coefficients = beta_coeffs,     # {beta_ij}           (p x p x q_c)
     signal_strength = theta,             # theta               (scalar)
     dependence_type = dependence_type,   # Type of h_ij(y_c)   (string)
+    adj_type = adj_type,                 #                     (string)
     time_grid = time_grid,               # time grid
     time_grid_est = time_grid_est,
     base_kernel_params = base_kernel_params,

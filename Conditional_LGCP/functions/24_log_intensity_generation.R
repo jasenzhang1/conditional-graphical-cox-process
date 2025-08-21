@@ -63,7 +63,7 @@ generate_covariance_matrix <- function(time_grid, kernel = 'rbf', gamma = 1.0, v
   return(K)
 }
 
-generate_sparse_precision_matrix <- function(p, graph_type = 'banded'){
+generate_sparse_precision_matrix <- function(p, adj_type, y_c_k){
   
   # ----------------------------------------------------------------------------
   # 
@@ -76,8 +76,10 @@ generate_sparse_precision_matrix <- function(p, graph_type = 'banded'){
   # 
   # input:
   # 
-  # - p          (number)  dimension of precision matrix
-  # - graph_type (string)  type of precision matrix (e.g. banded)
+  # - p          (number)             dimension of precision matrix
+  # - adj_type   (string)             type of precision matrix (e.g. banded)
+  #                                   check `main_simulation_results_notes.txt` for details
+  # - y_c_k      (q_c dim vector)     continuous covariate vector
   #
   # 
   # output:
@@ -94,28 +96,46 @@ generate_sparse_precision_matrix <- function(p, graph_type = 'banded'){
   prec_mat <- diag(1, p)
   adj_mat <- matrix(0, p, p)
   
-  if(graph_type == 'banded'){
+  if(adj_type == 'banded_c1'){
+    
+    # 0.3's on off diagonals - constant over time
+    # nothing else
+    
     prec_mat[row(prec_mat) == col(prec_mat) - 1] <- 0.3
     prec_mat[row(prec_mat) == col(prec_mat) + 1] <- 0.3 
-    
-    cor_mat <- solve(prec_mat) %>% cov2cor()
-    
-    prec_mat2 <- solve(cor_mat)
-    
-    # partial correlation 
-    
-    D <- diag(1 / sqrt(diag(prec_mat2))) 
-    partial_cor_mat <- -D %*% prec_mat2 %*% D  
-    diag(partial_cor_mat) <- 1
-    
-    # define the threshold as the min value that should not be nonzero
-    threshold_p <- min(abs(prec_mat2[prec_mat != 0]))  
-    
-    # adjacency_matrix
-    adj_mat[prec_mat != 0] <- 1
-    diag(adj_mat) <- 0
-    
   }
+  
+  if(adj_type == 'banded_v1'){
+    
+    # 0.3's on off diagonals - constant over time
+    # for y_c_k = 1, add nothing
+    # for y_c_k = 2, make next set of off-diagonals 0.3
+    # for y_c_k = 2, make next set of off-diagonals 0.3
+    # etc...
+    
+    for(i in 1:y_c_k){
+      prec_mat[row(prec_mat) == col(prec_mat) - i] <- 0.3
+      prec_mat[row(prec_mat) == col(prec_mat) + i] <- 0.3      
+    }
+  }
+    
+  cor_mat <- solve(prec_mat) %>% cov2cor()
+  
+  prec_mat2 <- solve(cor_mat)
+  
+  # partial correlation 
+  
+  D <- diag(1 / sqrt(diag(prec_mat2))) 
+  partial_cor_mat <- -D %*% prec_mat2 %*% D  
+  diag(partial_cor_mat) <- 1
+  
+  # define the threshold as the min value that should not be nonzero
+  threshold_p <- min(abs(prec_mat2[prec_mat != 0]))  
+  
+  # adjacency_matrix
+  adj_mat[prec_mat != 0] <- 1
+  diag(adj_mat) <- 0
+    
   
   return(list(adj_mat = adj_mat, prec_mat = prec_mat2, cor_mat = cor_mat, partial_cor_mat = partial_cor_mat, threshold_p = threshold_p))
   
