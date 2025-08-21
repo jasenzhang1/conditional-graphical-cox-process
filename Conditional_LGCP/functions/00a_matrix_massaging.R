@@ -62,6 +62,11 @@ eigendecomp_sampling <- function(precision_matrix){
   x <- basis %*% (values_inv_sqrt * z)
 }
 
+solve_sym <- function(A){
+  A_hat = solve(A)
+  
+  return(0.5 * (A_hat + t(A_hat)))
+}
 
 psd_jitter <- function(A, pinv_eps = 1e-6){
   
