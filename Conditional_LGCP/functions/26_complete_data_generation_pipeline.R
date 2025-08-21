@@ -542,6 +542,7 @@ simulate_conditional_cox_data_v4 <- function(
   sparsity = 0.2,             # Sparsity
   theta = 1.0,                # Signal strength (theta)
   dependence_type = "constant", # Conditional dependence type
+  adj_type = 'banded_c1',       # pxp precion matrix structure
   time_grid,                    # Time discretization (m)
   time_grid_est, 
   base_kernel_params,
@@ -562,7 +563,9 @@ simulate_conditional_cox_data_v4 <- function(
                                                y_c_borders,
                                                sparsity,
                                                base_kernel_params,
-                                               dependence_type = "constant", seed = seed)
+                                               dependence_type, 
+                                               adj_type,
+                                               seed = seed)
   
   
   # 2) generate n samples whose continuous variables vary. Each of them belong in a bucket and are assigned a graph
@@ -590,7 +593,7 @@ simulate_conditional_cox_data_v4 <- function(
     region_id <- paste(region, collapse = "_")    
     
     # 4.2) ground truth precision matrix
-    prec_mat_truth <- generate_sparse_precision_matrix(p = p, graph_type = 'banded')
+    prec_mat_truth <- generate_sparse_precision_matrix(p, simu_settings$adj_type, y_c_k)
     
     
     # 4.3) Generate precision operator P^{(y_c^k, y_d^k)} and adjacency matrix E_{y_c^k, y_d^k}
