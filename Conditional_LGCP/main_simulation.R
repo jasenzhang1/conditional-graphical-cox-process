@@ -2,13 +2,17 @@
 # 2) estimate ground truth
 # 3) calculate accuracy metrics
 
+
+script_path <- normalizePath(sys.frame(1)$ofile)
+setwd(dirname(script_path))
+
 t0 <- Sys.time()
 
 source('functions/20_simulation_function_wrapper.R')
 source('functions/00_function_wrapper.R')
 
 ns <- c(100, 300, 1000, 3000, 10000)     # Sample size (n)
-ns <- c(10, 30, 100)     
+
 
 n_large <- max(ns)
 
@@ -20,12 +24,13 @@ y_c_borders = list(1:4)     # Border values
 K = 4                       # Discrete combinations (K)
 sparsity = 0.2              # Graph sparsity (s)
 theta = 1.0                 # Signal strength (theta)
-graph_type = "random"       # Graph topology
+adj_type = "banded_v1"        # Graph topology
 dependence_type = "constant"  # Conditional dependence type
 time_grid_size = 50         # Time discretization (m)
 seed = 1
 ncores = parallel::detectCores() - 1
 terse = TRUE
+results_folder_name <- "simu_results_banded_v1"
 
 # m x m GP kernel parameters
 
@@ -47,6 +52,7 @@ dataset <- simulate_conditional_cox_data_v4(n_large, p, T_max, q_c, y_c_borders,
                                             sparsity,
                                             theta,
                                             dependence_type,
+                                            adj_type,
                                             time_grid,
                                             time_grid_est,
                                             base_kernel_params,
@@ -58,6 +64,10 @@ t1 <- Sys.time()
 print(paste0('Time to generate data: ', round(as.numeric(t1 - t0, units = "mins"), 2), ' minutes'))
 
 print(strrep("-", 50))
+
+
+if (!dir.exists(results_folder_name)) dir.create(results_folder_name)
+
 
 all_results <- list()
 
@@ -75,7 +85,7 @@ for(n in ns){
   
   graph_results_i <- full_conditional_estimation_with_truths(dataset_i, terse, ncores)
   
-  file_dir <- paste0('simu_results/n_', n, '.RData')
+  file_dir <- paste0(results_folder_name, '/n_', n, '.RData')
   save(graph_results_i, file = file_dir)
   
   t_n_end <- Sys.time()

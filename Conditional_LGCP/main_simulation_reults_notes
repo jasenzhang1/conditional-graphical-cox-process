@@ -1,3 +1,10 @@
+
+graph_type:
+  banded_c1:
+    - 1's on diagonal
+    - 0.3 on off diagonal
+    - doesn't change over time
+
 g_21: X_truth vs X_hat
 
 g_22: bivariate intensities
