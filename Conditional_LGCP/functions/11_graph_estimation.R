@@ -88,7 +88,7 @@ list_to_adj_mat <- function(edge_list, p){
   
 }
 
-estimate_graph <- function(P_conditional, C_conditional, V_conditional, threshold, p, discarded_neurons = NULL) {
+estimate_graph <- function(P_conditional, C_conditional, V_conditional, p, threshold = 0, discarded_neurons = NULL) {
   
   # ------------------------------------------------------------------------
   #

@@ -196,7 +196,8 @@ full_conditional_estimation_with_truths <- function(dataset, terse, ncores){
   time_grid_est <- dataset$time_grid_est
   time_grid_both <- dataset$time_grid_both
   true_graphs <- dataset$true_graphs
-  
+  true_graph_indices <- sort(names(true_graphs)) 
+    
   data_df <- convert_data_for_estimation(dataset$subject_data) %>% as.data.table()
   data_df$time <- data_df$time / dataset$simulation_params$T_max # normalize to [0, 1]
   
@@ -204,9 +205,9 @@ full_conditional_estimation_with_truths <- function(dataset, terse, ncores){
   X_k_coarse_truth <- dataset$X_k_coarse_truth
   X_k_both_truth <- dataset$X_k_both_truth
   
-  threshold <- true_graphs[[1]]$threshold_p
-  cor_mat_pm_truth <- true_graphs[[1]]$P_block_kronecker$GP_simu_var
-  base_GP_mean <- true_graphs[[1]]$P_block_kronecker$base_GP_mean
+  #threshold <- true_graphs[[1]]$threshold_p
+  #cor_mat_pm_truth <- true_graphs[[1]]$P_block_kronecker$GP_simu_var
+  #base_GP_mean <- true_graphs[[1]]$P_block_kronecker$base_GP_mean
   
   # 1.1) visualize true log-intensities - good
   
@@ -285,8 +286,7 @@ full_conditional_estimation_with_truths <- function(dataset, terse, ncores){
   
   # 3) pre-processing before estimation ------------------------------------------
   
-  simu_threshold <- dataset$simulation_params$threshold_p
-  
+
   # 3.1) first, convert dataset into a format that can be used for estimation
   
   df_estimate <- convert_data_for_estimation(dataset$subject_data) %>% as.data.table()
@@ -359,7 +359,8 @@ full_conditional_estimation_with_truths <- function(dataset, terse, ncores){
     unlist(apply(rho_i_truth, 1, function(v) tcrossprod(v))),
     dim = c(m, m, p)
   )
-  rho_ii_truth <- sweep(rho_ii_truth, 1:2, exp(kernel_params$base_cov), `*`) # each outer product --> hadamart with exp(K)
+  
+  rho_ii_truth <- sweep(rho_ii_truth, 1:2, exp(kernel_params$base_cov), `*`) # each outer product --> hadamart with exp(K) (base cov's are the same for everyone)
   
   rho_ii_coarse_truth <- array(
     unlist(apply(rho_i_coarse_truth, 1, function(v) tcrossprod(v))),
@@ -552,12 +553,12 @@ full_conditional_estimation_with_truths <- function(dataset, terse, ncores){
   
   mean_mat_truth <- apply(X_k_truth, c(1, 2), mean)  # result is p x m matrix
   X_k_truth_center_est <- sweep(X_k_truth, c(1, 2), mean_mat_truth, FUN = "-") 
-  X_k_truth_center <- X_k_truth - base_GP_mean
+  X_k_truth_center <- X_k_truth - kernel_params$base_GP_mean
   
   
   mean_mat_coarse_truth <- apply(X_k_coarse_truth, c(1, 2), mean)  # result is p x m matrix
   X_k_coarse_truth_center_est <- sweep(X_k_coarse_truth, c(1, 2), mean_mat_coarse_truth, FUN = "-")   
-  X_k_coarse_truth_center <- X_k_coarse_truth - base_GP_mean
+  X_k_coarse_truth_center <- X_k_coarse_truth - kernel_params$base_GP_mean
   
   
    
@@ -629,6 +630,8 @@ full_conditional_estimation_with_truths <- function(dataset, terse, ncores){
   
   table(K_c) # adjacent weeks have a correlation of 0.3678
   
+  g_est_61 <- visualize_matrix_heatmap(log(K_c), 'K_c Matrix') # log values for better comparison
+  
   
   # part 7 ---------------------------------------------------------------------
 
@@ -671,6 +674,9 @@ full_conditional_estimation_with_truths <- function(dataset, terse, ncores){
   cont_inds <- 1:nrow(query_y_cs)
   estimated_graphs_v2 <- pbmclapply(cont_inds, function(cont_ind) {
     
+    kernel_params_i = dataset$true_graphs[[cont_ind]]$P_block_kronecker
+    
+    adj_mat_i <- true_graphs[[cont_ind]]$adj_mat
     
     query_y_c <- query_y_cs[cont_ind, ] %>% as.numeric()
     
@@ -729,11 +735,11 @@ full_conditional_estimation_with_truths <- function(dataset, terse, ncores){
     # est vs truth vs ground truth
     g_est_83 <- grid.arrange(visualize_pm_block_matrix_heatmap(V_cond_est_full, 'Estimate'),
                              visualize_pm_block_matrix_heatmap(V_cond_truth_full, 'Truth Theory'), 
-                             visualize_pm_block_matrix_heatmap(kernel_params$GP_simu_var, 'Ground Truth'), 
+                             visualize_pm_block_matrix_heatmap(kernel_params_i$GP_simu_var, 'Ground Truth'), 
                              nrow = 1)
     
     # all 5 + ground truth
-    g_est_84 <- grid.arrange(visualize_pm_block_matrix_heatmap(kernel_params$GP_simu_var, 'Ground Truth'), 
+    g_est_84 <- grid.arrange(visualize_pm_block_matrix_heatmap(kernel_params_i$GP_simu_var, 'Ground Truth'), 
                              visualize_pm_block_matrix_heatmap(V_cond_est_full, 'Estimate'),
                              visualize_pm_block_matrix_heatmap(V_cond_truth_full, 'Truth Theory'), 
                              visualize_pm_block_matrix_heatmap(V_cond_coarse_truth_full, 'Coarse Truth Theory'), 
@@ -781,12 +787,12 @@ full_conditional_estimation_with_truths <- function(dataset, terse, ncores){
     
     g_est_93 <- grid.arrange(visualize_pm_block_matrix_heatmap(C_cond_est_full, 'Estimate'),
                              visualize_pm_block_matrix_heatmap(C_cond_truth_full, 'Truth Theory'), 
-                             visualize_pm_block_matrix_heatmap(kernel_params$GP_simu_var, 'Ground Truth'), 
+                             visualize_pm_block_matrix_heatmap(kernel_params_i$GP_simu_var, 'Ground Truth'), 
                              nrow = 1)    
     
     
     # all 5 + ground truth
-    g_est_94 <- grid.arrange(visualize_pm_block_matrix_heatmap(kernel_params$GP_simu_var, 'Ground Truth'), 
+    g_est_94 <- grid.arrange(visualize_pm_block_matrix_heatmap(kernel_params_i$GP_simu_var, 'Ground Truth'), 
                              visualize_pm_block_matrix_heatmap(C_cond_est_full, 'Estimate'),
                              visualize_pm_block_matrix_heatmap(C_cond_truth_full, 'Truth Theory'), 
                              visualize_pm_block_matrix_heatmap(C_cond_coarse_truth_full, 'Coarse Truth Theory'), 
@@ -803,8 +809,8 @@ full_conditional_estimation_with_truths <- function(dataset, terse, ncores){
     P_cond_coarse_truth   <- estimate_precision_operator_v3(C_cond_coarse_truth, p)
     P_cond_truth          <- estimate_precision_operator_v3(C_cond_truth, p)
     
-    prec_truth <- kronecker(true_graphs[[1]]$P_block_kronecker$prec_mat, true_graphs[[1]]$P_block_kronecker$base_precision)
-    prec_coarse_truth <- kronecker(true_graphs[[1]]$P_block_kronecker$prec_mat, true_graphs[[1]]$P_block_kronecker$base_precision_est)
+    prec_truth <- kronecker(kernel_params_i$prec_mat, kernel_params_i$base_precision)
+    prec_coarse_truth <- kronecker(kernel_params_i$prec_mat, kernel_params_i$base_precision_est)
     
     
     P_ground_truth_12 <- extract_block_structure_ij(prec_truth, p, m, 1, 2)
@@ -860,13 +866,13 @@ full_conditional_estimation_with_truths <- function(dataset, terse, ncores){
     
     # part 11
     #graph_threshold <- select_threshold_by_stability(P_cond, p)
-    final_graph_estimates                  <- estimate_graph(P_cond_est,            C_cond_est,            V_cond_est, threshold, p)
-    final_graph_estimates_X_coarse_truth   <- estimate_graph(P_cond_X_coarse_truth, C_cond_X_coarse_truth, V_cond_X_coarse_truth, threshold, p)
-    final_graph_estimates_X_truth          <- estimate_graph(P_cond_X_truth,        C_cond_X_truth,        V_cond_X_truth, threshold, p)    
-    final_graph_estimates_coarse_truth     <- estimate_graph(P_cond_coarse_truth,   C_cond_coarse_truth,   V_cond_coarse_truth, threshold, p)
-    final_graph_estimates_truth            <- estimate_graph(P_cond_truth,          C_cond_truth,          V_cond_truth, threshold, p)
+    final_graph_estimates                  <- estimate_graph(P_cond_est,            C_cond_est,            V_cond_est, p)
+    final_graph_estimates_X_coarse_truth   <- estimate_graph(P_cond_X_coarse_truth, C_cond_X_coarse_truth, V_cond_X_coarse_truth, p)
+    final_graph_estimates_X_truth          <- estimate_graph(P_cond_X_truth,        C_cond_X_truth,        V_cond_X_truth, p)    
+    final_graph_estimates_coarse_truth     <- estimate_graph(P_cond_coarse_truth,   C_cond_coarse_truth,   V_cond_coarse_truth, p)
+    final_graph_estimates_truth            <- estimate_graph(P_cond_truth,          C_cond_truth,          V_cond_truth, p)
     
-    g_est_111 <- grid.arrange(visualize_pm_block_matrix_heatmap(true_graphs[[1]]$adj_mat, 'Ground Truth'), 
+    g_est_111 <- grid.arrange(visualize_pm_block_matrix_heatmap(adj_mat_i, 'Ground Truth'), 
                               visualize_pm_block_matrix_heatmap(final_graph_estimates$w_mat, 'Estimate'),
                               visualize_pm_block_matrix_heatmap(final_graph_estimates_X_coarse_truth$w_mat, 'Coarse Truth X'), 
                               visualize_pm_block_matrix_heatmap(final_graph_estimates_X_truth$w_mat, 'Truth X'), 
@@ -903,13 +909,13 @@ full_conditional_estimation_with_truths <- function(dataset, terse, ncores){
                               layout_matrix = arr_mat2)     
 
     
-    roc_ground_truth        <- roc_with_threshold(w_mat_ground_truth,        true_graphs[[1]]$adj_mat, 'Ground Truth')
-    roc_coarse_ground_truth <- roc_with_threshold(w_mat_coarse_ground_truth, true_graphs[[1]]$adj_mat, 'Coarse Ground Truth')
-    roc_truth               <- roc_with_threshold(w_mat_truth,               true_graphs[[1]]$adj_mat, 'Truth Theory')   
-    roc_coarse_truth        <- roc_with_threshold(w_mat_coarse_truth,        true_graphs[[1]]$adj_mat, 'Coarse Truth Theory')
-    roc_X_truth             <- roc_with_threshold(w_mat_X_truth,             true_graphs[[1]]$adj_mat, 'Truth X')
-    roc_X_coarse_truth      <- roc_with_threshold(w_mat_X_coarse_truth,      true_graphs[[1]]$adj_mat, 'Coarse Truth X')
-    roc_est                 <- roc_with_threshold(w_mat_est,                 true_graphs[[1]]$adj_mat, 'Estimate')
+    roc_ground_truth        <- roc_with_threshold(w_mat_ground_truth,        adj_mat_i, 'Ground Truth')
+    roc_coarse_ground_truth <- roc_with_threshold(w_mat_coarse_ground_truth, adj_mat_i, 'Coarse Ground Truth')
+    roc_truth               <- roc_with_threshold(w_mat_truth,               adj_mat_i, 'Truth Theory')   
+    roc_coarse_truth        <- roc_with_threshold(w_mat_coarse_truth,        adj_mat_i, 'Coarse Truth Theory')
+    roc_X_truth             <- roc_with_threshold(w_mat_X_truth,             adj_mat_i, 'Truth X')
+    roc_X_coarse_truth      <- roc_with_threshold(w_mat_X_coarse_truth,      adj_mat_i, 'Coarse Truth X')
+    roc_est                 <- roc_with_threshold(w_mat_est,                 adj_mat_i, 'Estimate')
     
     g_est_113 <- grid.arrange(roc_ground_truth$plot,
                               roc_coarse_ground_truth$plot,
@@ -926,10 +932,19 @@ full_conditional_estimation_with_truths <- function(dataset, terse, ncores){
     
     # 8) save graphs (recall that we have ground truths of the form a_b_c)
     
-    list(g_81  = g_est_81,  g_82  = g_est_82,  g_83  = g_est_83,  g_84  = g_est_84,
-         g_91  = g_est_91,  g_92  = g_est_92,  g_93  = g_est_93,  g_94  = g_est_94,
-         g_101 = g_est_101, g_102 = g_est_102, g_103 = g_est_103, g_104 = g_est_104,
-         g_111 = g_est_111, g_112 = g_est_112, g_113 = g_est_113)
+    if(terse){
+      list(g_84  = g_est_84, 
+           g_94  = g_est_94, 
+           g_104 = g_est_104, 
+           g_112 = g_est_112,  
+           g_113 = g_est_113)
+    } else{
+      list(g_81  = g_est_81,  g_82  = g_est_82,  g_83  = g_est_83,  g_84  = g_est_84,
+           g_91  = g_est_91,  g_92  = g_est_92,  g_93  = g_est_93,  g_94  = g_est_94,
+           g_101 = g_est_101, g_102 = g_est_102, g_103 = g_est_103, g_104 = g_est_104,
+           g_111 = g_est_111, g_112 = g_est_112, g_113 = g_est_113)      
+    }
+
     
     
   }, mc.cores = ncores) # done with all y_c levels
@@ -943,11 +958,9 @@ full_conditional_estimation_with_truths <- function(dataset, terse, ncores){
   
   if(terse){
     estimated_graphs_part_1 <- list(g_21 = g_est_21, g_22 = g_est_22)
-    temp <- estimated_graphs_v2$`1`
-    temp2 <- temp[c("g_84", "g_94", "g_104", "g_112",  "g_113")]
     
     return(list(estimated_graphs_part_1 = estimated_graphs_part_1,      
-                estimated_graphs_part_2 = temp2))      
+                estimated_graphs_part_2 = estimated_graphs_v2))      
     
   } else{
     estimated_graphs_part_1 <- list(g_21 = g_est_21, g_22 = g_est_22,
