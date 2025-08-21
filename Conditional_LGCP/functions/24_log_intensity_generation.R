@@ -1,6 +1,6 @@
 library(MASS)
 
-generate_covariance_matrix <- function(time_grid, kernel = 'rbf', gamma = 1.0, variance = 1.0) {
+generate_covariance_matrix <- function(time_grid, kernel = 'rbf', gamma = 1.0, variance = 1.0, nugget = 0) {
   
   
   # ----------------------------------------------------------------------------
@@ -60,7 +60,74 @@ generate_covariance_matrix <- function(time_grid, kernel = 'rbf', gamma = 1.0, v
     }
   }
   
+  # nugget term
+  
+  diag(K) <- diag(K) + nugget
+  
   return(K)
+}
+
+generate_truncated_covariance_matrix <- function(time_grid, kernel, gamma, variance, var_explained){
+  
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: Generate covariance matrix for GP
+  #
+  # - but we want to truncate the rbf so that its inverse has a meaningful HS norm 
+  #
+  # - 'rbf' = Gaussian
+  # - 'exponential' = Matern
+  # 
+  # Input: 
+  #
+  # - time_grid      (m x 1 vector of times)
+  # - gamma          (scalar)
+  # - variance       (scalar)
+  #
+  # 
+  # Output: 
+  #
+  # - K (m x m covariance matrix)
+  #
+  #
+  # - --------------------------------------------------------------------------
+  
+  m <- length(time_grid)
+  
+  delta_t <- time_grid[2] - time_grid[1]
+  
+  K <- matrix(0, m, m) 
+  
+
+  for (i in 1:m) {
+    for (j in i:m) {
+      
+      if(kernel == 'rbf'){
+        r <- (time_grid[i] - time_grid[j])^2
+        val <-  variance * exp(- gamma * r) 
+      } 
+      
+      K[i, j] <- val
+      K[j, i] <- val
+    }
+  }  
+  
+  A <- delta_t * K
+  
+  # now we do eigendecomposition
+  
+  A_mat <- array(A, dim = c(m, m, 1))
+  
+  eigen_decomp <- compute_eigendecomposition_ii(A_mat, var_explained)  
+  
+  A_approx <- validate_eigendecomposition_ii(A_mat, eigen_decomp)[,,1]
+  
+  K_approx <- A_approx / delta_t
+  
+  K_approx <- 0.5 * (K_approx + t(K_approx))
+
+  return(K_approx)
 }
 
 generate_sparse_precision_matrix <- function(p, adj_type, y_c_k){
