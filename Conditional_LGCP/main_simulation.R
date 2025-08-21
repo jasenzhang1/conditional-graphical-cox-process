@@ -3,8 +3,7 @@
 # 3) calculate accuracy metrics
 
 
-script_path <- normalizePath(sys.frame(1)$ofile)
-setwd(dirname(script_path))
+
 
 t0 <- Sys.time()
 
@@ -31,6 +30,8 @@ seed = 1
 ncores = parallel::detectCores() - 1
 terse = TRUE
 results_folder_name <- "simu_results_banded_v1"
+
+if (!dir.exists(results_folder_name)) dir.create(results_folder_name)
 
 # m x m GP kernel parameters
 
@@ -65,8 +66,6 @@ print(paste0('Time to generate data: ', round(as.numeric(t1 - t0, units = "mins"
 
 print(strrep("-", 50))
 
-
-if (!dir.exists(results_folder_name)) dir.create(results_folder_name)
 
 
 all_results <- list()
