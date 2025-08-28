@@ -14,13 +14,13 @@ ncores = parallel::detectCores() - 1
 
 # 2) output parameters
 terse = TRUE
-results_folder_name <- "simu_results_banded_v2"
+results_folder_name <- "simu_results_banded_v2_1"
 if (!dir.exists(results_folder_name)) dir.create(results_folder_name)
 
 # 3) continuous covariate parameters
 q_c = 1                       # Continuous conditioning dimension (q_c)
-y_c_borders = list(1:4)       # Border values
-K = 4                         # Discrete combinations (K)
+y_c_borders = list(c(-10, -7.5, -5.2, -1.95, 4.2))  # Border values
+# K = 4                         # Discrete combinations (K)
 dependence_type = "constant"  # Conditional dependence type
 
 # 4) time discretization
@@ -42,7 +42,7 @@ base_kernel_params <- list(base_gamma = 20,      # won't be pd, but we can massa
 sparsity = 0.2                           # Graph sparsity (s)
 theta = 1.0                              # Signal strength (theta)
 adj_type = "banded_v2"                   # Graph topology
-adj_params <- c(3,  0.4, 0.05)           # associated parameters 
+adj_params <- c(2,  0.1, 0.05)           # associated parameters 
 
 # 7) sample size and # of processes
 ns <- c(100, 300, 1000, 3000, 10000)     # Sample size (n)

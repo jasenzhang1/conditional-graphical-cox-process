@@ -10,11 +10,11 @@ library(gridExtra)
 # 10) continuous covariates = (week, velocity, VR)
 
 
-load('simu_results_banded_v2/n_1000.RData')
+load('simu_results_banded_v2/n_3000.RData')
 
 
 grid.newpage()
-grid.draw(graph_results_i$estimated_graphs_part_2$`5`$g_112)
+grid.draw(graph_results_i$estimated_graphs_part_2$`5`$g_113)
 
 
 grid.newpage()

@@ -5,6 +5,18 @@ graph_type:
     - 0.3 on off diagonal
     - doesn't change over time
     
+  banded_v2:
+    - adj_params = [bandwidth, covariate_strength, epsilon]
+      - bandwidth = how wide do we want non-zero values to be?
+      - covariate_strength = 
+      
+    recent attempt (v2_1): 
+    - 5 weeks, bandwidth = 2
+    - for each week, the signal gets stronger (0, 0.05, 0.1, 0.15, 0.2, 0.25)  
+      
+
+
+    
   sparse_v1:
     - greshgorin method to randomly set off-diagonals to a value
     - continuous with covariates
