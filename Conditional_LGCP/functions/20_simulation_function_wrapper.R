@@ -9,7 +9,7 @@ source('functions/27_performance_evaluation_functions.R')
 source('functions/28_Simulation_Visualization.R')
 
 source('functions/00a_matrix_massaging.R')
-
+source('functions/00b_matrix_norms.R')
 
 library(dplyr)
 library(data.table)
