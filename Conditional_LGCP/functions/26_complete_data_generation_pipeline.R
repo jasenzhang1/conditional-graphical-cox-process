@@ -534,24 +534,30 @@ simulate_conditional_cox_data_v3 <- function(
 }
 
 simulate_conditional_cox_data_v4 <- function(
-  n = 100,                    # Sample size (n)
-  p = 10,                     # Number of processes (p)  
-  T_max = 10,                 # Time horizon (T)
-  q_c = 1,                    # Continuous conditioning dimension (q_c)
-  y_c_borders = list(1:9),    # Border values
-  sparsity = 0.2,             # Sparsity
-  theta = 1.0,                # Signal strength (theta)
-  dependence_type = "constant", # Conditional dependence type
-  adj_type,                      # pxp precion matrix structure
-  adj_params,                   # associated parameters
-  time_grid,                    # Time discretization (m)
-  time_grid_est, 
+  n,                     # Sample size (n)
+  p,                     # Number of processes (p)  
+  T_max,                 # Time horizon (T)
+  q_c,                   # Continuous conditioning dimension (q_c)
+  y_c_borders,           # Border values ex: list(1:9)
+  sparsity,              # Sparsity
+  theta,                 # Signal strength (theta)
+  dependence_type,       # Conditional dependence type
+  adj_type,              # pxp precion matrix structure
+  adj_params,            # associated parameters
+  time_grid,             # Time discretization (m-dim vec)
+  time_grid_est,         # Time discretization of the estimate (m_est-dim vec)
   base_kernel_params,
-  seed = NULL,
-  ncores
+  ncores,
+  seed = NULL
 ){
   
-  # same as v3 but parallelized
+  #
+  # GOAL: simulate data
+  #
+  # - same as v3 but parallelized
+  # 
+  
+
   
   m <- length(time_grid)
   m_est <- length(time_grid_est)
@@ -646,7 +652,7 @@ simulate_conditional_cox_data_v4 <- function(
   
   
   
-  # 5) extract p*n length list of event_times for each subject and process
+  # 5) get list of event_times for each subject (n) and process (p)
   
   event_times_list <- list()
   
