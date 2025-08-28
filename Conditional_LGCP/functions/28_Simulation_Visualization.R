@@ -60,6 +60,33 @@ visualize_matrix_heatmap <- function(mat, g_title = NULL, zmin = NULL, zmax = NU
     ggtitle(g_title)
 }
 
+visualize_nonneg_matrix_heatmap <- function(mat, g_title = NULL, zmin = NULL, zmax = NULL) {
+  
+  # Convert matrix to data frame for ggplot
+  df <- reshape2::melt(mat)
+  colnames(df) <- c("x", "y", "value")
+  
+  # Set defaults for color scale
+  if (is.null(zmin)) zmin <- min(df$value, na.rm = TRUE)
+  if (is.null(zmax)) zmax <- max(df$value, na.rm = TRUE)
+  
+  ggplot(df, aes(x = x, y = y, fill = value)) +
+    geom_tile() +
+    scale_fill_gradient2(
+      low = "blue",     # negative values
+      mid = "white",    # zero
+      high = "red",     # positive values
+      midpoint = 0,     
+      limits = c(zmin, zmax),
+      oob = scales::squish
+    ) +
+    coord_fixed() +
+    theme_minimal() +
+    scale_y_reverse() +
+    labs(x = NULL, y = NULL, fill = "Value") + 
+    ggtitle(g_title)
+}
+
 visualize_precision_matrix <- function(precision_op){
   
   # precision_op = (p x p x m x m) matrix
