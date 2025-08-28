@@ -542,7 +542,8 @@ simulate_conditional_cox_data_v4 <- function(
   sparsity = 0.2,             # Sparsity
   theta = 1.0,                # Signal strength (theta)
   dependence_type = "constant", # Conditional dependence type
-  adj_type = 'banded_c1',       # pxp precion matrix structure
+  adj_type,                      # pxp precion matrix structure
+  adj_params,                   # associated parameters
   time_grid,                    # Time discretization (m)
   time_grid_est, 
   base_kernel_params,
@@ -565,6 +566,7 @@ simulate_conditional_cox_data_v4 <- function(
                                                base_kernel_params,
                                                dependence_type, 
                                                adj_type,
+                                               adj_params,
                                                seed = seed)
   
   
@@ -593,7 +595,7 @@ simulate_conditional_cox_data_v4 <- function(
     region_id <- paste(region, collapse = "_")    
     
     # 4.2) ground truth precision matrix
-    prec_mat_truth <- generate_sparse_precision_matrix(p, simu_settings$adj_type, y_c_k)
+    prec_mat_truth <- generate_sparse_precision_matrix(p, y_c_k, simu_settings$adj_type, simu_settings$adj_params)
     
     
     # 4.3) Generate precision operator P^{(y_c^k, y_d^k)} and adjacency matrix E_{y_c^k, y_d^k}
@@ -690,7 +692,9 @@ simulate_conditional_cox_data_v4 <- function(
   
   cat("Data generation completed.\n")
   cat("  Total events:", total_events, "\n")
-  cat("  Average events per process:", round(avg_events_per_process, 2), "\n")
+  cat("  Total replicates:", n, "\n")
+  cat("  Total processes:", p, "\n")
+  cat("  Average events per replicate per process:", round(avg_events_per_process, 2), "\n")
   
   return(list(
     
