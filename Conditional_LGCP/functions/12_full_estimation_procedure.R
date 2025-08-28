@@ -205,9 +205,35 @@ full_conditional_estimation_with_truths <- function(dataset, terse, ncores){
   X_k_coarse_truth <- dataset$X_k_coarse_truth
   X_k_both_truth <- dataset$X_k_both_truth
   
+  n <- dim(dataset$Y_continuous)[1]
+  
   #threshold <- true_graphs[[1]]$threshold_p
   #cor_mat_pm_truth <- true_graphs[[1]]$P_block_kronecker$GP_simu_var
   #base_GP_mean <- true_graphs[[1]]$P_block_kronecker$base_GP_mean
+  
+  # 0.1) check ground truth precision pxp matrices
+  
+  prec_ground_truths <- lapply(dataset$true_graphs, function(item) item$P_block_kronecker$prec_mat)
+  
+  lay_mat <- matrix(c(1:5, NA), nrow = 2)
+  
+  g_01 <- grid.arrange(visualize_nonneg_matrix_heatmap(prec_ground_truths[['1']], '1'),
+                       visualize_nonneg_matrix_heatmap(prec_ground_truths[['2']], '2'),
+                       visualize_nonneg_matrix_heatmap(prec_ground_truths[['3']], '3'),
+                       visualize_nonneg_matrix_heatmap(prec_ground_truths[['4']], '4'),
+                       visualize_nonneg_matrix_heatmap(prec_ground_truths[['5']], '5'),
+                       layout_matrix = lay_mat
+  )  
+  
+  # check if any prec mat is too nonnegative!
+  check_psd <- sapply(prec_ground_truths, function(M) {
+    min(eigen(M, symmetric = TRUE, only.values = TRUE)$values) > -1e-10
+  })  
+  
+  if(! any(check_psd)){
+    warning("code 01: some ground truth prec mats are not psd, proceeding anyway")
+  }
+  
   
   # 1.1) visualize true log-intensities - good
   
@@ -957,13 +983,13 @@ full_conditional_estimation_with_truths <- function(dataset, terse, ncores){
   # what to output
   
   if(terse){
-    estimated_graphs_part_1 <- list(g_21 = g_est_21, g_22 = g_est_22)
+    estimated_graphs_part_1 <- list(g_01 = g_01, g_21 = g_est_21, g_22 = g_est_22)
     
     return(list(estimated_graphs_part_1 = estimated_graphs_part_1,      
                 estimated_graphs_part_2 = estimated_graphs_v2))      
     
   } else{
-    estimated_graphs_part_1 <- list(g_21 = g_est_21, g_22 = g_est_22,
+    estimated_graphs_part_1 <- list(g_01 = g_01, g_21 = g_est_21, g_22 = g_est_22,
                                     g_31 = g_est_31,
                                     g_41 = g_est_41, g_42 = g_est_42,
                                     g_51 = g_est_51, g_52 = g_est_52, g_53 = g_est_53,
