@@ -120,7 +120,7 @@ generate_conditioning_variables_one_strata <- function(n, q_c, seed = NULL) {
   ))
 }
 
-generate_conditioning_variables_one_strata_weeks <- function(n, week_start, week_end, seed = NULL) {
+generate_conditioning_variables_one_strata_weeks <- function(n, week_vec, seed = NULL) {
   
   
   # ----------------------------------------------------------------------------
@@ -133,8 +133,7 @@ generate_conditioning_variables_one_strata_weeks <- function(n, week_start, week
   # Input: 
   #
   # - n             (integer)  sample size
-  # - week_start    (integer)
-  # - week_end      (integer)
+  # - week_vec      (integer)  vector of possible weeks
   # - seed          (integer)  randomization seed
   # 
   # Output: 
@@ -149,9 +148,7 @@ generate_conditioning_variables_one_strata_weeks <- function(n, week_start, week
   # 1) Continuous variables: multimodal dist 
 
   
-  Y_continuous <-  sample(week_start:week_end, n, replace = TRUE)
-  
-  
+  Y_continuous <-  sample(week_vec, n, replace = TRUE)
   
   
   return(list(
