@@ -227,7 +227,7 @@ estimate_covariance_functions_ii_cross_informed <- function(rho_list, lambda_cro
     numerator <- pmax(rho_ii, regularization)
     denominator <- pmax(outer(rho_i, rho_i), regularization)
     
-    G_hat[,,i] <- log(numerator / denominator)
+    G_hat[,,i] <- log(numerator / denominator) %>% symmetrize()
     
     for (j in i:p) {
       
