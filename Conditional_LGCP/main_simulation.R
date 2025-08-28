@@ -3,50 +3,54 @@
 # 3) calculate accuracy metrics
 
 
-
-
 t0 <- Sys.time()
 
 source('functions/20_simulation_function_wrapper.R')
 source('functions/00_function_wrapper.R')
 
-ns <- c(100, 300, 1000, 3000, 10000)     # Sample size (n)
-
-
-n_large <- max(ns)
-
-                     
-p = 10                      # Number of processes (p)  
-T_max = 1                   # Time horizon (T)
-q_c = 1                     # Continuous conditioning dimension (q_c)
-y_c_borders = list(1:4)     # Border values
-K = 4                       # Discrete combinations (K)
-sparsity = 0.2              # Graph sparsity (s)
-theta = 1.0                 # Signal strength (theta)
-adj_type = "banded_v2"        # Graph topology
-adj_params <- c(3,  0.4, 0.05)        # associated parameters 
-dependence_type = "constant"  # Conditional dependence type
-time_grid_size = 50         # Time discretization (m)
+# 1) system parameters
 seed = 1
 ncores = parallel::detectCores() - 1
+
+# 2) output parameters
 terse = TRUE
 results_folder_name <- "simu_results_banded_v2"
-
 if (!dir.exists(results_folder_name)) dir.create(results_folder_name)
 
-# m x m GP kernel parameters
+# 3) continuous covariate parameters
+q_c = 1                       # Continuous conditioning dimension (q_c)
+y_c_borders = list(1:4)       # Border values
+K = 4                         # Discrete combinations (K)
+dependence_type = "constant"  # Conditional dependence type
 
+# 4) time discretization
+T_max = 1                     # Time horizon (T)
+time_grid_size = 50           # Time discretization (m)
 m <- time_grid_size
 
+time_grid <- seq(0, T_max, length.out = time_grid_size)
+time_grid_est <- 1:19/20
+time_grid_both <- sort(union(time_grid, time_grid_est))
+
+# 5) base covariance
 base_kernel_params <- list(base_gamma = 20,      # won't be pd, but we can massage it 
                            base_kernel = 'rbf',
                            base_variance = 1,
                            base_GP_mean = 5)
 
-time_grid <- seq(0, T_max, length.out = time_grid_size)
-time_grid_est <- 1:19/20
+# 6) adj matrix params
+sparsity = 0.2                           # Graph sparsity (s)
+theta = 1.0                              # Signal strength (theta)
+adj_type = "banded_v2"                   # Graph topology
+adj_params <- c(3,  0.4, 0.05)           # associated parameters 
 
-time_grid_both <- sort(union(time_grid, time_grid_est))
+# 7) sample size and # of processes
+ns <- c(100, 300, 1000, 3000, 10000)     # Sample size (n)
+n_large <- max(ns)
+p = 10                                   # Number of processes (p)  
+
+
+
 
 # 1) generate dataset ----------------------------------------------------------
 
