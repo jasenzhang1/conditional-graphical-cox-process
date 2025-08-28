@@ -28,8 +28,8 @@ construct_gershgorin_precision_matrix <- function(p, y_c, alpha_functions,
   # Determine optimal rho_max based on structure type
   rho_max <- calculate_optimal_rho_max(p, structure_type, structure_params)
   
-  cat("Using structure:", structure_type, "\n")
-  cat("Optimal rho_max:", round(rho_max, 4), "\n")
+  # cat("Using structure:", structure_type, "\n")
+  # cat("Optimal rho_max:", round(rho_max, 4), "\n")
   
   # Construct correlation matrix
   rho_values <- matrix(0, p, p)
@@ -58,8 +58,8 @@ construct_gershgorin_precision_matrix <- function(p, y_c, alpha_functions,
   row_sums <- calculate_row_sums(rho_values)
   r_max <- max(row_sums)
   
-  cat("Gershgorin r_max:", round(r_max, 4), "\n")
-  cat("Gershgorin condition r_max < 1:", r_max < 1, "\n")
+  # cat("Gershgorin r_max:", round(r_max, 4), "\n")
+  # cat("Gershgorin condition r_max < 1:", r_max < 1, "\n")
   
   # Spectral adjustment if needed
   R0 <- rho_values
