@@ -11,7 +11,7 @@ source('functions/20_simulation_function_wrapper.R')
 source('functions/00_function_wrapper.R')
 
 ns <- c(100, 300, 1000, 3000, 10000)     # Sample size (n)
-
+ns <- c(10, 30, 100)
 
 n_large <- max(ns)
 
@@ -23,13 +23,14 @@ y_c_borders = list(1:4)     # Border values
 K = 4                       # Discrete combinations (K)
 sparsity = 0.2              # Graph sparsity (s)
 theta = 1.0                 # Signal strength (theta)
-adj_type = "banded_v1"        # Graph topology
+adj_type = "banded_v2"        # Graph topology
+adj_params <- c(3,  0.4, 0.05)        # associated parameters 
 dependence_type = "constant"  # Conditional dependence type
 time_grid_size = 50         # Time discretization (m)
 seed = 1
 ncores = parallel::detectCores() - 1
 terse = TRUE
-results_folder_name <- "simu_results_banded_v1"
+results_folder_name <- "simu_results_banded_v2"
 
 if (!dir.exists(results_folder_name)) dir.create(results_folder_name)
 
@@ -54,11 +55,15 @@ dataset <- simulate_conditional_cox_data_v4(n_large, p, T_max, q_c, y_c_borders,
                                             theta,
                                             dependence_type,
                                             adj_type,
+                                            adj_params,
                                             time_grid,
                                             time_grid_est,
                                             base_kernel_params,
                                             seed,
                                             ncores)
+
+
+
 
 t1 <- Sys.time()
 
