@@ -1,5 +1,8 @@
 library(MASS)
 
+exp_kernel <- function(x, y, gamma, variance = 1) variance * exp(- gamma * abs(x - y))
+rbf_kernel <- function(x, y, gamma, variance = 1) variance * exp(- gamma * (x - y)^2 )
+
 generate_covariance_matrix <- function(time_grid, kernel = 'rbf', gamma = 1.0, variance = 1.0, nugget = 0) {
   
   
@@ -67,7 +70,7 @@ generate_covariance_matrix <- function(time_grid, kernel = 'rbf', gamma = 1.0, v
   return(K)
 }
 
-generate_truncated_covariance_matrix <- function(time_grid, kernel, gamma, variance, var_explained){
+generate_truncated_covariance_matrix <- function(time_grid, kernel_name, gamma, variance, var_explained){
   
   
   # ----------------------------------------------------------------------------
@@ -93,99 +96,41 @@ generate_truncated_covariance_matrix <- function(time_grid, kernel, gamma, varia
   #
   # - --------------------------------------------------------------------------
   
-  m <- length(time_grid)
+  kernel_fn <- if(kernel_name=="exp") exp_kernel else rbf_kernel
   
-  delta_t <- time_grid[2] - time_grid[1]
+  n <- length(time_grid)
   
-  K <- matrix(0, m, m) 
-  
-
-  for (i in 1:m) {
-    for (j in i:m) {
-      
-      if(kernel == 'rbf'){
-        r <- (time_grid[i] - time_grid[j])^2
-        val <-  variance * exp(- gamma * r) 
-      } 
-      
-      K[i, j] <- val
-      K[j, i] <- val
-    }
-  }  
-  
+  delta_t <- 1/n
+  K <- outer(time_grid, time_grid, function(a,b) kernel_fn(a,b, gamma))
   A <- delta_t * K
+  ev <- eigen(A, symmetric = TRUE)
   
-  # now we do eigendecomposition
+  cum_frac <- cumsum(ev$values) / sum(ev$values)
+  m <- which(cum_frac >= var_explained)[1]
   
-  A_mat <- array(A, dim = c(m, m, 1))
+  vals <- ev$values[1:m]
+  vecs <- ev$vectors[,1:m]
+  # truncated inverse of A
+  inv_trunc <- vecs %*% diag(1/vals, nrow=m, ncol=m) %*% t(vecs)
+  hs <- sqrt(sum(inv_trunc^2))   # Frobenius norm
   
-  eigen_decomp <- compute_eigendecomposition_ii(A_mat, var_explained)  
   
-  A_approx <- validate_eigendecomposition_ii(A_mat, eigen_decomp)[,,1]
-  
-  K_approx <- A_approx / delta_t
-  
-  K_approx <- 0.5 * (K_approx + t(K_approx))
 
-  return(K_approx)
+
+  return(list(cov_mat = K, m=n, dt=dt, HS=hs, vals=vals))
 }
 
-generate_sparse_precision_matrix <- function(p, adj_type, y_c_k){
+prec_mat_massager <- function(prec_mat){
   
-  # ----------------------------------------------------------------------------
-  # 
-  # 7/24/2025
-  #
-  # GOAL: generate a ground truth sparse precision matrix and correlation matrix 
-  #
-  # - randomly setting off-diagonal entries to 0 will not guarantee PD!!
-  #
-  # 
-  # input:
-  # 
-  # - p          (number)             dimension of precision matrix
-  # - adj_type   (string)             type of precision matrix (e.g. banded)
-  #                                   check `main_simulation_results_notes.txt` for details
-  # - y_c_k      (q_c dim vector)     continuous covariate vector
-  #
-  # 
-  # output:
-  #
-  # - list of precision matrix features
-  #   - adj_mat      (p x p matrix)    adjacency matrix with 0's on the diagonal. 1 = dependent, 0 = independent
-  #   - prec_mat     (p x p matrix)    precision matrix from the massaged correlation matrix
-  #   - cor_mat      (p x p matrix)    correlation matrix 
-  #   - threshold_p  (number)          smallest non-zero off-diagonal value. Anything less than this threshold will be assumed to be 0
-  # 
-  # 
-  # ----------------------------------------------------------------------------
+  # if we manually generate a precision matrix
+  # we need to:
+  # 1) invert it to be a covariance matrix
+  # 2) normalize it to be a correlation matrix
+  # 3) invert it again to be a standardized precision matrix
+  # 4) make it a partial correlation matrix
   
-  prec_mat <- diag(1, p)
   adj_mat <- matrix(0, p, p)
   
-  if(adj_type == 'banded_c1'){
-    
-    # 0.3's on off diagonals - constant over time
-    # nothing else
-    
-    prec_mat[row(prec_mat) == col(prec_mat) - 1] <- 0.3
-    prec_mat[row(prec_mat) == col(prec_mat) + 1] <- 0.3 
-  }
-  
-  if(adj_type == 'banded_v1'){
-    
-    # 0.3's on off diagonals - constant over time
-    # for y_c_k = 1, add nothing
-    # for y_c_k = 2, make next set of off-diagonals 0.3
-    # for y_c_k = 2, make next set of off-diagonals 0.3
-    # etc...
-    
-    for(i in 1:y_c_k){
-      prec_mat[row(prec_mat) == col(prec_mat) - i] <- 0.3
-      prec_mat[row(prec_mat) == col(prec_mat) + i] <- 0.3      
-    }
-  }
-    
   cor_mat <- solve(prec_mat) %>% cov2cor()
   
   prec_mat2 <- solve(cor_mat)
@@ -201,10 +146,131 @@ generate_sparse_precision_matrix <- function(p, adj_type, y_c_k){
   
   # adjacency_matrix
   adj_mat[prec_mat != 0] <- 1
-  diag(adj_mat) <- 0
-    
+  diag(adj_mat) <- 0  
   
-  return(list(adj_mat = adj_mat, prec_mat = prec_mat2, cor_mat = cor_mat, partial_cor_mat = partial_cor_mat, threshold_p = threshold_p))
+  return(list(adj_mat = adj_mat, 
+              prec_mat = prec_mat2, 
+              cor_mat = cor_mat, 
+              partial_cor_mat = partial_cor_mat, 
+              threshold_p = threshold_p))
+}
+
+generate_sparse_precision_matrix <- function(p, y_c_k, adj_type, adj_params){
+  
+  # ----------------------------------------------------------------------------
+  # 
+  # 7/24/2025
+  #
+  # GOAL: generate a ground truth sparse precision matrix and correlation matrix 
+  #
+  # - randomly setting off-diagonal entries to 0 will not guarantee PD!!
+  #
+  # 
+  # input:
+  # 
+  # - p          (number)             dimension of precision matrix
+  # - y_c_k      (q_c dim vector)     continuous covariate vector
+  # - adj_type   (string)             type of precision matrix (e.g. banded)
+  #                                   check `main_simulation_results_notes.txt` for details
+  # - adj_params (vector)             vector of misc parameters
+  #
+  # 
+  # output:
+  #
+  # - list of precision matrix features
+  #   - adj_mat      (p x p matrix)    adjacency matrix with 0's on the diagonal. 1 = dependent, 0 = independent
+  #   - prec_mat     (p x p matrix)    precision matrix from the massaged correlation matrix
+  #   - cor_mat      (p x p matrix)    correlation matrix 
+  #   - threshold_p  (number)          smallest non-zero off-diagonal value. Anything less than this threshold will be assumed to be 0
+  # 
+  # 
+  # ----------------------------------------------------------------------------
+  
+  prec_mat <- diag(1, p)
+  
+  if(adj_type == 'banded_c1'){
+    
+    # adj_params = [rho = 0.3]
+    # 0.3's on off diagonals - constant over time
+    # nothing else
+    
+    rho <- adj_params[1]
+    
+    prec_mat[row(prec_mat) == col(prec_mat) - 1] <- rho
+    prec_mat[row(prec_mat) == col(prec_mat) + 1] <- rho 
+    
+    result <- prec_mat_massager(prec_mat) # helper function above
+  }
+  
+  if(adj_type == 'banded_v1'){
+    
+    # adj_params = [rho = 0.3]
+    
+    rho <- adj_params[1]
+    
+    # 0.3's on off diagonals - constant over time
+    # for y_c_k = 1, add nothing
+    # for y_c_k = 2, make next set of off-diagonals 0.3
+    # for y_c_k = 2, make next set of off-diagonals 0.3
+    # etc...
+    
+    for(i in 1:y_c_k){
+      prec_mat[row(prec_mat) == col(prec_mat) - i] <- rho
+      prec_mat[row(prec_mat) == col(prec_mat) + i] <- rho     
+    }
+    
+    result <- prec_mat_massager(prec_mat) 
+  }
+  
+  if(adj_type == 'banded_v2'){
+    
+    # adj_params = [k = 3, cs = 0.4, epsilon = 0.05]
+    
+    k <- adj_params[1]
+    cs <- adj_params[2]
+    epsilon <- adj_params[3]
+    
+    banded_params <- list(k = k)
+    alpha_funcs_banded <- create_banded_alpha(p, k = k, covariate_strength = cs)
+    
+    result_banded <- construct_gershgorin_precision_matrix(
+      p, y_c_k, alpha_funcs_banded, 
+      structure_type = "banded",
+      structure_params = banded_params,
+      epsilon = 0.05
+    )
+    
+    result <- prec_mat_massager(result_banded$precision_matrix)
+  }  
+  
+  if(adj_type == 'sparse_v1'){
+
+    
+    # utilizes y_c_k 
+    
+    # adj_params = [s, connection_prob, covariate_strength, epsilon]
+    
+    s <- adj_params[1] # 10
+    cp <- adj_params[2] # 0.01
+    cs <- adj_params[3] # 0.5
+    epsilon <- adj_params[4] # 0.04
+    
+    # Sparse structure with s=10 connections per node
+    sparse_params <- list(s = s)
+    alpha_funcs_sparse <- create_sparse_alpha(p, s = s, connection_prob = cp, covariate_strength = cs)
+    
+    result_sparse <- construct_gershgorin_precision_matrix(
+      p, y_c_k, alpha_funcs_sparse,
+      structure_type = "sparse",
+      structure_params = sparse_params, 
+      epsilon = epsilon
+    )
+    
+    result <- prec_mat_massager(result_sparse$precision_matrix)
+  }
+
+    
+  return(result)
   
 
 }
@@ -455,15 +521,15 @@ sample_conditional_precision_v3 <- function(simu_settings,
   # H_mat_cor_thresh <- (H_mat_cor_thresh + t(H_mat_cor_thresh))/2
   
   GP_simu_var_both = kronecker(prec_mat_truth$cor_mat, base_cov_both)
-  GP_simu_prec_both <- kronecker(prec_mat_truth$prec_mat, base_precision_both)
+  GP_simu_prec_both <- kronecker(prec_mat_truth$partial_cor_mat, base_precision_both)
   GP_simu_mean_both <- rep(base_kernel_params$base_GP_mean, length(time_grid_both))
   
   GP_simu_var <- kronecker(prec_mat_truth$cor_mat, base_cov)
-  GP_simu_prec <- kronecker(prec_mat_truth$prec_mat, base_precision)
+  GP_simu_prec <- kronecker(prec_mat_truth$partial_cor_mat, base_precision)
   GP_simu_mean <- rep(base_kernel_params$base_GP_mean, length(time_grid))
   
   GP_simu_var_est <- kronecker(prec_mat_truth$cor_mat, base_cov_est)
-  GP_simu_prec_est <- kronecker(prec_mat_truth$prec_mat, base_precision_est)
+  GP_simu_prec_est <- kronecker(prec_mat_truth$partial_cor_mat, base_precision_est)
   GP_simu_mean_est <- rep(base_kernel_params$base_GP_mean, length(time_grid_est))
 
   
@@ -495,7 +561,8 @@ sample_conditional_precision_v3 <- function(simu_settings,
                                        # H_mat_cor_thresh = H_mat_cor_thresh,
                                        # H_mat_prec_thresh = H_mat_prec_thresh,
                                       
-                                       prec_mat = prec_mat_truth$prec_mat,  # p x p
+                                       prec_mat_old = prec_mat_truth$prec_mat,
+                                       prec_mat = prec_mat_truth$partial_cor_mat,  # p x p
                                        cor_mat  = prec_mat_truth$cor_mat,   # p x p 
                                        
                                        # simu
