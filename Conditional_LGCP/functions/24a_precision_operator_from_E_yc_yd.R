@@ -37,7 +37,7 @@ find_yc_group <- function(y_c, y_c_borders){
   #
   # region = c(3, 2)
   #
-  #
+  # 5 is in the 2nd region because of <= rule
   # ----------------------------------------------------------------------------
   
   region <- c()
