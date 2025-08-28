@@ -4,6 +4,17 @@ graph_type:
     - 1's on diagonal
     - 0.3 on off diagonal
     - doesn't change over time
+    
+  sparse_v1:
+    - greshgorin method to randomly set off-diagonals to a value
+    - continuous with covariates
+
+
+-----------------------------
+GRAPHS 
+----------------------------
+
+g_01: all ground truth precision matrices for all y_c's 
 
 g_21: X_truth vs X_hat
 
