@@ -186,7 +186,11 @@ calculate_row_sums <- function(rho_matrix) {
 #' @param p Matrix dimension
 #' @param k Bandwidth parameter
 #' @param covariate_strength Strength of covariate modulation
+#' 
 create_banded_alpha <- function(p, k = 5, covariate_strength = 0.5) {
+  
+  # alpha_ij = 1.0 + cs * sum(y_c)
+  
   alpha_functions <- list()
   
   for (i in 1:(p-1)) {
@@ -485,6 +489,33 @@ validate_gershgorin_constraints <- function(result, epsilon) {
 # =============================================================================
 # DEMONSTRATION AND TESTING WITH VISUALIZATION
 # =============================================================================
+
+# -10 = 0
+# -7.5 = 0.055
+# -5.2 = 0.1004
+# -1.95 = 0.015
+# 4.2 = 0.20
+
+# p <- 10  # Higher dimension to show improvement
+# y_c <- c(4.2)
+# k <- 2
+# cs <- 0.1
+# epsilon <- 0.05
+# 
+# # Banded structure with k=3
+# banded_params <- list(k = k)
+# alpha_funcs_banded <- create_banded_alpha(p, k = k, covariate_strength = cs)
+# 
+# result_banded <- construct_gershgorin_precision_matrix(
+#   p, y_c, alpha_funcs_banded,
+#   structure_type = "banded",
+#   structure_params = banded_params,
+#   epsilon = epsilon
+# )
+# 
+# result_banded$precision_matrix
+# 
+# eigen(result_banded$precision_matrix)$values
 
 # cat("=== Gershgorin-Based Robust Precision Matrix Construction ===\n\n")
 # 
