@@ -581,9 +581,8 @@ simulate_conditional_cox_data_v4 <- function(
   
   
   # Code 22, Generate conditioning variables {Y_c^k}_{k=1}^n
-  week_start <- y_c_borders[[1]][1]
-  week_end <- max(y_c_borders[[1]]) + 1
-  Y_list <- generate_conditioning_variables_one_strata_weeks(n, week_start, week_end, seed)
+  week_vec <- y_c_borders[[1]]
+  Y_list <- generate_conditioning_variables_one_strata_weeks(n, week_vec, seed)
   Y_continuous <- Y_list$Y_continuous
   
   if(q_c == 1){
