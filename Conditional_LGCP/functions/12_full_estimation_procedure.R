@@ -218,11 +218,11 @@ full_conditional_estimation_with_truths <- function(dataset, terse, ncores){
   
   lay_mat <- matrix(c(1:5, NA), nrow = 2)
   
-  g_01 <- grid.arrange(visualize_nonneg_matrix_heatmap(prec_ground_truths[['1']], '1'),
-                       visualize_nonneg_matrix_heatmap(prec_ground_truths[['2']], '2'),
-                       visualize_nonneg_matrix_heatmap(prec_ground_truths[['3']], '3'),
-                       visualize_nonneg_matrix_heatmap(prec_ground_truths[['4']], '4'),
-                       visualize_nonneg_matrix_heatmap(prec_ground_truths[['5']], '5'),
+  g_01 <- grid.arrange(visualize_nonneg_matrix_heatmap(prec_ground_truths[['1']], '1', -1, 1),
+                       visualize_nonneg_matrix_heatmap(prec_ground_truths[['2']], '2', -1, 1),
+                       visualize_nonneg_matrix_heatmap(prec_ground_truths[['3']], '3', -1, 1),
+                       visualize_nonneg_matrix_heatmap(prec_ground_truths[['4']], '4', -1, 1),
+                       visualize_nonneg_matrix_heatmap(prec_ground_truths[['5']], '5', -1, 1),
                        layout_matrix = lay_mat
   )  
   
