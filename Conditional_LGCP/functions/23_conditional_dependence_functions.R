@@ -202,6 +202,7 @@ collect_beta_and_parameters <- function(p, time_grid, time_grid_est, theta, q_c,
                                         base_kernel_params,
                                         dependence_type, 
                                         adj_type, 
+                                        adj_params,
                                         seed = NULL) {
   
   # ----------------------------------------------------------------------------
@@ -228,6 +229,7 @@ collect_beta_and_parameters <- function(p, time_grid, time_grid_est, theta, q_c,
   #
   # - dependence_type    (string)          how do the continuous covariates affect ground truth?
   # - adj_type           (string)          pxp adjacency matrix and how it changes via covariates
+  # - adj_params         (vector)          vector of associated adj_type parameters
   # - seed               (number)          simulation seed number
   # 
   # 
@@ -256,6 +258,7 @@ collect_beta_and_parameters <- function(p, time_grid, time_grid_est, theta, q_c,
     signal_strength = theta,             # theta               (scalar)
     dependence_type = dependence_type,   # Type of h_ij(y_c)   (string)
     adj_type = adj_type,                 #                     (string)
+    adj_params = adj_params,
     time_grid = time_grid,               # time grid
     time_grid_est = time_grid_est,
     base_kernel_params = base_kernel_params,
