@@ -33,12 +33,12 @@ full_conditional_estimation_with_truths_G_ij <- function(dataset, terse, ncores)
   data_df$time <- data_df$time / dataset$simulation_params$T_max # normalize to [0, 1]
   
   n <- dim(dataset$Y_continuous)[1]
+  m_est <- length(time_grid_est)
+  m     <- length(time_grid)
   
   # 0.1) X_k values
   
-  X_k_truth <- dataset$X_k_truth
-  X_k_coarse_truth <- dataset$X_k_coarse_truth
-  X_k_both_truth <- dataset$X_k_both_truth
+
   
   
   
@@ -65,79 +65,7 @@ full_conditional_estimation_with_truths_G_ij <- function(dataset, terse, ncores)
     warning("code 01: some ground truth prec mats are not psd, proceeding anyway")
   }
   
-  
-  # 1.1) visualize true log-intensities - good
-  
-  g_11 <- grid.arrange(visualize_log_intensity(X_k_truth[1:5,,1], time_grid, 'Finer Grid'),
-                       visualize_log_intensity(X_k_coarse_truth[1:5,,1], time_grid_est, 'Coarser Grid'),
-                       visualize_log_intensity(X_k_both_truth[1:5,,1], time_grid_both, 'Combined'),
-                       nrow = 1
-  )  
-  
-  # 1.2) does a kronecker extractor work? - yes, if we condition on mxm matrix having diagonal of 1's 
-  
-  wow <- dataset$true_graphs[[1]]$P_block_kronecker
-  
-  pm_mat <- wow$GP_simu_var
-  m_mat <- wow$base_cov
-  p_mat <- wow$cor_mat
-  pm_mat2 <- kronecker(p_mat, m_mat)
-  
-  table(pm_mat2 == pm_mat) # sanity check
-  
-  
-  pm_decomp <- kronecker_decomp(pm_mat, p, m)         # decomp with no constraints
-  pm_decomp2 <- kronecker_decomp_diag1(pm_mat, p, m)  # decomp with mxm matrix having 1's on diag
-  pm_decomp3 <- kronecker_psd_factor(pm_mat, p, m, enforce_trace = FALSE)  # decomp with mxm matrix being PSD
-  
-  # original decomp, better decomp, and truth
-  arr_mat <- matrix(1:6, nrow = 2, byrow = F)
-  g_12 <- grid.arrange(visualize_matrix_heatmap(pm_decomp$p_mat, 'Default Decomp P'),
-                       visualize_matrix_heatmap(pm_decomp$m_mat, 'Default Decomp M'),
-                       visualize_matrix_heatmap(pm_decomp2$p_mat, 'Second Decomp P'),
-                       visualize_matrix_heatmap(pm_decomp2$m_mat, 'Second Decomp M'),
-                       visualize_matrix_heatmap(p_mat, 'True P'),
-                       visualize_matrix_heatmap(m_mat, 'True M'), 
-                       layout_matrix = arr_mat) 
-  
-  
-  # more sanity checks
-  pm_decomp_reconstruct <- kronecker(pm_decomp$p_mat, pm_decomp$m_mat)
-  
-  summary(as.numeric(pm_decomp_reconstruct - pm_mat))
-  summary(as.numeric(pm_decomp2$p_mat - p_mat))
-  
-  # 2) visualize rho from X_truth ----------------------------------------------
-  
-  # 2.1) rho_i_est (mean intensity) from X_truths
-  mat_list <- lapply(dataset$subject_data, function(x) exp(x$X_functions))
-  rho_simu <- Reduce("+", mat_list) / length(mat_list)
-  
-  mat_list_coarse <- lapply(dataset$subject_data, function(x) exp(x$X_functions_coarse))
-  rho_simu_coarse <- Reduce("+", mat_list_coarse) / length(mat_list_coarse)  
-  
-  
-  
-  # 2.2) rho_i_truth (ground truth of GP mean) theoretical truth
-  
-  kernel_params = dataset$true_graphs[[1]]$P_block_kronecker
-  
-  rho_i_mean <- exp(kernel_params$base_GP_mean + 0.5 * kernel_params$base_variance)
-  GP_means_m <- kernel_params$GP_simu_mean  # m-dim vec
-  GP_means_pm <- rep(GP_means_m, p)
-  
-  GP_kernel_pm <- kernel_params$GP_simu_var # pm x pm matrix
-  
-  GP_means_exp_pm <- exp(GP_means_pm + 0.5 * diag(GP_kernel_pm)) # ground truth of GP mean
-  GP_mean_ground_truth <- matrix(GP_means_exp_pm, nrow = p, ncol = m) # put it in a matrix
-  
-  g_GP_baseline <- visualize_log_intensity(GP_mean_ground_truth[1:5,], time_grid, 'Rho i Truth from Theory') # graph
-  
-  # g_data_2_one_subject <- visualize_log_intensity(exp(dataset$X_k_truth[1:5,,1]), time_grid, 'Rho i Truth from X_Truth') + geom_hline(yintercept = rho_i_mean)
-  
-  g_data_2 <- visualize_log_intensity(rho_simu[1:5,], time_grid, 'Rho i Truth from X_Truth') + geom_hline(yintercept = rho_i_mean) # average intensities across all subjects
-  
-  g_22 <- grid.arrange(g_data_2, g_GP_baseline, nrow = 1) # compare graphs
+
   
   # 3) pre-processing before estimation ------------------------------------------
   
@@ -181,37 +109,109 @@ full_conditional_estimation_with_truths_G_ij <- function(dataset, terse, ncores)
   
   # 4) estimation --------------------------------------------------------------
   
-  # part 1 - get X_k_est (p x m_est x n)
+  # part 1 - log intensities
+  #
+  # - X_k_truth                 (p x m_truth x n)
+  # - X_k_coarse_truth          (p x m_est   x n)
+  # - X_k_both_truth            (p x m_both  x n)
+  # - X_k_est                   (p x m_est   x n)
+  #
+  # - Lambda_k_truth            (p x m_truth x n)
+  # - Lambda_k_coarse_truth     (p x m_est   x n)
+
+  
+  
   X_k_est <- subject_specific_log_intensity(data_df4, Tseq_est)
-  rho_k_est <- exp(X_k_est)
-  
-  G_ij_k <- 
-  
-  # part 2 - rho_i_est from X_k_hat
-  rho_list <- estimate_intensities_stratum_parallel_v4(data_df4, patient_sel, feature_sel, Tseq_est, F, ncores)
-  recovered_intensities <- do.call(rbind, lapply(rho_list[[1]], function(v) as.numeric(v))) # p x m matrix of estimated mean intensities
-  
-  
-  # rho_i_truth = exp(mu(t) + 0.5 * diag(GP_cov))
-  rho_i_truth_value <- exp(kernel_params$base_GP_mean + 0.5 * kernel_params$base_variance)
-  rho_i_truth <- replicate(p, exp(kernel_params$GP_simu_mean + 0.5 * diag(kernel_params$base_cov))) %>% t()
-  rho_i_coarse_truth <- replicate(p, exp(kernel_params$GP_simu_mean_est + 0.5 * diag(kernel_params$base_cov_est))) %>% t()
-  
-  # rho_ij_truth = rho_i_true * t(rho_j_true) * exp(GP_cov_ij)
+  X_k_truth <- dataset$X_k_truth
+  X_k_coarse_truth <- dataset$X_k_coarse_truth
+  X_k_both_truth <- dataset$X_k_both_truth
   
   Lambda_k_truth <- exp(X_k_truth)
   Lambda_k_coarse_truth <- exp(X_k_coarse_truth)
   
-  rho_ij_est <- rho_list[[2]]
-  rho_ij_truth <- list()
-  rho_ij_coarse_truth <- list()
-  rho_ij_truth_from_X <- list()
-  rho_ij_coarse_truth_from_X <- list()
+  
+  # 1.1) visualize true log-intensities - good
+  
+  g_11 <- grid.arrange(visualize_log_intensity(X_k_est[1:5,,1], time_grid_est, 'Estimate'),
+                       visualize_log_intensity(X_k_coarse_truth[1:5,,1], time_grid_est, 'Coarser Grid'),
+                       visualize_log_intensity(X_k_truth[1:5,,1], time_grid, 'Finer Grid'),
+                       visualize_log_intensity(X_k_both_truth[1:5,,1], time_grid_both, 'Combined'),
+                       nrow = 1
+  )   
+  
+  # part 2 - intensities
+  #
+  # - rho_i_truth_theory        (p x m_truth)
+  # - rho_i_coarse_truth_theory (p x m_est)
+  # - rho_i_X_truth             (p x m_truth)
+  # - rho_i_X_coarse_truth      (p x m_est)
+  # - rho_i_est                 (p x m_est)
+  # 
+  # - rho_i_k_est               (p x m_est x n)
+  
+  
+  # subject intensities
+  rho_i_k_est <- exp(X_k_est)
+  rho_ij_k_est <- subject_specific_bivariate_intensity(data_df4, Tseq_est, Tseq_est, 'i', ncores)
+  
+  
+  # rho_i_truth = exp(mu(t) + 0.5 * diag(GP_cov))
+  rho_i_truth_value <- exp(kernel_params$base_GP_mean + 0.5 * kernel_params$base_variance)
+  rho_i_truth_theory <- replicate(p, exp(kernel_params$GP_simu_mean + 0.5 * diag(kernel_params$base_cov))) %>% t() 
+  rho_i_coarse_truth_theory <- replicate(p, exp(kernel_params$GP_simu_mean_est + 0.5 * diag(kernel_params$base_cov_est))) %>% t()  
+
+  # rho_i (mean intensity) from X_truths
+  mat_list <- lapply(dataset$subject_data, function(x) exp(x$X_functions))
+  rho_i_X_truth <- Reduce("+", mat_list) / length(mat_list)
+  
+  mat_list_coarse <- lapply(dataset$subject_data, function(x) exp(x$X_functions_coarse))
+  rho_i_X_coarse_truth <- Reduce("+", mat_list_coarse) / length(mat_list_coarse)    
+  
+  # rho_i_est from data
+  rho_list <- estimate_intensities_stratum_parallel_v4(data_df4, patient_sel, feature_sel, Tseq_est, F, ncores)
+  rho_i_est <- do.call(rbind, lapply(rho_list[[1]], function(v) as.numeric(v))) # p x m matrix of estimated mean intensities  
+  
+  
+  
+  # part 2 visualization 
+
+  arr_mat <- matrix(1:6, nrow = 2, byrow = F)
+  g_22 <- grid.arrange(visualize_log_intensity(rho_i_truth_theory[1:5,], time_grid, 'Truth Theory'),
+                       visualize_log_intensity(rho_i_coarse_truth_theory[1:5,], time_grid_est, 'Coarse Truth Theory'),
+                       visualize_log_intensity(rho_i_X_truth[1:5,], time_grid, 'Truth X'),
+                       visualize_log_intensity(rho_i_X_coarse_truth[1:5,], time_grid_est, 'Coarse Truth X'),
+                       textGrob("1. Rho i\nEstimation", gp = gpar(fontsize = 14)),
+                       visualize_log_intensity(rho_i_est[1:5,], time_grid_est, 'Estimate'),
+                       layout_matrix = arr_mat)
+  
+
+  # part 2.1 - bivariate intensities
+  #
+  # - rho_i_truth_theory        (p x m_truth)
+  # - rho_i_coarse_truth_theory (p x m_est)
+  # - rho_i_X_truth             (p x m_truth)
+  # - rho_i_X_coarse_truth      (p x m_est)
+  # - rho_ii_est                (p-dim list, m_est x m_est)
+  # 
+  # - rho_i_k_est               (p x m_est x n)  
+
+  
+  # rho_ij_truth = rho_i_true * t(rho_j_true) * exp(GP_cov_ij)
+  
+
+  
+  rho_ii_est <- rho_list[[2]]
+  rho_ii_truth_theory <- list()
+  rho_ii_coarse_truth_theory <- list()
+  rho_ii_X_truth <- list()
+  rho_ii_X_coarse_truth <- list()
   for(i in 1:p){
-    for(j in i:p){
+    for(j in i:i){
       key <- paste0(i, '_', j)
-      rho_ij_truth[[key]] <- tcrossprod(rho_i_truth[i,], rho_i_truth[j,]) * exp(extract_block_structure_ij(kernel_params$GP_simu_var, m, i, j))
-      rho_ij_coarse_truth[[key]] <- tcrossprod(rho_i_coarse_truth[i,], rho_i_coarse_truth[j,]) * exp(extract_block_structure_ij(kernel_params$GP_simu_var_est, m_est, i, j))
+      
+      # theory
+      rho_ii_truth_theory[[key]]        <- tcrossprod(rho_i_truth_theory[i,],        rho_i_truth_theory[j,])        * exp(extract_block_structure_ij(kernel_params$GP_simu_var, m, i, j))
+      rho_ii_coarse_truth_theory[[key]] <- tcrossprod(rho_i_coarse_truth_theory[i,], rho_i_coarse_truth_theory[j,]) * exp(extract_block_structure_ij(kernel_params$GP_simu_var_est, m_est, i, j))
       
       # X_k portion
       mats <- array(0, dim = c(m, m))
@@ -227,29 +227,19 @@ full_conditional_estimation_with_truths_G_ij <- function(dataset, terse, ncores)
         coarse_mats <- coarse_mats + tcrossprod(vi, vj)  # faster than outer(v, v) 
         
         # Average across replicates
-        rho_ij_truth_from_X[[key]] <- mats / n
-        rho_ij_coarse_truth_from_X[[key]] <- coarse_mats / n      
+        rho_ii_X_truth[[key]] <- mats / n
+        rho_ii_X_coarse_truth[[key]] <- coarse_mats / n      
       }
     }
   }
   
 
-  
-  # visualization of part 2
-  
-  g_est_21 <- grid.arrange(visualize_log_intensity(recovered_intensities[1:5,], Tseq_est, 'Rho i est from X_hat') + geom_hline(yintercept = rho_i_mean), # rho_i_truth vs rho_i_est
-                           g_data_2, 
-                           g_GP_baseline, nrow = 1)
-  
-  arr_mat <- matrix(1:6, nrow = 2, byrow = F)
-  
-  # rho_ii
-  g_est_22 <- grid.arrange(visualize_matrix_heatmap(rho_ij_truth[['1_1']], 'Truth Theory', 40000, 200000),
-                           visualize_matrix_heatmap(rho_ij_coarse_truth[['1_1']], 'Coarse Truth Theory', 40000, 200000),
-                           visualize_matrix_heatmap(rho_ij_truth_from_X[['1_1']], 'Truth X 1', 40000, 200000),
-                           visualize_matrix_heatmap(rho_ij_est[['1_1']], 'Estimate 1', 40000, 200000),
-                           visualize_matrix_heatmap(rho_ij_truth_from_X[['2_2']], 'Truth X 2', 40000, 200000),
-                           visualize_matrix_heatmap(rho_ij_est[['2_2']], 'Estimate 2', 40000, 200000),
+  g_est_22 <- grid.arrange(visualize_matrix_heatmap(rho_ii_truth_theory[['1_1']], 'Truth Theory', 40000, 200000),
+                           visualize_matrix_heatmap(rho_ii_coarse_truth_theory[['1_1']], 'Coarse Truth Theory', 40000, 200000),
+                           visualize_matrix_heatmap(rho_ii_X_truth[['1_1']], 'Truth X', 40000, 200000),
+                           visualize_matrix_heatmap(rho_ii_X_coarse_truth[['1_1']], 'Coarse Truth X', 40000, 200000),
+                           textGrob("2. Rho ii\nEstimation", gp = gpar(fontsize = 14)),
+                           visualize_matrix_heatmap(rho_ii_est[['1_1']], 'Estimate', 40000, 200000),
                            layout_matrix = arr_mat)
   
   # rho_ij - not useful 
@@ -262,6 +252,15 @@ full_conditional_estimation_with_truths_G_ij <- function(dataset, terse, ncores)
   #                          layout_matrix = arr_mat)  
   
   # part 3 - GP covariance estimation ------------------------------------------
+  
+  
+  
+  G_ij_k_est <- estimate_subject_specific_covariance(rho_k_est, rho_ij_k_est$bivariate_intensities, rho_ij_k_est$pair_ID)
+  
+  # take the average across all subjects
+  G_ij_est <- lapply(G_ij_k_est, function(mat) {
+    apply(mat, c(1, 2), mean)
+  })  
   
   # rho_list_X_truth <- lapply(1:p, function(i) {
   #   list(
