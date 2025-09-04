@@ -37,7 +37,7 @@ validate_eigendecomposition_ii <- function(G_hat, eigen_decomp){
     
     # Reconstruct covariance matrix for i-th process
     
-    if(d_i > 1){
+    if(d_i == 1){
       eta_vec <- matrix(etas[, 1:d_i], m, 1)
       lambda_mat <- matrix(lambdas)
       G_hat_approx[, , i] <- eta_vec %*% lambda_mat %*% t(eta_vec)
