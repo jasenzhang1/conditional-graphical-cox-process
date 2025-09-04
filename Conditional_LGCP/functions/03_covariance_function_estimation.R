@@ -1,5 +1,36 @@
 # estimate G_{ij}(s, t)
 
+base_covariance_function <- function(rho_ij, rho_i, rho_j, regularization=1e-10){
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: fundamental function that computes log ratio of intensities
+  #
+  #
+  # input:
+  #
+  # - rho_ij (m x m matrix)
+  # - rho_i  (m-dim vector)
+  # - rho_j  (m-dim vector)
+  # - regularization (number)
+  #
+  # 
+  # output:
+  # 
+  # - G_hat (m x m matrix)  covariance estimate
+  #
+  # 
+  # ----------------------------------------------------------------------------
+  
+
+  # Avoid log(0) by adding regularization
+  numerator <- pmax(rho_ij, regularization)
+  denominator <- pmax(tcrossprod(rho_i, rho_j), regularization)
+  
+  return(log(numerator / denominator))
+  
+}
+
 estimate_covariance_functions <- function(rho_hat, rho_hat_pairs, regularization=1e-10) {
   
   # ----------------------------------------------------------------------------
