@@ -47,6 +47,7 @@ adj_params <- c(2,  0.1, 0.05)           # associated parameters
 # 7) sample size and # of processes
 ns <- c(100, 300, 1000, 3000, 10000)     # Sample size (n)
 n_large <- max(ns)
+
 p = 10                                   # Number of processes (p)  
 
 

@@ -5,6 +5,11 @@ graph_type:
     - 0.3 on off diagonal
     - doesn't change over time
     
+  banded_v1:
+    - rho = 0.3
+    - width increase each week
+    - naive. Doesn't account for breaking PSD
+    
   banded_v2:
     - adj_params = [bandwidth, covariate_strength, epsilon]
       - bandwidth = how wide do we want non-zero values to be?
