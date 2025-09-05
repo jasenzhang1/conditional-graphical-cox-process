@@ -927,13 +927,13 @@ full_conditional_estimation_with_truths_G_ij <- function(dataset, terse, ncores)
   # what to output
   
   if(terse){
-    estimated_graphs_part_1 <- list(g_01 = g_01, g_21 = g_est_21, g_22 = g_est_22)
+    estimated_graphs_part_1 <- list(g_01 = g_01, g_22 = g_est_22)
     
     return(list(estimated_graphs_part_1 = estimated_graphs_part_1,      
                 estimated_graphs_part_2 = estimated_graphs_v2))      
     
   } else{
-    estimated_graphs_part_1 <- list(g_01 = g_01, g_21 = g_est_21, g_22 = g_est_22,
+    estimated_graphs_part_1 <- list(g_01 = g_01, g_22 = g_est_22,
                                     g_31 = g_est_31,
                                     g_41 = g_est_41, g_42 = g_est_42,
                                     g_51 = g_est_51, g_52 = g_est_52, g_53 = g_est_53,
