@@ -162,7 +162,7 @@ HS_heatmap <- function(precision_op, delta_t){
 }
 
 
-visualize_log_intensity <- function(X_k, time_grid, g_title){
+visualize_log_intensity <- function(X_k, time_grid, g_title, legend_title = 'Process'){
   
   #
   # visualize the log intensities
@@ -189,7 +189,7 @@ visualize_log_intensity <- function(X_k, time_grid, g_title){
   g <- ggplot() +
     geom_line(data = df, aes(x = Time, y = Value, color = Process)) +
     theme_minimal() +
-    labs(title = g_title, x = "Time", y = "Value") +
+    labs(title = g_title, x = "Time", y = "Value", color = legend_title) +
     theme(legend.position = "right")  
   
   return(g)
