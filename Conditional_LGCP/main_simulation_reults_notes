@@ -18,6 +18,9 @@ graph_type:
     recent attempt (v2_1): 
     - 5 weeks, bandwidth = 2
     - for each week, the signal gets stronger (0, 0.05, 0.1, 0.15, 0.2, 0.25)  
+    
+    recent attempt (v2_2):
+    - same, but compare to G_ij method
       
 
 

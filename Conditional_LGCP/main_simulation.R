@@ -14,7 +14,7 @@ ncores = parallel::detectCores() - 1
 
 # 2) output parameters
 terse = TRUE
-results_folder_name <- "simu_results_banded_v2_1"
+results_folder_name <- "simu_results_banded_v2_2"
 if (!dir.exists(results_folder_name)) dir.create(results_folder_name)
 
 # 3) continuous covariate parameters
@@ -92,7 +92,7 @@ for(n in ns){
   dataset_i$Y_continuous <- matrix(dataset$Y_continuous[1:n,], nrow = n)
   dataset_i$simulation_params$n <- n
   
-  graph_results_i <- full_conditional_estimation_with_truths(dataset_i, terse, ncores)
+  graph_results_i <- full_conditional_estimation_with_truths_G_ij(dataset_i, terse, ncores)  # WHICH ESTIMATION PROCEDURE
   
   file_dir <- paste0(results_folder_name, '/n_', n, '.RData')
   save(graph_results_i, file = file_dir)
