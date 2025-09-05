@@ -2,6 +2,8 @@
 # - for the new estimation procedure, we need to get G_{i, j}(s,t)^k 
 # - for each subject
 
+library(data.table)
+
 subject_specific_log_intensity <- function(data_df4, Tseq_est){
   
   # ---------------------------------------------------------------------------- 
@@ -121,7 +123,75 @@ subject_specific_intensity <- function(data_df4, Tseq_est){
   
 }
 
-subject_specific_bivariate_intensity <- function(data_df4, Tseq_est, ncores){
+
+subject_specific_bivariate_intensity <- function(data_df4, eval_grid_s, eval_grid_t, d_or_i, ncores) {
+  
+  # ---------------------------------------------------------------------------- 
+  #
+  #
+  # GOAL: calculate subject-specific intensities bivariate intensities (rho_ij_k(t)) for all (n) subjects and pairs of processes
+  #
+  # 
+  # input:
+  # - data_df4    ('time', 'feature_id', 'subject_num')
+  # - eval_grid_s (m-dim vec) time discretizations
+  # - eval_grid_t (m-dim vec) time discretizations
+  # - d_or_i      (char)      bivariate density ('d') or intensity ('i')
+  #
+  # 
+  # output:
+  # 
+  # - rho_k_est  (p x m x n)  matrix of estimated densities for each subject (n) and each process (p)
+  #
+  # 
+  # ----------------------------------------------------------------------------  
+  
+  # Convert to data.table for speed
+  dt <- as.data.table(data_df4)
+  
+  subjects <- unique(dt$subject_num)
+  features <- unique(dt$feature_id)
+  
+  # All pairs (i,j) with i <= j
+  pairs <- t(combn(features, 2, simplify = TRUE))
+  pairs <- rbind(pairs, cbind(features, features)) # add diagonals (i,i)
+  
+  pairs <- as.data.table(pairs)
+  setnames(pairs, c("feature_i", "feature_j"))
+  setorder(pairs, feature_i, feature_j)
+  
+
+  
+  # Iterate
+  results <- dt[, {
+    out <- pbmclapply(seq_len(nrow(pairs)), function(idx) {
+      i <- pairs$feature_i[idx]
+      j <- pairs$feature_j[idx]
+      key <- paste(i, '_', j)
+      
+      event_times_i <- time[feature_id == i]
+      event_times_j <- time[feature_id == j]
+      
+      est <- estimate_bivariate_density(
+        event_times_i, event_times_j,
+        eval_grid_s, eval_grid_t, d_or_i
+      )
+      
+      list(key = est)
+      
+    }, mc.cores = ncores)  
+  }, by = subject_num]
+  
+  results[, subject_num := NULL]
+  
+  
+  # bivariate_intensities = n x (p+1 choose 2) matrix. Each entry is a m x m bivariate intensity
+  return(list(pair_ID = pairs,
+              bivariate_intensities = results)
+         )
+}
+
+subject_specific_bivariate_intensity_OLD <- function(data_df4, Tseq_est, ncores){
   
   # ---------------------------------------------------------------------------- 
   #
@@ -143,6 +213,16 @@ subject_specific_bivariate_intensity <- function(data_df4, Tseq_est, ncores){
   m_est <- length(Tseq_est)
   n <- length(unique(data_df4$subject_num))
   p <- length(unique(data_df4$feature_id))  
+  
+  
+  #eval_grid_s <- seq(0.05, 0.95, by = 0.05)
+  #eval_grid_t <- seq(0.05, 0.95, by = 0.05)
+  
+  results <- data_df4[, .(
+    density = list(apply_density(.SD, Tseq_est, Tseq_est, "d")),
+    intensity = list(apply_density(.SD, Tseq_est, Tseq_est, "i"))
+  ), by = replicate]  
+  
   
   pairs <- which(outer(1:p, 1:p, function(i,j) i <= j), arr.ind = TRUE)
   
@@ -181,7 +261,7 @@ subject_specific_bivariate_intensity <- function(data_df4, Tseq_est, ncores){
   
 }
 
-estimate_subject_specific_covariance <- function(rho_k_est, rho_ij_k_est) {
+estimate_subject_specific_covariance <- function(rho_k_est, rho_ij_k_est, pairs) {
   
   
   # ----------------------------------------------------------------------------
@@ -193,8 +273,9 @@ estimate_subject_specific_covariance <- function(rho_k_est, rho_ij_k_est) {
   #
   # inputs:
   #
-  # - rho_k_est  (p x m x n matrix) matrix of intensities for p processes, m time discretizations, n subjects 
-  # - rho_ij_k_est ()        bivariate intensities
+  # - rho_k_est         (p x m x n matrix)                        matrix of intensities for p processes, m time discretizations, n subjects 
+  # - rho_ij_k_est      (n x (p+1) choose 2  data.table)         all n subject-level bivariate intensities in the order of "pairs"
+  # - pairs             (data.frame)                             dataframe of pairs of processes (1_1, 1_2, ... 2_2, 2_3, ... , p-1_p, p_p) MUST BE IN THIS ORDER
   # 
   #
   # output:
@@ -205,9 +286,33 @@ estimate_subject_specific_covariance <- function(rho_k_est, rho_ij_k_est) {
   #
   # ----------------------------------------------------------------------------
   
+  p <- dim(rho_k_est)[1]
+  m <- dim(rho_k_est)[2]
+  n <- dim(rho_k_est)[3]
+  
+  G_ij_k_est <- pbmclapply(seq_len(nrow(pairs)), function(idx) {
+    i <- pairs$feature_i[idx]
+    j <- pairs$feature_j[idx]
+    key <- paste(i, '_', j)
+    
+    
+    G_ij_mat <- array(0, dim = c(m, m, n))
+    
+    for(k in 1:n){
+      rho_i_k <- rho_k_est[i,,k]
+      rho_j_k <- rho_k_est[j,,k]
+      
+      rho_ij_k <- rho_ij_k_est[[idx]][[k]]
+      
+      G_ij_mat[,,k] <- base_covariance_function(rho_ij_k, rho_i_k, rho_j_k)
+    }
+    
+    G_ij_mat
+    
+  }, mc.cores = ncores)   
   
   
-  return(G_subject_specific)
+  return(G_ij_k_est)
 }
 
 estimate_subject_specific_covariance_OLD <- function(event_times, stratum_subjects, 
