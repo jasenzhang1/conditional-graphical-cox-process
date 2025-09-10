@@ -57,6 +57,52 @@ construct_kernel_matrix_step_6 <- function(Y_continuous_stratum, gamma_c) {
   return(K_c)
 }
 
+construct_kernel_matrix_v2 <- function(alpha_hat, Y_c_stratum, gamma_c) {
+  
+  #
+  # GOAL: get K_inv for step 6 of JASA implementation (not used)
+  #
+  # 
+  # input:
+  # 
+  # - alpha_hat
+  # - Y_c_stratum
+  # - gamma_c
+  #
+  #
+  #
+  
+  # Input dimensions
+  n_stratum <- dim(alpha_hat)[1]  # n_y_d
+  p <- dim(alpha_hat)[2]  # p
+  d <- dim(alpha_hat)[3]  # d
+  m <- dim(eta_hat)[2]  # m (from eta_hat)
+  q_c <- ncol(Y_c_stratum)  # q_c
+  
+  cat("Step 6 input dimensions:\n")
+  cat("  n_stratum:", n_stratum, "\n")
+  cat("  p:", p, "\n")
+  cat("  d:", d, "\n")
+  cat("  m:", m, "\n")
+  cat("  q_c:", q_c, "\n")
+  
+  # Compute kernel matrix K_c: n_y_d x n_y_d
+  K_c <- matrix(0, n_stratum, n_stratum)
+  for (i in 1:n_stratum) {
+    for (j in 1:n_stratum) {
+      diff <- Y_c_stratum[l, ] - Y_c_stratum[k, ]
+      K_c[i, j] <- exp(-gamma_c * sum(diff^2))
+    }
+  }
+  K_hat <- K_c / n_stratum  # n_y_d x n_y_d
+  K_reg <- K_hat + gamma_c * diag(n_stratum)  # n_y_d x n_y_d
+  K_inv <- solve(K_reg)  # n_y_d x n_y_d
+  
+  cat("Step 6 output: K_inv dimension", paste(dim(K_inv), collapse = " x "), "\n")
+  
+  return(K_inv)
+}
+
 select_gamma_c_bandwidth <- function(Y_continuous_stratum) {
   
   
@@ -96,7 +142,6 @@ select_gamma_c_bandwidth <- function(Y_continuous_stratum) {
     return(1.0)
   }
 }
-
 
 select_gamma_c_bandwidth_v2 <- function(Y_continuous_stratum) {
   
