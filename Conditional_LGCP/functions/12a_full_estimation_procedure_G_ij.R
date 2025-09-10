@@ -1,5 +1,7 @@
 # use the G_ij route
 
+# we're scrapping the c_ij route as of 9/9/2025
+
 full_conditional_estimation_with_truths_G_ij <- function(dataset, terse, ncores){
   
   
