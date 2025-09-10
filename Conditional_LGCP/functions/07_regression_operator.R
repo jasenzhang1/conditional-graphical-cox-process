@@ -173,6 +173,81 @@ construct_cross_covariance_matrix_v3 <- function(alpha_hat_stratum, ncores) {
   return(V_YcXij)
 }
 
+construct_cross_covariance_matrix_v4 <- function(alpha_hat_stratum, y_c_strata, query_y_c, ncores) {
+  
+  # ----------------------------------------------------------------------------
+  # 
+  # GOAL: construct cross-covariance matrix
+  #
+  # - only calculate i_j entries where j >= i to save time
+  # - 8/12/2025 and parallelize!
+  # - 9/9/2025: we now let V_ycXij = alpha_i * alpha_j * w(y_c), as opposed to v3 where it's just the two alphas
+  # -   JASA version
+  #
+  # 
+  # Input: 
+  #
+  # - alpha_hat_stratum     (n_stratum x p x d matrix) tensor of KL coefficients
+  # - y_c_strata            (n_stratum x q_c matrix)   matrix of continuous covariates
+  # - query_y_c             (q_c dim vector)           vector of query covariates
+  # - gamma_c               (scalar)                   gamma for K matrix
+  #
+  #
+  # Output: 
+  #
+  # - V_YcXij (list of length p^2, each element is n_stratum x d x d array)
+  #
+  #
+  # ----------------------------------------------------------------------------
+  
+  n_stratum      <- dim(alpha_hat_stratum)[1] 
+  p              <- dim(alpha_hat_stratum)[2] 
+  max_components <- dim(alpha_hat_stratum)[3] 
+  
+  
+  # evaluate the kernel of y_c with every y_c_k (n-dim vec)
+  
+  weights <- apply(y_c_strata, 1, function(row) {
+    step_6_kernel(as.numeric(row), query_y_c, gamma_c) 
+  })  
+  
+  # Generate (i, j) index pairs where j >= i
+  index_pairs <- do.call(rbind, lapply(1:p, function(i) cbind(i, i:p)))
+  
+  # Parallel computation for each (i, j) pair
+  results <- mclapply(
+    1:nrow(index_pairs),
+    function(idx) {
+      i <- index_pairs[idx, 1]
+      j <- index_pairs[idx, 2]
+      
+      # Extract A and B matrices
+      if (max_components == 1) {
+        A <- matrix(alpha_hat_stratum[, i, ], nrow = n_stratum)
+        B <- matrix(alpha_hat_stratum[, j, ], nrow = n_stratum)
+      } else {
+        A <- alpha_hat_stratum[, i, ] # n x d
+        B <- alpha_hat_stratum[, j, ] # n x d
+      }
+      
+      # Create n_stratum x d x d array of outer products NOTICE, ITS WEIGHTS * ALPHA_I * ALPHA_J
+      V_matrix <- abind(
+        lapply(1:n_stratum, function(k) weights[k] * A[k, ] %o% B[k, ]),
+        along = 0
+      )
+      
+      list(name = paste(i, j, sep = "_"), value = V_matrix)
+    },
+    mc.cores = ncores
+  )
+  
+  # Combine into a named list
+  V_YcXij <- setNames(lapply(results, `[[`, "value"),
+                      sapply(results, `[[`, "name"))
+  
+  return(V_YcXij)
+}
+
 estimate_regression_operators <- function(K_c, V_YcXij, gamma_c, p) {
   
   # ----------------------------------------------------------------------------
