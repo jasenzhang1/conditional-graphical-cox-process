@@ -21,6 +21,9 @@ graph_type:
     
     recent attempt (v2_2):
     - same, but compare to G_ij method
+    
+    recent attempt (v2_3):
+    - compare JASA to OG method
       
 
 
@@ -36,19 +39,26 @@ GRAPHS
 
 g_01: all ground truth precision matrices for all y_c's 
 
+g_11: log_intensity (X_hat, X_truth)
+
 g_21: X_truth vs X_hat
 
-g_22: bivariate intensities
+g_22: rho_i
+g_23: rho_i_k (process 1, subjects 1-5)
+
+g_est_22/g_24: rho_ii
 
 g_31: covariance function estimation
 
 g_41: eigenfunctions (lots of trig funcs)
-
 g_42: eigen-recovery of covariance function
 
-g_51: 
-g_52: 
-g_53: 
+g_51: KL reconstruction of estimate and truth theory log intensity
+g_52: KL reconstruction of X_k's from all eigendecomposition sources (x, theory)
+g_53: X_k's of all forms (X_est from eigen_est, X_k_truth from eigen_X or eigen_truth)
+
+g_61: Kc visualization
+
 g_71: inner products of KL coeffs
 g_72: inner products of KL coeffs %*% K_c
 

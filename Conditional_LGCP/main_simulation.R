@@ -14,18 +14,17 @@ ncores = parallel::detectCores() - 1
 
 # 2) output parameters
 terse = TRUE
-results_folder_name <- "simu_results_banded_v2_2"
+results_folder_name <- "simu_results_banded_v2_3"
 if (!dir.exists(results_folder_name)) dir.create(results_folder_name)
 
 # 3) continuous covariate parameters
-q_c = 1                       # Continuous conditioning dimension (q_c)
+q_c = 1                                             # Continuous conditioning dimension (q_c)
 y_c_borders = list(c(-10, -7.5, -5.2, -1.95, 4.2))  # Border values
-# K = 4                         # Discrete combinations (K)
-dependence_type = "constant"  # Conditional dependence type
+dependence_type = "constant"                        # Conditional dependence type
 
 # 4) time discretization
-T_max = 1                     # Time horizon (T)
-time_grid_size = 50           # Time discretization (m)
+T_max = 1                                           # Time horizon (T)
+time_grid_size = 50                                 # Time discretization (m)
 m <- time_grid_size
 
 time_grid <- seq(0, T_max, length.out = time_grid_size)
@@ -68,8 +67,6 @@ dataset <- simulate_conditional_cox_data_v4(n_large, p, T_max, q_c, y_c_borders,
                                             ncores)
 
 
-
-
 t1 <- Sys.time()
 
 print(paste0('Time to generate data: ', round(as.numeric(t1 - t0, units = "mins"), 2), ' minutes'))
@@ -92,7 +89,7 @@ for(n in ns){
   dataset_i$Y_continuous <- matrix(dataset$Y_continuous[1:n,], nrow = n)
   dataset_i$simulation_params$n <- n
   
-  graph_results_i <- full_conditional_estimation_with_truths_G_ij(dataset_i, terse, ncores)  # WHICH ESTIMATION PROCEDURE
+  graph_results_i <- full_conditional_estimation_JASA_vs_OG(dataset_i, ncores)  # WHICH ESTIMATION PROCEDURE
   
   file_dir <- paste0(results_folder_name, '/n_', n, '.RData')
   save(graph_results_i, file = file_dir)
