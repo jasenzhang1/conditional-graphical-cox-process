@@ -156,3 +156,30 @@ generate_conditioning_variables_one_strata_weeks <- function(n, week_vec, seed =
     q_c = 1
   ))
 }
+
+
+generate_y_c_adj_type <- function(n, adj_type, params, seed = NULL){
+  
+  # ----------------------------------------------------------------------------
+  #
+  # depending on the adj_type, generate Y_continuous
+  #
+  #
+  # output:
+  #
+  # - Y_continuous (n x q_c matrix)
+  #
+  #
+  # ----------------------------------------------------------------------------
+  
+  if(adj_type == 'banded_trig'){
+    
+    # params = c(min, max)
+    
+    Y_continuous <- matrix(runif(n, params[1], params[2]), nrow = n, ncol = 1)
+    
+    return(Y_continuous)
+    
+  }
+}  
+    
