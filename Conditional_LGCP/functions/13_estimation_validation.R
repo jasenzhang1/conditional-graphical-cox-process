@@ -231,14 +231,37 @@ validate_V_ij <- function(alpha_true, eigenfunctions){
 }
 
 
-# Required: base R only (no extra packages)
-# alpha: n x p x dmax array of KL coefficients (use NA or ignore extra cols if d_i < dmax)
-# Phi_list: list of length p, Phi_list[[i]] is m x d_i matrix (eigenfunctions on grid)
-# idx_y: integer indices (subset of replicates) OR NULL to use weighting via weights vector
-# weights: numeric vector length n of nonnegative weights (will be normalized). If NULL and idx_y provided, uniform weights over idx_y.
-# returns: list with Cij (d_i x d_j) and V_grid (m x m)
 
-validate_V_ij_v2 <- function(alpha_true, Phi_list, i, j, y_c_strata, query_y_c, gamma_c){
+
+
+validate_V_ij_v2 <- function(alpha_true, eigenfunctions, i, j, y_c_strata, query_y_c, gamma_c){
+  
+  
+  # ----------------------------------------------------------------------------
+  #
+  # 
+  # GOAL: validate the conditional covariance operator estimate vs ground truth (
+  #
+  #       recall that 
+  # 
+  # 
+  # inputs:
+  #
+  # 
+  # - alpha:            (n x p x dmax array)         KL coefficients
+  # - eigenfunctions:   (list of length p, eigenfunctions[[i]] is m x d_i matrix) eigenfunctions on grid
+  # - idx_y: integer indices (subset of replicates) OR NULL to use weighting via weights vector
+  # - weights: numeric vector length n of nonnegative weights (will be normalized). If NULL and idx_y provided, uniform weights over idx_y.
+  # 
+  #
+  # output:
+  # 
+  # - list with Cij (d_i x d_j) and V_grid (m x m)
+  #
+  #
+  #-----------------------------------------------------------------------------
+  
+  
   
   # 1) obtain kernel weights of query_y_c with all Y_mat values
   
