@@ -537,11 +537,7 @@ simulate_conditional_cox_data_v4 <- function(
   n,                     # Sample size (n)
   p,                     # Number of processes (p)  
   T_max,                 # Time horizon (T)
-  q_c,                   # Continuous conditioning dimension (q_c)
-  y_c_borders,           # Border values ex: list(1:9)
-  sparsity,              # Sparsity
-  theta,                 # Signal strength (theta)
-  dependence_type,       # Conditional dependence type
+  query_y_cs,            # matrix of query y_cs (num_query x q_c)
   adj_type,              # pxp precion matrix structure
   adj_params,            # associated parameters
   time_grid,             # Time discretization (m-dim vec)
@@ -551,63 +547,47 @@ simulate_conditional_cox_data_v4 <- function(
   seed = NULL
 ){
   
+  # ----------------------------------------------------------------------------
   #
   # GOAL: simulate data
   #
   # - same as v3 but parallelized
   # 
+  # - 9/10/2025 - cutting down lots of parameters
+  #
+  # ----------------------------------------------------------------------------
   
-
+  # time_grid
+  time_grid_both <- sort(union(time_grid, time_grid_est))
   
   m <- length(time_grid)
   m_est <- length(time_grid_est)
-  time_grid_both <- sort(union(time_grid, time_grid_est))
   m2 <- length(time_grid_both)
   
-  # 1) collect beta coefficients
   
-  simu_settings <- collect_beta_and_parameters(p, time_grid, time_grid_est, theta, q_c, 
-                                               y_c_borders,
-                                               sparsity,
-                                               base_kernel_params,
-                                               dependence_type, 
-                                               adj_type,
-                                               adj_params,
-                                               seed = seed)
+  # 1) generate y_c
+
+  Y_continuous <- generate_y_c_adj_type(n, adj_type, adj_params, seed)
   
   
-  # 2) generate n samples whose continuous variables vary. Each of them belong in a bucket and are assigned a graph
-  
-  
-  
-  # Code 22, Generate conditioning variables {Y_c^k}_{k=1}^n
-  week_vec <- y_c_borders[[1]]
-  Y_list <- generate_conditioning_variables_one_strata_weeks(n, week_vec, seed)
-  Y_continuous <- Y_list[['Y_continuous']]
-  
-  if(q_c == 1){
-    Y_continuous <- matrix(Y_continuous)
-  }
-  
-  # Step 4: Generate data for each subject k = 1, ..., n
+  # 2) for each subject, generate their parameters and event data
   subject_data <- pbmclapply(1:n, function(k){
     
-    
-    # 4.1) Extract conditioning values for subject k
-    y_c_k <- Y_continuous[k, ]  # Y_c^k   
-    
-    region <- find_yc_group(y_c_k, y_c_borders)   # less than or equal
-    region_id <- paste(region, collapse = "_")    
+
+    y_c_k <- Y_continuous[k, ]  
     
     # 4.2) ground truth precision matrix
-    prec_mat_truth <- generate_sparse_precision_matrix(p, y_c_k, simu_settings$adj_type, simu_settings$adj_params)
+    prec_mat_truth <- generate_sparse_precision_matrix(y_c_k, p, adj_type, adj_params)
     
     
     # 4.3) Generate precision operator P^{(y_c^k, y_d^k)} and adjacency matrix E_{y_c^k, y_d^k}
-    # P_k = (p x p x m x m)
-    mats_k <- sample_conditional_precision_v3(simu_settings,  
+    mats_k <- sample_conditional_precision_v3(time_grid, time_grid_est, 
+                                              base_kernel_params,
                                               prec_mat_truth,
                                               y_c_k) # code 24    
+    
+    # are they similar?
+    summary(as.numeric(mats_k$P_block_kronecker$GP_simu_var_est - solve(mats_k$P_block_kronecker$GP_simu_prec_est)))
     
   
     
@@ -638,7 +618,6 @@ simulate_conditional_cox_data_v4 <- function(
     # Store complete subject information
     
     list(
-      region_id = region_id,
       Y_continuous = y_c_k,
       X_functions_full = X_k_full,
       X_functions = X_k,
@@ -647,9 +626,27 @@ simulate_conditional_cox_data_v4 <- function(
       event_times = events_k$event_times,
       event_counts = events_k$event_counts
     )
-  }, mc.cores = ncores) # end of pbmclapply
-  
-  
+  }, mc.cores = ncores, mc.set.seed = FALSE) # end of pbmclapply
+
+  # 3) for each query point, generate parameters
+  query_data <- pbmclapply(1:nrow(query_y_cs), function(k){
+    
+    
+    y_c_k <- query_y_cs[k, ]  
+    
+    # ground truth precision matrix
+    prec_mat_truth <- generate_sparse_precision_matrix(y_c_k, p, adj_type, adj_params)
+    
+    
+    # Generate precision operator P^{(y_c^k, y_d^k)} and adjacency matrix E_{y_c^k, y_d^k}
+    mats_k <- sample_conditional_precision_v3(time_grid, time_grid_est, 
+                                              base_kernel_params,
+                                              prec_mat_truth,
+                                              y_c_k)
+    
+    mats_k
+    
+  }, mc.cores = ncores, mc.set.seed = FALSE) # end of pbmclapply 
   
   # 5) get list of event_times for each subject (n) and process (p)
   
@@ -679,18 +676,7 @@ simulate_conditional_cox_data_v4 <- function(
     dim = c(p, m2, length(subject_data))
   )    
   
-  # 6) get true graphs
-  
-  true_graphs <- list()
-  for (i in seq_len(n)) { 
-    if(! subject_data[[i]]$region_id %in% names(true_graphs)){
-      true_graphs[[subject_data[[i]]$region_id]] <- subject_data[[i]]$precision_and_graph
-    }
-  }
-  
   # 7) Compute summary statistics
-  
-  threshold_p <- subject_data[[1]]$precision_and_graph$threshold_p
   
   total_events <- sum(sapply(event_times_list, length))
   avg_events_per_process <- total_events / (n * p)
@@ -710,22 +696,20 @@ simulate_conditional_cox_data_v4 <- function(
     X_k_coarse_truth = X_k_coarse_truth, # all log intensities used to generate data coarsely (p x m_est x n)
     X_k_both_truth = X_k_both_truth,
     Y_continuous = Y_continuous,         # n x q_c matrix
-    time_grid = time_grid,               # m x 1 vector
-    time_grid_est = time_grid_est,
-    time_grid_both = time_grid_both,
     
     # Simulation parameters
     simulation_params = list(
-      n = n, p = p, T_max = T_max, q_c = q_c, y_c_borders = y_c_borders,
-      threshold_p = threshold_p,
-      theta = theta,
-      dependence_type = dependence_type,
-      time_grid_size = time_grid_size, 
+      n = n, p = p, T_max = T_max, query_y_cs = query_y_cs,
+      adj_type = adj_type,
+      adj_params = adj_params,     
+      time_grid = time_grid,               
+      time_grid_est = time_grid_est,
+      time_grid_both = time_grid_both,      
       seed = seed
     ),
     
-    # ground truths - adj_mat, prec_mat for all y_c levels
-    true_graphs = true_graphs,             
+    # ground truths - adj_mat, prec_mat for all queries
+    true_graphs = query_data,             
     
     summary_stats = list(
       total_events = total_events,
@@ -755,8 +739,14 @@ extract_event_times_df <- function(subject_list) {
   }))
 }
 
-convert_data_for_estimation <- function(subject_list){
+convert_data_for_estimation <- function(subject_list, Tmax){
   
+  # ----------------------------------------------------------------------------
+  #
+  #
+  # GOAL: convert data that was generated in simulation to a format ready for estimation
+  #
+  # 
   # subject_list (list)
   # - Y_continuous
   # - X_functions
@@ -772,10 +762,14 @@ convert_data_for_estimation <- function(subject_list){
   #   - feature_id
   #   - time
   #   - subject_num
+  #
+  # ----------------------------------------------------------------------------
   
   df <- extract_event_times_df(subject_list)
   colnames(df) <- c('time', 'feature_id', 'subject_num')
+  
+  df$time <- df$time / Tmax
 
-  return(df)  
+  return(as.data.table(df))  
   
 }
