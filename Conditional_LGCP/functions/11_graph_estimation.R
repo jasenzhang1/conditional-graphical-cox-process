@@ -29,18 +29,21 @@ estimate_graph <- function(P_conditional, C_conditional, V_conditional, p, thres
   
   # ------------------------------------------------------------------------
   #
-  # GOAL: get edge estiamtes for our graph
+  # GOAL: get edge estimates for our graph
   # 
   # 
   # Input: 
   #
-  # - P_conditional   (list of length p^2, each element m x m)
-  # - threshold       (scalar)
-  # - p               (scalar)
+  # - P_conditional      (list of length p^2, each element m x m)
+  # - C_conditional      (list of length p^2, each element m x m)
+  # - V_conditional      (list of length p^2, each element m x m)  
+  # - p                  (scalar)  
+  # - threshold          (scalar)
   # - discarded_neurons (list of integers)
   #
   # 
   # Output: 
+  #
   # - list with edges and edge_strengths
   #
   # ------------------------------------------------------------------------
