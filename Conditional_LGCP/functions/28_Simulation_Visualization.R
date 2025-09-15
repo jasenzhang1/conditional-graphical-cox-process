@@ -1,6 +1,8 @@
 
 library(reshape2)
 library(ggplot2)
+library(gganimate)
+library(magick)
 
 visualize_pm_block_matrix_heatmap <- function(pm_block_matrix, g_title = NULL){
   
@@ -58,6 +60,8 @@ visualize_matrix_heatmap <- function(mat, g_title = NULL, zmin = NULL, zmax = NU
     scale_y_reverse() +  # So origin is at top-left like a matrix
     labs(x = NULL, y = NULL, fill = "Value") + 
     ggtitle(g_title)
+  
+
 }
 
 visualize_nonneg_matrix_heatmap <- function(mat, g_title = NULL, zmin = NULL, zmax = NULL) {
@@ -281,5 +285,86 @@ block_matrix_HS <- function(pm_mat, p){
   
   return(HS_mat)
   
+  
+}
+
+# visualize how a precision matrix changes over time
+# such as for banded_trig
+
+visualize_precision_yc <- function(query_y_cs, p, adj_type, adj_params, ncores){
+  
+  #
+  # GOAL: visualize how the partial correlation matrix changes over time
+  #
+  # input:
+  #
+  # - query_y_cs (n_query x q_c dim matrix)
+  # - p 
+  # - adj_type
+  # - adj_params
+  #
+  #
+  # output:
+  #
+  # - animated 
+  #
+  # 
+  
+  if(adj_type == 'banded_trig'){
+    
+    #
+    # adj_params = [y_min, y_max, rho_max]
+    #
+    
+    graphs <- pbmclapply(1:nrow(query_y_cs), function(k){
+      
+      y_c_k <- query_y_cs[k,]
+      generate_sparse_precision_matrix(y_c_k, p, adj_type, adj_params)
+    
+    }, mc.cores = ncores)
+
+    
+    
+  }
+  
+  # animate
+  
+  imgs <- list()
+  
+  for (i in seq_along(graphs)) {
+    m <- graphs[[i]]$partial_cor_mat
+    
+    # Create a temporary image for each matrix heatmap
+    tmpfile <- tempfile(fileext = ".png")
+    png(tmpfile, width = 600, height = 600)
+    
+    visualize_matrix_heatmap(m, g_title = paste("Frame", i), -1, 1) %>% print()
+    
+    dev.off()
+    
+    imgs[[i]] <- image_read(tmpfile)
+  }
+  
+  # parallel version - doesn't work
+  #
+  # imgs <- pbmclapply(1:nrow(query_y_cs), function(i){
+  #   
+  #   m <- graphs[[i]]$partial_cor_mat
+  #   
+  #   # Create a temporary image for each matrix heatmap
+  #   tmpfile <- tempfile(fileext = ".png")
+  #   png(tmpfile, width = 600, height = 600)
+  #   
+  #   visualize_matrix_heatmap(m, g_title = paste("Frame", i), -1, 1) %>% print()
+  #   
+  #   dev.off()
+  #   
+  #   image_read(tmpfile)    
+  #   
+  # }, mc.cores = ncores)   
+  
+  # Combine into an animated gif
+  animation <- image_animate(image_join(imgs), fps = 100)
+  image_write(animation, "heatmap_animation.gif")  
   
 }
