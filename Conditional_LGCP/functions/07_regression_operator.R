@@ -173,7 +173,7 @@ construct_cross_covariance_matrix_v3 <- function(alpha_hat_stratum, ncores) {
   return(V_YcXij)
 }
 
-construct_cross_covariance_matrix_v4 <- function(alpha_hat_stratum, y_c_strata, query_y_c, ncores) {
+construct_cross_covariance_matrix_v4 <- function(alpha_hat_stratum, y_c_strata, query_y_c, gamma_c, ncores) {
   
   # ----------------------------------------------------------------------------
   # 
