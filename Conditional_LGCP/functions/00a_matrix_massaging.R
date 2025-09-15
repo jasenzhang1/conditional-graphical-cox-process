@@ -68,6 +68,10 @@ solve_sym <- function(A){
   return(0.5 * (A_hat + t(A_hat)))
 }
 
+sym <- function(A){
+  return(0.5 * (A + t(A)))
+}
+
 psd_jitter <- function(A, pinv_eps = 1e-6){
   
   #
