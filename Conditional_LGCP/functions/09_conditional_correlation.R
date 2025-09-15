@@ -141,6 +141,7 @@ estimate_conditional_correlation_v3 <- function(V_conditional, p, pinv_eps = 1e-
   #
   # - v3: we adaptively estimate gamma depending on the negative eigenvalues
   # -     use psd_jitter in 00a_matrix_massaging
+  # -     when i = j, we get the identity matrix
   #
   # Input: 
   #
