@@ -175,6 +175,11 @@ roc_with_threshold <- function(w_mat, adj_mat, g_title = NULL) {
   ideal_sens <- coords_df$sensitivity[best_idx]
   ideal_spec <- coords_df$specificity[best_idx]
   
+  # Accuracy 
+  predicted <- ifelse(scores >= ideal_threshold, 1, 0)
+  true <- as.numeric(as.character(labels))  # convert factor to numeric 0/1
+  accuracy <- mean(predicted == true)  
+  
   # Create data frame for ggplot
   roc_df <- data.frame(
     FPR = 1 - roc_obj$specificities,
@@ -204,6 +209,59 @@ roc_with_threshold <- function(w_mat, adj_mat, g_title = NULL) {
     sensitivity = ideal_sens,
     specificity = ideal_spec,
     auc = auc(roc_obj),
+    accuracy = accuracy,
     plot = p
   )
+}
+
+get_metrics <- function(results){
+  
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: for a y_c query, obtain its estimate metrics
+  # 
+  #
+  # input:
+  # 
+  # pm_list (list of pm x pm matrices)
+  # 
+  # - P_cond_est_full (pm_est x pm_est)  precision matrix estimate
+  # - C_cond_est_full (pm_est x pm_est)  correlation matrix estimate
+  # - V_cond_est_full (pm_est x pm_est)  covariance matrix estimate  
+  # - P_cond_full     (pm_est x pm_est)  
+  # - C_cond_full     (pm_est x pm_est)  the same as V_cond_full
+  # - V_cond_full     (pm_est x pm_est)  
+  # - w_mat
+  # - adj_mat
+  # - roc_est
+  #
+  #
+  # output:
+  #
+  # - metrics such as HS distance between truth and est, etc
+  #
+  # 
+  # ----------------------------------------------------------------------------
+  
+
+  
+  p <- dim(results[[7]])[1]
+  m_est <- dim(results[[1]])[1] / p
+  
+  
+  # 1) find HS_norm of differences between pm x pm matrices
+  
+  P_HS <- hilbert_schmidt_norm_pm(results[[1]] - results[[4]], p, m_est)
+  C_HS <- hilbert_schmidt_norm_pm(results[[2]] - results[[5]], p, m_est)
+  V_HS <- hilbert_schmidt_norm_pm(results[[3]] - results[[6]], p, m_est)
+  
+  return(list(P_HS = P_HS,
+              C_HS = C_HS,
+              V_HS = V_HS,
+              sens = results[[8]]$sensitivity,
+              spec = results[[8]]$specificity,
+              auc = results[[8]]$auc,
+              accuracy = results[[8]]$accuracy))
+  
 }
