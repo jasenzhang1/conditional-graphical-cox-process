@@ -14,7 +14,7 @@ ncores = parallel::detectCores() - 1
 
 # 2) output parameters
 terse = TRUE
-results_folder_name <- "simu_results_banded_c1_1"
+results_folder_name <- "simu_results_banded_c0_1"
 if (!dir.exists(results_folder_name)) dir.create(results_folder_name)
 
 
