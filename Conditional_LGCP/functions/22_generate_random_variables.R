@@ -181,5 +181,16 @@ generate_y_c_adj_type <- function(n, adj_type, params, seed = NULL){
     return(Y_continuous)
     
   }
+  
+  if(adj_type == 'banded_c1'){
+    
+    # params = c(min, max)
+    # the premise is that regardless of the value of Y, the underlying graph is the same
+    
+    Y_continuous <- matrix(runif(n, params[1], params[2]), nrow = n, ncol = 1)
+    
+    return(Y_continuous)
+    
+  }
 }  
     
