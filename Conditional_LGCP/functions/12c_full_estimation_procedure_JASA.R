@@ -471,7 +471,7 @@ full_conditional_estimation_with_truths_v2 <- function(dataset, method, terse, n
   print('at covariate loop')
   
   cont_inds <- 1:nrow(query_y_cs)
-  estimated_graphs_v2 <- pbmclapply(cont_inds, function(cont_ind) {
+  estimated_graphs_v2 <- lapply(cont_inds, function(cont_ind) {
     
     kernel_params_i = dataset$true_graphs[[cont_ind]]$P_block_kronecker
     
@@ -802,7 +802,7 @@ full_conditional_estimation_with_truths_v2 <- function(dataset, method, terse, n
     
     
     
-  }, mc.cores = ncores) # done with all y_c levels
+  })# , mc.cores = ncores) # done with all y_c levels
   
   
   
