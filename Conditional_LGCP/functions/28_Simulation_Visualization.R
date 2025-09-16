@@ -1,8 +1,8 @@
 
 library(reshape2)
 library(ggplot2)
-library(gganimate)
-library(magick)
+#library(gganimate)
+#library(magick)
 
 visualize_pm_block_matrix_heatmap <- function(pm_block_matrix, g_title = NULL){
   
