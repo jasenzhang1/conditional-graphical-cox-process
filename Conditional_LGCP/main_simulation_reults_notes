@@ -4,6 +4,7 @@ graph_type:
     - 1's on diagonal
     - 0.3 on off diagonal
     - doesn't change over time
+    - adj_params = [y_min = 0, y_max = 1, rho = 0.3]
     
   banded_v1:
     - rho = 0.3
@@ -23,7 +24,19 @@ graph_type:
     - same, but compare to G_ij method
     
     recent attempt (v2_3):
-    - compare JASA to OG method
+    - compare JASA to OG method 
+    
+    
+  banded_trig:
+    - AR(1) model for off-diagonals
+    - rho(y) = rho_max * cos(2 * pi  * y)
+    - adj_params = [y_min = 0, y_max = 1, rho_max = 0.9]
+    
+    
+
+    
+    
+    
       
 
 
@@ -45,10 +58,9 @@ g_21: X_truth vs X_hat
 
 g_22: rho_i
 g_23: rho_i_k (process 1, subjects 1-5)
+g_24: rho_ii
 
-g_est_22/g_24: rho_ii
-
-g_31: covariance function estimation
+g_31: covariance function (G_ii) estimation
 
 g_41: eigenfunctions (lots of trig funcs)
 g_42: eigen-recovery of covariance function

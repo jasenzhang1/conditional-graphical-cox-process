@@ -20,7 +20,7 @@ grid.draw(graph_results_i$estimated_graphs_part_2$`5`$g_112)
 
 
 # values are -10, -7.5, -5.2, -1.95, 4.2
-load('simu_results_banded_v2_2/n_3000.RData')
+load('simu_results_banded_v2_3/n_100.RData')
 grid.newpage()
 grid.draw(graph_results_i$estimated_graphs_part_1$g_22)
 

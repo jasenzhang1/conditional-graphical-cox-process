@@ -14,57 +14,52 @@ ncores = parallel::detectCores() - 1
 
 # 2) output parameters
 terse = TRUE
-results_folder_name <- "simu_results_banded_v2_3"
+results_folder_name <- "simu_results_banded_c1_1"
 if (!dir.exists(results_folder_name)) dir.create(results_folder_name)
 
-# 3) continuous covariate parameters
-q_c = 1                                             # Continuous conditioning dimension (q_c)
-y_c_borders = list(c(-10, -7.5, -5.2, -1.95, 4.2))  # Border values
-dependence_type = "constant"                        # Conditional dependence type
 
-# 4) time discretization
+# 3) time discretization
 T_max = 1                                           # Time horizon (T)
 time_grid_size = 50                                 # Time discretization (m)
-m <- time_grid_size
 
 time_grid <- seq(0, T_max, length.out = time_grid_size)
 time_grid_est <- 1:19/20
 time_grid_both <- sort(union(time_grid, time_grid_est))
 
-# 5) base covariance
-base_kernel_params <- list(base_gamma = 20,      # won't be pd, but we can massage it 
+# 4) base covariance
+base_kernel_params <- list(base_gamma = 20,      
                            base_kernel = 'rbf',
                            base_variance = 1,
                            base_GP_mean = 5)
 
-# 6) adj matrix params
-sparsity = 0.2                           # Graph sparsity (s)
-theta = 1.0                              # Signal strength (theta)
-adj_type = "banded_v2"                   # Graph topology
-adj_params <- c(2,  0.1, 0.05)           # associated parameters 
+# 5) adj matrix params
+# adj_type = "banded_trig"                 # Graph topology
+# adj_params <- c(0, 1, 0.9)               # associated parameters 
+adj_type = "banded_c1"              
+adj_params <- c(0, 1, 0.3)             
 
-# 7) sample size and # of processes
+query_y_cs = matrix(0:8/8)               # query y_values
+
+# 6) sample size and # of processes
 ns <- c(100, 300, 1000, 3000, 10000)     # Sample size (n)
+ns <- c(30)
 n_large <- max(ns)
 
 p = 10                                   # Number of processes (p)  
 
-
+est_method <- 'OG'
 
 
 # 1) generate dataset ----------------------------------------------------------
 
-dataset <- simulate_conditional_cox_data_v4(n_large, p, T_max, q_c, y_c_borders,
-                                            sparsity,
-                                            theta,
-                                            dependence_type,
+dataset <- simulate_conditional_cox_data_v4(n_large, p, T_max, query_y_cs,
                                             adj_type,
                                             adj_params,
                                             time_grid,
                                             time_grid_est,
                                             base_kernel_params,
-                                            seed,
-                                            ncores)
+                                            ncores,
+                                            seed)
 
 
 t1 <- Sys.time()
@@ -89,7 +84,8 @@ for(n in ns){
   dataset_i$Y_continuous <- matrix(dataset$Y_continuous[1:n,], nrow = n)
   dataset_i$simulation_params$n <- n
   
-  graph_results_i <- full_conditional_estimation_JASA_vs_OG(dataset_i, ncores)  # WHICH ESTIMATION PROCEDURE
+  graph_results_i <- full_conditional_estimation_with_truths_v2(dataset_i, est_method, terse, ncores)  # WHICH ESTIMATION PROCEDURE
+  # graph_results_i <- full_conditional_estimation_with_truths(dataset_i, terse, ncores)
   
   file_dir <- paste0(results_folder_name, '/n_', n, '.RData')
   save(graph_results_i, file = file_dir)

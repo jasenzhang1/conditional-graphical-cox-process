@@ -6,7 +6,7 @@
 
 # we're also modifying the V_YcXij cross-covariance step to include w(y_c) in it
 
-full_conditional_estimation_with_truths_JASA <- function(dataset, terse, ncores){
+full_conditional_estimation_with_truths_v2 <- function(dataset, method, terse, ncores){
   
   
   # ----------------------------------------------------------------------------
@@ -20,27 +20,29 @@ full_conditional_estimation_with_truths_JASA <- function(dataset, terse, ncores)
   # Input:
   #
   # - dataset
+  # - method   ('OG', 'JASA')
   # - terse    (boolean) if true, return much less
   # - ncores
   #
   # 
   #
   # ----------------------------------------------------------------------------
+
+  # check for errors 
+  if (!(method %in% c("OG", "JASA", "ALL"))) {
+    stop("Error: method must be either 'OG' or 'JASA' or 'ALL'")
+  }    
   
   # 0) load  
   
-  time_grid <- dataset$time_grid
-  time_grid_est <- dataset$time_grid_est
-  time_grid_both <- dataset$time_grid_both
-  true_graphs <- dataset$true_graphs
-  true_graph_indices <- sort(names(true_graphs)) 
-  
-  data_df <- convert_data_for_estimation(dataset$subject_data) %>% as.data.table()
-  data_df$time <- data_df$time / dataset$simulation_params$T_max # normalize to [0, 1]
+  time_grid <- dataset$simulation_params$time_grid
+  time_grid_est <- dataset$simulation_params$time_grid_est
+  time_grid_both <- dataset$simulation_params$time_grid_both
   
   n <- dim(dataset$Y_continuous)[1]
   m_est <- length(time_grid_est)
   m     <- length(time_grid)
+  
   
   
   
@@ -50,17 +52,17 @@ full_conditional_estimation_with_truths_JASA <- function(dataset, terse, ncores)
   
   lay_mat <- matrix(c(1:5, NA), nrow = 2)
   
-  g_01 <- grid.arrange(visualize_nonneg_matrix_heatmap(prec_ground_truths[['1']], '1', -1, 1),
-                       visualize_nonneg_matrix_heatmap(prec_ground_truths[['2']], '2', -1, 1),
-                       visualize_nonneg_matrix_heatmap(prec_ground_truths[['3']], '3', -1, 1),
-                       visualize_nonneg_matrix_heatmap(prec_ground_truths[['4']], '4', -1, 1),
-                       visualize_nonneg_matrix_heatmap(prec_ground_truths[['5']], '5', -1, 1),
+  g_01 <- grid.arrange(visualize_nonneg_matrix_heatmap(prec_ground_truths[[1]]$simu_mat, '1', -10, 10),
+                       visualize_nonneg_matrix_heatmap(prec_ground_truths[[2]]$simu_mat, '2', -10, 10),
+                       visualize_nonneg_matrix_heatmap(prec_ground_truths[[3]]$simu_mat, '3', -10, 10),
+                       visualize_nonneg_matrix_heatmap(prec_ground_truths[[4]]$simu_mat, '4', -10, 10),
+                       visualize_nonneg_matrix_heatmap(prec_ground_truths[[5]]$simu_mat, '5', -10, 10),
                        layout_matrix = lay_mat
   )  
   
   # check if any prec mat is too nonnegative!
-  check_psd <- sapply(prec_ground_truths, function(M) {
-    min(eigen(M, symmetric = TRUE, only.values = TRUE)$values) > -1e-10
+  check_psd <- sapply(1:5, function(i) {
+    min(eigen(prec_ground_truths[[i]]$simu_mat, symmetric = TRUE, only.values = TRUE)$values) > -1e-10
   })  
   
   if(! any(check_psd)){
@@ -74,14 +76,13 @@ full_conditional_estimation_with_truths_JASA <- function(dataset, terse, ncores)
   
   # 3.1) first, convert dataset into a format that can be used for estimation
   
-  data_df4 <- convert_data_for_estimation(dataset$subject_data) %>% as.data.table()
-  data_df4$time <- data_df4$time / T_max # normalize to [0, 1]
+  data_df4 <- convert_data_for_estimation(dataset$subject_data, dataset$simulation_params$T_max) 
   
   query_yd <- rep(1, n) %>% as.data.frame()  # assume they are all from the same discrete strata
   y_c_strata <- dataset$Y_continuous
-  query_y_cs <- dataset$Y_continuous %>% unique()
   discrete_strata <- query_yd %>% unique()
   Tseq_est <- time_grid_est
+  query_y_cs <- dataset$simulation_params$query_y_cs  
   
   
   
@@ -150,7 +151,7 @@ full_conditional_estimation_with_truths_JASA <- function(dataset, terse, ncores)
   
   
   # rho_i_truth = exp(mu(t) + 0.5 * diag(GP_cov))
-  kernel_params       <- true_graphs$`1`$P_block_kronecker
+  kernel_params       <- dataset$true_graphs[[1]]$P_block_kronecker
   rho_i_truth_value   <- exp(kernel_params$base_GP_mean + 0.5 * kernel_params$base_variance)
   rho_i_truth         <- replicate(p, exp(kernel_params$GP_simu_mean + 0.5 * diag(kernel_params$base_cov))) %>% t() 
   rho_i_coarse_truth  <- replicate(p, exp(kernel_params$GP_simu_mean_est + 0.5 * diag(kernel_params$base_cov_est))) %>% t()  
@@ -474,7 +475,7 @@ full_conditional_estimation_with_truths_JASA <- function(dataset, terse, ncores)
     
     kernel_params_i = dataset$true_graphs[[cont_ind]]$P_block_kronecker
     
-    adj_mat_i <- true_graphs[[cont_ind]]$adj_mat
+    adj_mat_i <- dataset$true_graphs[[cont_ind]]$adj_mat
     
     query_y_c <- query_y_cs[cont_ind, ] %>% as.numeric()
     
@@ -487,13 +488,24 @@ full_conditional_estimation_with_truths_JASA <- function(dataset, terse, ncores)
     # - V_cond_coarse_truth     (list of i_j entries) --> (m_est x m_est matrix)
     # - V_cond_truth            (list of i_j entries) --> (m x m matrix)
     
-    V_cond_est            <- steps_78_JASA(kl_coeffs_v2,                 y_c_strata, query_y_c, eigen_decomp_est$eigenfunctions,            ncores)
-    V_cond_X_coarse_truth <- steps_78_JASA(kl_coeffs_X_coarse_truth_v2,  y_c_strata, query_y_c, eigen_decomp_X_coarse_truth$eigenfunctions, ncores)
-    V_cond_X_truth        <- steps_78_JASA(kl_coeffs_X_truth_v2,         y_c_strata, query_y_c, eigen_decomp_X_truth$eigenfunctions,        ncores)    
-    V_cond_coarse_truth   <- steps_78_JASA(kl_coeffs_coarse_truth_v2,    y_c_strata, query_y_c, eigen_decomp_coarse_truth$eigenfunctions,   ncores)
-    V_cond_truth          <- steps_78_JASA(kl_coeffs_truth_v2,           y_c_strata, query_y_c, eigen_decomp_truth$eigenfunctions,          ncores)
+    if(method == 'OG'){
+      V_cond_est            <- steps_78_OG(kl_coeffs_v2,                 y_c_strata, query_y_c, eigen_decomp_est$eigenfunctions,            ncores)
+      V_cond_X_coarse_truth <- steps_78_OG(kl_coeffs_X_coarse_truth_v2,  y_c_strata, query_y_c, eigen_decomp_X_coarse_truth$eigenfunctions, ncores)
+      V_cond_X_truth        <- steps_78_OG(kl_coeffs_X_truth_v2,         y_c_strata, query_y_c, eigen_decomp_X_truth$eigenfunctions,        ncores)    
+      V_cond_coarse_truth   <- steps_78_OG(kl_coeffs_coarse_truth_v2,    y_c_strata, query_y_c, eigen_decomp_coarse_truth$eigenfunctions,   ncores)
+      V_cond_truth          <- steps_78_OG(kl_coeffs_truth_v2,           y_c_strata, query_y_c, eigen_decomp_truth$eigenfunctions,          ncores)
+    } else if(method == 'JASA'){
+      V_cond_est            <- steps_78_JASA(kl_coeffs_v2,                 y_c_strata, query_y_c, eigen_decomp_est$eigenfunctions,            ncores)
+      V_cond_X_coarse_truth <- steps_78_JASA(kl_coeffs_X_coarse_truth_v2,  y_c_strata, query_y_c, eigen_decomp_X_coarse_truth$eigenfunctions, ncores)
+      V_cond_X_truth        <- steps_78_JASA(kl_coeffs_X_truth_v2,         y_c_strata, query_y_c, eigen_decomp_X_truth$eigenfunctions,        ncores)    
+      V_cond_coarse_truth   <- steps_78_JASA(kl_coeffs_coarse_truth_v2,    y_c_strata, query_y_c, eigen_decomp_coarse_truth$eigenfunctions,   ncores)
+      V_cond_truth          <- steps_78_JASA(kl_coeffs_truth_v2,           y_c_strata, query_y_c, eigen_decomp_truth$eigenfunctions,          ncores)
+    } else{
+      a <- 1
+    }
     
-    
+      
+      
     
     # use KL coefficients to obtain V_cond
     # V_cond_truth_12 <- validate_V_ij_v2(kl_coeffs_truth_v2, eigen_decomp_truth$eigenfunctions, 1, 2, y_c_strata, query_y_c, gamma_c)
@@ -560,6 +572,8 @@ full_conditional_estimation_with_truths_JASA <- function(dataset, terse, ncores)
     
     # part 9 - correlation operator --------------------------------------------
     
+    # v3: C_ii = indentity
+    # v4: C_ii calculated like C_ij
     C_cond_est            <- estimate_conditional_correlation_v4(V_cond_est, p)
     C_cond_X_coarse_truth <- estimate_conditional_correlation_v4(V_cond_X_coarse_truth, p)
     C_cond_X_truth        <- estimate_conditional_correlation_v4(V_cond_X_truth, p)    
@@ -613,14 +627,17 @@ full_conditional_estimation_with_truths_JASA <- function(dataset, terse, ncores)
     
     # part 10 - precision operator ---------------------------------------------
     
+    # - prec_truth        (pm x pm)            true pm x pm GP precision matrix from kronecker product of prec_mat and base_precision
+    # - prec_coarse_truth (pm_est x pm_est)    true pm_est x pm_est GP precision matrix
+     
     P_cond_est            <- estimate_precision_operator_v3(C_cond_est, p)
     P_cond_X_coarse_truth <- estimate_precision_operator_v3(C_cond_X_coarse_truth, p)
     P_cond_X_truth        <- estimate_precision_operator_v3(C_cond_X_truth, p)    
     P_cond_coarse_truth   <- estimate_precision_operator_v3(C_cond_coarse_truth, p)
     P_cond_truth          <- estimate_precision_operator_v3(C_cond_truth, p)
     
-    prec_truth <- kronecker(kernel_params_i$prec_mat, kernel_params_i$base_precision)
-    prec_coarse_truth <- kronecker(kernel_params_i$prec_mat, kernel_params_i$base_precision_est)
+    prec_truth        <- kronecker(kernel_params_i$prec_mat_truth$prec_mat, kernel_params_i$base_precision)
+    prec_coarse_truth <- kronecker(kernel_params_i$prec_mat_truth$prec_mat, kernel_params_i$base_precision_est)
     
     
     P_ground_truth_12 <- extract_block_structure_ij(prec_truth, m, 1, 2)
@@ -698,11 +715,21 @@ full_conditional_estimation_with_truths_JASA <- function(dataset, terse, ncores)
     
     # ROC curve 
     
+    # - w_mat_ground_truth        (p x p)   matrix of HS norms of the pm x pm ground truth
+    # - w_mat_coarse_ground_truth (p x p)   matrix of HS norms of the pm_est x pm_est ground truth 
+    # - w_mat_X_coarse_truth      (p x p)   matrix of HS norms of ...
+    # - w_mat_X_truth             (p x p)   matrix of HS norms of ...
+    # - w_mat_coarse_truth        (p x p)   matrix of HS norms of ...
+    # - w_mat_truth               (p x p)   matrix of HS norms of ...
+    # - w_mat_est                 (p x p)   matrix of HS norms of ...
+    
+    
     w_mat_ground_truth        <- hilbert_schmidt_norm_pm(prec_truth, p, m)
     w_mat_coarse_ground_truth <- hilbert_schmidt_norm_pm(prec_coarse_truth, p, m_est)
-    
     diag(w_mat_ground_truth) <- 0
     diag(w_mat_coarse_ground_truth) <- 0
+    
+    
     
     w_mat_X_coarse_truth      <- hilbert_schmidt_norm_pm(P_cond_X_coarse_truth_full, p, m_est)
     w_mat_X_truth             <- hilbert_schmidt_norm_pm(P_cond_X_truth_full, p, m)    
@@ -741,6 +768,17 @@ full_conditional_estimation_with_truths_JASA <- function(dataset, terse, ncores)
                           textGrob("11. ROC Curve", gp = gpar(fontsize = 14)),
                           layout_matrix = arr_mat_8)
     
+    # metrics
+    
+    metrics <- get_metrics(list(P_cond_est_full,
+                                C_cond_est_full,
+                                V_cond_est_full,
+                                kernel_params_i$GP_simu_prec_est,
+                                kernel_params_i$GP_simu_var_est,
+                                kernel_params_i$GP_simu_var_est,
+                                adj_mat_i,
+                                roc_est)) 
+    
     
     
     
@@ -749,14 +787,17 @@ full_conditional_estimation_with_truths_JASA <- function(dataset, terse, ncores)
     if(terse){
       list(g_84  = g_84, 
            g_94  = g_94, 
-           g_104 = g_104, 
+           g_104 = g_104,
+           g_111 = g_111,
            g_112 = g_112,  
-           g_113 = g_113)
+           g_113 = g_113,
+           metrics = metrics)
     } else{
       list(g_81  = g_81,  g_82  = g_82,  g_83  = g_83,  g_84  = g_84,
            g_91  = g_91,  g_92  = g_92,  g_93  = g_93,  g_94  = g_94,
            g_101 = g_101, g_102 = g_102, g_103 = g_103, g_104 = g_104,
-           g_111 = g_111, g_112 = g_112, g_113 = g_113)      
+           g_111 = g_111, g_112 = g_112, g_113 = g_113,
+           metrics = metrics)      
     }
     
     
@@ -780,8 +821,7 @@ full_conditional_estimation_with_truths_JASA <- function(dataset, terse, ncores)
     estimated_graphs_part_1 <- list(g_01 = g_01, g_22 = g_22,
                                     g_31 = g_31,
                                     g_41 = g_41, g_42 = g_42,
-                                    g_51 = g_51, g_52 = g_52, g_53 = g_53,
-                                    g_71 = g_71, g_72 = g_72)
+                                    g_51 = g_51, g_52 = g_52, g_53 = g_53)
     
     return(list(estimated_graphs_part_1 = estimated_graphs_part_1,      
                 estimated_graphs_part_2 = estimated_graphs_v2))        
@@ -806,47 +846,40 @@ full_conditional_estimation_JASA_vs_OG <- function(dataset, ncores){
   # Input:
   #
   # - dataset
-  # - terse    (boolean) if true, return much less
   # - ncores
   #
   # 
+  # Output:
+  #
+  # - list of graphs 
+  #
   #
   # ----------------------------------------------------------------------------
   
   # 0) load  
   
-  time_grid <- dataset$time_grid
-  time_grid_est <- dataset$time_grid_est
-  time_grid_both <- dataset$time_grid_both
-  true_graphs <- dataset$true_graphs
-  true_graph_indices <- sort(names(true_graphs)) 
-  
-  data_df <- convert_data_for_estimation(dataset$subject_data) %>% as.data.table()
-  data_df$time <- data_df$time / dataset$simulation_params$T_max # normalize to [0, 1]
+  time_grid <- dataset$simulation_params$time_grid
+  time_grid_est <- dataset$simulation_params$time_grid_est
+  time_grid_both <- dataset$simulation_params$time_grid_both
   
   n <- dim(dataset$Y_continuous)[1]
   m_est <- length(time_grid_est)
   m     <- length(time_grid)
   
   
-  
-  
-  
-  
+
   # 3) pre-processing before estimation ----------------------------------------
   
   
   # 3.1) first, convert dataset into a format that can be used for estimation
   
-  data_df4 <- convert_data_for_estimation(dataset$subject_data) %>% as.data.table()
-  data_df4$time <- data_df4$time / T_max # normalize to [0, 1]
+  data_df4 <- convert_data_for_estimation(dataset$subject_data, dataset$simulation_params$T_max) 
   
   query_yd <- rep(1, n) %>% as.data.frame()  # assume they are all from the same discrete strata
   y_c_strata <- dataset$Y_continuous
-  query_y_cs <- dataset$Y_continuous %>% unique()
   discrete_strata <- query_yd %>% unique()
   Tseq_est <- time_grid_est
-  
+  query_y_cs <- dataset$simulation_params$query_y_cs
   
   
   # 3.2) more prep 
@@ -871,68 +904,51 @@ full_conditional_estimation_JASA_vs_OG <- function(dataset, ncores){
   # 4) estimation --------------------------------------------------------------
   
   # part 1 - log intensities
-
-  
-  
-  
   X_k_est <- subject_specific_log_intensity(data_df4, Tseq_est)
 
-  
-  
-  
-  # 1.1) visualize true log-intensities - good
-  
-  arr_mat <- matrix(1:6, nrow = 2, byrow = F)
+  arr_mat_4 <- matrix(1:4, nrow = 2, byrow = F)
+  arr_mat_6 <- matrix(1:6, nrow = 2, byrow = F)
   arr_mat_8 <- matrix(1:8, nrow = 2, byrow = F)
   arr_mat_10 <- matrix(1:10, nrow = 2, byrow = F)
  
+  g_11 <- grid.arrange(visualize_log_intensity(X_k_est[1:5,,1], time_grid_est, 'Estimate'),
+                       visualize_log_intensity(dataset$X_k_truth[1:5,,1], time_grid, 'Finer Truth'),
+                       textGrob("0. Log Intensity\n of first replicate", gp = gpar(fontsize = 14)),
+                       layout_matrix = arr_mat_4)   
   
   # part 2 - intensities -------------------------------------------------------
-
-  
-  kernel_params       <- true_graphs$`1`$P_block_kronecker
-
-
-  
   rho_list <- estimate_intensities_stratum_parallel_v4(data_df4, patient_sel, feature_sel, Tseq_est, F, ncores)
   rho_i_est <- do.call(rbind, lapply(rho_list[[1]], function(v) as.numeric(v))) # p x m matrix of estimated mean intensities  
   
+  kernel_params <- dataset$true_graphs[[1]]$P_block_kronecker
+  rho_i_truth <- replicate(p, exp(kernel_params$GP_simu_mean + 0.5 * diag(kernel_params$base_cov))) %>% t() 
   
   
-  
-  
-  # part 2.1 - bivariate intensities -------------------------------------------
-
-  
-  rho_ii_est <- rho_list[[2]]
-
-  
-  
-  
-  # part 3 - GP covariance estimation ------------------------------------------
+  g_22 <- grid.arrange(visualize_log_intensity(rho_i_truth[1:5,], time_grid, 'Truth Theory'),
+                       visualize_log_intensity(rho_i_est[1:5,], time_grid_est, 'Estimate'),
+                       textGrob("1. Rho_i\nEstimation for \n first 5 processes", gp = gpar(fontsize = 14)),
+                       layout_matrix = arr_mat_4)
   
  
-  
+  # part 2.1 - bivariate intensities -------------------------------------------
+  rho_ii_est <- rho_list[[2]]
+
+
+  # part 3 - GP covariance estimation ------------------------------------------
   rho_list_est <- lapply(1:p, function(i) {
     list(
       rho_i  = rho_i_est[i, ],   
       rho_ii_mat = rho_ii_est[[i]]   
     )
   }) 
-  
-  g_ii_est            <- estimate_covariance_functions_ii(rho_list_est)
 
-  
-  
+  g_ii_est <- estimate_covariance_functions_ii(rho_list_est)
 
-  
-  
-  
-  
+
   
   # part 4 - eigendecomposition of GP covariance -------------------------------
   
-  eigen_decomp_est            <- compute_eigendecomposition_ii(g_ii_est)
+  eigen_decomp_est <- compute_eigendecomposition_ii(g_ii_est)
 
   
   # part 5 - KL expansion ------------------------------------------------------
@@ -942,12 +958,24 @@ full_conditional_estimation_JASA_vs_OG <- function(dataset, ncores){
   X_k_est_center <- sweep(X_k_est, c(1, 2), mean_mat_est, FUN = "-")
   
 
-
-  
   # 5.2) get KL coeffs  
 
   
   kl_coeffs <- estimate_kl_coefficients_parallel_v2(X_k_est_center, eigen_decomp_est$eigenfunctions, Tseq_est,  ncores)
+  df1 <- validate_kl_full(X_k_est,          eigen_decomp_est$eigenfunctions,            Tseq_est,  'Estimate', ncores)
+
+  df1$cat <- factor(df1$cat)
+  
+  
+  # estimate and truth theory + reconstruct
+  g_51 <- ggplot() + 
+    geom_line(data = df1, aes(x = Var2, y = value, color = cat)) + 
+    facet_wrap(~ Var1) + 
+    ggtitle('KL Reconstruction of Log Intensities for Subject 1')  +
+    ylab('Log Intensity') + 
+    xlab('Time') + 
+    labs(color = "Truth or Estimate") + 
+    theme_bw()  
 
   # now, we regress on y_c  ----------------------------------------------------
   
@@ -960,39 +988,37 @@ full_conditional_estimation_JASA_vs_OG <- function(dataset, ncores){
     
     kernel_params_i = dataset$true_graphs[[cont_ind]]$P_block_kronecker
     
-    adj_mat_i <- true_graphs[[cont_ind]]$adj_mat
+    adj_mat_i <- dataset$true_graphs[[cont_ind]]$adj_mat
     
     query_y_c <- query_y_cs[cont_ind, ] %>% as.numeric()
     
     
-    V_cond_est_JASA <- steps_78_JASA(kl_coeffs_v2, y_c_strata, query_y_c, eigen_decomp_est$eigenfunctions, ncores)
-    V_cond_est_OG   <- steps_78_JASA(kl_coeffs_v2, y_c_strata, query_y_c, eigen_decomp_est$eigenfunctions, ncores)
+    V_cond_est_JASA <- steps_78_JASA(kl_coeffs, y_c_strata, query_y_c, eigen_decomp_est$eigenfunctions, ncores)
+    V_cond_est_OG   <-   steps_78_OG(kl_coeffs, y_c_strata, query_y_c, eigen_decomp_est$eigenfunctions, ncores)
     
-    
-    V_cond_est_full_JASA <- assemble_block_matrix_v2(V_cond_est_JASA, p, m_est)
-    V_cond_est_full_OG   <- assemble_block_matrix_v2(V_cond_est_OG,   p, m_est)
-      
-
-    
+    V_cond_est_full_JASA   <- assemble_block_matrix_v2(V_cond_est_JASA, p, m_est)
+    V_cond_est_full_OG     <- assemble_block_matrix_v2(V_cond_est_OG, p, m_est)
     # part 9 - correlation operator --------------------------------------------
     
-    C_cond_est_JASA <- estimate_conditional_correlation_v4(V_cond_est_full_JASA, p)
-    C_cond_est_OG   <- estimate_conditional_correlation_v4(V_cond_est_full_OG,   p)
+    C_cond_est_JASA <- estimate_conditional_correlation_v4(V_cond_est_JASA, p)  # calculating i = j
+    C_cond_est_OG   <- estimate_conditional_correlation_v4(V_cond_est_OG,   p)
     
-  
+    C_cond_est_full_JASA <- assemble_block_matrix_v2(C_cond_est_JASA, p, m_est)
+    C_cond_est_full_OG   <- assemble_block_matrix_v2(C_cond_est_OG,   p, m_est)
+    
     # part 10 - precision operator ---------------------------------------------
     
-    P_cond_est_JASA <- estimate_precision_operator_v3(C_cond_est_JASA, p)
-    P_cond_est_OG   <- estimate_precision_operator_v3(C_cond_est_OG,   p)
+    P_cond_est_JASA         <- estimate_precision_operator_v3(C_cond_est_JASA, p)
+    P_cond_est_OG           <- estimate_precision_operator_v3(C_cond_est_OG,   p)
+    P_cond_est_full_JASA    <- assemble_block_matrix_v2(P_cond_est_JASA, p, m_est)
+    P_cond_est_full_OG      <- assemble_block_matrix_v2(P_cond_est_OG,   p, m_est)
     
-    
-    prec_truth <- kronecker(kernel_params_i$prec_mat, kernel_params_i$base_precision)
-    prec_coarse_truth <- kronecker(kernel_params_i$prec_mat, kernel_params_i$base_precision_est)
+    prec_truth <- kronecker(kernel_params_i$prec_mat_truth$partial_cor_mat, kernel_params_i$base_precision)
+    prec_coarse_truth <- kronecker(kernel_params_i$prec_mat_truth$partial_cor_mat, kernel_params_i$base_precision_est)
     
     
     # part 11 - final estimates
 
-    
     final_graph_estimates_JASA <- estimate_graph(P_cond_est_JASA, C_cond_est_JASA,  V_cond_est_JASA, p)
     final_graph_estimates_OG   <- estimate_graph(P_cond_est_OG,   C_cond_est_OG,    V_cond_est_OG,   p)
     
@@ -1008,7 +1034,7 @@ full_conditional_estimation_JASA_vs_OG <- function(dataset, ncores){
     
     g_112 <- grid.arrange(visualize_pm_block_matrix_heatmap(w_mat_ground_truth, 'Ground Truth'), 
                           visualize_pm_block_matrix_heatmap(w_mat_coarse_ground_truth, 'Coarse Ground Truth'), 
-                          visualize_pm_block_matrix_heatmap(final_graph_estimates_JASA$w_mat, 'JASA Estimate'),
+                          visualize_pm_block_matrix_heatmap(final_graph_estimates_OG$w_mat, 'JASA Estimate'),
                           visualize_pm_block_matrix_heatmap(final_graph_estimates_OG$w_mat, 'OG Estimate'),
                           textGrob("11. Hilbert Schmidt\n Norm", gp = gpar(fontsize = 14)),                              
                           layout_matrix = arr_mat)     
@@ -1016,7 +1042,7 @@ full_conditional_estimation_JASA_vs_OG <- function(dataset, ncores){
     
     roc_ground_truth        <- roc_with_threshold(w_mat_ground_truth,                 adj_mat_i, 'Ground Truth')
     roc_coarse_ground_truth <- roc_with_threshold(w_mat_coarse_ground_truth,          adj_mat_i, 'Coarse Ground Truth')
-    roc_est_JASA            <- roc_with_threshold(final_graph_estimates_JASA$w_mat,   adj_mat_i, 'JASA Estimate')
+    roc_est_JASA            <- roc_with_threshold(final_graph_estimates_OG$w_mat,   adj_mat_i, 'JASA Estimate')
     roc_est_OG              <- roc_with_threshold(final_graph_estimates_OG$w_mat,     adj_mat_i, 'OG Estimate')  
     
     g_113 <- grid.arrange(roc_ground_truth$plot,

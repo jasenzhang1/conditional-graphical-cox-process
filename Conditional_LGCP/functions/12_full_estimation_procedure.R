@@ -193,20 +193,16 @@ full_conditional_estimation_with_truths <- function(dataset, terse, ncores){
   
   # 0) load  
   
-  time_grid <- dataset$time_grid
-  time_grid_est <- dataset$time_grid_est
-  time_grid_both <- dataset$time_grid_both
-  true_graphs <- dataset$true_graphs
-  true_graph_indices <- sort(names(true_graphs)) 
-    
-  data_df <- convert_data_for_estimation(dataset$subject_data) %>% as.data.table()
-  data_df$time <- data_df$time / dataset$simulation_params$T_max # normalize to [0, 1]
-  
-  X_k_truth <- dataset$X_k_truth
-  X_k_coarse_truth <- dataset$X_k_coarse_truth
-  X_k_both_truth <- dataset$X_k_both_truth
+  time_grid <- dataset$simulation_params$time_grid
+  time_grid_est <- dataset$simulation_params$time_grid_est
+  time_grid_both <- dataset$simulation_params$time_grid_both
   
   n <- dim(dataset$Y_continuous)[1]
+  m_est <- length(time_grid_est)
+  m     <- length(time_grid)
+  
+  
+  
   
   # 0.1) check ground truth precision pxp matrices
   
@@ -214,17 +210,17 @@ full_conditional_estimation_with_truths <- function(dataset, terse, ncores){
   
   lay_mat <- matrix(c(1:5, NA), nrow = 2)
   
-  g_01 <- grid.arrange(visualize_nonneg_matrix_heatmap(prec_ground_truths[['1']], '1', -1, 1),
-                       visualize_nonneg_matrix_heatmap(prec_ground_truths[['2']], '2', -1, 1),
-                       visualize_nonneg_matrix_heatmap(prec_ground_truths[['3']], '3', -1, 1),
-                       visualize_nonneg_matrix_heatmap(prec_ground_truths[['4']], '4', -1, 1),
-                       visualize_nonneg_matrix_heatmap(prec_ground_truths[['5']], '5', -1, 1),
+  g_01 <- grid.arrange(visualize_nonneg_matrix_heatmap(prec_ground_truths[[1]]$simu_mat, '1', -10, 10),
+                       visualize_nonneg_matrix_heatmap(prec_ground_truths[[2]]$simu_mat, '2', -10, 10),
+                       visualize_nonneg_matrix_heatmap(prec_ground_truths[[3]]$simu_mat, '3', -10, 10),
+                       visualize_nonneg_matrix_heatmap(prec_ground_truths[[4]]$simu_mat, '4', -10, 10),
+                       visualize_nonneg_matrix_heatmap(prec_ground_truths[[5]]$simu_mat, '5', -10, 10),
                        layout_matrix = lay_mat
   )  
   
   # check if any prec mat is too nonnegative!
-  check_psd <- sapply(prec_ground_truths, function(M) {
-    min(eigen(M, symmetric = TRUE, only.values = TRUE)$values) > -1e-10
+  check_psd <- sapply(1:5, function(i) {
+    min(eigen(prec_ground_truths[[i]]$simu_mat, symmetric = TRUE, only.values = TRUE)$values) > -1e-10
   })  
   
   if(! any(check_psd)){
@@ -232,108 +228,28 @@ full_conditional_estimation_with_truths <- function(dataset, terse, ncores){
   }
   
   
-  # 1.1) visualize true log-intensities - good
   
-  g_11 <- grid.arrange(visualize_log_intensity(X_k_truth[1:5,,1], time_grid, 'Finer Grid'),
-                       visualize_log_intensity(X_k_coarse_truth[1:5,,1], time_grid_est, 'Coarser Grid'),
-                       visualize_log_intensity(X_k_both_truth[1:5,,1], time_grid_both, 'Combined'),
-                       nrow = 1
-                       )  
-  
-  # 1.2) does a kronecker extractor work? - yes, if we condition on mxm matrix having diagonal of 1's 
-  
-  wow <- dataset$true_graphs[[1]]$P_block_kronecker
-  
-  pm_mat <- wow$GP_simu_var
-  m_mat <- wow$base_cov
-  p_mat <- wow$cor_mat
-  pm_mat2 <- kronecker(p_mat, m_mat)
-  
-  table(pm_mat2 == pm_mat) # sanity check
+  # 3) pre-processing before estimation ----------------------------------------
   
   
-  pm_decomp <- kronecker_decomp(pm_mat, p, m)         # decomp with no constraints
-  pm_decomp2 <- kronecker_decomp_diag1(pm_mat, p, m)  # decomp with mxm matrix having 1's on diag
-  pm_decomp3 <- kronecker_psd_factor(pm_mat, p, m, enforce_trace = FALSE)  # decomp with mxm matrix being PSD
-  
-  # original decomp, better decomp, and truth
-  arr_mat <- matrix(1:6, nrow = 2, byrow = F)
-  g_12 <- grid.arrange(visualize_matrix_heatmap(pm_decomp$p_mat, 'Default Decomp P'),
-                       visualize_matrix_heatmap(pm_decomp$m_mat, 'Default Decomp M'),
-                       visualize_matrix_heatmap(pm_decomp2$p_mat, 'Second Decomp P'),
-                       visualize_matrix_heatmap(pm_decomp2$m_mat, 'Second Decomp M'),
-                       visualize_matrix_heatmap(p_mat, 'True P'),
-                       visualize_matrix_heatmap(m_mat, 'True M'), 
-                       layout_matrix = arr_mat) 
-  
-  
-  # more sanity checks
-  pm_decomp_reconstruct <- kronecker(pm_decomp$p_mat, pm_decomp$m_mat)
-  
-  summary(as.numeric(pm_decomp_reconstruct - pm_mat))
-  summary(as.numeric(pm_decomp2$p_mat - p_mat))
-  
-  # 2) visualize rho from X_truth ----------------------------------------------
-  
-  # 2.1) rho_i_est (mean intensity) from X_truths
-  mat_list <- lapply(dataset$subject_data, function(x) exp(x$X_functions))
-  rho_simu <- Reduce("+", mat_list) / length(mat_list)
-  
-  mat_list_coarse <- lapply(dataset$subject_data, function(x) exp(x$X_functions_coarse))
-  rho_simu_coarse <- Reduce("+", mat_list_coarse) / length(mat_list_coarse)  
-  
-  
-  
-  # 2.2) rho_i_truth (ground truth of GP mean) theoretical truth
-  
-  kernel_params = dataset$true_graphs[[1]]$P_block_kronecker
-  
-  rho_i_mean <- exp(kernel_params$base_GP_mean + 0.5 * kernel_params$base_variance)
-  GP_means_m <- kernel_params$GP_simu_mean  # m-dim vec
-  GP_means_pm <- rep(GP_means_m, p)
-  
-  GP_kernel_pm <- kernel_params$GP_simu_var # pm x pm matrix
-  
-  GP_means_exp_pm <- exp(GP_means_pm + 0.5 * diag(GP_kernel_pm)) # ground truth of GP mean
-  GP_mean_ground_truth <- matrix(GP_means_exp_pm, nrow = p, ncol = m) # put it in a matrix
-  
-  g_GP_baseline <- visualize_log_intensity(GP_mean_ground_truth[1:5,], time_grid, 'Rho i Truth from Theory') # graph
-  
-  # g_data_2_one_subject <- visualize_log_intensity(exp(dataset$X_k_truth[1:5,,1]), time_grid, 'Rho i Truth from X_Truth') + geom_hline(yintercept = rho_i_mean)
-  
-  g_data_2 <- visualize_log_intensity(rho_simu[1:5,], time_grid, 'Rho i Truth from X_Truth') + geom_hline(yintercept = rho_i_mean) # average intensities across all subjects
-  
-  g_22 <- grid.arrange(g_data_2, g_GP_baseline, nrow = 1) # compare graphs
-  
-  
-  
-  # 3) pre-processing before estimation ------------------------------------------
-  
-
   # 3.1) first, convert dataset into a format that can be used for estimation
   
-  df_estimate <- convert_data_for_estimation(dataset$subject_data) %>% as.data.table()
-  df_estimate$time <- df_estimate$time / T_max # normalize to [0, 1]
+  data_df4 <- convert_data_for_estimation(dataset$subject_data, dataset$simulation_params$T_max) 
   
   query_yd <- rep(1, n) %>% as.data.frame()  # assume they are all from the same discrete strata
   y_c_strata <- dataset$Y_continuous
-  query_y_cs <- dataset$Y_continuous %>% unique()
   discrete_strata <- query_yd %>% unique()
   Tseq_est <- time_grid_est
+  query_y_cs <- dataset$simulation_params$query_y_cs  
   
   
-
+  
   # 3.2) more prep 
   
   estimated_graphs <- list()
-  m_est <- length(Tseq_est)
-  subject_nums <- 1:n
-  s_yd <- 1:n
-  data_df4 <- df_estimate 
-  
   
   # size of dataset
-  print(paste0('number of subjects: ', length(s_yd)))
+  print(paste0('number of subjects: ', n))
   print(paste0('number of spikes: ', nrow(data_df4)))
   
   
@@ -350,10 +266,37 @@ full_conditional_estimation_with_truths <- function(dataset, terse, ncores){
   # 4) estimation --------------------------------------------------------------
   
   
-  # part 1 - get X_k_est (p x m_est x n)
+  # part 1 - log intensities
+  #
+  # - X_k_truth                 (p x m_truth x n)
+  # - X_k_coarse_truth          (p x m_est   x n)
+  # - X_k_both_truth            (p x m_both  x n)
+  # - X_k_est                   (p x m_est   x n)
+  #
+  # - Lambda_k_truth            (p x m_truth x n)
+  # - Lambda_k_coarse_truth     (p x m_est   x n)
+  
+  
   
   X_k_est <- subject_specific_log_intensity(data_df4, Tseq_est)
+  X_k_truth <- dataset$X_k_truth
+  X_k_coarse_truth <- dataset$X_k_coarse_truth
+  X_k_both_truth <- dataset$X_k_both_truth
   
+  Lambda_k_truth <- exp(X_k_truth)
+  Lambda_k_coarse_truth <- exp(X_k_coarse_truth)
+  
+  # 1.1) visualize true log-intensities - good
+  
+  arr_mat <- matrix(1:6, nrow = 2, byrow = F)
+  arr_mat_8 <- matrix(1:8, nrow = 2, byrow = F)
+  arr_mat_10 <- matrix(1:10, nrow = 2, byrow = F)
+  g_11 <- grid.arrange(visualize_log_intensity(X_k_est[1:5,,1], time_grid_est, 'Estimate'),
+                       visualize_log_intensity(X_k_coarse_truth[1:5,,1], time_grid_est, 'Coarser Truth'),
+                       visualize_log_intensity(X_k_truth[1:5,,1], time_grid, 'Finer Truth'),
+                       visualize_log_intensity(X_k_both_truth[1:5,,1], time_grid_both, 'Combined Truth'),
+                       textGrob("0. Log Intensity\n of first replicate", gp = gpar(fontsize = 14)),
+                       layout_matrix = arr_mat)   
   
   # part 2 - rho_i_est from X_k_hat
   rho_list <- estimate_intensities_stratum_parallel_v3(data_df4, patient_sel, feature_sel, Tseq_est, ncores)
