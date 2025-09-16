@@ -11,6 +11,7 @@ generate_covariance_matrix <- function(time_grid, kernel = 'rbf', gamma = 1.0, v
   # GOAL: Generate covariance matrix for GP
   #
   # - 'rbf' = Gaussian
+  # - 'rbf_pd' = Gaussian with gamma large enough to be pd
   # - 'exponential' = Matern
   # 
   # Input: 
@@ -35,7 +36,6 @@ generate_covariance_matrix <- function(time_grid, kernel = 'rbf', gamma = 1.0, v
   
   K <- matrix(0, m, m)
   
-
   
   # Exponential covariance: K(s,t) = variance * exp(-|s-t|/lengthscale)
   for (i in 1:m) {
@@ -45,6 +45,11 @@ generate_covariance_matrix <- function(time_grid, kernel = 'rbf', gamma = 1.0, v
         r <- (time_grid[i] - time_grid[j])^2
         val <- variance * exp(- gamma * r)
       } 
+      
+      else if(kernel == 'rbf_pd'){
+        r <- (time_grid[i] - time_grid[j])^2
+        val <- variance * exp(- gamma * r)        
+      }
       
       else if(kernel == 'exponential'){
         r <- abs(time_grid[i] - time_grid[j])
@@ -397,6 +402,7 @@ sample_conditional_precision_v3 <- function(time_grid, time_grid_est,
                                          gamma = base_kernel_params$base_gamma, 
                                          variance = base_kernel_params$base_variance) # (m_est x m_est matrix)
   
+
   base_cov_both <- psd_jitter(base_cov_both)
   
   base_cov <- base_cov_both[time_grid_idx, time_grid_idx]
