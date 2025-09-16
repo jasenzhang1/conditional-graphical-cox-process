@@ -23,6 +23,8 @@ simulate_conditional_cox_data_v4 <- function(
   # ----------------------------------------------------------------------------
   
   # time_grid
+  
+  
   time_grid_both <- sort(union(time_grid, time_grid_est))
   
   m <- length(time_grid)
@@ -36,53 +38,61 @@ simulate_conditional_cox_data_v4 <- function(
   
   
   # 2) for each subject, generate their parameters and event data
-  subject_data <- pbmclapply(1:n, function(k){
+  subject_data <- lapply(1:n, function(k){
     
+    if(k %% 10 == 0){
+      print(paste0(k, ' out of ', n))
+    }
+  
 
     y_c_k <- Y_continuous[k, ]  
+    
     
     # 4.2) ground truth precision matrix
     prec_mat_truth <- generate_sparse_precision_matrix(y_c_k, p, adj_type, adj_params)
     
-    
+
+
     # 4.3) Generate precision operator P^{(y_c^k, y_d^k)} and adjacency matrix E_{y_c^k, y_d^k}
-    mats_k <- sample_conditional_precision_v3(time_grid, time_grid_est, 
+    mats_k <- sample_conditional_precision_v3(time_grid, time_grid_est,
                                               base_kernel_params,
                                               prec_mat_truth,
-                                              y_c_k) # code 24    
+                                              y_c_k)
     
+
+
     # are they similar?
     summary(as.numeric(mats_k$P_block_kronecker$GP_simu_var_est - solve(mats_k$P_block_kronecker$GP_simu_prec_est)))
-    
-  
-    
+
+
+
     # generate log-intensity functions
     X_k_list <- generate_log_intensity_functions_full_mat(
-      mats_k$P_block_kronecker$GP_simu_var_both, 
-      time_grid, 
+      mats_k$P_block_kronecker$GP_simu_var_both,
+      time_grid,
       time_grid_est,
       baseline_mean = mats_k$P_block_kronecker$GP_simu_mean_both,
-      sample_mode = 'multi', 
+      sample_mode = 'multi',
       seed = seed + k)
-    
+
     X_k_full <- X_k_list[[1]]
     X_k <- X_k_list[[2]]
-    
+
 
     # Generate point process events
     events_k <- generate_cox_process_events(
-      X_k, 
-      time_grid, 
-      T_max, 
-      max_intensity = Inf, 
+      X_k,
+      time_grid,
+      T_max,
+      max_intensity = Inf,
       seed = seed + k + n
     )
-    
 
-    
+
+
     # Store complete subject information
-    
-    list(
+
+    result <- list(
       Y_continuous = y_c_k,
       X_functions_full = X_k_full,
       X_functions = X_k,
@@ -91,10 +101,12 @@ simulate_conditional_cox_data_v4 <- function(
       event_times = events_k$event_times,
       event_counts = events_k$event_counts
     )
-  }, mc.cores = ncores, mc.set.seed = FALSE) # end of pbmclapply
+    
+    
+  }) # , mc.cores = ncores, mc.set.seed = FALSE) # end of pbmclapply
 
   # 3) for each query point, generate parameters
-  query_data <- pbmclapply(1:nrow(query_y_cs), function(k){
+  query_data <- lapply(1:nrow(query_y_cs), function(k){
     
     
     y_c_k <- query_y_cs[k, ]  
@@ -111,7 +123,7 @@ simulate_conditional_cox_data_v4 <- function(
     
     mats_k
     
-  }, mc.cores = ncores, mc.set.seed = FALSE) # end of pbmclapply 
+  }) #, mc.cores = ncores) # end of pbmclapply 
   
   # 5) get list of event_times for each subject (n) and process (p)
   
@@ -218,4 +230,35 @@ convert_data_for_estimation <- function(subject_list, Tmax){
 
   return(as.data.table(df))  
   
+}
+
+
+extract_event_times_df <- function(subject_list) {
+  
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: helper function for convert_data_for_estimation
+  # 
+  # ----------------------------------------------------------------------------
+  
+  
+  do.call(rbind, lapply(seq_along(subject_list), function(subject_id) {
+    event_times <- subject_list[[subject_id]]$event_times
+    
+    # Handle if event_times is NULL or missing
+    if (is.null(event_times)) return(NULL)
+    
+    do.call(rbind, lapply(seq_along(event_times), function(event_id) {
+      values <- event_times[[event_id]]
+      
+      if (length(values) == 0) return(NULL)  # skip empty vectors
+      
+      data.frame(
+        value = values,
+        event_id = event_id,
+        subject_id = subject_id
+      )
+    }))
+  }))
 }
