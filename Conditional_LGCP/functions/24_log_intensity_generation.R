@@ -212,6 +212,20 @@ generate_sparse_precision_matrix <- function(y_c_k, p, adj_type, adj_params){
   
   prec_mat <- diag(1, p)
   
+  if(adj_type == 'banded_c0'){
+    
+    # adj_params = adj_params = [value = 1, rho = 0.3]
+    # 0.3's on off diagonals - constant over time
+    # nothing else
+    
+    rho <- adj_params[2]
+    
+    prec_mat[row(prec_mat) == col(prec_mat) - 1] <- rho
+    prec_mat[row(prec_mat) == col(prec_mat) + 1] <- rho 
+    
+    result <- prec_mat_massager(prec_mat) # helper function above
+  }  
+  
   if(adj_type == 'banded_c1'){
     
     # adj_params = adj_params = [y_min = 0, y_max = 1, rho = 0.3]
@@ -321,84 +335,7 @@ generate_sparse_precision_matrix <- function(y_c_k, p, adj_type, adj_params){
 
 }
 
-sample_conditional_precision <- function(precision_spec, y_c, region_id) {
-  
-  
-  # ----------------------------------------------------------------------------
-  #
-  #
-  # GOAL: Sample precision operator for given conditioning values
-  #
-  #
-  # Input: 
-  #
-  # - precision_spec (list; from generate_precision_operators in code 23)
-  # 
-  #   - beta_coefficients   (p x p x q_c matrix)   matrix of coefficients to model continuous covariate effects
-  #   - signal_strength     (number)               theta value for signal strength
-  #   - dependence_type     (string)               how do continuous covariates affect the model
-  #   - time_grid           (m dim vector)         discretized time points
-  #   - base_kernel_params  (list)                 m x m kernel parameters
-  # 
-  #   - y_c_borders 
-  #   - sparsity 
-  #   - p = p,
-  #   - q_c = q_c
-  # 
-  # - y_c            (q_c x 1 vector of continuous covariates)
-  # - region_id (string) name of region
-  #
-  #
-  # Output: 
-  #
-  # - P_block (p x p x m x m array) - precision operator
-  #
-  #
-  # ----------------------------------------------------------------------------
-  
-  p <- precision_spec$p
-  m <- length(precision_spec$time_grid)
-  theta <- precision_spec$signal_strength
-  
-  # Base covariance and precision for temporal structure
-  base_cov <- generate_covariance_matrix(time_grid, lengthscale = 2.0, variance = 1.0) # (m x m matrix)
-  base_precision <- solve(base_cov)  # K_base^{-1}
-  
-  
-  # Initialize precision operator: P (p x p x m x m)
-  P_block <- array(0, dim = c(p, p, m, m))
-  
-  # Diagonal blocks: [P]_{i,i} = base_precision
-  for (i in 1:p) {
-    P_block[i, i, , ] <- base_precision
-  }
-  
-  # Off-diagonal blocks for edges: [P]_{i,j} = theta * h_ij(y_c) * base_precision
-  
-  # for each i < j edge: 
-  for (i in 1:(p-1)) {
-    for (j in (i+1):p) {
-      if (precision_spec$adjacency[[region_id]][i, j] == 1) {
-        # Extract beta_ij coefficients
-        beta_ij <- precision_spec$beta_coefficients[i, j, ]
-        
-        # Compute conditional dependence strength h_ij(y_c)
-        h_val <- conditional_dependence_function(
-          y_c, beta_ij, precision_spec$dependence_type
-        )
-        
-        # Off-diagonal precision elements
-        off_diag_strength <- theta * h_val # scalar x scalar 
-        off_diag_precision <- off_diag_strength * base_precision  # scalar * (m x m matrix)
-        
-        P_block[i, j, , ] <- off_diag_precision
-        P_block[j, i, , ] <- off_diag_precision  # Symmetry
-      }
-    }
-  }
-  
-  return(P_block)
-}
+
 
 
 sample_conditional_precision_v3 <- function(time_grid, time_grid_est,
