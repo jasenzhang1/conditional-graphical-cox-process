@@ -214,11 +214,11 @@ generate_sparse_precision_matrix <- function(y_c_k, p, adj_type, adj_params){
   
   if(adj_type == 'banded_c1'){
     
-    # adj_params = [rho = 0.3]
+    # adj_params = adj_params = [y_min = 0, y_max = 1, rho = 0.3]
     # 0.3's on off diagonals - constant over time
     # nothing else
     
-    rho <- adj_params[1]
+    rho <- adj_params[3]
     
     prec_mat[row(prec_mat) == col(prec_mat) - 1] <- rho
     prec_mat[row(prec_mat) == col(prec_mat) + 1] <- rho 
@@ -424,17 +424,6 @@ sample_conditional_precision_v3 <- function(time_grid, time_grid_est,
   #   - base_variance
   #   - base_GP_mean
   #
-  #
-  # - simu_settings (list; from generate_precision_operators in code 23)
-  #   - beta_coefficients = beta_coeffs,     (p x p x q_c matrix)
-  #   - signal_strength = theta,             theta
-  #   - dependence_type = dependence_type,   # Type of h_ij(y_c)
-  #   - y_c_borders
-  #   - p = p,
-  #   - q_c = q_c
-  #   - time_grid
-  #   - time_grid_est
-
   #
   # - prec_mat_truth (list of data about p x p matrix)
   #   - adj_mat
