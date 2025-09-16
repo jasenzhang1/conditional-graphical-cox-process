@@ -182,6 +182,17 @@ generate_y_c_adj_type <- function(n, adj_type, params, seed = NULL){
     
   }
   
+  if(adj_type == 'banded_c0'){
+    
+    # params = c(value)
+    # all covariates are the same
+    
+    Y_continuous <- matrix(rep(params[1], n), nrow = n, ncol = 1)
+    
+    return(Y_continuous)
+    
+  }  
+  
   if(adj_type == 'banded_c1'){
     
     # params = c(min, max)
