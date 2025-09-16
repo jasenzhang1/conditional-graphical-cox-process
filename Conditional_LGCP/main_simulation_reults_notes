@@ -1,5 +1,14 @@
 
 graph_type:
+
+  banded_c1:
+    - 1's on diagonal
+    - 0.3 on off diagonal
+    - doesn't change over time
+    - adj_params = [value = 1, rho = 0.3]
+    - y_c doesn't affect precision, AND y_c_k's are all the same
+    
+    
   banded_c1:
     - 1's on diagonal
     - 0.3 on off diagonal
