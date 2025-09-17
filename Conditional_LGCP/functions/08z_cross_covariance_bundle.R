@@ -9,7 +9,7 @@ steps_78_OG <- function(kl_coeffs, y_c_strata, query_y_c, eigenfunctions, ncores
   
   # step 6
   gamma_c <- select_gamma_c_bandwidth_v2(y_c_strata)
-  K_c <- construct_kernel_matrix_step_6(y_c_strata, gamma_c)
+  K_c <- construct_kernel_matrix_step_6(y_c_strata, query_y_c, gamma_c)
   
   # steps 7 and 8
   V_YcXij <- construct_cross_covariance_matrix_v3(kl_coeffs, ncores)
@@ -51,7 +51,7 @@ steps_78_JASA <- function(kl_coeffs, y_c_strata, query_y_c, eigenfunctions, ncor
   
   # step 6
   gamma_c <- select_gamma_c_bandwidth_v2(y_c_strata)
-  K_c <- construct_kernel_matrix_step_6(y_c_strata, gamma_c)
+  K_c <- construct_kernel_matrix_step_6(y_c_strata, query_y_c, gamma_c)
   
   V_YcXij <- construct_cross_covariance_matrix_v4(kl_coeffs, y_c_strata, query_y_c, gamma_c, ncores)
   M_hat <- estimate_regression_operators_v3(K_c, V_YcXij, p)
@@ -101,7 +101,7 @@ basis_coefficient_method_JASA <- function(kl_coeffs, y_c_strata, query_y_c, eige
   
   # step 6
   gamma_c <- select_gamma_c_bandwidth_v2(y_c_strata)
-  K_c <- construct_kernel_matrix_step_6(y_c_strata, gamma_c) 
+  K_c <- construct_kernel_matrix_step_6(y_c_strata, query_y_c, gamma_c) 
   K_c_reg_inv <- solve_sym(psd_jitter(K_c, pinv_eps = 1e-4))
   
   
