@@ -13,6 +13,7 @@ generate_covariance_matrix <- function(time_grid, kernel = 'rbf', gamma = 1.0, v
   # - 'rbf' = Gaussian
   # - 'rbf_pd' = Gaussian with gamma large enough to be pd
   # - 'exponential' = Matern
+  # - 'polynomial'
   # 
   # Input: 
   #
@@ -154,23 +155,26 @@ prec_mat_massager <- function(prec_mat){
   #
   # ----------------------------------------------------------------------------
   
-  adj_mat <- matrix(0, p, p)
+
   
+  # 1) start with prec_mat, make it cov_mat, then normalize it to be cor_mat
   cov_mat <- solve_sym(prec_mat)
   cor_mat <- cov_mat %>% cov2cor() %>% sym()
   
+  # 2) prec_mat2 = precision matrix from correlation matrix
   prec_mat2 <- solve_sym(cor_mat)
   
-  # partial correlation 
-
+  
+  # 3) partial correlation 
   D <- diag(1 / sqrt(diag(prec_mat))) 
   partial_cor_mat <- -D %*% prec_mat %*% D  
   diag(partial_cor_mat) <- 1  
   
-  # define the threshold as the min value that should not be nonzero
+  # 4) define the threshold as the min value that should not be nonzero
   threshold_p <- min(abs(prec_mat2[prec_mat != 0]))  
   
-  # adjacency_matrix
+  # 5) adjacency_matrix takes on a value of 1 if original prec_mat is nonzero
+  adj_mat <- matrix(0, p, p)
   adj_mat[prec_mat != 0] <- 1
   diag(adj_mat) <- 0  
   
@@ -342,7 +346,6 @@ generate_sparse_precision_matrix <- function(y_c_k, p, adj_type, adj_params){
 
 
 
-
 sample_conditional_precision_v3 <- function(time_grid, time_grid_est,
                                             base_kernel_params, 
                                             prec_mat_truth, 
@@ -417,6 +420,7 @@ sample_conditional_precision_v3 <- function(time_grid, time_grid_est,
   
   # 3) get pm x pm matrices for variance and precision
   #    also get pm-dim mean vector
+  
   GP_simu_var_both  <- kronecker(prec_mat_truth$cor_mat, base_cov_both)
   GP_simu_prec_both <- kronecker(prec_mat_truth$simu_mat, base_precision_both)
   GP_simu_mean_both <- rep(base_kernel_params$base_GP_mean, length(time_grid_both))
