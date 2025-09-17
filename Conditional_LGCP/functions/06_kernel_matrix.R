@@ -22,14 +22,20 @@ step_6_kernel <- function(y1, y2, gamma_c) {
   return(exp(-gamma_c * sum(diff^2)))  # scalar
 }
 
-construct_kernel_matrix_step_6 <- function(Y_continuous_stratum, gamma_c) {
+construct_kernel_matrix_step_6 <- function(Y_continuous_stratum, y_query, gamma_c) {
   
+  # ----------------------------------------------------------------------------
+  # 
   # 
   # GOAL: construct K_c^y_d matrix
   #
+  #       recall that it is k(. , y_c_k) * k(. , y_c_k)
+  #       so we need to input y_query with every combination of y_c_k 
+  # 
   # Input:
   # 
   # - Y_continuous_stratum    (n_stratum x q_c matrix)
+  # - y_query                 (q_c dim vector)
   # - gamma_c                 (scalar)
   #
   #
@@ -38,6 +44,7 @@ construct_kernel_matrix_step_6 <- function(Y_continuous_stratum, gamma_c) {
   # - K_c (n_stratum x n_stratum matrix)
   #
   #
+  # ----------------------------------------------------------------------------
   
   n_stratum <- nrow(Y_continuous_stratum)
   K_c <- matrix(0, nrow=n_stratum, ncol=n_stratum)
@@ -49,7 +56,7 @@ construct_kernel_matrix_step_6 <- function(Y_continuous_stratum, gamma_c) {
       y_i <- Y_continuous_stratum[i, ]  # q_c x 1 vector
       y_j <- Y_continuous_stratum[j, ]  # q_c x 1 vector
       
-      K_c[i, j] <- step_6_kernel(y_i, y_j, gamma_c)
+      K_c[i, j] <- step_6_kernel(y_i, y_query, gamma_c) * step_6_kernel(y_j, y_query, gamma_c)
       K_c[j, i] <- K_c[i, j]
     }
   }
