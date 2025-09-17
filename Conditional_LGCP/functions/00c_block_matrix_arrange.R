@@ -1,44 +1,6 @@
 # functions to help assemble and extract block matrices
 
-assemble_block_matrix <- function(operator_list, p, block_size) {
-  
-  # ------------------------------------------------------------------------
-  #
-  # GOAL: rearrange correlation list into a pm x pm matrix
-  #
-  #
-  # Input: 
-  #
-  # - operator_list     (list of length p^2, each element block_size x block_size)
-  # - p                 (scalar)
-  # - block_size        (scalar, equals m)
-  #
-  # 
-  # Output: 
-  #
-  # - block_matrix      (pm x pm matrix)
-  #
-  # ------------------------------------------------------------------------
-  
-  total_size <- p * block_size
-  block_matrix <- matrix(0, nrow=total_size, ncol=total_size)
-  
-  for (i in 1:p) {
-    for (j in 1:p) {
-      # Calculate block indices
-      row_start <- (i-1) * block_size + 1  # (i-1)*m + 1
-      row_end <- i * block_size             # i*m
-      col_start <- (j-1) * block_size + 1   # (j-1)*m + 1  
-      col_end <- j * block_size             # j*m
-      
-      key <- paste(i, j, sep="_")
-      # Insert m x m block into pm x pm matrix
-      block_matrix[row_start:row_end, col_start:col_end] <- operator_list[[key]]
-    }
-  }
-  
-  return(block_matrix)
-}
+
 
 assemble_block_matrix_v2 <- function(operator_list, p, block_size) {
   
@@ -135,6 +97,7 @@ extract_block_structure_v2 <- function(block_matrix, p, block_size) {
   # GOAL: extract block sub-matrices from a block matrix
   #
   # - it's the reverse of assemble_block_matrix
+  # - only want to keep the i_j entries for i <= j
   #
   # 
   # Input: 
@@ -174,7 +137,7 @@ extract_block_structure_ij <- function(block_matrix, block_size, i, j) {
   #
   # GOAL: extract block sub-matrices from a block matrix
   #
-  # - we only want to exctract the i_j entry for j >= i
+  # - we only want to extract a single i_j entry 
   #
   # 
   # Input: 
