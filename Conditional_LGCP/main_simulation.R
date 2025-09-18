@@ -14,7 +14,7 @@ ncores = parallel::detectCores() - 1
 
 # 2) output parameters
 terse = TRUE
-results_folder_name <- "simu_results_banded_c0_3"
+results_folder_name <- "simu_results_banded_c0_4"
 if (!dir.exists(results_folder_name)) dir.create(results_folder_name)
 
 
@@ -56,7 +56,7 @@ n_large <- max(ns)
 
 p = 10                                   # Number of processes (p)  
 
-method <- 'OG'
+method <- 'JASA'
 
 
 # 1) generate dataset ----------------------------------------------------------
