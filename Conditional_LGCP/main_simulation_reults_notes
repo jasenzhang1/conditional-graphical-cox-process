@@ -9,12 +9,19 @@ graph_type:
     - y_c doesn't affect precision, AND y_c_k's are all the same
     
     
+    - c0_3 = OG
+    - c0_4 = JASA
+    
+    
   banded_c1:
     - 1's on diagonal
     - 0.3 on off diagonal
     - doesn't change over time
     - adj_params = [y_min = 0, y_max = 1, rho = 0.3]
     - y_c doesn't affect precision, BUT y_c_k's are different (to see if things still hold)
+    
+    - c1_3 = OG
+    - c1_4 = JASA
     
   banded_v1:
     - rho = 0.3

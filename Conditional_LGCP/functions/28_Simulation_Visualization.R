@@ -368,3 +368,101 @@ visualize_precision_yc <- function(query_y_cs, p, adj_type, adj_params, ncores){
   image_write(animation, "heatmap_animation.gif")  
   
 }
+
+
+# visualize ||V_cond - V_cond_est||_HS convergence
+
+visualize_V_cond_convergence <- function(folder_name, mat_name, i, j){
+  
+  # ----------------------------------------------------------------------------
+  #
+  #
+  # GOAL: visualize V_cond_convergence at block matrix (i, j)
+  #
+  #       error =  || V_{X_i, X_j}^(y_c) - \hat{V}_{X_i, X_j}^(y_c) ||_HS
+  #
+  #
+  # input:
+  #
+  # - folder_name (string)  'simu_results_banded_c1_3'
+  # - mat_name    (string)  'V', 'C', or 'P'
+  # - i, j        (scalar)  block matrix numbers
+  #
+  #
+  # output:
+  #
+  # - graph of V_12 error as we change sample size 
+  #
+  #
+  # ----------------------------------------------------------------------------
+  
+
+  files <- list.files(folder_name, full.names = TRUE)
+  
+  ns <-  as.numeric(sub(".*_(.*)\\.RData$", "\\1", files)) # retrieve numbers
+  
+  results_list <- lapply(files, function(f) {
+    e <- new.env()          # create an isolated environment
+    load(f, envir = e)      # load into that environment
+    as.list(e)              # convert to a list (in case multiple objects)
+  })
+  
+  names(results_list) <- ns
+  
+  
+  # retrieve the 1_2 entry from metrics of V_cond 9written by chatgpt)
+  
+  results_df <- do.call(rbind, lapply(names(results_list), function(top_name) {
+    
+    top_entry <- results_list[[top_name]]$graph_results_i$estimated_graphs_part_2
+    
+    do.call(rbind, lapply(names(top_entry), function(low_name) {
+      low_entry <- top_entry[[low_name]]
+      
+      # Dynamically select the matrix
+      mat <- if (mat_name == "V") {
+        low_entry$metrics$V_HS
+      } else if (mat_name == "C") {
+        low_entry$metrics$C_HS
+      } else if (mat_name == "P") {
+        low_entry$metrics$P_HS
+      } else {
+        stop("Unknown mat_name: must be 'V', 'C', or 'P'")
+      }
+      
+      value <- mat[i, j]
+      
+      data.frame(
+        top_level = top_name,
+        low_level = low_name,
+        value = value,
+        stringsAsFactors = FALSE
+      )
+    }))
+  }))
+  
+  colnames(results_df) <- c('n', 'y_c_query', 'V_12_error')
+  
+  results_df$n <- as.numeric(results_df$n)
+  results_df$y_c_query <- as.numeric(results_df$y_c_query)
+  
+  if(mat_name == 'V'){
+    title_name <- 'Covariance'
+  } else if(mat_name == 'C'){
+    title_name <- 'Correlation'
+  } else if (mat_name == 'P'){
+    title_name <- 'Precision'
+  } else{
+    stop("Unknown mat_name: must be 'V', 'C', or 'P'")
+  }
+  
+  g <- ggplot() + geom_line(data = results_df, aes(x = y_c_query, y = V_12_error, group = n, color = n)) + 
+    ylab(paste0(mat_name, '_' , i, j, ' Error')) + 
+    xlab('Y_c Query') + 
+    ggtitle(paste0('Conditional ', title_name, ' Operator Convergence')) + 
+    theme_bw() 
+  
+  return(g)
+  
+    
+}
