@@ -20,6 +20,7 @@ generate_covariance_matrix <- function(time_grid, kernel = 'rbf', gamma = 1.0, v
   # - time_grid      (m x 1 vector of times)
   # - gamma          (scalar)
   # - variance       (scalar)
+  # - nugget         (scalar)   noise term
   #
   # 
   # Output: 
