@@ -93,7 +93,7 @@ for(n in ns){
   dataset_i$Y_continuous <- matrix(dataset$Y_continuous[1:n,], nrow = n)
   dataset_i$simulation_params$n <- n
   
-  graph_results_i <- full_conditional_estimation_with_truths_v2(dataset_i, est_method, terse, ncores)  # WHICH ESTIMATION PROCEDURE
+  graph_results_i <- full_conditional_estimation_with_truths_v2(dataset_i, method, terse, ncores)  # WHICH ESTIMATION PROCEDURE
   # graph_results_i <- full_conditional_estimation_with_truths(dataset_i, terse, ncores)
   
   file_dir <- paste0(results_folder_name, '/n_', n, '.RData')
