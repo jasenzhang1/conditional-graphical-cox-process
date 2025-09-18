@@ -14,7 +14,7 @@ ncores = parallel::detectCores() - 1
 
 # 2) output parameters
 terse = TRUE
-results_folder_name <- "simu_results_banded_c0_1"
+results_folder_name <- "simu_results_banded_c0_2"
 if (!dir.exists(results_folder_name)) dir.create(results_folder_name)
 
 
@@ -27,10 +27,15 @@ time_grid_est <- 1:19/20
 time_grid_both <- sort(union(time_grid, time_grid_est))
 
 # 4) base covariance
+# kernels = 'exponential', 'rbf', 'rbf_pd', 'polynomial'
 base_kernel_params <- list(base_gamma = 20,      
-                           base_kernel = 'rbf',
+                           base_kernel = 'exponential',   
                            base_variance = 1,
                            base_GP_mean = 5)
+
+if(base_kernel_params$base_kernel == 'rbf_pd'){
+  base_kernel_params$base_gamma = 2 * time_grid_size * log(2 * time_grid_size)
+}
 
 # 5) adj matrix params
 # adj_type = "banded_trig"                 # Graph topology
@@ -46,12 +51,12 @@ query_y_cs = matrix(0:8/8)               # query y_values
 
 # 6) sample size and # of processes
 ns <- c(100, 300, 1000, 3000, 10000)     # Sample size (n)
-
+ns <- c(100)
 n_large <- max(ns)
 
 p = 10                                   # Number of processes (p)  
 
-est_method <- 'OG'
+method <- 'OG'
 
 
 # 1) generate dataset ----------------------------------------------------------

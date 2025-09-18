@@ -1,7 +1,7 @@
 
 graph_type:
 
-  banded_c1:
+  banded_c0:
     - 1's on diagonal
     - 0.3 on off diagonal
     - doesn't change over time
@@ -14,6 +14,7 @@ graph_type:
     - 0.3 on off diagonal
     - doesn't change over time
     - adj_params = [y_min = 0, y_max = 1, rho = 0.3]
+    - y_c doesn't affect precision, BUT y_c_k's are different (to see if things still hold)
     
   banded_v1:
     - rho = 0.3

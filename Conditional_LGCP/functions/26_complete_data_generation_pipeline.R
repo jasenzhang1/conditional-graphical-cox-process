@@ -38,6 +38,9 @@ simulate_conditional_cox_data_v4 <- function(
   
   
   # 2) for each subject, generate their parameters and event data
+  
+  print('at subject generation')
+  
   subject_data <- lapply(1:n, function(k){
     
     if(k %% 10 == 0){
