@@ -76,6 +76,7 @@ g_21: X_truth vs X_hat
 g_22: rho_i
 g_23: rho_i_k (process 1, subjects 1-5)
 g_24: rho_ii
+g_25: rho_ij
 
 g_31: covariance function (G_ii) estimation
 

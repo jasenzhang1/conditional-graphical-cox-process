@@ -64,6 +64,44 @@ compute_eigendecomposition <- function(G_hat, var_explained = 0.9) {
   return(list(eigenvalues = eigenvalues, eigenfunctions = eigenfunctions, n_dims = n_dims))
 }
 
+# prep
+
+prep_eigendecomposition_ii <- function(G_hat, p){
+  
+  # ----------------------------------------------------------------------------
+  #
+  #
+  # GOAL: restructure G_ij so that it can be fed into `compute_eigendecomposition_ii`
+  #
+  #
+  # input:
+  #
+  # - G_hat (list of i_j entries)
+  # - p     (integer)
+  #
+  # 
+  # output:
+  #
+  # - G_mat (m x m x p matrix)
+  # 
+  #
+  # ----------------------------------------------------------------------------
+  
+  m <- dim(G_hat[[1]])[1]
+  
+  G_mat <- array(0, dim = c(m, m, p))
+  
+  for(i in 1:p){
+    key = paste0(i, '_', i)
+    
+    G_mat[,,i] <- G_hat[[key]]
+    
+    
+  }
+  
+  return(G_mat)
+}
+
 compute_eigendecomposition_ii <- function(G_hat, var_explained = 0.999) {
   
   # ----------------------------------------------------------------------------

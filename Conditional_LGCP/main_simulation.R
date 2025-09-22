@@ -14,7 +14,7 @@ ncores = parallel::detectCores() - 1
 
 # 2) output parameters
 terse = TRUE
-results_folder_name <- "simu_results_banded_c0_3"
+results_folder_name <- "simu_results_banded_c0_5"
 if (!dir.exists(results_folder_name)) dir.create(results_folder_name)
 
 
@@ -56,7 +56,7 @@ n_large <- max(ns)
 
 p = 10                                   # Number of processes (p)  
 
-method <- 'OG'
+method <- 'RHO_KERNEL'
 
 
 # 1) generate dataset ----------------------------------------------------------
@@ -93,7 +93,7 @@ for(n in ns){
   dataset_i$Y_continuous <- matrix(dataset$Y_continuous[1:n,], nrow = n)
   dataset_i$simulation_params$n <- n
   
-  graph_results_i <- full_conditional_estimation_with_truths_v2(dataset_i, method, terse, ncores)  # WHICH ESTIMATION PROCEDURE
+  graph_results_i <- full_conditional_estimation_with_truths_v3(dataset_i, method, terse, ncores)  # WHICH ESTIMATION PROCEDURE
   # graph_results_i <- full_conditional_estimation_with_truths(dataset_i, terse, ncores)
   
   file_dir <- paste0(results_folder_name, '/n_', n, '.RData')

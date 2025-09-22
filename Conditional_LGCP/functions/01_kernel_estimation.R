@@ -172,7 +172,59 @@ estimate_density <- function(t_event, t_seq){
   
 }
 
-
+estimate_rho_y_c <- function(t_event, t_seq, y_c_query, y_c_k, gamma_c){
+  
+  # -----------------------------------------------
+  # GOAL: 
+  #
+  # obtain \rho_i^{(y_c), k} 
+  # 
+  # - for subject k
+  # - incorporating y_c_k and queried y_c
+  #
+  #
+  # Input:
+  #
+  # - t_event     (vector)                 all timestamps for mark i, subject k 
+  # - t_seq       (m-dim vector)           evenly spaced out times between  0 and 1
+  # - y_c_query   (q_c-dim vector)         queried vector
+  # - y_c_k       (q_c-dim vector)         subject k vector 
+  # - gamma_c     (scalar)                 K_c bandwidth
+  #
+  # 
+  # Output:
+  #
+  # - rho_hat       (m-dim vector)           intensity estimates for each Tseq time for subject k
+  # 
+  # -----------------------------------------------
+  
+  if (length(t_event) == 0) { # moot case when the density is zero
+    return(rep(0, length(t_seq))) 
+  }  
+  
+  # 1) Calculate density estimate \Lambda_i^k 
+  
+  # gamma <- get_gamma(t_event)
+  # gamma <- get_gamma_silverman(t_event)
+  # gamma <- get_gamma_silverman_v2(t_event)
+  gamma <- get_gamma_adaptive(t_event)    # currently the best gamma method 
+  
+  
+  kernel_evals <- gaussian_kernel(t_seq, t_event, gamma) # 19 x 3805 matrix
+  
+  # w_h(t) denominator for each time in Tseq
+  denom = sapply(t_seq, function(x){
+    truncNorm_denom(x,gamma,0,1) 
+  })
+  
+  
+  
+  rho_hat <- apply(kernel_evals,1,sum)/denom   # 19-dim vec
+  
+  
+  return(rho_hat) 
+  
+}
 
 estimate_bivariate_density <- function(event_times_i, event_times_j, 
                                        eval_grid_s, eval_grid_t, d_or_i) {

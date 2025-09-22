@@ -28,7 +28,7 @@ grid.newpage()
 grid.draw(graph_results_i$estimated_graphs_part_2[[1]]$g_113) #ROC curves
 
 grid.newpage()
-visualize_V_cond_convergence('simu_results_banded_c0_4', 'V', 2, 3) %>% print()
+visualize_V_cond_convergence('simu_results_banded_c1_3', 'P', 1, 2) %>% print()
 
 # how does V_cond error change over time?
 

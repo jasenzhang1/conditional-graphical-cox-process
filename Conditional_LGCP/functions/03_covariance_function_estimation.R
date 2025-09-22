@@ -31,51 +31,43 @@ base_covariance_function <- function(rho_ij, rho_i, rho_j, regularization=1e-10)
   
 }
 
-estimate_covariance_functions <- function(rho_hat, rho_hat_pairs, regularization=1e-10) {
-  
-  # ----------------------------------------------------------------------------
-  #
-  #
-  # GOAL: Want to estimate G_{ij}(s, t)  across all p x p pairs of processes
-  #
-  # 
-  # Input: 
-  # 
-  # - rho_hat         (p x m matrix)
-  # - rho_hat_pairs   (p x p x m x m array)
-  #
-  #
-  # Output: 
-  #
-  # - G_hat           (p x p x m x m array)
-  #
-  # ----------------------------------------------------------------------------
-  
-  p <- nrow(rho_hat)
-  n_time <- ncol(rho_hat)
-  G_hat <- array(0, dim=c(p, p, n_time, n_time))
-  
-  for (i in 1:p) {
-    for (j in 1:p) {
-      for (s_idx in 1:n_time) {
-        for (t_idx in 1:n_time) {
-          # Extract scalar values at grid points
-          numerator <- rho_hat_pairs[i, j, s_idx, t_idx]      # scalar
-          denominator <- rho_hat[i, s_idx] * rho_hat[j, t_idx] # scalar * scalar
-          
-          # Avoid log(0) by adding regularization
-          numerator <- max(numerator, regularization)
-          denominator <- max(denominator, regularization)
-          
-          G_hat[i, j, s_idx, t_idx] <- log(numerator / denominator)
-        }
-      }
-    }
-  }
-  
-  return(G_hat)
-}
 
+# data reformat function
+
+prep_covariance_functions_ij <- function(rho_i, rho_ij){
+  
+  # ----------------------------------------------------------------------------
+  #
+  #
+  # GOAL: extract i and ii values from rho_i and rho_ij
+  #
+  # 
+  # input:
+  #
+  # - rho_i (p x m matrix)            matrix of rho_i's
+  # - rho_ij (i_j list, i <= j)       each entry is a mxm matrix between processes i and j
+  #
+  # 
+  # output:
+  #
+  # - rho_list (list of p entries) [[1]] = rho_i, [[2]] = rho_ii_mat
+  #   we only care to keep the i = j entries
+  #
+  # 
+  # ----------------------------------------------------------------------------
+  
+  rho_list <- lapply(1:p, function(i) {
+    
+    key = paste0(i, '_', i)
+    list(
+      rho_i  = rho_i_truth[i, ],     
+      rho_ii_mat = rho_ii_truth[[key]]  
+    )
+  }) 
+  
+  return(rho_list)
+  
+}
 
 estimate_covariance_functions_ii <- function(rho_i_list, regularization=1e-10) {
   
@@ -121,6 +113,53 @@ estimate_covariance_functions_ii <- function(rho_i_list, regularization=1e-10) {
   }
   
   return(G_hat)
+}
+
+estimate_covariance_functions_ij <- function(rho_i, rho_ii_mat, regularization=1e-10) {
+  
+  # ----------------------------------------------------------------------------
+  #
+  #
+  # GOAL: Want to estimate G_{ij}(s, t)  across all p x p pairs of processes
+  #
+  # 
+  # Input: 
+  # 
+  #   - rho_i      (p x m matrix)                      univariate intensity
+  #   - rho_ii_mat (i_j list of m x m matrices)        bivariate intensity
+  #
+  #
+  # Output: 
+  #
+  # - G_hat           (i_j list of m x m matrices) 
+  #
+  # ----------------------------------------------------------------------------
+  
+  p <- dim(rho_i)[1]
+
+  G_hat <- list()
+  
+  for (i in 1:p) {
+    for (j in i:p){
+      key <- paste0(i, '_', j)
+    
+      # rho_ij
+      numerator <- rho_ii_mat[[key]]                             # m x m
+      
+      # outer(rho_i, rho_j)
+      denominator <- outer(rho_i[i,], rho_i[j,])  # m x m
+      
+      # Avoid log(0) by adding regularization
+      numerator <- pmax(numerator, regularization)
+      denominator <- pmax(denominator, regularization)
+      
+      G_hat[[key]] <- log(numerator / denominator)
+    }
+    
+  }
+  
+  return(G_hat)
+
 }
 
 # section 2: functions to get cross-informed G_ii
