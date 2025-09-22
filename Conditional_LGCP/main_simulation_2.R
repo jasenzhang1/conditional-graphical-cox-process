@@ -41,11 +41,11 @@ if(base_kernel_params$base_kernel == 'rbf_pd'){
 # adj_type = "banded_trig"                 # Graph topology
 # adj_params <- c(0, 1, 0.9)               # associated parameters 
 
-# adj_type = "banded_c1"
-# adj_params <- c(0, 1, 0.3)
-
 adj_type = "banded_c1"
-adj_params <- c(0.5, 0.3)
+adj_params <- c(0, 1, 0.3)
+
+# adj_type = "banded_c0"
+# adj_params <- c(0.5, 0.3)
 
 query_y_cs = matrix(0:8/8)               # query y_values
 
