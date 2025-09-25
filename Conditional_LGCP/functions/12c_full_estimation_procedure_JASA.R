@@ -1373,29 +1373,8 @@ full_conditional_estimation_with_truths_v3 <- function(dataset, method, terse, n
                           layout_matrix = arr_mat_8)     
     
     
-    # part 11
-    #graph_threshold <- select_threshold_by_stability(P_cond, p)
-    
-    final_graph_estimates                  <- estimate_graph(P_cond_est,            C_cond_est,            V_cond_est, p)
-    final_graph_estimates_X_coarse_truth   <- estimate_graph(P_cond_X_coarse_truth, C_cond_X_coarse_truth, V_cond_X_coarse_truth, p)
-    final_graph_estimates_X_truth          <- estimate_graph(P_cond_X_truth,        C_cond_X_truth,        V_cond_X_truth, p)    
-    final_graph_estimates_coarse_truth     <- estimate_graph(P_cond_coarse_truth,   C_cond_coarse_truth,   V_cond_coarse_truth, p)
-    final_graph_estimates_truth            <- estimate_graph(P_cond_truth,          C_cond_truth,          V_cond_truth, p)
-    
-    
-    g_111 <- grid.arrange(visualize_pm_block_matrix_heatmap(adj_mat_i, 'Ground Truth'), 
-                          visualize_pm_block_matrix_heatmap(adj_mat_i, 'Coarse Ground Truth'), 
-                          visualize_pm_block_matrix_heatmap(final_graph_estimates_X_coarse_truth$w_mat, 'Coarse Truth X'), 
-                          visualize_pm_block_matrix_heatmap(final_graph_estimates_X_truth$w_mat, 'Truth X'), 
-                          visualize_pm_block_matrix_heatmap(final_graph_estimates_coarse_truth$w_mat, 'Coarse Truth Theory'), 
-                          visualize_pm_block_matrix_heatmap(final_graph_estimates_truth$w_mat, 'Truth Theory'), 
-                          visualize_pm_block_matrix_heatmap(final_graph_estimates$w_mat, 'Estimate'),
-                          textGrob("11. Final Estimates\nvs Adj Truth", gp = gpar(fontsize = 14)),
-                          layout_matrix = arr_mat_8)  
-    
-    
-    
-    # ROC curve 
+    # part 11 - HS norms of precision matrix -----------------------------------
+    # graph_threshold <- select_threshold_by_stability(P_cond, p)
     
     # - w_mat_ground_truth        (p x p)   matrix of HS norms of the pm x pm ground truth
     # - w_mat_coarse_ground_truth (p x p)   matrix of HS norms of the pm_est x pm_est ground truth 
@@ -1406,20 +1385,56 @@ full_conditional_estimation_with_truths_v3 <- function(dataset, method, terse, n
     # - w_mat_est                 (p x p)   matrix of HS norms of ...
     
     
-    w_mat_ground_truth        <- hilbert_schmidt_norm_pm_normalize(P_cond_ground_truth_full, p, m)
-    w_mat_coarse_ground_truth <- hilbert_schmidt_norm_pm_normalize(P_cond_coarse_ground_truth_full, p, m_est)
+    
+    w_mat_est            <- hilbert_schmidt_norm_pm(P_cond_est_full,            p, m_est)
+    w_mat_X_coarse_truth <- hilbert_schmidt_norm_pm(P_cond_X_coarse_truth_full, p, m_est)
+    w_mat_X_truth        <- hilbert_schmidt_norm_pm(P_cond_X_truth_full,        p, m)
+    w_mat_coarse_truth   <- hilbert_schmidt_norm_pm(P_cond_coarse_truth_full,   p, m_est)
+    w_mat_truth          <- hilbert_schmidt_norm_pm(P_cond_truth_full,          p, m)
+    
+    w_mat_ground_truth        <- hilbert_schmidt_norm_pm(P_cond_ground_truth_full, p, m)
+    w_mat_coarse_ground_truth <- hilbert_schmidt_norm_pm(P_cond_coarse_ground_truth_full, p, m_est)
     diag(w_mat_ground_truth) <- 0
     diag(w_mat_coarse_ground_truth) <- 0
     
+    # hilbert schmidt normalized HS norms 
     
+    w_mat_normalized_X_coarse_truth      <- hilbert_schmidt_norm_pm_normalize(P_cond_X_coarse_truth_full, p, m_est)
+    w_mat_normalized_X_truth             <- hilbert_schmidt_norm_pm_normalize(P_cond_X_truth_full, p, m)    
+    w_mat_normalized_coarse_truth        <- hilbert_schmidt_norm_pm_normalize(P_cond_coarse_truth_full, p, m_est)
+    w_mat_normalized_truth               <- hilbert_schmidt_norm_pm_normalize(P_cond_truth_full, p, m)
+    w_mat_normalized_est                 <- hilbert_schmidt_norm_pm_normalize(P_cond_est_full, p, m_est)    
     
-    w_mat_X_coarse_truth      <- hilbert_schmidt_norm_pm_normalize(P_cond_X_coarse_truth_full, p, m_est)
-    w_mat_X_truth             <- hilbert_schmidt_norm_pm_normalize(P_cond_X_truth_full, p, m)    
-    w_mat_coarse_truth        <- hilbert_schmidt_norm_pm_normalize(P_cond_coarse_truth_full, p, m_est)
-    w_mat_truth               <- hilbert_schmidt_norm_pm_normalize(P_cond_truth_full, p, m)
-    w_mat_est                 <- hilbert_schmidt_norm_pm_normalize(P_cond_est_full, p, m_est)
+
+    w_mat_normalized_ground_truth        <- hilbert_schmidt_norm_pm_normalize(P_cond_ground_truth_full, p, m)
+    w_mat_normalized_coarse_ground_truth <- hilbert_schmidt_norm_pm_normalize(P_cond_coarse_ground_truth_full, p, m_est)
+    diag(w_mat_normalized_ground_truth) <- 0
+    diag(w_mat_normalized_coarse_ground_truth) <- 0    
+        
     
+    # visualize HS norms with adj_mat (0 or 1)
+    g_111 <- grid.arrange(visualize_pm_block_matrix_heatmap(adj_mat_i, 'Ground Truth'), 
+                          visualize_pm_block_matrix_heatmap(adj_mat_i, 'Coarse Ground Truth'), 
+                          visualize_pm_block_matrix_heatmap(w_mat_X_coarse_truth, 'Coarse Truth X'), 
+                          visualize_pm_block_matrix_heatmap(w_mat_X_truth, 'Truth X'), 
+                          visualize_pm_block_matrix_heatmap(w_mat_coarse_truth, 'Coarse Truth Theory'), 
+                          visualize_pm_block_matrix_heatmap(w_mat_truth, 'Truth Theory'), 
+                          visualize_pm_block_matrix_heatmap(w_mat_est, 'Estimate'),
+                          textGrob("11. Final Estimates\nvs Adj Truth", gp = gpar(fontsize = 14)),
+                          layout_matrix = arr_mat_8)  
     
+    g_111b <- grid.arrange(visualize_pm_block_matrix_heatmap(adj_mat_i, 'Ground Truth'), 
+                           visualize_pm_block_matrix_heatmap(adj_mat_i, 'Coarse Ground Truth'), 
+                           visualize_pm_block_matrix_heatmap(w_mat_normalized_X_coarse_truth, 'Coarse Truth X'), 
+                           visualize_pm_block_matrix_heatmap(w_mat_normalized_X_truth, 'Truth X'), 
+                           visualize_pm_block_matrix_heatmap(w_mat_normalized_coarse_truth, 'Coarse Truth Theory'), 
+                           visualize_pm_block_matrix_heatmap(w_mat_normalized_truth, 'Truth Theory'), 
+                           visualize_pm_block_matrix_heatmap(w_mat_normalized_est, 'Estimate'),
+                           textGrob("11b. Normalized\nFinal Estimates\nvs Adj Truth", gp = gpar(fontsize = 14)),
+                           layout_matrix = arr_mat_8)      
+
+    
+    # visualize HS norms with w_mat ground truth
     
     g_112 <- grid.arrange(visualize_pm_block_matrix_heatmap(w_mat_ground_truth, 'Ground Truth'), 
                           visualize_pm_block_matrix_heatmap(w_mat_coarse_ground_truth, 'Coarse Ground Truth'), 
@@ -1429,8 +1444,18 @@ full_conditional_estimation_with_truths_v3 <- function(dataset, method, terse, n
                           visualize_pm_block_matrix_heatmap(final_graph_estimates_X_coarse_truth$w_mat, 'Coarse Truth X'), 
                           visualize_pm_block_matrix_heatmap(final_graph_estimates$w_mat, 'Estimate'),
                           textGrob("11. Hilbert Schmidt\n Norm", gp = gpar(fontsize = 14)),                              
-                          layout_matrix = arr_mat_8)     
+                          layout_matrix = arr_mat_8)  
     
+    g_112b <- grid.arrange(visualize_pm_block_matrix_heatmap(w_mat_ground_truth, 'Ground Truth'), 
+                           visualize_pm_block_matrix_heatmap(w_mat_normalized_coarse_ground_truth, 'Coarse Ground Truth'), 
+                           visualize_pm_block_matrix_heatmap(w_mat_normalized_truth, 'Truth Theory'),   
+                           visualize_pm_block_matrix_heatmap(w_mat_normalized_coarse_truth, 'Coarse Truth Theory'), 
+                           visualize_pm_block_matrix_heatmap(w_mat_normalized_X_truth, 'Truth X'), 
+                           visualize_pm_block_matrix_heatmap(w_mat_normalized_X_coarse_truth, 'Coarse Truth X'), 
+                           visualize_pm_block_matrix_heatmap(w_mat_normalized_est, 'Estimate'),
+                           textGrob("11b. Normalized\nHilbert Schmidt\n Norm", gp = gpar(fontsize = 14)),                              
+                           layout_matrix = arr_mat_8)    
+    # part 12 - ROC curve ------------------------------------------------------
     
     roc_ground_truth        <- roc_with_threshold(w_mat_ground_truth,        adj_mat_i, 'Ground Truth')
     roc_coarse_ground_truth <- roc_with_threshold(w_mat_coarse_ground_truth, adj_mat_i, 'Coarse Ground Truth')
@@ -1447,17 +1472,17 @@ full_conditional_estimation_with_truths_v3 <- function(dataset, method, terse, n
                           roc_X_truth$plot,
                           roc_X_coarse_truth$plot,
                           roc_est$plot,
-                          textGrob("11. ROC Curve", gp = gpar(fontsize = 14)),
+                          textGrob("12. ROC Curve", gp = gpar(fontsize = 14)),
                           layout_matrix = arr_mat_8)
     
     # metrics
     
     metrics <- get_metrics(list(P_cond_est_full,
                                 C_cond_est_full,
-                                V_cond_est_full,
+                                NA,
                                 P_cond_coarse_ground_truth_full,
                                 C_cond_coarse_ground_truth_full,
-                                V_cond_coarse_ground_truth_full,
+                                NA,
                                 adj_mat_i,
                                 roc_est)) 
     
