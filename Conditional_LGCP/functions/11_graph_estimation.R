@@ -254,8 +254,14 @@ get_metrics <- function(results){
   
   P_HS <- hilbert_schmidt_norm_pm(results[[1]] - results[[4]], p, m_est)
   C_HS <- hilbert_schmidt_norm_pm(results[[2]] - results[[5]], p, m_est)
-  V_HS <- hilbert_schmidt_norm_pm(results[[3]] - results[[6]], p, m_est)
   
+  if(is.na(results[[3]])){
+    V_HS <- NA
+  } else{
+    V_HS <- hilbert_schmidt_norm_pm(results[[3]] - results[[6]], p, m_est)
+  }
+  
+
   return(list(P_HS = P_HS,
               C_HS = C_HS,
               V_HS = V_HS,
