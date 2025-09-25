@@ -71,12 +71,12 @@ g_01: all ground truth precision matrices for all y_c's
 
 g_11: log_intensity (X_hat, X_truth)
 
-g_21: X_truth vs X_hat
+g_21: X_truth vs X_hat (processes 1-5)
 
-g_22: rho_i
+g_22: rho_i   (processes 1-5)
 g_23: rho_i_k (process 1, subjects 1-5)
-g_24: rho_ii
-g_25: rho_ij
+g_24: rho_ii (1, 1)
+g_25: rho_ij (1, 2)
 
 g_31: covariance function (G_ii) estimation
 
