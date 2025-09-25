@@ -1492,14 +1492,18 @@ full_conditional_estimation_with_truths_v3 <- function(dataset, method, terse, n
     # 8) save graphs (recall that we have ground truths of the form a_b_c)
     
     if(terse){
-      list(g_94  = g_94, 
+      list(g_22 = g_22, g_25 = g_25,
+           g_94  = g_94, 
            g_104 = g_104,
            g_111 = g_111, g_111b = g_111b,
            g_112 = g_112, g_112b = g_112b,
            g_113 = g_113,
            metrics = metrics)
     } else{
-      list(g_91  = g_91,  g_92   = g_92,   g_93  = g_93,  g_94   = g_94,
+      list(g_22 = g_22, g_24 = g_24, g_25 = g_25,
+           g_31 = g_31,
+           g_41 = g_41, g_42 = g_42,
+           g_91  = g_91,  g_92   = g_92,   g_93  = g_93,  g_94   = g_94,
            g_101 = g_101, g_102  = g_102,  g_103 = g_103, g_104  = g_104,
            g_111 = g_111, g_111b = g_111b, g_112 = g_112, g_112b = g_112b, g_113 = g_113,
            metrics = metrics)      
@@ -1517,16 +1521,13 @@ full_conditional_estimation_with_truths_v3 <- function(dataset, method, terse, n
   # what to output
   
   if(terse){
-    estimated_graphs_part_1 <- list(g_01 = g_01, g_22 = g_22, g_25 = g_25)
+    estimated_graphs_part_1 <- list(g_01 = g_01, g_11 = g_11)
     
     return(list(estimated_graphs_part_1 = estimated_graphs_part_1,      
                 estimated_graphs_part_2 = estimated_graphs_v2))      
     
   } else{
-    estimated_graphs_part_1 <- list(g_01 = g_01, g_11 = g_11, 
-                                    g_22 = g_22, g_24 = g_24, g_25 = g_25,
-                                    g_31 = g_31,
-                                    g_41 = g_41, g_42 = g_42)
+    estimated_graphs_part_1 <- list(g_01 = g_01, g_11 = g_11)
     
     return(list(estimated_graphs_part_1 = estimated_graphs_part_1,      
                 estimated_graphs_part_2 = estimated_graphs_v2))        
