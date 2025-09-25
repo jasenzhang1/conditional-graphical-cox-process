@@ -27,7 +27,7 @@ list_to_adj_mat <- function(edge_list, p){
 
 estimate_graph <- function(P_conditional, C_conditional, V_conditional, p, threshold = 0, discarded_neurons = NULL) {
   
-  # ------------------------------------------------------------------------
+  # ----------------------------------------------------------------------------
   #
   # GOAL: get edge estimates for our graph
   # 
@@ -46,7 +46,7 @@ estimate_graph <- function(P_conditional, C_conditional, V_conditional, p, thres
   #
   # - list with edges and edge_strengths
   #
-  # ------------------------------------------------------------------------
+  # ----------------------------------------------------------------------------
   
   edges <- list()
   edge_strengths <- list()
