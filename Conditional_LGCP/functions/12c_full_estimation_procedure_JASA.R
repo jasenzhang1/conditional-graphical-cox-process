@@ -1438,15 +1438,15 @@ full_conditional_estimation_with_truths_v3 <- function(dataset, method, terse, n
     
     g_112 <- grid.arrange(visualize_pm_block_matrix_heatmap(w_mat_ground_truth, 'Ground Truth'), 
                           visualize_pm_block_matrix_heatmap(w_mat_coarse_ground_truth, 'Coarse Ground Truth'), 
-                          visualize_pm_block_matrix_heatmap(final_graph_estimates_truth$w_mat, 'Truth Theory'),   
-                          visualize_pm_block_matrix_heatmap(final_graph_estimates_coarse_truth$w_mat, 'Coarse Truth Theory'), 
-                          visualize_pm_block_matrix_heatmap(final_graph_estimates_X_truth$w_mat, 'Truth X'), 
-                          visualize_pm_block_matrix_heatmap(final_graph_estimates_X_coarse_truth$w_mat, 'Coarse Truth X'), 
-                          visualize_pm_block_matrix_heatmap(final_graph_estimates$w_mat, 'Estimate'),
+                          visualize_pm_block_matrix_heatmap(w_mat_truth, 'Truth Theory'),   
+                          visualize_pm_block_matrix_heatmap(w_mat_coarse_truth, 'Coarse Truth Theory'), 
+                          visualize_pm_block_matrix_heatmap(w_mat_X_truth, 'Truth X'), 
+                          visualize_pm_block_matrix_heatmap(w_mat_X_coarse_truth, 'Coarse Truth X'), 
+                          visualize_pm_block_matrix_heatmap(w_mat_est, 'Estimate'),
                           textGrob("11. Hilbert Schmidt\n Norm", gp = gpar(fontsize = 14)),                              
                           layout_matrix = arr_mat_8)  
     
-    g_112b <- grid.arrange(visualize_pm_block_matrix_heatmap(w_mat_ground_truth, 'Ground Truth'), 
+    g_112b <- grid.arrange(visualize_pm_block_matrix_heatmap(w_mat_normalized_ground_truth, 'Ground Truth'), 
                            visualize_pm_block_matrix_heatmap(w_mat_normalized_coarse_ground_truth, 'Coarse Ground Truth'), 
                            visualize_pm_block_matrix_heatmap(w_mat_normalized_truth, 'Truth Theory'),   
                            visualize_pm_block_matrix_heatmap(w_mat_normalized_coarse_truth, 'Coarse Truth Theory'), 
