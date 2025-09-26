@@ -232,9 +232,15 @@ get_metrics <- function(results){
   # - P_cond_full     (pm_est x pm_est)  
   # - C_cond_full     (pm_est x pm_est)  the same as V_cond_full
   # - V_cond_full     (pm_est x pm_est)  
-  # - w_mat
+  # - w_mat           (p x p)            hilbert schmidt norm matrix
   # - adj_mat
-  # - roc_est
+  # - roc_est                                   [[9]]
+  # - rho_i_est            (p x m_est matrix)   [[10]]
+  # - rho_i_coarse_truth   (p x m_est matrix)   [[11]]
+  # - rho_ii_est           (i_j list of m_est x m_est matrices)  [[12]]
+  # - rho_ii_coarse_truth  (i_j list of m_est x m_est matrices)  [[13]]
+  # - g_ij_est             (i_j list of m_est x m_est matrices)  [[14]]
+  # - g_ij_coarse_truth    (i_j list of m_est x m_est matrices)  [[15]]
   #
   #
   # output:
@@ -261,13 +267,28 @@ get_metrics <- function(results){
     V_HS <- hilbert_schmidt_norm_pm(results[[3]] - results[[6]], p, m_est)
   }
   
+  # 2) find distance between rho_i and rho_i_coarse_truth
+  
+  rho_i_dist <- hilbert_schmidt_norm(results[[10]] - results[[11]])
+  
+  
+  # distance between rho_ij and rho_ij_coarse truth
+  rho_ij_dist <- hilbert_schmidt_norm_pm(assemble_block_matrix_v2(results[[12]], p, m_est) - assemble_block_matrix_v2(results[[13]], p, m_est), p, m_est)
+  
+  # 3) find distance between g_ij_est and g_ij_coarse_truth
 
-  return(list(P_HS = P_HS,
+  g_ij_dist <- hilbert_schmidt_norm_pm(assemble_block_matrix_v2(results[[14]], p, m_est) - assemble_block_matrix_v2(results[[15]], p, m_est), p, m_est)
+  
+  
+  return(list(rho_i_dist = rho_i_dist,
+              rho_ij_dist = rho_ij_dist,
+              g_ij_dist = g_ij_dist,
+              P_HS = P_HS,
               C_HS = C_HS,
               V_HS = V_HS,
-              sens = results[[8]]$sensitivity,
-              spec = results[[8]]$specificity,
-              auc = results[[8]]$auc,
-              accuracy = results[[8]]$accuracy))
+              sens = results[[9]]$sensitivity,
+              spec = results[[9]]$specificity,
+              auc = as.numeric(results[[9]]$auc),
+              accuracy = results[[9]]$accuracy))
   
 }
