@@ -246,7 +246,7 @@ correlation_estimation_KL_cov <- function(eigendecomp, KL_cov){
   # ----------------------------------------------------------------------------
   # 
   #
-  # GOAL: construct the corrleation operator from the KL covariance method
+  # GOAL: construct the correlation operator from the KL covariance method
   #
   # input:
   #
@@ -270,6 +270,7 @@ correlation_estimation_KL_cov <- function(eigendecomp, KL_cov){
   p <- length(eigendecomp[[1]])
   d <- dim(KL_cov[[1]])[1]
   m <- dim(eigendecomp[[2]][[1]])[1]
+  Delta <- 1/m
   
   C_cond <- list()
   
@@ -302,7 +303,9 @@ correlation_estimation_KL_cov <- function(eigendecomp, KL_cov){
       for(a in 1:d_i){
         for(b in 1:d_j){
           
-          C_ij <- C_ij + coeffs[a,b] * tcrossprod(evec_i[, a], evec_j[, b])
+          # REMEMBER, we have eigenvectors defined as Delta * (v^\top v) = 1. 
+          # to keep them in the 
+          C_ij <- C_ij + coeffs[a,b] * Delta * tcrossprod(evec_i[, a], evec_j[, b])
           
         }
       }
