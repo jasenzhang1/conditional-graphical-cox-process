@@ -77,6 +77,7 @@ g_22: rho_i   (processes 1-5)
 g_23: rho_i_k (process 1, subjects 1-5)
 g_24: rho_ii (1, 1)
 g_25: rho_ij (1, 2)
+g_26: rho_ij (3, 6)
 
 g_31: covariance function (G_ii) estimation
 
