@@ -457,12 +457,93 @@ visualize_V_cond_convergence <- function(folder_name, mat_name, i, j){
   }
   
   g <- ggplot() + geom_line(data = results_df, aes(x = y_c_query, y = V_12_error, group = n, color = n)) + 
-    ylab(paste0(mat_name, '_' , i, j, ' Error')) + 
+    ylab(paste0(mat_name, '_' , i, '_', j, ' Error')) + 
     xlab('Y_c Query') + 
     ggtitle(paste0('Conditional ', title_name, ' Operator Convergence')) + 
+    ylim(0, NA) + 
     theme_bw() 
   
   return(g)
   
     
+}
+
+# across all n's, plot Y_c_query vs AUC
+
+visualize_AUC_across_n <- function(folder_name){
+  
+  # ----------------------------------------------------------------------------
+  #
+  #
+  # GOAL: visualize AUC metric across n and y_c_query
+  #
+  #
+  #
+  # input:
+  #
+  # - folder_name (string)  'simu_results_banded_c1_3'
+  #
+  #
+  # output:
+  #
+  # - graph of AUC vs y_c_query (x-axis) and n (color)
+  #
+  #
+  # ----------------------------------------------------------------------------
+  
+  
+  files <- list.files(folder_name, full.names = TRUE)
+  
+  ns <-  as.numeric(sub(".*_(.*)\\.RData$", "\\1", files)) # retrieve numbers
+  
+  results_list <- lapply(files, function(f) {
+    e <- new.env()          # create an isolated environment
+    load(f, envir = e)      # load into that environment
+    as.list(e)              # convert to a list (in case multiple objects)
+  })
+  
+  names(results_list) <- ns
+  
+  
+  # retrieve the 1_2 entry from metrics of V_cond 9written by chatgpt)
+  
+  results_df <- do.call(rbind, lapply(names(results_list), function(top_name) {
+    
+    top_entry <- results_list[[top_name]]$graph_results_i$estimated_graphs_part_2
+    
+    do.call(rbind, lapply(names(top_entry), function(low_name) {
+      low_entry <- top_entry[[low_name]]
+      
+
+      
+      AUC <- low_entry$metrics$auc
+      
+      data.frame(
+        top_level = top_name,
+        low_level = low_name,
+        value = AUC,
+        stringsAsFactors = FALSE
+      )
+    }))
+  }))
+  
+  colnames(results_df) <- c('n', 'y_c_query', 'AUC')
+  
+  results_df$n <- as.numeric(results_df$n)
+  results_df$y_c_query <- as.numeric(results_df$y_c_query)
+  
+  title_name <- 'AUC'
+  
+
+  
+  g <- ggplot() + geom_line(data = results_df, aes(x = y_c_query, y = AUC, group = n, color = n)) + 
+    ylab('AUC') + 
+    xlab('Y_c Query') + 
+    ggtitle('AUC versus n and y_c_query') + 
+    ylim(0, 1) + 
+    theme_bw() 
+  
+  return(g)
+  
+  
 }
