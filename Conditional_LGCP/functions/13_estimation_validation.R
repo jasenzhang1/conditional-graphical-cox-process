@@ -52,6 +52,58 @@ validate_eigendecomposition_ii <- function(G_hat, eigen_decomp){
   
 }
 
+validate_eigendecomposition_ii_v2 <- function(G_hat, eigen_decomp){
+  
+  # ----------------------------------------------------------------------------
+  #
+  #
+  # GOAL: validate the function `compute_eigendecomposition_ii_v2`
+  #
+  #
+  # Input: 
+  # 
+  # - G_hat             (m x m x p array) ground truth
+  # - eigen_decomp      (list)            list of three lists, each of length p
+  # 
+  #   - eigenvalues     (list of d-dim vectors)  the top d eigenvalues
+  #   - eigenfunctions  (list of mxd matrices)   the top d eigenfunctions (of length m)
+  #   - n_dims          (list of integers)       d for each process. we stop at 90% var explained or dmax
+  # 
+  # 
+  # Output: 
+  #
+  # - G_hat_approx (m x m x p array)  estimate
+  #
+  # ----------------------------------------------------------------------------  
+  
+  p <- dim(G_hat)[3]
+  m <- dim(G_hat)[2]
+  
+  G_hat_approx <- array(0, dim = c(m, m, p))
+  
+  for (i in 1:p) {
+    lambdas <- eigen_decomp$eigenvalues[[i]]       # vector length d_i
+    etas <- eigen_decomp$eigenfunctions[[i]]       # m x d_i matrix
+    d_i <- eigen_decomp$n_dims[[i]]
+    
+    # Reconstruct covariance matrix for i-th process
+    
+    if(d_i == 1){
+      eta_vec <- matrix(etas[, 1:d_i], m, 1)
+      lambda_mat <- matrix(lambdas)
+      G_hat_approx[, , i] <- eta_vec %*% lambda_mat %*% t(eta_vec)
+    } else{
+      G_hat_approx[, , i] <- etas[, 1:d_i] %*% diag(lambdas[1:d_i]) %*% t(etas[, 1:d_i])
+    }
+    
+    
+  }
+  
+  # V2: NORMALIZE BY MULTIPLYING BY M 
+  
+  return(G_hat_approx * m)  
+  
+}
 
 validate_eigendecomposition_ii_visualization <- function(G_hat, G_hat_approx, i){
   
