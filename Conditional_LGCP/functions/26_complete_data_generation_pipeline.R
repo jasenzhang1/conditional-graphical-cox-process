@@ -41,7 +41,7 @@ simulate_conditional_cox_data_v4 <- function(
   
   print('at subject generation')
   
-  subject_data <- lapply(1:n, function(k){
+  subject_data <- pbmclapply(1:n, function(k){
     
     if(k %% 10 == 0){
       print(paste0(k, ' out of ', n))
@@ -64,11 +64,6 @@ simulate_conditional_cox_data_v4 <- function(
     
 
 
-    # are they similar?
-    summary(as.numeric(mats_k$P_block_kronecker$GP_simu_var_est - solve(mats_k$P_block_kronecker$GP_simu_prec_est)))
-
-
-
     # generate log-intensity functions
     X_k_list <- generate_log_intensity_functions_full_mat(
       mats_k$P_block_kronecker$GP_simu_var_both,
@@ -77,14 +72,16 @@ simulate_conditional_cox_data_v4 <- function(
       baseline_mean = mats_k$P_block_kronecker$GP_simu_mean_both,
       sample_mode = 'multi',
       seed = seed + k)
+    
+    # [[1]] = full
+    # [[2]] = simulation step size (50)
+    # [[3]] = estimation step size (19)
 
-    X_k_full <- X_k_list[[1]]
-    X_k <- X_k_list[[2]]
 
 
     # Generate point process events
     events_k <- generate_cox_process_events(
-      X_k,
+      X_k_list[[2]],
       time_grid,
       T_max,
       max_intensity = Inf,
@@ -97,8 +94,8 @@ simulate_conditional_cox_data_v4 <- function(
 
     result <- list(
       Y_continuous = y_c_k,
-      X_functions_full = X_k_full,
-      X_functions = X_k,
+      X_functions_full = X_k_list[[1]],
+      X_functions = X_k_list[[2]],
       X_functions_coarse = X_k_list[[3]],
       precision_and_graph = mats_k,
       event_times = events_k$event_times,
@@ -106,10 +103,10 @@ simulate_conditional_cox_data_v4 <- function(
     )
     
     
-  }) # , mc.cores = ncores, mc.set.seed = FALSE) # end of pbmclapply
+  }, mc.cores = ncores, mc.set.seed = FALSE) # end of pbmclapply
 
   # 3) for each query point, generate parameters
-  query_data <- lapply(1:nrow(query_y_cs), function(k){
+  query_data <- mclapply(1:nrow(query_y_cs), function(k){
     
     
     y_c_k <- query_y_cs[k, ]  
@@ -126,7 +123,7 @@ simulate_conditional_cox_data_v4 <- function(
     
     mats_k
     
-  }) #, mc.cores = ncores) # end of pbmclapply 
+  }, mc.cores = ncores) # end of pbmclapply 
   
   # 5) get list of event_times for each subject (n) and process (p)
   
