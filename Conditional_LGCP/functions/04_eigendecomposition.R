@@ -169,6 +169,81 @@ compute_eigendecomposition_ii <- function(G_hat, var_explained = 0.999) {
   return(list(eigenvalues = eigenvalues, eigenfunctions = eigenfunctions, n_dims = n_dims))
 }
 
+compute_eigendecomposition_ii_v2 <- function(G_hat, var_explained = 0.999) {
+  
+  # ----------------------------------------------------------------------------
+  #
+  #
+  # GOAL: from G_{i,i}(s,t), estimate the eigendecomposition
+  #
+  # - note that we only have G_{i, i} entries 
+  #
+  # - 9/26/2025 
+  #   - v2:
+  #   - normalize eigenvectors so that instead of v^\top v = 1, Delta * v^\top v = 1
+  #
+  # 
+  # Input: 
+  # 
+  # - G_hat (m x m array) (m x m x p)
+  # 
+  # 
+  # Output: 
+  #
+  # - eigenvalues    (list of p vectors)
+  # - eigenfunctions (list of p matrices)
+  # - n_dims         (list of p numbers denoting d_i)
+  #
+  # ----------------------------------------------------------------------------
+  
+  p <- dim(G_hat)[3]
+  m <- dim(G_hat)[1]
+  Delta <- 1 / m
+  
+  eigenvalues <- list()
+  eigenfunctions <- list()
+  n_dims <- list()
+  
+  for (i in 1:p) {
+    # Extract marginal covariance matrix: m x m
+    
+    # V2: WE NORMALIZE BY DIVIDING BY M FIRST
+    G_ii <- G_hat[, , i]  / m
+    
+    # Ensure symmetry for numerical stability
+    G_ii <- (G_ii + t(G_ii)) / 2
+    
+    # Compute eigendecomposition
+    # eigen() returns: values (m x 1), vectors (m x m)
+    eigen_result <- eigen(G_ii, symmetric=TRUE)
+    lambdas <- eigen_result$values  # m x 1 vector
+    lambdas2 <- lambdas
+    lambdas2[lambdas2 < 0] <- 0
+    
+    cum_var <- cumsum(lambdas2) / sum(lambdas2)
+    d_i <- which(cum_var > var_explained)[1]
+    etas <- eigen_result$vectors    # m x m matrix
+    
+    
+    
+    # Keep only top d components
+    
+    eigenvalues[[i]] <- lambdas[1:d_i]        # d x 1 vector
+    
+    if(d_i == 1){
+      eigenfunctions[[i]] <- matrix(etas[, 1:d_i], nrow = m) / sqrt(Delta)
+    } else{
+      eigenfunctions[[i]] <- etas[, 1:d_i] / sqrt(Delta)     # m x d matrix
+    }
+    
+    n_dims[[i]] <- d_i
+  }
+  
+  # keep track of how many components are needed to explain 90%
+  
+  return(list(eigenvalues = eigenvalues, eigenfunctions = eigenfunctions, n_dims = n_dims))
+}
+
 compute_eigendecomposition_dmax <- function(G_hat, d_max = 10) {
   
   
