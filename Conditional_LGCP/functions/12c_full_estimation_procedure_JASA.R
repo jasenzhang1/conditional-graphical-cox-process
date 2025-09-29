@@ -917,11 +917,11 @@ full_conditional_estimation_with_truths_v3 <- function(dataset, method, terse, n
   
   lay_mat <- matrix(c(1:5, NA), nrow = 2)
   
-  g_01 <- grid.arrange(visualize_nonneg_matrix_heatmap(prec_ground_truths[[1]]$simu_mat, '1', -10, 10),
-                       visualize_nonneg_matrix_heatmap(prec_ground_truths[[2]]$simu_mat, '2', -10, 10),
-                       visualize_nonneg_matrix_heatmap(prec_ground_truths[[3]]$simu_mat, '3', -10, 10),
-                       visualize_nonneg_matrix_heatmap(prec_ground_truths[[4]]$simu_mat, '4', -10, 10),
-                       visualize_nonneg_matrix_heatmap(prec_ground_truths[[5]]$simu_mat, '5', -10, 10),
+  g_01 <- grid.arrange(visualize_matrix_heatmap(prec_ground_truths[[1]]$simu_mat, '1', -10, NULL, 10),
+                       visualize_matrix_heatmap(prec_ground_truths[[2]]$simu_mat, '2', -10, NULL, 10),
+                       visualize_matrix_heatmap(prec_ground_truths[[3]]$simu_mat, '3', -10, NULL, 10),
+                       visualize_matrix_heatmap(prec_ground_truths[[4]]$simu_mat, '4', -10, NULL, 10),
+                       visualize_matrix_heatmap(prec_ground_truths[[5]]$simu_mat, '5', -10, NULL, 10),
                        layout_matrix = lay_mat
   )  
   
@@ -998,10 +998,11 @@ full_conditional_estimation_with_truths_v3 <- function(dataset, method, terse, n
   arr_mat <- matrix(1:6, nrow = 2, byrow = F)
   arr_mat_8 <- matrix(1:8, nrow = 2, byrow = F)
   arr_mat_10 <- matrix(1:10, nrow = 2, byrow = F)
-  g_11 <- grid.arrange(visualize_log_intensity(X_k_est[1:5,,1], time_grid_est, 'Estimate'),
-                       visualize_log_intensity(X_k_coarse_truth[1:5,,1], time_grid_est, 'Coarser Truth'),
-                       visualize_log_intensity(X_k_truth[1:5,,1], time_grid, 'Finer Truth'),
-                       visualize_log_intensity(X_k_both_truth[1:5,,1], time_grid_both, 'Combined Truth'),
+  
+  g_11 <- grid.arrange(visualize_log_intensity(X_k_est[1:5,,1],          time_grid_est,  'Estimate'),
+                       visualize_log_intensity(X_k_coarse_truth[1:5,,1], time_grid_est,  'Coarser Truth'),
+                       visualize_log_intensity(X_k_truth[1:5,,1],        time_grid,      'Finer Truth'),
+                       visualize_log_intensity(X_k_both_truth[1:5,,1],   time_grid_both, 'Combined Truth'),
                        textGrob("0. Log Intensity\n of first 5 processes\nof subject 1", gp = gpar(fontsize = 14)),
                        layout_matrix = arr_mat)   
   
@@ -1061,12 +1062,12 @@ full_conditional_estimation_with_truths_v3 <- function(dataset, method, terse, n
     # part 2 visualization 
     
     
-    g_22 <- grid.arrange(visualize_log_intensity(rho_i_truth[1:5,], time_grid, 'Truth Theory'),
-                         visualize_log_intensity(rho_i_coarse_truth[1:5,], time_grid_est, 'Coarse Truth Theory'),
-                         visualize_log_intensity(rho_i_X_truth[1:5,], time_grid, 'Truth X'),
+    g_22 <- grid.arrange(visualize_log_intensity(rho_i_truth[1:5,],          time_grid,     'Truth Theory'),
+                         visualize_log_intensity(rho_i_coarse_truth[1:5,],   time_grid_est, 'Coarse Truth Theory'),
+                         visualize_log_intensity(rho_i_X_truth[1:5,],        time_grid,     'Truth X'),
                          visualize_log_intensity(rho_i_X_coarse_truth[1:5,], time_grid_est, 'Coarse Truth X'),
                          textGrob("1. Rho_i\nEstimation for \n first 5 processes", gp = gpar(fontsize = 14)),
-                         visualize_log_intensity(rho_i_est[1:5,], time_grid_est, 'Estimate'),
+                         visualize_log_intensity(rho_i_est[1:5,],            time_grid_est, 'Estimate'),
                          layout_matrix = arr_mat)
     
     
@@ -1117,28 +1118,28 @@ full_conditional_estimation_with_truths_v3 <- function(dataset, method, terse, n
     }
     
     
-    g_24 <- grid.arrange(visualize_matrix_heatmap(rho_ii_truth[['1_1']], 'Truth Theory', 40000, 200000),
-                         visualize_matrix_heatmap(rho_ii_coarse_truth[['1_1']], 'Coarse Truth Theory', 40000, 200000),
-                         visualize_matrix_heatmap(rho_ii_X_truth[['1_1']], 'Truth X', 40000, 200000),
-                         visualize_matrix_heatmap(rho_ii_X_coarse_truth[['1_1']], 'Coarse Truth X', 40000, 200000),
+    g_24 <- grid.arrange(visualize_matrix_heatmap(rho_ii_truth[['1_1']],          'Truth Theory',        40000, NULL, 200000),
+                         visualize_matrix_heatmap(rho_ii_coarse_truth[['1_1']],   'Coarse Truth Theory', 40000, NULL, 200000),
+                         visualize_matrix_heatmap(rho_ii_X_truth[['1_1']],        'Truth X',             40000, NULL, 200000),
+                         visualize_matrix_heatmap(rho_ii_X_coarse_truth[['1_1']], 'Coarse Truth X',      40000, NULL, 200000),
                          textGrob("2. Rho ii\nEstimation \n for process 1", gp = gpar(fontsize = 14)),
-                         visualize_matrix_heatmap(rho_ii_est[['1_1']], 'Estimate', 40000, 200000),
+                         visualize_matrix_heatmap(rho_ii_est[['1_1']],            'Estimate',            40000, NULL, 200000),
                          layout_matrix = arr_mat)
   
-    g_25 <- grid.arrange(visualize_matrix_heatmap(rho_ii_truth[['1_2']], 'Truth Theory', 40000, 200000),
-                         visualize_matrix_heatmap(rho_ii_coarse_truth[['1_2']], 'Coarse Truth Theory', 40000, 200000),
-                         visualize_matrix_heatmap(rho_ii_X_truth[['1_2']], 'Truth X', 40000, 200000),
-                         visualize_matrix_heatmap(rho_ii_X_coarse_truth[['1_2']], 'Coarse Truth X', 40000, 200000),
+    g_25 <- grid.arrange(visualize_matrix_heatmap(rho_ii_truth[['1_2']],          'Truth Theory',        40000, NULL, 100000),
+                         visualize_matrix_heatmap(rho_ii_coarse_truth[['1_2']],   'Coarse Truth Theory', 40000, NULL, 100000),
+                         visualize_matrix_heatmap(rho_ii_X_truth[['1_2']],        'Truth X',             40000, NULL, 100000),
+                         visualize_matrix_heatmap(rho_ii_X_coarse_truth[['1_2']], 'Coarse Truth X',      40000, NULL, 100000),
                          textGrob("2. Rho ij\nEstimation \n for process 1 and 2", gp = gpar(fontsize = 14)),
-                         visualize_matrix_heatmap(rho_ii_est[['1_2']], 'Estimate', 40000, 200000),
+                         visualize_matrix_heatmap(rho_ii_est[['1_2']],            'Estimate',            40000, NULL, 100000),
                          layout_matrix = arr_mat)
     
-    g_26 <- grid.arrange(visualize_matrix_heatmap(rho_ii_truth[['3_6']], 'Truth Theory', 40000, 200000),
-                         visualize_matrix_heatmap(rho_ii_coarse_truth[['3_6']], 'Coarse Truth Theory', 40000, 200000),
-                         visualize_matrix_heatmap(rho_ii_X_truth[['3_6']], 'Truth X', 40000, 200000),
-                         visualize_matrix_heatmap(rho_ii_X_coarse_truth[['3_6']], 'Coarse Truth X', 40000, 200000),
+    g_26 <- grid.arrange(visualize_matrix_heatmap(rho_ii_truth[['3_6']],          'Truth Theory',        40000, NULL, 120000),
+                         visualize_matrix_heatmap(rho_ii_coarse_truth[['3_6']],   'Coarse Truth Theory', 40000, NULL, 120000),
+                         visualize_matrix_heatmap(rho_ii_X_truth[['3_6']],        'Truth X',             40000, NULL, 120000),
+                         visualize_matrix_heatmap(rho_ii_X_coarse_truth[['3_6']], 'Coarse Truth X',      40000, NULL, 120000),
                          textGrob("2. Rho ij\nEstimation \n for process 3 and 6", gp = gpar(fontsize = 14)),
-                         visualize_matrix_heatmap(rho_ii_est[['3_6']], 'Estimate', 40000, 200000),
+                         visualize_matrix_heatmap(rho_ii_est[['3_6']],            'Estimate',            40000, NULL, 120000),
                          layout_matrix = arr_mat)  
     
     # part 3 - GP covariance estimation ------------------------------------------
@@ -1163,15 +1164,19 @@ full_conditional_estimation_with_truths_v3 <- function(dataset, method, terse, n
     g_ij_ground_truth_pm <- kernel_params$GP_simu_var
     g_ij_coarse_ground_truth_pm <- kernel_params$GP_simu_var_est
     
+    g_ij_ground_truth        <- extract_block_structure_v2(g_ij_ground_truth_pm, p, m)
+    g_ij_coarse_ground_truth <- extract_block_structure_v2(g_ij_coarse_ground_truth_pm, p, m_est)
+
+    
     # visualization
-    g_31 <- grid.arrange(visualize_matrix_heatmap(extract_block_structure_ij(g_ij_ground_truth_pm, m, 1, 1), 'Ground Truth', -1, 1),
-                         visualize_matrix_heatmap(extract_block_structure_ij(g_ij_coarse_ground_truth_pm, m_est, 1, 1), 'Coarse Ground Truth', -1, 1),
-                         visualize_matrix_heatmap(g_ij_truth[['1_1']], 'Truth Theory', -1, 1),  
-                         visualize_matrix_heatmap(g_ij_coarse_truth[['1_1']], 'Coarse Truth Theory', -1, 1),
-                         visualize_matrix_heatmap(g_ij_X_truth[['1_1']], 'Truth X', -1, 1),    
-                         visualize_matrix_heatmap(g_ij_X_coarse_truth[['1_1']], 'Coarse Truth X', -1, 1),
+    g_31 <- grid.arrange(visualize_matrix_heatmap(g_ij_ground_truth[['1_1']],        'Ground Truth', -1, 0, 1),
+                         visualize_matrix_heatmap(g_ij_coarse_ground_truth[['1_1']], 'Coarse Ground Truth', -1, 0, 1),
+                         visualize_matrix_heatmap(g_ij_truth[['1_1']],               'Truth Theory', -1, 0, 1),  
+                         visualize_matrix_heatmap(g_ij_coarse_truth[['1_1']],        'Coarse Truth Theory', -1, 0, 1),
+                         visualize_matrix_heatmap(g_ij_X_truth[['1_1']],             'Truth X', -1, 0, 1),    
+                         visualize_matrix_heatmap(g_ij_X_coarse_truth[['1_1']],      'Coarse Truth X', -1, 0, 1),
                          textGrob("3. Covariance Function\nEstimation (G_ii)", gp = gpar(fontsize = 14)),
-                         visualize_matrix_heatmap(g_ij_est[['1_1']], 'Estimate', -1, 1),
+                         visualize_matrix_heatmap(g_ij_est[['1_1']],                 'Estimate', -1, 0, 1),
                          layout_matrix = arr_mat_8)
     
     
@@ -1229,12 +1234,12 @@ full_conditional_estimation_with_truths_v3 <- function(dataset, method, terse, n
     # visualize g_ij vs its eigendecomposition reconstruction
     
     
-    g_42 <- grid.arrange(visualize_matrix_heatmap(g_ii_truth[,,1], 'Truth Theory (TT)', -1, 1),  # ground truth 50 x 50 covariance
-                         visualize_matrix_heatmap(g_ii_truth_decomp[,,1], 'TT Reconstruct', -1, 1), # ground truth reconstructed
-                         visualize_matrix_heatmap(g_ii_coarse_truth[,,1], 'Coarse Truth Theory (CTT)', -1, 1), # ground truth 19 x 19 covariance
-                         visualize_matrix_heatmap(g_ii_coarse_truth_decomp[,,1], 'CTT Reconstruct', -1, 1), # ground truth 19 x 19 covariance
-                         visualize_matrix_heatmap(g_ii_est[,,1], 'Estimate (E)', -1, 1),    # estimate 19 x 19 covariance
-                         visualize_matrix_heatmap(g_ii_est_decomp[,,1], 'E Reconstruct', -1, 1), # reconstructed estimate
+    g_42 <- grid.arrange(visualize_matrix_heatmap(g_ii_truth[,,1],               'Truth Theory (TT)', -1, 0, 1),  # ground truth 50 x 50 covariance
+                         visualize_matrix_heatmap(g_ii_truth_decomp[,,1],        'TT Reconstruct', -1,0, 1), # ground truth reconstructed
+                         visualize_matrix_heatmap(g_ii_coarse_truth[,,1],        'Coarse Truth Theory (CTT)', -1, 0, 1), # ground truth 19 x 19 covariance
+                         visualize_matrix_heatmap(g_ii_coarse_truth_decomp[,,1], 'CTT Reconstruct', -1, 0, 1), # ground truth 19 x 19 covariance
+                         visualize_matrix_heatmap(g_ii_est[,,1],                 'Estimate (E)', -1, 0, 1),    # estimate 19 x 19 covariance
+                         visualize_matrix_heatmap(g_ii_est_decomp[,,1],          'E Reconstruct', -1, 0, 1), # reconstructed estimate
                          textGrob("4. Eigenfunction\nReconstruction", gp = gpar(fontsize = 14)),
                          layout_matrix = arr_mat_8)    
   
@@ -1268,36 +1273,39 @@ full_conditional_estimation_with_truths_v3 <- function(dataset, method, terse, n
     
     # 9.1) visualize i_j matrix
     
-    g_91 <- grid.arrange(visualize_pm_block_matrix_heatmap(C_cond_ground_truth[['1_2']], 'Ground Truth'),
-                         visualize_pm_block_matrix_heatmap(C_cond_coarse_ground_truth[['1_2']], 'Coarse Ground Truth'),
-                         visualize_pm_block_matrix_heatmap(C_cond_truth[['1_2']], 'Truth Theory'),
-                         visualize_pm_block_matrix_heatmap(C_cond_coarse_truth[['1_2']], 'Coarse Truth Theory'),
-                         visualize_pm_block_matrix_heatmap(C_cond_X_truth[['1_2']], 'Truth X'),
-                         visualize_pm_block_matrix_heatmap(C_cond_X_coarse_truth[['1_2']], 'Coarse Truth X'),
-                         visualize_pm_block_matrix_heatmap(C_cond_est[['1_2']], 'Estimate'),
+    g_91 <- grid.arrange(visualize_matrix_heatmap(C_cond_ground_truth[['1_2']],        'Ground Truth', zmid = 0),
+                         visualize_matrix_heatmap(C_cond_coarse_ground_truth[['1_2']], 'Coarse Ground Truth', zmid = 0),
+                         visualize_matrix_heatmap(C_cond_truth[['1_2']],               'Truth Theory', zmid = 0),
+                         visualize_matrix_heatmap(C_cond_coarse_truth[['1_2']],        'Coarse Truth Theory', zmid = 0),
+                         visualize_matrix_heatmap(C_cond_X_truth[['1_2']],             'Truth X', zmid = 0),
+                         visualize_matrix_heatmap(C_cond_X_coarse_truth[['1_2']],      'Coarse Truth X', zmid = 0),
+                         visualize_matrix_heatmap(C_cond_est[['1_2']],                 'Estimate', zmid = 0),
                          textGrob("9. Conditional\nCorrelation Operator\nProcess 1 with 2", gp = gpar(fontsize = 14)),                             
                          layout_matrix = arr_mat_8)  
     
-    g_92 <- grid.arrange(visualize_pm_block_matrix_heatmap(C_cond_ground_truth[['3_6']], 'Ground Truth'),
-                         visualize_pm_block_matrix_heatmap(C_cond_coarse_ground_truth[['3_6']], 'Coarse Ground Truth'),
-                         visualize_pm_block_matrix_heatmap(C_cond_truth[['3_6']], 'Truth Theory'),
-                         visualize_pm_block_matrix_heatmap(C_cond_coarse_truth[['3_6']], 'Coarse Truth Theory'),
-                         visualize_pm_block_matrix_heatmap(C_cond_X_truth[['3_6']], 'Truth X'),
-                         visualize_pm_block_matrix_heatmap(C_cond_X_coarse_truth[['3_6']], 'Coarse Truth X'),
-                         visualize_pm_block_matrix_heatmap(C_cond_est[['3_6']], 'Estimate'),
+    g_92 <- grid.arrange(visualize_matrix_heatmap(C_cond_ground_truth[['3_6']],        'Ground Truth', zmid = 0),
+                         visualize_matrix_heatmap(C_cond_coarse_ground_truth[['3_6']], 'Coarse Ground Truth', zmid = 0),
+                         visualize_matrix_heatmap(C_cond_truth[['3_6']],               'Truth Theory', zmid = 0),
+                         visualize_matrix_heatmap(C_cond_coarse_truth[['3_6']],        'Coarse Truth Theory', zmid = 0),
+                         visualize_matrix_heatmap(C_cond_X_truth[['3_6']],             'Truth X', zmid = 0),
+                         visualize_matrix_heatmap(C_cond_X_coarse_truth[['3_6']],      'Coarse Truth X', zmid = 0),
+                         visualize_matrix_heatmap(C_cond_est[['3_6']],                 'Estimate', zmid = 0),
                          textGrob("9. Conditional\nCorrelation Operator\nProcess 3 with 6", gp = gpar(fontsize = 14)),                             
                          layout_matrix = arr_mat_8)      
     
-    # 9.2) visualize the entire pm x pm block 
+    # 9.2) assemble and visualize the entire pm x pm block 
     
-    C_cond_est_full            <- assemble_block_matrix_v2(C_cond_est,            p, m_est)
-    C_cond_X_coarse_truth_full <- assemble_block_matrix_v2(C_cond_X_coarse_truth, p, m_est)
-    C_cond_X_truth_full        <- assemble_block_matrix_v2(C_cond_X_truth,        p, m)    
-    C_cond_coarse_truth_full   <- assemble_block_matrix_v2(C_cond_coarse_truth,   p, m_est)
-    C_cond_truth_full          <- assemble_block_matrix_v2(C_cond_truth,          p, m)
+    C_cond_est_full                   <- assemble_block_matrix_v2(C_cond_est,                 p, m_est)
+    C_cond_X_coarse_truth_full        <- assemble_block_matrix_v2(C_cond_X_coarse_truth,      p, m_est)
+    C_cond_X_truth_full               <- assemble_block_matrix_v2(C_cond_X_truth,             p, m)    
+    C_cond_coarse_truth_full          <- assemble_block_matrix_v2(C_cond_coarse_truth,        p, m_est)
+    C_cond_truth_full                 <- assemble_block_matrix_v2(C_cond_truth,               p, m)
+    C_cond_corase_ground_truth_full   <- assemble_block_matrix_v2(C_cond_coarse_ground_truth, p, m_est)
+    C_cond_ground_truth_full          <- assemble_block_matrix_v2(C_cond_ground_truth,        p, m)
     
+
     
-    
+    # visualize pm x pm matrix
     g_93 <- grid.arrange(visualize_pm_block_matrix_heatmap(C_cond_est_full, 'Estimate'),
                          visualize_pm_block_matrix_heatmap(C_cond_truth_full, 'Truth Theory'), 
                          visualize_pm_block_matrix_heatmap(C_cond_ground_truth_full, 'Ground Truth'), 
@@ -1313,7 +1321,27 @@ full_conditional_estimation_with_truths_v3 <- function(dataset, method, terse, n
                          visualize_pm_block_matrix_heatmap(C_cond_X_coarse_truth_full, 'Coarse Truth X'), 
                          visualize_pm_block_matrix_heatmap(C_cond_est_full, 'Estimate'),
                          textGrob("9. Conditional\nCorrelation Operator\nAll Processes", gp = gpar(fontsize = 14)),
-                         layout_matrix = arr_mat_8)       
+                         layout_matrix = arr_mat_8)   
+    
+    # sanity check - hilbert schmidt norms of the C_Cond
+    
+    C_HS_est                        <- hilbert_schmidt_norm_pm(C_cond_est_full,                   p, m_est)
+    C_HS_X_coarse_truth_full        <- hilbert_schmidt_norm_pm(C_cond_X_coarse_truth_full,        p, m_est)
+    C_HS_X_truth_full               <- hilbert_schmidt_norm_pm(C_cond_X_truth_full,               p, m)
+    C_HS_coarse_truth_full          <- hilbert_schmidt_norm_pm(C_cond_coarse_truth_full,          p, m_est)
+    C_HS_truth_full                 <- hilbert_schmidt_norm_pm(C_cond_truth_full,                 p, m)
+    C_HS_coarse_ground_truth_full   <- hilbert_schmidt_norm_pm(C_cond_corase_ground_truth_full,   p, m_est)
+    C_HS_ground_truth_full          <- hilbert_schmidt_norm_pm(C_cond_ground_truth_full,          p, m)    
+    
+    g_95 <- grid.arrange(visualize_matrix_heatmap(C_HS_ground_truth_full,        'Ground Truth', zmid = 0),
+                         visualize_matrix_heatmap(C_HS_coarse_ground_truth_full, 'Coarse Ground Truth', zmid = 0),
+                         visualize_matrix_heatmap(C_HS_truth_full,               'Truth Theory', zmid = 0),
+                         visualize_matrix_heatmap(C_HS_coarse_truth_full,        'Coarse Truth Theory', zmid = 0),
+                         visualize_matrix_heatmap(C_HS_X_truth_full,             'Truth X', zmid = 0),
+                         visualize_matrix_heatmap(C_HS_X_coarse_truth_full,      'Coarse Truth X', zmid = 0),
+                         visualize_matrix_heatmap(C_HS_est,                      'Estimate', zmid = 0),
+                         textGrob("9. Conditional\nCorrelation Operator\nHS Norm", gp = gpar(fontsize = 14)),
+                         layout_matrix = arr_mat_8)    
     
     
     # part 10 - precision operator ---------------------------------------------
@@ -1327,6 +1355,13 @@ full_conditional_estimation_with_truths_v3 <- function(dataset, method, terse, n
     P_cond_coarse_truth   <- estimate_precision_operator_v3(C_cond_coarse_truth, p)
     P_cond_truth          <- estimate_precision_operator_v3(C_cond_truth, p)
     
+    # moore penrose 
+    P_cond_est_MP            <- estimate_precision_operator_v3(C_cond_est, p, T)
+    P_cond_X_coarse_truth_MP <- estimate_precision_operator_v3(C_cond_X_coarse_truth, p, T)
+    P_cond_X_truth_MP        <- estimate_precision_operator_v3(C_cond_X_truth, p, T)    
+    P_cond_coarse_truth_MP   <- estimate_precision_operator_v3(C_cond_coarse_truth, p, T)
+    P_cond_truth_MP          <- estimate_precision_operator_v3(C_cond_truth, p, T)    
+    
     # truth = prec_mat \otimes I_m
     P_cond_ground_truth_full               <- kronecker(kernel_params_i$prec_mat_truth$prec_mat, diag(m))
     P_cond_coarse_ground_truth_full        <- kronecker(kernel_params_i$prec_mat_truth$prec_mat, diag(m_est))
@@ -1335,35 +1370,57 @@ full_conditional_estimation_with_truths_v3 <- function(dataset, method, terse, n
     
     # 10.1) visualize
     
-    g_101 <- grid.arrange(visualize_pm_block_matrix_heatmap(P_cond_ground_truth[['1_2']], 'Truth Ground'),
+    g_101 <- grid.arrange(visualize_pm_block_matrix_heatmap(P_cond_ground_truth[['1_2']],        'Truth Ground'),
                           visualize_pm_block_matrix_heatmap(P_cond_coarse_ground_truth[['1_2']], 'Coarse Truth Ground'),
-                          visualize_pm_block_matrix_heatmap(P_cond_truth[['1_2']], 'Truth Theory'),
-                          visualize_pm_block_matrix_heatmap(P_cond_coarse_truth[['1_2']], 'Coarse Truth Theory'),
-                          visualize_pm_block_matrix_heatmap(P_cond_X_truth[['1_2']], 'Truth X'),
-                          visualize_pm_block_matrix_heatmap(P_cond_X_coarse_truth[['1_2']], 'Coarse Truth X'),
-                          visualize_pm_block_matrix_heatmap(P_cond_est[['1_2']], 'Estimate'),
+                          visualize_pm_block_matrix_heatmap(P_cond_truth[['1_2']],               'Truth Theory'),
+                          visualize_pm_block_matrix_heatmap(P_cond_coarse_truth[['1_2']],        'Coarse Truth Theory'),
+                          visualize_pm_block_matrix_heatmap(P_cond_X_truth[['1_2']],             'Truth X'),
+                          visualize_pm_block_matrix_heatmap(P_cond_X_coarse_truth[['1_2']],      'Coarse Truth X'),
+                          visualize_pm_block_matrix_heatmap(P_cond_est[['1_2']],                 'Estimate'),
                           textGrob("10. Conditional\nPrecision Operator\n Process 1 and 2", gp = gpar(fontsize = 14)),
                           layout_matrix = arr_mat_8)  
     
-    g_102 <- grid.arrange(visualize_pm_block_matrix_heatmap(P_cond_ground_truth[['3_6']], 'Truth Ground'),
+    # moore penrose inverse
+    g_101b <- grid.arrange(visualize_pm_block_matrix_heatmap(P_cond_ground_truth[['1_2']],         'Truth Ground'),
+                           visualize_pm_block_matrix_heatmap(P_cond_coarse_ground_truth[['1_2']],  'Coarse Truth Ground'),
+                           visualize_pm_block_matrix_heatmap(P_cond_truth_MP[['1_2']],             'Truth Theory'),
+                           visualize_pm_block_matrix_heatmap(P_cond_coarse_truth_MP[['1_2']],      'Coarse Truth Theory'),
+                           visualize_pm_block_matrix_heatmap(P_cond_X_truth_MP[['1_2']],           'Truth X'),
+                           visualize_pm_block_matrix_heatmap(P_cond_X_coarse_truth_MP[['1_2']],    'Coarse Truth X'),
+                           visualize_pm_block_matrix_heatmap(P_cond_est_MP[['1_2']],               'Estimate'),
+                           textGrob("10. Conditional\nPrecision Operator\n Process 1 and 2", gp = gpar(fontsize = 14)),
+                           layout_matrix = arr_mat_8)     
+    
+    g_102 <- grid.arrange(visualize_pm_block_matrix_heatmap(P_cond_ground_truth[['3_6']],        'Truth Ground'),
                           visualize_pm_block_matrix_heatmap(P_cond_coarse_ground_truth[['3_6']], 'Coarse Truth Ground'),
-                          visualize_pm_block_matrix_heatmap(P_cond_truth[['3_6']], 'Truth Theory'),
-                          visualize_pm_block_matrix_heatmap(P_cond_coarse_truth[['3_6']], 'Coarse Truth Theory'),
-                          visualize_pm_block_matrix_heatmap(P_cond_X_truth[['3_6']], 'Truth X'),
-                          visualize_pm_block_matrix_heatmap(P_cond_X_coarse_truth[['3_6']], 'Coarse Truth X'),
-                          visualize_pm_block_matrix_heatmap(P_cond_est[['3_6']], 'Estimate'),
+                          visualize_pm_block_matrix_heatmap(P_cond_truth[['3_6']],               'Truth Theory'),
+                          visualize_pm_block_matrix_heatmap(P_cond_coarse_truth[['3_6']],        'Coarse Truth Theory'),
+                          visualize_pm_block_matrix_heatmap(P_cond_X_truth[['3_6']],             'Truth X'),
+                          visualize_pm_block_matrix_heatmap(P_cond_X_coarse_truth[['3_6']],      'Coarse Truth X'),
+                          visualize_pm_block_matrix_heatmap(P_cond_est[['3_6']],                 'Estimate'),
                           textGrob("10. Conditional\nPrecision Operator\n Process 3 and 6", gp = gpar(fontsize = 14)),
                           layout_matrix = arr_mat_8)     
+    
+    # moore penrose
+    g_102b <- grid.arrange(visualize_pm_block_matrix_heatmap(P_cond_ground_truth[['3_6']],        'Truth Ground'),
+                           visualize_pm_block_matrix_heatmap(P_cond_coarse_ground_truth[['3_6']], 'Coarse Truth Ground'),
+                           visualize_pm_block_matrix_heatmap(P_cond_truth_MP[['3_6']],            'Truth Theory'),
+                           visualize_pm_block_matrix_heatmap(P_cond_coarse_truth_MP[['3_6']],     'Coarse Truth Theory'),
+                           visualize_pm_block_matrix_heatmap(P_cond_X_truth_MP[['3_6']],          'Truth X'),
+                           visualize_pm_block_matrix_heatmap(P_cond_X_coarse_truth_MP[['3_6']],   'Coarse Truth X'),
+                           visualize_pm_block_matrix_heatmap(P_cond_est_MP[['3_6']],              'Estimate'),
+                           textGrob("10. Conditional\nPrecision Operator\n Process 3 and 6", gp = gpar(fontsize = 14)),
+                           layout_matrix = arr_mat_8)    
     
     
     # 10.2) visualize the entire pm x pm block
     
     
-    P_cond_est_full            <- assemble_block_matrix_v2(P_cond_est, p, m_est)
-    P_cond_X_coarse_truth_full <- assemble_block_matrix_v2(P_cond_X_coarse_truth, p, m_est)
-    P_cond_X_truth_full        <- assemble_block_matrix_v2(P_cond_X_truth, p, m)    
-    P_cond_coarse_truth_full   <- assemble_block_matrix_v2(P_cond_coarse_truth, p, m_est)
-    P_cond_truth_full          <- assemble_block_matrix_v2(P_cond_truth, p, m)
+    P_cond_est_full            <- assemble_block_matrix_v2(P_cond_est_MP, p, m_est)
+    P_cond_X_coarse_truth_full <- assemble_block_matrix_v2(P_cond_X_coarse_truth_MP, p, m_est)
+    P_cond_X_truth_full        <- assemble_block_matrix_v2(P_cond_X_truth_MP, p, m)    
+    P_cond_coarse_truth_full   <- assemble_block_matrix_v2(P_cond_coarse_truth_MP, p, m_est)
+    P_cond_truth_full          <- assemble_block_matrix_v2(P_cond_truth_MP, p, m)
     
     
     
@@ -1405,6 +1462,9 @@ full_conditional_estimation_with_truths_v3 <- function(dataset, method, terse, n
     w_mat_coarse_truth   <- hilbert_schmidt_norm_pm(P_cond_coarse_truth_full,   p, m_est)
     w_mat_truth          <- hilbert_schmidt_norm_pm(P_cond_truth_full,          p, m)
  
+    diag(w_mat_est) <- 0
+    diag(w_mat_X_coarse_truth) <- 0
+    diag(w_mat_X_truth) <- 0
     diag(w_mat_coarse_truth) <- 0  
     diag(w_mat_truth) <- 0
        
@@ -1419,14 +1479,19 @@ full_conditional_estimation_with_truths_v3 <- function(dataset, method, terse, n
     w_mat_normalized_X_truth             <- hilbert_schmidt_norm_pm_normalize(P_cond_X_truth_full, p, m)    
     w_mat_normalized_coarse_truth        <- hilbert_schmidt_norm_pm_normalize(P_cond_coarse_truth_full, p, m_est)
     w_mat_normalized_truth               <- hilbert_schmidt_norm_pm_normalize(P_cond_truth_full, p, m)
-    w_mat_normalized_est                 <- hilbert_schmidt_norm_pm_normalize(P_cond_est_full, p, m_est)    
+    w_mat_normalized_est                 <- hilbert_schmidt_norm_pm_normalize(P_cond_est_full, p, m_est)  
     
+    diag(w_mat_normalized_X_coarse_truth) <- 0
+    diag(w_mat_normalized_X_truth) <- 0
+    diag(w_mat_normalized_coarse_truth) <- 0
+    diag(w_mat_normalized_truth) <- 0
+    diag(w_mat_normalized_est) <- 0
 
     w_mat_normalized_ground_truth        <- hilbert_schmidt_norm_pm_normalize(P_cond_ground_truth_full, p, m)
     w_mat_normalized_coarse_ground_truth <- hilbert_schmidt_norm_pm_normalize(P_cond_coarse_ground_truth_full, p, m_est)
     diag(w_mat_normalized_ground_truth) <- 0
     diag(w_mat_normalized_coarse_ground_truth) <- 0    
-        
+
     
     # visualize HS norms with adj_mat (0 or 1)
     g_111 <- grid.arrange(visualize_pm_block_matrix_heatmap(adj_mat_i, 'Coarse Ground Truth'), 
@@ -1438,6 +1503,8 @@ full_conditional_estimation_with_truths_v3 <- function(dataset, method, terse, n
                           visualize_pm_block_matrix_heatmap(w_mat_est, 'Estimate'),
                           textGrob("11. Final Estimates\nvs Adj Truth", gp = gpar(fontsize = 14)),
                           layout_matrix = arr_mat_8)  
+    
+    
     
     g_111b <- grid.arrange(visualize_pm_block_matrix_heatmap(adj_mat_i, 'Coarse Ground Truth'),
                            visualize_pm_block_matrix_heatmap(adj_mat_i, 'Ground Truth'), 
@@ -1518,6 +1585,7 @@ full_conditional_estimation_with_truths_v3 <- function(dataset, method, terse, n
     if(terse){
       list(g_22 = g_22, g_25 = g_25,
            g_94  = g_94, 
+           g_101 = g_101, g_101b = g_101b,
            g_104 = g_104,
            g_111 = g_111, g_111b = g_111b,
            g_112 = g_112, g_112b = g_112b,

@@ -15,15 +15,19 @@ source('functions/28_Simulation_Visualization.R')
 
 
 
-load('simu_results_banded_c1_5/n_300.RData')
+load('simu_results_banded_c1_5/n_500.RData')
+
 grid.newpage()
 grid.draw(graph_results_i$estimated_graphs_part_1$g_01) # ground truths
 
 grid.newpage()
-grid.draw(graph_results_i$estimated_graphs_part_1$g_11) # rho_i
+grid.draw(graph_results_i$estimated_graphs_part_1$g_11) # X_hat_k_i
 
 grid.newpage()
-grid.draw(graph_results_i$estimated_graphs_part_2[[1]]$g_25) # rho_i
+grid.draw(graph_results_i$estimated_graphs_part_2[[1]]$g_22) # rho_i
+
+grid.newpage()
+grid.draw(graph_results_i$estimated_graphs_part_2[[1]]$g_25) # rho_ij
 
 grid.newpage()
 grid.draw(graph_results_i$estimated_graphs_part_2[[1]]$g_94) # C_cond pm x pm
@@ -41,7 +45,7 @@ grid.newpage()
 grid.draw(graph_results_i$estimated_graphs_part_2[[2]]$g_112b) #HS norms
 
 grid.newpage()
-grid.draw(graph_results_i$estimated_graphs_part_2[[1]]$g_113) #ROC curves
+grid.draw(graph_results_i$estimated_graphs_part_2[[2]]$g_113) #ROC curves
 
 
 
@@ -49,13 +53,20 @@ grid.draw(graph_results_i$estimated_graphs_part_2[[1]]$g_113) #ROC curves
 
 # visualize ||V - V_Hat||_HS error
 grid.newpage()
-visualize_V_cond_convergence('simu_results_banded_c1_5', 'C', 1, 2) %>% print()
+visualize_V_cond_convergence('simu_results_banded_c0_5', 'C', 1, 2) %>% print()
 
 # visualize AUC versus n and y_c
 grid.newpage()
-visualize_AUC_across_n('simu_results_banded_c0_5') %>% print()
+visualize_AUC_across_n('simu_results_banded_c1_5') %>% print()
 
-# how does V_cond error change over time?
+# choices: rho_i_dist, rho_ij_dist, g_ij_dist, C_HS, V_HS, P_HS, sens, spec, auc, accuracy
+
+metrics <- c('rho_i_dist', 'rho_ij_dist', 'g_ij_dist', 'C_HS', 'P_HS', 'auc')
+grid.newpage()
+visualize_metrics('simu_results_banded_c0_5', metrics, 1, 2) %>% print()
+# convergence of intermediate estimators
+
+
 
 
 

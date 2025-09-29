@@ -102,6 +102,7 @@ g_91: conditional corrrelation operator (C_ij) [1_2]
 g_92: conditional corrrelation operator (C_ij) [3_6]
 g_93: conditional corrrelation operator (C_ij) (pm x pm) (est vs truth theory vs GT)
 g_94: conditional corrrelation operator (C_ij) (pm x pm) (GT vs TT vs TX vs CTT vs CTX vs Est)
+g_95: hilbert schmidt norms of C_ij
 
 g_101: conditional precision operator (P_ij) [1_2]
 g_102: conditional precision operator (P_ij) [3_6] (should be much lower)
