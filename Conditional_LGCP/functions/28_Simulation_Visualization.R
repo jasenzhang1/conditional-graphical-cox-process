@@ -7,14 +7,18 @@ library(ggplot2)
 visualize_pm_block_matrix_heatmap <- function(pm_block_matrix, g_title = NULL){
   
   
-  # ---------------------------------------------------------
+  # ----------------------------------------------------------------------------
   # 
   # GOAL: visualize the pm block matrix in a heatmap 
   #
-  # pm_block_matrix (pm x pm)
-  #
-  #
+  # - force midpoint to be white = 0
   # 
+  # input:
+  #
+  # - pm_block_matrix (pm x pm matrix)
+  #
+  #
+  # ----------------------------------------------------------------------------
   
   df <- reshape2::melt(pm_block_matrix)
   colnames(df) <- c("Row", "Col", "Value")
@@ -33,12 +37,31 @@ visualize_pm_block_matrix_heatmap <- function(pm_block_matrix, g_title = NULL){
   
 }
 
-visualize_matrix_heatmap <- function(mat, g_title = NULL, zmin = NULL, zmax = NULL) {
+visualize_matrix_heatmap <- function(mat, g_title = NULL, zmin = NULL, zmid = NULL, zmax = NULL) {
   
-  # plot a simple heatmap with optional arguments for max and min values
-  # low = blue
-  # mid = white
-  # max = red
+  
+  # ----------------------------------------------------------------------------
+  #
+  #
+  # GOAL: plot a simple heatmap with optional arguments for max and min values
+  #   - low = blue
+  #   - mid = white
+  #   - max = red
+  #
+  #
+  # input:
+  #
+  # - mat       (p x p matrix)
+  # - g_title   (string)
+  # - zmin      (number) to denote the very smallest value
+  # - zmid      (number) to denote the midpoint (white) value
+  # - zmax      (number) to denote the highest value (red)
+  #
+  # output:
+  #
+  # - graph
+  #
+  # ----------------------------------------------------------------------------
   
   # Convert matrix to data frame for ggplot
   df <- reshape2::melt(mat)
@@ -47,14 +70,27 @@ visualize_matrix_heatmap <- function(mat, g_title = NULL, zmin = NULL, zmax = NU
   # Set defaults for color scale
   if (is.null(zmin)) zmin <- min(df$value, na.rm = TRUE)
   if (is.null(zmax)) zmax <- max(df$value, na.rm = TRUE)
+  if (is.null(zmid)) zmid <- (zmin + zmax) / 2  
+  
+  if(zmin > zmid){
+    zmin = zmid
+  }
   
   ggplot(df, aes(x = x, y = y, fill = value)) +
     geom_tile() +
-    scale_fill_gradientn(
-      colours = c("blue", "white", "red"),
+    scale_fill_gradient2(
+      low = "blue",     # negative values
+      mid = "white",    # zero
+      high = "red",     # positive values
+      midpoint = zmid,     
       limits = c(zmin, zmax),
       oob = scales::squish
-    ) +
+    ) +    
+    # scale_fill_gradientn(
+    #   colours = c("blue", "white", "red"),
+    #   limits = c(zmin, zmax),
+    #   oob = scales::squish
+    # ) +
     coord_fixed() +
     theme_minimal() +
     scale_y_reverse() +  # So origin is at top-left like a matrix
@@ -64,32 +100,6 @@ visualize_matrix_heatmap <- function(mat, g_title = NULL, zmin = NULL, zmax = NU
 
 }
 
-visualize_nonneg_matrix_heatmap <- function(mat, g_title = NULL, zmin = NULL, zmax = NULL) {
-  
-  # Convert matrix to data frame for ggplot
-  df <- reshape2::melt(mat)
-  colnames(df) <- c("x", "y", "value")
-  
-  # Set defaults for color scale
-  if (is.null(zmin)) zmin <- min(df$value, na.rm = TRUE)
-  if (is.null(zmax)) zmax <- max(df$value, na.rm = TRUE)
-  
-  ggplot(df, aes(x = x, y = y, fill = value)) +
-    geom_tile() +
-    scale_fill_gradient2(
-      low = "blue",     # negative values
-      mid = "white",    # zero
-      high = "red",     # positive values
-      midpoint = 0,     
-      limits = c(zmin, zmax),
-      oob = scales::squish
-    ) +
-    coord_fixed() +
-    theme_minimal() +
-    scale_y_reverse() +
-    labs(x = NULL, y = NULL, fill = "Value") + 
-    ggtitle(g_title)
-}
 
 visualize_precision_matrix <- function(precision_op){
   
@@ -546,4 +556,136 @@ visualize_AUC_across_n <- function(folder_name){
   return(g)
   
   
+}
+
+
+visualize_metrics <- function(folder_name, metrics, i = NULL, j = NULL){
+  
+  # ----------------------------------------------------------------------------
+  #
+  #
+  # GOAL: visualize convergences of various metrics:
+  #
+  # - metrics
+  #   - rho_i_dist (scalar)
+  #   - rho_ij_dist (pxp matrix, each value is HS norm of m_est x m_est rho_ij)
+  #   - g_ij_dist   (pxp matrix)
+  #   - P_HS        (pxp matrix, each value is HS norm of difference of P_hat - P)
+  #   - C_HS        (pxp matrix)
+  #   - V_HS        (pxp matrix)
+  #   - sens        (scalar)
+  #   - spec        (scalar)
+  #   - auc         (scalar)
+  #   - accuracy    (scalar)
+  #
+  #
+  #
+  # input:
+  #
+  # - folder_name (string)  'simu_results_banded_c1_3'
+  # - metric      (string)  
+  #   - 'rho_i_dist'
+  #   - 'rho_ij_dist'
+  #   - 'g_ij_dist'
+  #   - 'P_HS', 'C_HS', 'V_HS'
+  # - i and j    (integers)  indices for matrix metrics
+  #
+  # output:
+  #
+  #
+  #
+  # ----------------------------------------------------------------------------
+  
+  
+  files <- list.files(folder_name, full.names = TRUE)
+  
+  ns <-  as.numeric(sub(".*_(.*)\\.RData$", "\\1", files)) # retrieve numbers
+  
+  results_list <- lapply(files, function(f) {
+    e <- new.env()          # create an isolated environment
+    load(f, envir = e)      # load into that environment
+    as.list(e)              # convert to a list (in case multiple objects)
+  })
+  
+  names(results_list) <- ns
+  
+  
+  # retrieve the 1_2 entry from metrics of V_cond (written by chatgpt)
+  
+  # top_name = '100', '200' etc n
+  # low_name = '0', '0.125', '0.25', etc y_c_query  
+  results_df <- do.call(rbind, lapply(names(results_list), function(top_name) {
+    
+    top_entry <- results_list[[top_name]]$graph_results_i$estimated_graphs_part_2
+    
+    do.call(rbind, lapply(names(top_entry), function(low_name) {
+      low_entry <- top_entry[[low_name]]
+      
+      values <- c()
+      for(metric in metrics){
+      
+        metric_value <- low_entry[['metrics']][[metric]]
+        
+        if(metric %in% c('rho_ij_dist', 'g_ij_dist', 'P_HS', 'C_HS', 'V_HS')){
+          metric_value = metric_value[i, j]
+        }
+        
+        values <- c(values, metric_value)
+        
+      }
+    
+      
+      c(top_name, low_name, values)
+    }))
+  }))
+  
+  # names 
+  metric_names <- c()
+  for(metric in metrics){
+    
+  
+    if(metric %in% c('rho_ij_dist', 'g_ij_dist', 'P_HS', 'C_HS', 'V_HS')){
+      metric_name <- paste0(metric, '_', i, '_', j)
+    } else{
+      metric_name <- metric  
+    }
+    
+    metric_names <- c(metric_names, metric_name)
+  }
+  
+  results_df <- data.frame(results_df) %>% mutate_all(as.numeric)
+  colnames(results_df) <- c('n', 'y_c_query', metric_names)
+  
+  
+  results_df$n <- as.factor(results_df$n)
+  
+  # graph
+  graphs <- list()
+  
+  for(metric_name in metric_names){
+    
+    title_name <- paste0(metric_name, ' versus n and y_c_query')
+    
+    g <- ggplot() + geom_line(data = results_df, aes(x = y_c_query, y = .data[[metric_name]], group = n, color = n)) + 
+      ylab(metric_name) + 
+      xlab('Y_c Query') + 
+      # ggtitle(title_name) + 
+      theme_bw() 
+    
+    if(metric_name %in% c('auc')){
+      g <- g + ylim(0, 1)
+    } else{
+      g <- g + ylim(0, NA)
+    }
+    graphs[[metric_name]] <- g
+  }
+  
+  # grid arrange
+  
+  arranged_plots <- do.call(arrangeGrob, c(graphs, ncol = 3))
+  
+  # Display it
+  return(grid.arrange(arranged_plots))
+  
+    
 }
