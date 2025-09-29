@@ -73,7 +73,7 @@ estimate_precision_operator_v2 <- function(C_conditional, gamma2, p) {
 }
 
 
-estimate_precision_operator_v3 <- function(C_conditional, p) {
+estimate_precision_operator_v3 <- function(C_conditional, p, MP = FALSE) {
   
   # ------------------------------------------------------------------------
   #
@@ -84,7 +84,8 @@ estimate_precision_operator_v3 <- function(C_conditional, p) {
   # Input: 
   #
   # - C_conditional (list of length p^2, each element m x m)
-  # - p (scalar)
+  # - p             (scalar)
+  # - MP            (boolean)  are we using moore penrose?
   #
   # 
   # Output: 
@@ -98,11 +99,15 @@ estimate_precision_operator_v3 <- function(C_conditional, p) {
   # Assemble block correlation matrix: pm x pm
   C_block <- assemble_block_matrix_v2(C_conditional, p, n_time)
   
-  # Add regularization: (pm x pm) + (pm x pm) = (pm x pm)
-  C_block_reg <- psd_jitter(C_block)
-  
-  # Compute precision operator: (pm x pm)^{-1} = (pm x pm)
-  P_block <- solve(C_block_reg)
+  if(MP){
+    P_block <- ginv(C_block)
+  } else{
+    # Add regularization: (pm x pm) + (pm x pm) = (pm x pm)
+    C_block_reg <- psd_jitter(C_block)
+    
+    # Compute precision operator: (pm x pm)^{-1} = (pm x pm)
+    P_block <- solve(C_block_reg)
+  }
   
   # Extract block structure: pm x pm -> list of p^2 blocks (m x m each)
   P_conditional <- extract_block_structure_v2(P_block, p, n_time)
