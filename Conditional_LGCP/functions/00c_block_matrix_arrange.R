@@ -50,45 +50,7 @@ assemble_block_matrix_v2 <- function(operator_list, p, block_size) {
   return(block_matrix)
 }
 
-extract_block_structure <- function(block_matrix, p, block_size) {
-  
-  # ------------------------------------------------------------------------
-  #
-  # GOAL: extract block sub-matrices from a block matrix
-  #
-  # - it's the reverse of assemble_block_matrix
-  #
-  # 
-  # Input: 
-  #
-  # - block_matrix   (pm x pm matrix)
-  # - p              (scalar)
-  # - block_size     (scalar)
-  #
-  # 
-  # Output: 
-  #
-  # - operator_list (list of length p^2, each element block_size x block_size)
-  #
-  # ------------------------------------------------------------------------
-  
-  operator_list <- list()
-  
-  for (i in 1:p) {
-    for (j in 1:p) {
-      row_start <- (i-1) * block_size + 1
-      row_end <- i * block_size
-      col_start <- (j-1) * block_size + 1
-      col_end <- j * block_size
-      
-      key <- paste(i, j, sep="_")
-      # Extract m x m block from pm x pm matrix
-      operator_list[[key]] <- block_matrix[row_start:row_end, col_start:col_end]
-    }
-  }
-  
-  return(operator_list)
-}
+
 
 extract_block_structure_v2 <- function(block_matrix, p, block_size) {
   
