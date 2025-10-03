@@ -242,6 +242,7 @@ get_metrics <- function(results){
   # - g_ij_est             (i_j list of m_est x m_est matrices)  [[14]]
   # - g_ij_coarse_truth    (i_j list of m_est x m_est matrices)  [[15]]
   #
+  # - i_neq_j   (boolean)
   #
   # output:
   #
@@ -261,7 +262,7 @@ get_metrics <- function(results){
   P_HS <- hilbert_schmidt_norm_pm(results[[1]] - results[[4]], p, m_est)
   C_HS <- hilbert_schmidt_norm_pm(results[[2]] - results[[5]], p, m_est)
   
-  if(is.na(results[[3]])){
+  if(is.null(results[[3]])){
     V_HS <- NA
   } else{
     V_HS <- hilbert_schmidt_norm_pm(results[[3]] - results[[6]], p, m_est)
@@ -271,14 +272,13 @@ get_metrics <- function(results){
   
   rho_i_dist <- hilbert_schmidt_norm(results[[10]] - results[[11]])
   
-  
   # distance between rho_ij and rho_ij_coarse truth
   rho_ij_dist <- hilbert_schmidt_norm_pm(assemble_block_matrix_v2(results[[12]], p, m_est) - assemble_block_matrix_v2(results[[13]], p, m_est), p, m_est)
   
   # 3) find distance between g_ij_est and g_ij_coarse_truth
 
   g_ij_dist <- hilbert_schmidt_norm_pm(assemble_block_matrix_v2(results[[14]], p, m_est) - assemble_block_matrix_v2(results[[15]], p, m_est), p, m_est)
-  
+
   
   return(list(rho_i_dist = rho_i_dist,
               rho_ij_dist = rho_ij_dist,
