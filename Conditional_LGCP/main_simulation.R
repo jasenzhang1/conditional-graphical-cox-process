@@ -14,7 +14,7 @@ ncores = parallel::detectCores() - 1
 
 # 2) output parameters
 terse = TRUE
-results_folder_name <- "simu_results_banded_c0_5"
+results_folder_name <- "simu_results_banded_c1_6"
 if (!dir.exists(results_folder_name)) dir.create(results_folder_name)
 
 
@@ -29,7 +29,7 @@ time_grid_both <- sort(union(time_grid, time_grid_est))
 # 4) base covariance
 # kernels = 'exponential', 'rbf', 'rbf_pd', 'polynomial'
 base_kernel_params <- list(base_gamma = 20,      
-                           base_kernel = 'exponential',   
+                           base_kernel = 'rbf',   
                            base_variance = 1,
                            base_GP_mean = 5)
 
@@ -41,22 +41,23 @@ if(base_kernel_params$base_kernel == 'rbf_pd'){
 # adj_type = "banded_trig"                 # Graph topology
 # adj_params <- c(0, 1, 0.9)               # associated parameters 
 
-# adj_type = "banded_c1"
-# adj_params <- c(0, 1, 0.3)
+adj_type = "banded_c1"
+adj_params <- c(0, 1, 0.3)
 
-adj_type = "banded_c0"
-adj_params <- c(0.5, 0.3)
+# adj_type = "banded_c0"
+# adj_params <- c(0.5, 0.3)
 
 query_y_cs = matrix(0:8/8)               # query y_values
+query_y_cs <- matrix(0.5)
 
 # 6) sample size and # of processes
 ns <- c(100, 300, 1000, 3000, 10000)     # Sample size (n)
-ns <- c(100, 200, 500, 1000)
+ns <- c(100)
 n_large <- max(ns)
 
 p = 10                                   # Number of processes (p)  
 
-method <- 'RHO_KERNEL'
+method <- 'OG'
 
 
 # 1) generate dataset ----------------------------------------------------------
@@ -68,7 +69,7 @@ dataset <- simulate_conditional_cox_data_v4(n_large, p, T_max, query_y_cs,
                                             time_grid_est,
                                             base_kernel_params,
                                             ncores,
-                                            seed)
+                                            seed = NULL)
 
 
 t1 <- Sys.time()
@@ -93,12 +94,18 @@ for(n in ns){
   dataset_i$Y_continuous <- matrix(dataset$Y_continuous[1:n,], nrow = n)
   dataset_i$simulation_params$n <- n
   
-  graph_results_i <- full_conditional_estimation_with_truths_v3(dataset_i, method, terse, ncores)  # WHICH ESTIMATION PROCEDURE
-  # graph_results_i <- full_conditional_estimation_with_truths(dataset_i, terse, ncores)
+  if(method == 'CPGM'){
+    graph_results_CPGM <- full_conditional_estimation_with_truths_v3(dataset, method, terse, ncores)
+  } else if(method %in% c('OG', 'JASA')){
+    graph_results_OG <- full_conditional_estimation_with_truths_v2(dataset, method, terse, ncores)
+  } else{
+    stop('Invalid method. Must be CPGM, OG, or JASA')
+  }
+  
   
   print('obtained estimate')
   
-  file_dir <- paste0(results_folder_name, '/n_', n, '.RData')
+  file_dir <- paste0(results_folder_name, '/', method, '_', 'n_', n, '.RData')
   save(graph_results_i, file = file_dir)
   
   print('saved estimate')
