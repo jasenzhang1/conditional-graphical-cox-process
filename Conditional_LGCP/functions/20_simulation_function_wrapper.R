@@ -7,7 +7,7 @@ source('functions/25_point_generation_process.R')
 source('functions/26_complete_data_generation_pipeline.R')
 source('functions/27_performance_evaluation_functions.R')
 source('functions/28_Simulation_Visualization.R')
-
+source('functions/28b_Simulation_Visualization_2.R')
 source('functions/00a_matrix_massaging.R')
 source('functions/00b_matrix_norms.R')
 
