@@ -15,6 +15,7 @@ assemble_block_matrix_v2 <- function(operator_list, p, block_size) {
   # Input: 
   #
   # - operator_list     (list of length p + pC2, each element is a matrix of block_size x block_size)
+  #                     (10/1/2025, we allow i_i entries only and assemble them accordingly)
   # - p                 (scalar)
   # - block_size        (scalar, equals m)
   #
@@ -25,19 +26,26 @@ assemble_block_matrix_v2 <- function(operator_list, p, block_size) {
   #
   # ------------------------------------------------------------------------
   
+  key_mat <- do.call(rbind, strsplit(names(operator_list), "_"))
+  key_mat <- apply(key_mat, 2, as.numeric)
+  
   total_size <- p * block_size
   block_matrix <- matrix(0, nrow=total_size, ncol=total_size)
   
-  for (i in 1:p) {
-    for (j in i:p) {
-      # Calculate block indices
-      row_start <- (i-1) * block_size + 1  # (i-1)*m + 1
-      row_end <- i * block_size             # i*m
-      col_start <- (j-1) * block_size + 1   # (j-1)*m + 1  
-      col_end <- j * block_size             # j*m
-      
-      key <- paste(min(i, j), max(i, j), sep="_")
-      
+  for(k in 1:nrow(key_mat)){
+    
+    i <- key_mat[k,1]
+    j <- key_mat[k,2]
+    
+    # Calculate block indices
+    row_start <- (i-1) * block_size + 1  # (i-1)*m + 1
+    row_end <- i * block_size             # i*m
+    col_start <- (j-1) * block_size + 1   # (j-1)*m + 1  
+    col_end <- j * block_size             # j*m
+    
+    key <- paste(min(i, j), max(i, j), sep="_")
+    
+    if(key %in% names(operator_list)){
       # Insert m x m block into pm x pm matrix
       
       block_matrix[row_start:row_end, col_start:col_end] <- operator_list[[key]]
@@ -46,11 +54,10 @@ assemble_block_matrix_v2 <- function(operator_list, p, block_size) {
       }
     }
   }
+
   
   return(block_matrix)
 }
-
-
 
 extract_block_structure_v2 <- function(block_matrix, p, block_size) {
   
@@ -66,7 +73,7 @@ extract_block_structure_v2 <- function(block_matrix, p, block_size) {
   #
   # - block_matrix   (pm x pm matrix)
   # - p              (scalar)
-  # - block_size     (scalar)
+  # - block_size     (scalar) m 
   #
   # 
   # Output: 
