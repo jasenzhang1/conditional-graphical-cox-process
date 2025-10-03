@@ -160,7 +160,7 @@ validate_kl_coeffs <- function(eigenfunctions, kl_coeffs){
   # ----------------------------------------------------------------------------
   # 
   # 
-  # GOAL: recreate the X_k matrix of log intensities with eigenfunctions nad KL coefficients
+  # GOAL: recreate the X_k matrix of log intensities with eigenfunctions and KL coefficients
   # 
   # Inputs:
   # 
@@ -201,9 +201,9 @@ validate_kl_coeffs <- function(eigenfunctions, kl_coeffs){
 
 validate_kl_full <- function(X_k, eigenfunctions, Tseq, x_name, ncores){
   
-  # -----------------------------------------------------
+  # ----------------------------------------------------------------------------
   # 
-  # code to parallelize repetitiveness
+  # GOAL: code to parallelize repetitiveness of validating kl coeff validation
   #
   # 1) find the sample mean and subtract it from X_k to get X_k_center
   # 2) calculate KL coefficients
@@ -212,7 +212,17 @@ validate_kl_full <- function(X_k, eigenfunctions, Tseq, x_name, ncores){
   #
   # 5) keep the first subject and reshape it into a df
   # 
-  # --------------------------------------------------
+  #
+  # 
+  # inputs:
+  #
+  # - X_k                  (p x m x n matrix)
+  # - eigenfunctions       (p-dim list)   each entry is a m x d matrix of eigenfunctions for process i.
+  # - Tseq                 (m-dim vector of times)
+  # - x_name               (string)   name for ggtitle like `X Truth` (X Truth --> X Truth Reconstruct)
+  # - ncores               (integer) number of cores
+  # 
+  # ----------------------------------------------------------------------------
   
   # 1)
   mean_mat <- apply(X_k, c(1, 2), mean)  # result is p x m matrix
