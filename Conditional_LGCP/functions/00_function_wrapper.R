@@ -24,6 +24,7 @@ source('functions/12_full_estimation_procedure.R')
 source('functions/12a_full_estimation_procedure_G_ij.R')
 source('functions/12b_full_estimation_procedure_mice.R')
 source('functions/12c_full_estimation_procedure_JASA.R')
+source('functions/12z_full_estimation_function_blocks.R')
 source('functions/13_estimation_validation.R')
 
 library(dplyr)
