@@ -33,6 +33,37 @@ adjust_S <- function(S=NULL, val=NULL){
   cov2cor(S)
 }
 
+# eigendecomposition
+
+matrix_inv_sqrt <- function(A, regularization=1e-6) {
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: robustly take the -1/2 power of a matrix
+  #
+  # Input: 
+  #
+  # - A (m x m symmetric positive definite matrix)
+  # 
+  # 
+  # Output: 
+  # 
+  # - A^{-1/2} (m x m matrix)
+  #
+  #
+  # ----------------------------------------------------------------------------
+  
+  eigen_result <- eigen(A, symmetric=TRUE)
+  eigenvals <- eigen_result$values  # m x 1 vector
+  eigenvecs <- eigen_result$vectors # m x m matrix
+  
+  # Regularize small eigenvalues
+  eigenvals <- pmax(eigenvals, regularization)  # m x 1
+  inv_sqrt_eigenvals <- 1.0 / sqrt(eigenvals)  # m x 1
+  
+  # Reconstruct: (m x m) %*% diag(m x 1) %*% (m x m) = (m x m)
+  return(eigenvecs %*% diag(inv_sqrt_eigenvals) %*% t(eigenvecs))
+}
 
 find_min_eigen <- function(S=NULL){
   
