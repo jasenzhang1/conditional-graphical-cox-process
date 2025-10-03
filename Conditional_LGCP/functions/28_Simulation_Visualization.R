@@ -175,6 +175,35 @@ HS_heatmap <- function(precision_op, delta_t){
   
 }
 
+visualize_error_histogram <- function(mat_est, mat_reconstruct, g_title, bin_count){
+  
+  # ----------------------------------------------------------------------------
+  #
+  # visualize the errors between mat_est and mat_reconstruct
+  # 
+  # mat_est = (matrix)
+  # mat_reconstruct = (matrix)
+  # g_title
+  # n_bins = number of histogram bins
+  #
+  #
+  # output:
+  # 
+  # histogram of elementwise differences
+  #
+  # ----------------------------------------------------------------------------
+  
+  errors <- as.numeric(mat_est - mat_reconstruct)
+  
+  df <- data.frame(errors = errors)
+  
+  g <- ggplot(df, aes(x = errors)) +
+    geom_histogram(bins = bin_count, fill = "skyblue", color = "black") +
+    labs(title = g_title) +
+    theme_minimal()
+  
+  return(g)
+}
 
 visualize_log_intensity <- function(X_k, time_grid, g_title, legend_title = 'Process'){
   
