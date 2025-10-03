@@ -1,79 +1,4 @@
-estimate_precision_operator <- function(C_conditional, gamma2, p) {
-  
-  # ------------------------------------------------------------------------
-  #
-  # GOAL: 
-  #
-  #
-  # Input: 
-  #
-  # - C_conditional (list of length p^2, each element m x m)
-  # - gamma2 (scalar)
-  # - p (scalar)
-  #
-  # 
-  # Output: 
-  #
-  # - P_conditional (list of length p^2, each element m x m)
-  #
-  # ------------------------------------------------------------------------
-  
-  n_time <- nrow(C_conditional[[1]])  # m
-  
-  # Assemble block correlation matrix: pm x pm
-  C_block <- assemble_block_matrix(C_conditional, p, n_time)
-  
-  # Add regularization: (pm x pm) + (pm x pm) = (pm x pm)
-  C_block_reg <- C_block + gamma2 * diag(p * n_time)
-  
-  # Compute precision operator: (pm x pm)^{-1} = (pm x pm)
-  P_block <- solve(C_block_reg)
-  
-  # Extract block structure: pm x pm -> list of p^2 blocks (m x m each)
-  P_conditional <- extract_block_structure(P_block, p, n_time)
-  
-  return(P_conditional)
-}
-
-estimate_precision_operator_v2 <- function(C_conditional, gamma2, p) {
-  
-  # ------------------------------------------------------------------------
-  #
-  # GOAL: 
-  #
-  #
-  # Input: 
-  #
-  # - C_conditional (list of length p^2, each element m x m)
-  # - gamma2 (scalar)
-  # - p (scalar)
-  #
-  # 
-  # Output: 
-  #
-  # - P_conditional (list of length p^2, each element m x m)
-  #
-  # ------------------------------------------------------------------------
-  
-  n_time <- nrow(C_conditional[[1]])  # m
-  
-  # Assemble block correlation matrix: pm x pm
-  C_block <- assemble_block_matrix_v2(C_conditional, p, n_time)
-  
-  # Add regularization: (pm x pm) + (pm x pm) = (pm x pm)
-  C_block_reg <- C_block + gamma2 * diag(p * n_time)
-  
-  # Compute precision operator: (pm x pm)^{-1} = (pm x pm)
-  P_block <- solve(C_block_reg)
-  
-  # Extract block structure: pm x pm -> list of p^2 blocks (m x m each)
-  P_conditional <- extract_block_structure_v2(P_block, p, n_time)
-  
-  return(P_conditional)
-}
-
-
-estimate_precision_operator_v3 <- function(C_conditional, p, MP = FALSE) {
+estimate_precision_operator_v3 <- function(C_cond, p, block = FALSE, MP = FALSE) {
   
   # ------------------------------------------------------------------------
   #
@@ -83,34 +8,47 @@ estimate_precision_operator_v3 <- function(C_conditional, p, MP = FALSE) {
   #
   # Input: 
   #
-  # - C_conditional (list of length p^2, each element m x m)
+  # - C_cond        (pm x pm matrix)
   # - p             (scalar)
+  # - block         (boolean) are we taking the inverse of each m x m matrix individually?
   # - MP            (boolean)  are we using moore penrose?
   #
   # 
   # Output: 
   #
-  # - P_conditional (list of length p^2, each element m x m)
+  # - P_cond (pm x pm matrix)
   #
   # ------------------------------------------------------------------------
   
-  n_time <- nrow(C_conditional[[1]])  # m
+  n_time <- dim(C_cond)[1] / p
   
-  # Assemble block correlation matrix: pm x pm
-  C_block <- assemble_block_matrix_v2(C_conditional, p, n_time)
-  
-  if(MP){
-    P_block <- ginv(C_block)
-  } else{
-    # Add regularization: (pm x pm) + (pm x pm) = (pm x pm)
-    C_block_reg <- psd_jitter(C_block)
+  if(block){
     
-    # Compute precision operator: (pm x pm)^{-1} = (pm x pm)
-    P_block <- solve(C_block_reg)
+    C_cond_block <- extract_block_structure_v2(C_cond, p, n_time)
+    
+    if(MP){
+      P_cond_block <- lapply(C_cond_block, function(x){ginv(x)})
+    } else{
+      P_cond_block <- lapply(C_cond_block, function(x){solve_sym(x)})
+    }
+    
+    P_cond <- assemble_block_matrix_v2(P_cond_block, p, block_size)
+    
+  } else{
+    
+
+    if(MP){
+      P_cond <- ginv(C_cond)
+    } else{
+      # Add regularization: (pm x pm) + (pm x pm) = (pm x pm)
+      C_cond_reg <- psd_jitter(C_cond)
+      
+      # Compute precision operator: (pm x pm)^{-1} = (pm x pm)
+      P_cond <- solve_sym(C_cond_reg)
+    }
+    
+
   }
   
-  # Extract block structure: pm x pm -> list of p^2 blocks (m x m each)
-  P_conditional <- extract_block_structure_v2(P_block, p, n_time)
-  
-  return(P_conditional)
+  return(P_cond)
 }
