@@ -696,6 +696,7 @@ visualize_metrics <- function(folder_name, metrics, i = NULL, j = NULL){
     title_name <- paste0(metric_name, ' versus n and y_c_query')
     
     g <- ggplot() + geom_line(data = results_df, aes(x = y_c_query, y = .data[[metric_name]], group = n, color = n)) + 
+      geom_point(data = results_df, aes(x = y_c_query, y = .data[[metric_name]], group = n, color = n)) + 
       ylab(metric_name) + 
       xlab('Y_c Query') + 
       # ggtitle(title_name) + 
@@ -714,7 +715,8 @@ visualize_metrics <- function(folder_name, metrics, i = NULL, j = NULL){
   arranged_plots <- do.call(arrangeGrob, c(graphs, ncol = 3))
   
   # Display it
-  return(grid.arrange(arranged_plots))
+  return(list(metric_graph = arranged_plots,
+              metric_table = results_df))
   
     
 }
