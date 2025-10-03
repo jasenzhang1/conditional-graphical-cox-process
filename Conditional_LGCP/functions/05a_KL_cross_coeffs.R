@@ -114,7 +114,7 @@ estimate_KL_covariance <- function(G_hat, eigenfunctions){
       eigen_i <- eigenfunctions[[i]]
       eigen_j <- eigenfunctions[[j]]
       
-      cov_ij <- t(eigen_i) %*% G_ij %*% eigen_j / (m^2)
+      cov_ij <- t(eigen_i) %*% G_ij %*% eigen_j  / m
       
       # in case we need to force a d_max x d_max result
       # cov_ij2 <- matrix(0, nrow = d, ncol = d)
