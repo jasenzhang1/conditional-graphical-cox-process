@@ -69,7 +69,7 @@ prep_covariance_functions_ij <- function(rho_i, rho_ij){
   
 }
 
-estimate_covariance_functions_ii <- function(rho_i_list, regularization=1e-10) {
+estimate_covariance_functions_ii <- function(rho_i, rho_ii, regularization=1e-10) {
   
   # ----------------------------------------------------------------------------
   #
@@ -80,34 +80,40 @@ estimate_covariance_functions_ii <- function(rho_i_list, regularization=1e-10) {
   #
   # 
   # Input: 
-  # 
-  # - rho_i_list (list of p entries)
-  #   - each entry is a list of 2 matrices
-  #     - rho_i      (m-dim vector)            univariate intensity
-  #     - rho_ii_mat (m x m dim matrix)        bivariate intensity
+  #
+  #   - rho_i      (p x m matrix)                    univariate intensity
+  #   - rho_ii     (list of p m x m matrices)        bivariate intensity
   #
   #
   # Output: 
   #
-  # - G_hat           (m x m x p array)
+  # - G_hat           (list of m x m matrices for i_i process)
   #
   # ----------------------------------------------------------------------------
   
-  p <- length(rho_i_list)
-  n_time <- length(rho_i_list[[1]]$rho_i)
-  G_hat <- array(0, dim=c(n_time, n_time, p))
+  p <- dim(rho_i)[1]
+  m <- dim(rho_i)[2]
+  G_hat <- list()
+  
+  rho_list <- lapply(1:p, function(i) {
+    list(
+      rho_i  = rho_i[i, ],     
+      rho_ii_mat = rho_ii[[i]]  
+    )
+  })   
   
   for (i in 1:p) {
-
-    numerator <- rho_i_list[[i]]$rho_ii_mat                             # m x m
+    key <- paste0(i, '_', i)
     
-    denominator <- outer(rho_i_list[[i]]$rho_i, rho_i_list[[i]]$rho_i)  # m x m
+    numerator <- rho_ii[[i]]
+    
+    denominator <- outer(rho_i[i,], rho_i[i,])
         
     # Avoid log(0) by adding regularization
     numerator <- pmax(numerator, regularization)
     denominator <- pmax(denominator, regularization)
     
-    G_hat[, , i] <- log(numerator / denominator)
+    G_hat[[key]] <- log(numerator / denominator)
 
     
   }
