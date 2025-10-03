@@ -14,7 +14,7 @@ ncores = parallel::detectCores() - 1
 
 # 2) output parameters
 terse = TRUE
-results_folder_name <- "simu_results_banded_c1_6"
+results_folder_name <- "simu_results_banded_c1_9"
 if (!dir.exists(results_folder_name)) dir.create(results_folder_name)
 
 
@@ -48,7 +48,7 @@ adj_params <- c(0, 1, 0.3)
 # adj_params <- c(0.5, 0.3)
 
 query_y_cs = matrix(0:8/8)               # query y_values
-query_y_cs <- matrix(0.5)
+
 
 # 6) sample size and # of processes
 ns <- c(100, 300, 1000, 3000, 10000)     # Sample size (n)
@@ -57,7 +57,7 @@ n_large <- max(ns)
 
 p = 10                                   # Number of processes (p)  
 
-method <- 'OG'
+method <- 'CPGM'
 
 
 # 1) generate dataset ----------------------------------------------------------

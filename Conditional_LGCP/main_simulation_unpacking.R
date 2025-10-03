@@ -3,7 +3,7 @@ library(grid)
 library(gridExtra)
 library(tidyverse)
 source('functions/28_Simulation_Visualization.R')
-
+source('functions/28b_Simulation_Visualization_2.R')
 # 1) graphs that don't change over time 
 # 2) graphs that change over time, but values below adjacency threshold are 0
 # 3) ...
@@ -58,21 +58,26 @@ step_list <- list(step_1 = graph_results_JASA$estimated_graphs_part_1$step_1,
                   step_2b = graph_results_JASA$estimated_graphs_part_1$step_2b
 )
 
-step_list_temp <- list(step_1 = step_1,
-                  step_2 = step_2,
-                  step_3 = step_3,
-                  step_4 = step_4,
-                  step_5 = NA,
-                  step_6 = NA,
-                  step_7 = NA,
-                  step_8 = NA,
-                  step_9 = NA,
-                  step_10 = NA,
-                  step_11 = NA,
-                  step_12 = NA,
-                  step_2b = step_2b
+step_list <- list(step_1 = graph_results_i$estimated_graphs_part_1$step_1,
+                 step_2 = graph_results_i$estimated_graphs_part_2[[1]]$step_2,
+                 step_3 = graph_results_i$estimated_graphs_part_2[[1]]$step_3,
+                 step_4 = graph_results_i$estimated_graphs_part_2[[1]]$step_4,
+                 step_5 = graph_results_i$estimated_graphs_part_2[[1]]$step_5,
+                 step_6 = NA,
+                 step_7 = NA,
+                 step_8 = NA,
+                 step_9 = graph_results_i$estimated_graphs_part_2[[1]]$step_9,
+                 step_10 = graph_results_i$estimated_graphs_part_2[[1]]$step_10,
+                 step_11 = graph_results_i$estimated_graphs_part_2[[1]]$step_11,
+                 step_12 = graph_results_i$estimated_graphs_part_2[[1]]$step_12,
+                 step_2b = graph_results_i$estimated_graphs_part_2[[1]]$step_2b
 )
 
+visualize_truths_from_est(step_list, '112', time_grid_est, time_grid, time_grid_both, p)
+visualize_truths_from_est(step_list, '113', time_grid_est, time_grid, time_grid_both, p)
+
+
+load('simu_results_banded_c1_8/CPGM_n_1000.RData')
 
 T_max = 1                                           # Time horizon (T)
 time_grid_size = 50                                 # Time discretization (m)
@@ -153,9 +158,9 @@ visualize_AUC_across_n('simu_results_banded_c1_5') %>% print()
 
 metrics <- c('rho_i_dist', 'rho_ij_dist', 'g_ij_dist', 'C_HS', 'P_HS', 'auc')
 grid.newpage()
-visualize_metrics('simu_results_banded_c1_5', metrics, 1, 2) %>% print()
-
-
+metrics_summary <- visualize_metrics('simu_results_banded_c1_6', metrics, 4, 2)
+View(metrics_summary$metric_table)
+print(grid.arrange(metrics_summary$metric_graph))
 
 
 
