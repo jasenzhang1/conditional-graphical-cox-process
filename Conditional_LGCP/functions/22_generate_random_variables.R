@@ -172,6 +172,10 @@ generate_y_c_adj_type <- function(n, adj_type, params, seed = NULL){
   #
   # ----------------------------------------------------------------------------
   
+  if (!is.null(seed)) {
+    set.seed(seed)
+  }
+  
   if(adj_type == 'banded_trig'){
     
     # params = c(min, max)
