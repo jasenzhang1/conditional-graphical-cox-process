@@ -22,6 +22,13 @@ simulate_conditional_cox_data_v4 <- function(
   #
   # ----------------------------------------------------------------------------
   
+  if(is.null(seed)){
+    seed_mc <- TRUE  # if seed is null, let mclapply take over
+  } else{
+    seed_mc <- FALSE # if we specify a seed, don't let mclapply take over
+  }
+  
+  
   # time_grid
   
   
@@ -34,76 +41,16 @@ simulate_conditional_cox_data_v4 <- function(
   
   # 1) generate y_c
 
-  Y_continuous <- generate_y_c_adj_type(n, adj_type, adj_params, seed)
+  Y_continuous <- generate_y_c_adj_type(n, adj_type, adj_params)
   
   
   # 2) for each subject, generate their parameters and event data
   
   print('at subject generation')
   
-  subject_data <- pbmclapply(1:n, function(k){
-    
-    if(k %% 10 == 0){
-      print(paste0(k, ' out of ', n))
-    }
-  
-
-    y_c_k <- Y_continuous[k, ]  
-    
-    
-    # 4.2) ground truth precision matrix
-    prec_mat_truth <- generate_sparse_precision_matrix(y_c_k, p, adj_type, adj_params)
-    
-
-
-    # 4.3) Generate precision operator P^{(y_c^k, y_d^k)} and adjacency matrix E_{y_c^k, y_d^k}
-    mats_k <- sample_conditional_precision_v3(time_grid, time_grid_est,
-                                              base_kernel_params,
-                                              prec_mat_truth,
-                                              y_c_k)
-    
-
-
-    # generate log-intensity functions
-    X_k_list <- generate_log_intensity_functions_full_mat(
-      mats_k$P_block_kronecker$GP_simu_var_both,
-      time_grid,
-      time_grid_est,
-      baseline_mean = mats_k$P_block_kronecker$GP_simu_mean_both,
-      sample_mode = 'multi',
-      seed = seed + k)
-    
-    # [[1]] = full
-    # [[2]] = simulation step size (50)
-    # [[3]] = estimation step size (19)
-
-
-
-    # Generate point process events
-    events_k <- generate_cox_process_events(
-      X_k_list[[2]],
-      time_grid,
-      T_max,
-      max_intensity = Inf,
-      seed = seed + k + n
-    )
-
-
-
-    # Store complete subject information
-
-    result <- list(
-      Y_continuous = y_c_k,
-      X_functions_full = X_k_list[[1]],
-      X_functions = X_k_list[[2]],
-      X_functions_coarse = X_k_list[[3]],
-      precision_and_graph = mats_k,
-      event_times = events_k$event_times,
-      event_counts = events_k$event_counts
-    )
-    
-    
-  }, mc.cores = ncores, mc.set.seed = FALSE) # end of pbmclapply
+  subject_data <- simulate_subject_data(n, p, Y_continuous, adj_type, adj_params,
+                                        time_grid, time_grid_est,
+                                        base_kernel_params)
 
   # 3) for each query point, generate parameters
   query_data <- mclapply(1:nrow(query_y_cs), function(k){
@@ -195,7 +142,73 @@ simulate_conditional_cox_data_v4 <- function(
   ))  
 }
 
+simulate_subject_data <- function(n, p, Y_continuous, adj_type, adj_params, 
+                                  time_grid, time_grid_est,
+                                  base_kernel_params){
+  subject_data <- pbmclapply(1:n, function(k){
+    
+    
 
+    
+    
+    y_c_k <- Y_continuous[k, ]  
+    
+    
+    # 4.2) ground truth precision matrix
+    prec_mat_truth <- generate_sparse_precision_matrix(y_c_k, p, adj_type, adj_params)
+    
+    
+    
+    # 4.3) Generate precision operator P^{(y_c^k, y_d^k)} and adjacency matrix E_{y_c^k, y_d^k}
+    mats_k <- sample_conditional_precision_v3(time_grid, time_grid_est,
+                                              base_kernel_params,
+                                              prec_mat_truth,
+                                              y_c_k)
+    
+    
+    
+    # generate log-intensity functions
+    
+    
+    
+    X_k_list <- generate_log_intensity_functions_full_mat(
+      mats_k$P_block_kronecker$GP_simu_var_both,
+      time_grid,
+      time_grid_est,
+      baseline_mean = mats_k$P_block_kronecker$GP_simu_mean_both,
+      sample_mode = 'multi')
+    
+    # [[1]] = full
+    # [[2]] = simulation step size (50)
+    # [[3]] = estimation step size (19)
+    
+    
+    
+    # Generate point process events
+    events_k <- generate_cox_process_events(
+      X_k_list[[2]],
+      time_grid,
+      T_max,
+      max_intensity = Inf
+    )
+    
+    
+    
+    # Store complete subject information
+    
+    result <- list(
+      Y_continuous = y_c_k,
+      X_functions_full = X_k_list[[1]],
+      X_functions = X_k_list[[2]],
+      X_functions_coarse = X_k_list[[3]],
+      precision_and_graph = mats_k,
+      event_times = events_k$event_times,
+      event_counts = events_k$event_counts
+    )
+    
+    
+  }, mc.cores = ncores) # end of pbmclapply  
+}
 
 convert_data_for_estimation <- function(subject_list, Tmax){
   
