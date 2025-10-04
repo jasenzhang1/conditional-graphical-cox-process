@@ -212,7 +212,7 @@ full_conditional_estimation_with_truths_v3 <- function(dataset, method, terse, n
   # Input:
   #
   # - dataset
-  # - method   ('OG', 'JASA')
+  # - method   ('CPGM')
   # - terse    (boolean) if true, return much less
   # - ncores
   #

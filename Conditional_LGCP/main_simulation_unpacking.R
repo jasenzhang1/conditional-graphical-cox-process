@@ -12,6 +12,27 @@ source('functions/28b_Simulation_Visualization_2.R')
 
 # simu_results = constant
 
+T_max = 1                                           # Time horizon (T)
+time_grid_size = 50                                 # Time discretization (m)
+
+time_grid <- seq(0, T_max, length.out = time_grid_size)
+time_grid_est <- 1:19/20
+time_grid_both <- sort(union(time_grid, time_grid_est))
+p <- 10
+
+
+unpacking_pipeline('simu_results_banded_c1_8', '112', time_grid_est, time_grid, 1000, p)
+
+# convergence of intermediate estimators
+
+metrics <- c('rho_i_dist', 'rho_ij_dist', 'g_ij_dist', 'C_HS', 'P_HS', 'auc')
+grid.newpage()
+metrics_summary <- visualize_metrics('simu_results_banded_c1_9', metrics, 1, 2)
+View(metrics_summary$metric_table)
+print(grid.arrange(metrics_summary$metric_graph))
+
+
+load('simu_results_banded_c1_8/CPGM_n_1000.RData')
 # unpack and then graph (28b)
 step_list_OG <- list(step_1 = graph_results_OG$estimated_graphs_part_1$step_1,
                   step_2 = graph_results_OG$estimated_graphs_part_1$step_2,
@@ -77,15 +98,8 @@ visualize_truths_from_est(step_list, '112', time_grid_est, time_grid, time_grid_
 visualize_truths_from_est(step_list, '113', time_grid_est, time_grid, time_grid_both, p)
 
 
-load('simu_results_banded_c1_8/CPGM_n_1000.RData')
 
-T_max = 1                                           # Time horizon (T)
-time_grid_size = 50                                 # Time discretization (m)
 
-time_grid <- seq(0, T_max, length.out = time_grid_size)
-time_grid_est <- 1:19/20
-time_grid_both <- sort(union(time_grid, time_grid_est))
-p <- 10
 
 visualize_truths_from_est(step_list_temp, '44', time_grid_est, time_grid, time_grid_both, p)
 
@@ -154,13 +168,7 @@ visualize_V_cond_convergence('simu_results_banded_c0_5', 'C', 1, 2) %>% print()
 grid.newpage()
 visualize_AUC_across_n('simu_results_banded_c1_5') %>% print()
 
-# convergence of intermediate estimators
 
-metrics <- c('rho_i_dist', 'rho_ij_dist', 'g_ij_dist', 'C_HS', 'P_HS', 'auc')
-grid.newpage()
-metrics_summary <- visualize_metrics('simu_results_banded_c1_6', metrics, 4, 2)
-View(metrics_summary$metric_table)
-print(grid.arrange(metrics_summary$metric_graph))
 
 
 
