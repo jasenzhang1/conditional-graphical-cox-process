@@ -236,7 +236,7 @@ generate_sparse_precision_matrix <- function(y_c_k, p, adj_type, adj_params){
     result <- prec_mat_massager(prec_mat) # helper function above
   }  
   
-  if(adj_type == 'banded_c1'){
+  if(adj_type %in% c('banded_c1', 'banded_c2')){
     
     # adj_params = adj_params = [y_min = 0, y_max = 1, rho = 0.3]
     # 0.3's on off diagonals - constant over time
