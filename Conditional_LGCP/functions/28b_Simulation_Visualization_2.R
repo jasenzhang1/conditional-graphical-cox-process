@@ -570,3 +570,101 @@ visualize_truths_from_est <- function(step_list, graph_ids, time_grid_est, time_
  
   
 }
+
+
+unpacking_pipeline <- function(folder_name, graph_id, time_grid_est, time_grid, n, p){
+  
+  # ----------------------------------------------------------------------------
+  #
+  #
+  # GOAL: visualize convergences of various metrics:
+  #
+  # - metrics
+  #   - rho_i_dist (scalar)
+  #   - rho_ij_dist (pxp matrix, each value is HS norm of m_est x m_est rho_ij)
+  #   - g_ij_dist   (pxp matrix)
+  #   - P_HS        (pxp matrix, each value is HS norm of difference of P_hat - P)
+  #   - C_HS        (pxp matrix)
+  #   - V_HS        (pxp matrix)
+  #   - sens        (scalar)
+  #   - spec        (scalar)
+  #   - auc         (scalar)
+  #   - accuracy    (scalar)
+  #
+  #
+  #
+  # input:
+  #
+  # - folder_name    (string)         'simu_results_banded_c1_3'
+  # - graph_id       (string)         '113' for ROC curve 
+  # - time_grid_est  (m_est-dim vec)  time grid discretization
+  # - time_grid      (m-dim vec)      time grid discretization
+  # - n              (integer)
+  # - p              (integer)
+  #
+  # output:
+  #
+  # - visualize_truths_from_est() output
+  #
+  # ----------------------------------------------------------------------------
+  
+  
+  files <- list.files(folder_name, full.names = TRUE)
+  
+  ns <-  as.numeric(sub(".*_(.*)\\.RData$", "\\1", files)) # retrieve numbers
+  
+  method <- sub("_.*", "", sub(".*/", "", files[1]))
+  
+  if(n %in% ns){
+    idx <- which(ns == n)
+  } else{
+    stop('n not available')
+  }
+  
+  load(files[idx])
+  
+  if(method %in% c('OG', 'JASA')){
+    step_list <- list(step_1 = graph_results_i$estimated_graphs_part_1$step_1,
+                         step_2 = graph_results_i$estimated_graphs_part_1$step_2,
+                         step_3 = graph_results_i$estimated_graphs_part_1$step_3,
+                         step_4 = graph_results_i$estimated_graphs_part_1$step_4,
+                         step_5 = graph_results_i$estimated_graphs_part_1$step_5,
+                         step_6 = NA,
+                         step_7 = NA,
+                         step_8 = graph_results_i$estimated_graphs_part_2[[1]]$step_8,
+                         step_9 = graph_results_i$estimated_graphs_part_2[[1]]$step_9,
+                         step_10 = graph_results_i$estimated_graphs_part_2[[1]]$step_10,
+                         step_11 = graph_results_i$estimated_graphs_part_2[[1]]$step_11,
+                         step_12 = graph_results_i$estimated_graphs_part_2[[1]]$step_12,
+                         step_2b = graph_results_i$estimated_graphs_part_1$step_2b
+    )    
+  } else if(method == 'CPGM'){
+    step_list <- list(step_1 = graph_results_i$estimated_graphs_part_1$step_1,
+                           step_2 = graph_results_i$estimated_graphs_part_2[[1]]$step_2,
+                           step_3 = graph_results_i$estimated_graphs_part_2[[1]]$step_3,
+                           step_4 = graph_results_i$estimated_graphs_part_2[[1]]$step_4,
+                           step_5 = graph_results_i$estimated_graphs_part_2[[1]]$step_5,
+                           step_6 = NA,
+                           step_7 = NA,
+                           step_8 = NA,
+                           step_9 = graph_results_i$estimated_graphs_part_2[[1]]$step_9,
+                           step_10 = graph_results_i$estimated_graphs_part_2[[1]]$step_10,
+                           step_11 = graph_results_i$estimated_graphs_part_2[[1]]$step_11,
+                           step_12 = graph_results_i$estimated_graphs_part_2[[1]]$step_12,
+                           step_2b = graph_results_i$estimated_graphs_part_2[[1]]$step_2b
+    )    
+  } else{
+    stop('unknown method')
+  }
+  
+  # perform visualization
+  return(visualize_truths_from_est(step_list, graph_id, time_grid_est, time_grid, time_grid_both, p))
+  
+}
+
+
+
+
+
+
+
