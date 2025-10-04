@@ -190,7 +190,7 @@ roc_with_threshold <- function(w_mat, adj_mat, g_title = NULL) {
   
   # ROC plot
   p <- ggplot(roc_df, aes(x = FPR, y = TPR)) +
-    geom_step(direction = "vh", color = "blue", linewidth = 1) +
+    geom_step(direction = "vh", color = "blue", size = 1) +
     geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "grey") +
     labs(title = "ROC Curve", x = "False Positive Rate", y = "True Positive Rate") +
     annotate("point", x = 1 - ideal_spec, y = ideal_sens, color = "red", size = 3) +
