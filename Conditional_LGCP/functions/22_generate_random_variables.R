@@ -176,6 +176,10 @@ generate_y_c_adj_type <- function(n, adj_type, params, seed = NULL){
     set.seed(seed)
   }
   
+  if(!adj_type %in% c('banded_trig', 'banded_c0', 'banded_c1', 'banded_c2')){
+    stop('adj_type is not supported')
+  }
+  
   if(adj_type == 'banded_trig'){
     
     # params = c(min, max)
@@ -207,5 +211,18 @@ generate_y_c_adj_type <- function(n, adj_type, params, seed = NULL){
     return(Y_continuous)
     
   }
+  
+  if(adj_type == 'banded_c2'){
+    
+    # params = c(min, max)
+    # the premise is that regardless of the value of Y, the underlying graph is the same
+    # but we uniformly assign Y to be between min and max, inclusive
+    
+    Y_continuous <- matrix(seq(params[1], params[2], length.out = n), nrow = n, ncol = 1)
+    
+    return(Y_continuous)
+    
+  }  
+  
 }  
     
