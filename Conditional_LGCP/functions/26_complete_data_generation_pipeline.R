@@ -9,7 +9,8 @@ simulate_conditional_cox_data_v4 <- function(
   time_grid_est,         # Time discretization of the estimate (m_est-dim vec)
   base_kernel_params,
   ncores,
-  seed = NULL
+  seed = NULL,
+  verbose = FALSE        # do we return everything?
 ){
   
   # ----------------------------------------------------------------------------
@@ -53,6 +54,7 @@ simulate_conditional_cox_data_v4 <- function(
                                         base_kernel_params, ncores)
 
   # 3) for each query point, generate parameters
+  print('at query point generation')
   query_data <- mclapply(1:nrow(query_y_cs), function(k){
     
     
@@ -111,11 +113,11 @@ simulate_conditional_cox_data_v4 <- function(
   cat("  Total processes:", p, "\n")
   cat("  Average events per replicate per process:", round(avg_events_per_process, 2), "\n")
   
-  return(list(
+  
+  result <- list(
     
     # event times and subject data
     event_times = event_times_list,      # List: key = "k_i" -> event times
-    subject_data = subject_data,         # Complete subject-level data
     X_k_truth = X_k_truth,               # all log intensities used to generate data (p x m x n)
     X_k_coarse_truth = X_k_coarse_truth, # all log intensities used to generate data coarsely (p x m_est x n)
     X_k_both_truth = X_k_both_truth,
@@ -139,12 +141,19 @@ simulate_conditional_cox_data_v4 <- function(
       total_events = total_events,
       avg_events_per_process = avg_events_per_process
     )
-  ))  
+  )
+  
+  if(!verbose){
+    result$subject_data = subject_data         # Complete subject-level data
+  }
+  
+  return(result)  
 }
 
 simulate_subject_data <- function(n, p, Y_continuous, adj_type, adj_params, 
                                   time_grid, time_grid_est,
                                   base_kernel_params, ncores){
+  
   subject_data <- pbmclapply(1:n, function(k){
     
     
@@ -172,10 +181,10 @@ simulate_subject_data <- function(n, p, Y_continuous, adj_type, adj_params,
     
     
     X_k_list <- generate_log_intensity_functions_full_mat(
-      mats_k$P_block_kronecker$GP_simu_var_both,
+      kronecker(prec_mat_truth$cor_mat, mats_k$P_block_kronecker$base_cov_both),
       time_grid,
       time_grid_est,
-      baseline_mean = mats_k$P_block_kronecker$GP_simu_mean_both,
+      baseline_mean = mats_k$P_block_kronecker$base_mean_both,
       sample_mode = 'multi')
     
     # [[1]] = full
