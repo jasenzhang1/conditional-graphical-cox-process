@@ -423,6 +423,10 @@ sample_conditional_precision_v3 <- function(time_grid, time_grid_est,
   
   base_cov_est <- base_cov_both[time_grid_est_idx, time_grid_est_idx]
   
+  # means
+  base_mean      <- rep(base_kernel_params$base_GP_mean, length(time_grid))
+  base_mean_est  <- rep(base_kernel_params$base_GP_mean, length(time_grid_est))
+  base_mean_both <- rep(base_kernel_params$base_GP_mean, length(time_grid_both))
   
   # 2.2) inverse - K_base^{-1}
   base_precision <- solve_sym(base_cov)  # use solve_sym() which takes the inverse then ensures it's symmetric
@@ -432,22 +436,22 @@ sample_conditional_precision_v3 <- function(time_grid, time_grid_est,
   # 3) get pm x pm matrices for variance and precision
   #    also get pm-dim mean vector
   
-  GP_simu_var_both  <- kronecker(prec_mat_truth$cor_mat, base_cov_both)
-  GP_simu_prec_both <- kronecker(prec_mat_truth$simu_mat, base_precision_both)
-  GP_simu_mean_both <- rep(base_kernel_params$base_GP_mean, length(time_grid_both))
-  
-  GP_simu_var  <- kronecker(prec_mat_truth$cor_mat, base_cov)
-  GP_simu_prec <- kronecker(prec_mat_truth$simu_mat, base_precision)
-  GP_simu_mean <- rep(base_kernel_params$base_GP_mean, length(time_grid))
-  
-  GP_simu_var_est  <- kronecker(prec_mat_truth$cor_mat, base_cov_est)
-  GP_simu_prec_est <- kronecker(prec_mat_truth$simu_mat, base_precision_est)
-  GP_simu_mean_est <- rep(base_kernel_params$base_GP_mean, length(time_grid_est))
+  # GP_simu_var_both  <- kronecker(prec_mat_truth$cor_mat, base_cov_both)
+  # GP_simu_prec_both <- kronecker(prec_mat_truth$simu_mat, base_precision_both)
+  # GP_simu_mean_both <- rep(base_kernel_params$base_GP_mean, length(time_grid_both))
+  # 
+  # GP_simu_var  <- kronecker(prec_mat_truth$cor_mat, base_cov)
+  # GP_simu_prec <- kronecker(prec_mat_truth$simu_mat, base_precision)
+  # GP_simu_mean <- rep(base_kernel_params$base_GP_mean, length(time_grid))
+  # 
+  # GP_simu_var_est  <- kronecker(prec_mat_truth$cor_mat, base_cov_est)
+  # GP_simu_prec_est <- kronecker(prec_mat_truth$simu_mat, base_precision_est)
+  # GP_simu_mean_est <- rep(base_kernel_params$base_GP_mean, length(time_grid_est))
   
   # verify if cor_mat and simu_mat are inverses
   #           base_cov_both and base_precision_both are inverses
-  summary(as.numeric(prec_mat_truth$cor_mat - solve(prec_mat_truth$simu_mat)))
-  summary(as.numeric(base_cov_both - solve(base_precision_both)))
+  # summary(as.numeric(prec_mat_truth$cor_mat - solve(prec_mat_truth$simu_mat)))
+  # summary(as.numeric(base_cov_both - solve(base_precision_both)))
   
   
   # 4) statistics to report
@@ -458,26 +462,31 @@ sample_conditional_precision_v3 <- function(time_grid, time_grid_est,
   
   return(list(P_block_kronecker = list(base_cov = base_cov, # m x m
                                        base_precision = base_precision,  
+                                       base_mean = base_mean,
+                                       
                                        base_cov_est = base_cov_est, # m_est x m_est
                                        base_precision_est = base_precision_est,
+                                       base_mean_est = base_mean_est,
+                                       
                                        base_cov_both = base_cov_both, # m2 x m2
                                        base_precision_both = base_precision_both,
+                                       base_mean_both = base_mean_both,
                                        
                                        # lists
                                        base_kernel_params = base_kernel_params, 
-                                       prec_mat_truth = prec_mat_truth,
+                                       prec_mat_truth = prec_mat_truth),
  
                                        
                                        # mean, var, prec, for all 3 time_grids
-                                       GP_simu_mean = GP_simu_mean,
-                                       GP_simu_var = GP_simu_var,
-                                       GP_simu_prec = GP_simu_prec,
-                                       GP_simu_mean_est = GP_simu_mean_est,
-                                       GP_simu_var_est = GP_simu_var_est,
-                                       GP_simu_prec_est = GP_simu_prec_est,
-                                       GP_simu_mean_both = GP_simu_mean_both,        
-                                       GP_simu_var_both = GP_simu_var_both,
-                                       GP_simu_prec_both = GP_simu_prec_both),  
+                                       # GP_simu_mean = GP_simu_mean,
+                                       # GP_simu_var = GP_simu_var,
+                                       # GP_simu_prec = GP_simu_prec,
+                                       # GP_simu_mean_est = GP_simu_mean_est,
+                                       # GP_simu_var_est = GP_simu_var_est,
+                                       # GP_simu_prec_est = GP_simu_prec_est,
+                                       # GP_simu_mean_both = GP_simu_mean_both,        
+                                       # GP_simu_var_both = GP_simu_var_both,
+                                       # GP_simu_prec_both = GP_simu_prec_both),  
               
          
               
