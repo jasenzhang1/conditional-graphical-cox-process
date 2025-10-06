@@ -209,10 +209,11 @@ step_2_rho_i <- function(dataset, data_df4, kernel_params, rho_kernel, patient_s
   
   
   
-  rho_i_truth_value   <- exp(kernel_params$base_GP_mean + 0.5 * kernel_params$base_variance)
-  rho_i_truth         <- replicate(p, exp(kernel_params$GP_simu_mean + 0.5 * diag(kernel_params$base_cov))) %>% t() 
-  rho_i_coarse_truth  <- replicate(p, exp(kernel_params$GP_simu_mean_est + 0.5 * diag(kernel_params$base_cov_est))) %>% t()  
-  
+  rho_i_truth_value   <- exp(kernel_params$base_kernel_params$base_GP_mean + 0.5 * kernel_params$base_kernel_params$base_variance)
+  # rho_i_truth         <- replicate(p, exp(kernel_params$GP_simu_mean + 0.5 * diag(kernel_params$base_cov))) %>% t() 
+  # rho_i_coarse_truth  <- replicate(p, exp(kernel_params$GP_simu_mean_est + 0.5 * diag(kernel_params$base_cov_est))) %>% t()  
+  rho_i_truth         <- replicate(p, exp(kernel_params$base_mean + 0.5 * diag(kernel_params$base_cov))) %>% t() 
+  rho_i_coarse_truth  <- replicate(p, exp(kernel_params$base_mean_est + 0.5 * diag(kernel_params$base_cov_est))) %>% t()   
   
   
   # 3) rho_i_est from data
@@ -337,8 +338,12 @@ step_2_rho_ij <- function(step_1, step_2, kernel_params, i_neq_j){
     j <- ij[2]
     
     # theory
-    rho_ii_truth[[key]]        <- tcrossprod(rho_i_truth[i,],        rho_i_truth[j,])        * exp(extract_block_structure_ij(kernel_params$GP_simu_var, m, i, j))
-    rho_ii_coarse_truth[[key]] <- tcrossprod(rho_i_coarse_truth[i,], rho_i_coarse_truth[j,]) * exp(extract_block_structure_ij(kernel_params$GP_simu_var_est, m_est, i, j))
+    
+    GP_simu_var <- kronecker(kernel_params$prec_mat_truth$cor_mat, kernel_params$base_cov)
+    GP_simu_var_est <- kronecker(kernel_params$prec_mat_truth$cor_mat, kernel_params$base_cov_est)
+    
+    rho_ii_truth[[key]]        <- tcrossprod(rho_i_truth[i,],        rho_i_truth[j,])        * exp(extract_block_structure_ij(GP_simu_var, m, i, j))
+    rho_ii_coarse_truth[[key]] <- tcrossprod(rho_i_coarse_truth[i,], rho_i_coarse_truth[j,]) * exp(extract_block_structure_ij(GP_simu_var_est, m_est, i, j))
     
     # X_k portion
     mats <- array(0, dim = c(m, m))
@@ -447,8 +452,8 @@ step_3_g_ij <- function(step_2, step_2b, kernel_params, i_neq_j){
   }
   
   
-  g_ij_ground_truth_pm <- kernel_params$GP_simu_var
-  g_ij_coarse_ground_truth_pm <- kernel_params$GP_simu_var_est
+  g_ij_ground_truth_pm <- kronecker(kernel_params$prec_mat_truth$cor_mat, kernel_params$base_cov)
+  g_ij_coarse_ground_truth_pm <- kronecker(kernel_params$prec_mat_truth$cor_mat, kernel_params$base_cov_est)  
   
   g_ij_ground_truth        <- extract_block_structure_v2(g_ij_ground_truth_pm, p, m)
   g_ij_coarse_ground_truth <- extract_block_structure_v2(g_ij_coarse_ground_truth_pm, p, m_est)
@@ -624,13 +629,15 @@ step_5_KL_expansion <- function(step_1, step_4, kernel_params, time_grid, time_g
   
   mean_mat_truth <- apply(X_k_truth, c(1, 2), mean)  # result is p x m matrix
   X_k_truth_center_est <- sweep(X_k_truth, c(1, 2), mean_mat_truth, FUN = "-") 
-  X_k_truth_center <- X_k_truth - kernel_params$base_GP_mean
+  
+  X_k_truth_center <- sweep(X_k_truth, 2, kernel_params$base_mean, "-")
+  #X_k_truth_center <- X_k_truth - kernel_params$base_mean
   
   
   mean_mat_coarse_truth <- apply(X_k_coarse_truth, c(1, 2), mean)  # result is p x m matrix
   X_k_coarse_truth_center_est <- sweep(X_k_coarse_truth, c(1, 2), mean_mat_coarse_truth, FUN = "-")   
-  X_k_coarse_truth_center <- X_k_coarse_truth - kernel_params$base_GP_mean
-  
+  #X_k_coarse_truth_center <- X_k_coarse_truth - kernel_params$base_GP_mean
+  X_k_coarse_truth_center <- sweep(X_k_coarse_truth, 2, kernel_params$base_mean_est, "-")
   
   
   # 5.2) get KL coeffs  
@@ -849,9 +856,9 @@ steps_78 <- function(step_4, step_5, kernel_params, y_c_strata, query_y_c, metho
   m_est <- dim(eigen_decomp_coarse_truth[[2]][[1]])[1]
   
   # estimate
-  
-  V_cond_ground_truth_full        <- kernel_params$GP_simu_var
-  V_cond_coarse_ground_truth_full <- kernel_params$GP_simu_var_est
+
+  V_cond_ground_truth_full        <- kronecker(kernel_params$prec_mat_truth$cor_mat, kernel_params$base_cov)
+  V_cond_coarse_ground_truth_full <- kronecker(kernel_params$prec_mat_truth$cor_mat, kernel_params$base_cov_est)
   V_cond_ground_truth             <- extract_block_structure_v2(V_cond_ground_truth_full, p, m)
   V_cond_coarse_ground_truth      <- extract_block_structure_v2(V_cond_coarse_ground_truth_full, p, m_est)
   
