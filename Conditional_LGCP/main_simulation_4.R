@@ -14,7 +14,7 @@ ncores = parallel::detectCores() - 1
 
 # 2) output parameters
 terse = TRUE
-results_folder_name <- "simu_results_banded_trig2_2"
+results_folder_name <- "simu_results_banded_trig2_1"
 if (!dir.exists(results_folder_name)) dir.create(results_folder_name)
 
 
@@ -107,9 +107,9 @@ for(n in ns){
   # }
   
   if(method == 'CPGM'){
-    graph_results_i <- full_conditional_estimation_with_truths_v3(dataset_i, method, terse, ncores)
+    graph_results_i <- full_conditional_estimation_with_truths_v3(dataset_i, method, terse, ncores, results_folder_name)
   } else if(method %in% c('OG', 'JASA')){
-    graph_results_i <- full_conditional_estimation_with_truths_v2(dataset_i, method, terse, ncores)
+    graph_results_i <- full_conditional_estimation_with_truths_v2(dataset_i, method, terse, ncores, results_folder_name)
   } else{
     stop('Invalid method. Must be CPGM, OG, or JASA')
   }
