@@ -39,7 +39,7 @@ if(base_kernel_params$base_kernel == 'rbf_pd'){
 
 # 5) adj matrix params
 adj_type = "banded_trig2"                 # Graph topology
-adj_params <- c(0, 1, 0.3)               # associated parameters
+adj_params <- c(0, 1, 0.3)                # associated parameters
 
 # adj_type = "banded_c2"
 # adj_params <- c(0, 1, 0.3)
@@ -54,7 +54,7 @@ query_y_cs = matrix(0:8/8)               # query y_values
 
 
 # 6) sample size and # of processes
-ns <- c(100, 300, 1000, 3000)     # Sample size (n)
+ns <- c(100, 300, 1000)     # Sample size (n)
 
 n_large <- max(ns)
 
@@ -72,7 +72,8 @@ dataset <- simulate_conditional_cox_data_v4(n_large, p, T_max, query_y_cs,
                                             time_grid_est,
                                             base_kernel_params,
                                             ncores,
-                                            seed = NULL)
+                                            seed = NULL,
+                                            verbose = FALSE)
 
 
 t1 <- Sys.time()
@@ -90,7 +91,7 @@ for(n in ns){
   t_n_start <- Sys.time()
   
   dataset_i <- dataset
-  dataset_i$subject_data <- dataset$subject_data[1:n]
+  # dataset_i$subject_data <- dataset$subject_data[1:n]
   dataset_i$X_k_truth <- dataset$X_k_truth[,,1:n]
   dataset_i$X_k_coarse_truth <- dataset$X_k_coarse_truth[,,1:n]
   dataset_i$X_k_both_truth <- dataset$X_k_both_truth[,,1:n]
