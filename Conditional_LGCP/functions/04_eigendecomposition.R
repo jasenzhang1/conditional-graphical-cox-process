@@ -152,7 +152,23 @@ compute_eigendecomposition_ii <- function(G_hat, inner_1, var_explained = 0.999)
     
     # Compute eigendecomposition
     # eigen() returns: values (m x 1), vectors (m x m)
-    eigen_result <- eigen(G_ii, symmetric=TRUE)
+    # eigen_result <- eigen(G_ii, symmetric=TRUE)
+    
+    eigen_result <- tryCatch({
+      eigen(G_ii, symmetric = TRUE)
+    }, error = function(e) {
+      cat("Error occurred in eigen() of compute_eigendecomposition_ii in step 4:\n")
+      print(e$message)
+      cat("\nG_ii contains:\n")
+      print(G_ii)
+      cat("\nSummary of G_ii:\n")
+      print(summary(as.vector(G_ii)))
+      cat("\nAny NA values:", any(is.na(G_ii)), "\n")
+      cat("Any Inf values:", any(is.infinite(G_ii)), "\n")
+      
+      stop(e)  # Re-throw the error after printing
+    })
+    
     lambdas <- eigen_result$values  # m x 1 vector
     lambdas2 <- lambdas
     lambdas2[lambdas2 < 0] <- 0
