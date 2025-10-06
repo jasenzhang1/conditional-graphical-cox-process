@@ -54,7 +54,7 @@ query_y_cs = matrix(0:8/8)               # query y_values
 
 
 # 6) sample size and # of processes
-ns <- c(100, 300, 1000, 3000, 10000)     # Sample size (n)
+ns <- c(100, 300, 1000, 3000)     # Sample size (n)
 
 n_large <- max(ns)
 

@@ -14,7 +14,7 @@ ncores = parallel::detectCores() - 1
 
 # 2) output parameters
 terse = TRUE
-results_folder_name <- "simu_results_banded_c2_1"
+results_folder_name <- "simu_results_banded_trig2_1"
 if (!dir.exists(results_folder_name)) dir.create(results_folder_name)
 
 
@@ -38,11 +38,11 @@ if(base_kernel_params$base_kernel == 'rbf_pd'){
 }
 
 # 5) adj matrix params
-# adj_type = "banded_trig"                 # Graph topology
-# adj_params <- c(0, 1, 0.9)               # associated parameters 
+adj_type = "banded_trig2"                 # Graph topology
+adj_params <- c(0, 1, 0.3)               # associated parameters
 
-adj_type = "banded_c2"
-adj_params <- c(0, 1, 0.3)
+# adj_type = "banded_c2"
+# adj_params <- c(0, 1, 0.3)
 
 # adj_type = "banded_c1"
 # adj_params <- c(0, 1, 0.3)
