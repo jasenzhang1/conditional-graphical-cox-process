@@ -6,7 +6,7 @@
 
 # we're also modifying the V_YcXij cross-covariance step to include w(y_c) in it
 
-full_conditional_estimation_with_truths_v2 <- function(dataset, method, terse, ncores){
+full_conditional_estimation_with_truths_v2 <- function(dataset, method, terse, ncores, dir){
   
   
   # ----------------------------------------------------------------------------
@@ -131,7 +131,15 @@ full_conditional_estimation_with_truths_v2 <- function(dataset, method, terse, n
     block <- F
     MP <- F
     
-    step_10 <- step_10_P_cond(step_9, kernel_params_i, p, block, MP)
+    # step_10 <- step_10_P_cond(step_9, kernel_params_i, p, block, MP)
+    result <- tryCatch({
+      step_10 <- step_10_P_cond(step_9, kernel_params_i, p, block, MP)
+    }, error = function(e) {
+      cat("Error occurred in step_10, saving dataset...\n")
+      save(dataset, file = paste0(dir, "/dataset.RData"))
+      cat("Dataset saved to dataset.RData\n")
+      stop(e)  # Re-throw the error
+    })
     
     # part 11 - HS norms of precision matrix -----------------------------------
     
@@ -196,7 +204,7 @@ full_conditional_estimation_with_truths_v2 <- function(dataset, method, terse, n
 
 }
 
-full_conditional_estimation_with_truths_v3 <- function(dataset, method, terse, ncores){
+full_conditional_estimation_with_truths_v3 <- function(dataset, method, terse, ncores, dir){
   
   
   # ----------------------------------------------------------------------------
@@ -215,7 +223,7 @@ full_conditional_estimation_with_truths_v3 <- function(dataset, method, terse, n
   # - method   ('CPGM')
   # - terse    (boolean) if true, return much less
   # - ncores
-  #
+  # - dir      (string) folder name, such as "simu_results_banded_trig2_2"
   # 
   #
   # ----------------------------------------------------------------------------
@@ -296,8 +304,18 @@ full_conditional_estimation_with_truths_v3 <- function(dataset, method, terse, n
     # part 4 - eigendecomposition of GP covariance -----------------------------
     
     # careful about some processes being empty
-    step_4 <- step_4_eigendecomp(step_3, p, time_grid, time_grid_est)
-  
+    
+    # step_4 <- step_4_eigendecomp(step_3, p, time_grid, time_grid_est)
+    result <- tryCatch({
+      step_4 <- step_4_eigendecomp(step_3, p, time_grid, time_grid_est)
+    }, error = function(e) {
+      cat("Error occurred in step_4, saving dataset...\n")
+      save(dataset, file = paste0(dir, "/dataset.RData"))
+      cat("Dataset saved to dataset.RData\n")
+      stop(e)  # Re-throw the error
+    })    
+
+    
     # part 5 - covariance of KL coefficients -----------------------------------
     
     step_5 <- step_5_KL_covariance(step_3, step_4)
@@ -311,8 +329,17 @@ full_conditional_estimation_with_truths_v3 <- function(dataset, method, terse, n
     block <- F
     MP <- F
     
-    step_10 <- step_10_P_cond(step_9, kernel_params_i, p, block, MP)
-      
+    # step_10 <- step_10_P_cond(step_9, kernel_params_i, p, block, MP)
+     
+    result <- tryCatch({
+      step_10 <- step_10_P_cond(step_9, kernel_params_i, p, block, MP)
+    }, error = function(e) {
+      cat("Error occurred in step_10, saving dataset...\n")
+      save(dataset, file = paste0(dir, "/dataset.RData"))
+      cat("Dataset saved to dataset.RData\n")
+      stop(e)  # Re-throw the error
+    })       
+    
     # part 11 - HS norms of precision matrix -----------------------------------
     
     step_11 <- step_11_HS_norms(step_10, adj_mat_i, p)
