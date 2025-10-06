@@ -176,7 +176,7 @@ generate_y_c_adj_type <- function(n, adj_type, params, seed = NULL){
     set.seed(seed)
   }
   
-  if(!adj_type %in% c('banded_trig', 'banded_c0', 'banded_c1', 'banded_c2')){
+  if(!adj_type %in% c('banded_trig', 'banded_trig2', 'banded_c0', 'banded_c1', 'banded_c2')){
     stop('adj_type is not supported')
   }
   
@@ -189,6 +189,16 @@ generate_y_c_adj_type <- function(n, adj_type, params, seed = NULL){
     return(Y_continuous)
     
   }
+  
+  if(adj_type == 'banded_trig2'){
+    
+    # params = c(min, max, max_amp)
+    
+    Y_continuous <- matrix(seq(params[1], params[2], length.out = n), nrow = n, ncol = 1)
+    
+    return(Y_continuous)
+    
+  }  
   
   if(adj_type == 'banded_c0'){
     

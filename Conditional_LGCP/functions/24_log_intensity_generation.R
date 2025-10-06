@@ -127,7 +127,7 @@ generate_truncated_covariance_matrix <- function(time_grid, kernel_name, gamma, 
   return(list(cov_mat = K, m=n, dt=dt, HS=hs, vals=vals))
 }
 
-prec_mat_massager <- function(prec_mat){
+prec_mat_massager <- function(prec_mat, manual_thresh = NULL){
   
   # ----------------------------------------------------------------------------
   #
@@ -175,9 +175,19 @@ prec_mat_massager <- function(prec_mat){
   threshold_p <- min(abs(prec_mat2[prec_mat != 0]))  
   
   # 5) adjacency_matrix takes on a value of 1 if original prec_mat is nonzero
-  adj_mat <- matrix(0, p, p)
-  adj_mat[prec_mat != 0] <- 1
-  diag(adj_mat) <- 0  
+  #    or, we define 1 with an indicator function
+  
+  if(!is.null(manual_thresh)){
+    adj_mat <- matrix(0, p, p)
+    adj_mat[prec_mat >= manual_thresh] <- 1
+    diag(adj_mat) <- 0       
+  } else{
+    adj_mat <- matrix(0, p, p)
+    adj_mat[prec_mat != 0] <- 1
+    diag(adj_mat) <- 0      
+  }
+  
+
   
   return(list(adj_mat = adj_mat, 
               prec_mat_og = prec_mat,
@@ -291,7 +301,7 @@ generate_sparse_precision_matrix <- function(y_c_k, p, adj_type, adj_params){
     result <- prec_mat_massager(result_banded$precision_matrix)
   } 
   
-  if(adj_type == 'banded_trig'){
+  if(adj_type %in% c('banded_trig', 'banded_trig2')){
     
     # adj_params = [y_min = 0, y_max = 1, rho_max = 0.9]
     #
@@ -310,7 +320,7 @@ generate_sparse_precision_matrix <- function(y_c_k, p, adj_type, adj_params){
       } 
     }
     
-    result <- prec_mat_massager(mat)
+    result <- prec_mat_massager(mat, rho^3)
   } 
   
   if(adj_type == 'sparse_v1'){
