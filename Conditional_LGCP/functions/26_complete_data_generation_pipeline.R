@@ -50,7 +50,7 @@ simulate_conditional_cox_data_v4 <- function(
   
   subject_data <- simulate_subject_data(n, p, Y_continuous, adj_type, adj_params,
                                         time_grid, time_grid_est,
-                                        base_kernel_params)
+                                        base_kernel_params, ncores)
 
   # 3) for each query point, generate parameters
   query_data <- mclapply(1:nrow(query_y_cs), function(k){
@@ -144,7 +144,7 @@ simulate_conditional_cox_data_v4 <- function(
 
 simulate_subject_data <- function(n, p, Y_continuous, adj_type, adj_params, 
                                   time_grid, time_grid_est,
-                                  base_kernel_params){
+                                  base_kernel_params, ncores){
   subject_data <- pbmclapply(1:n, function(k){
     
     
