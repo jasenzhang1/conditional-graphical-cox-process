@@ -176,13 +176,18 @@ generate_y_c_adj_type <- function(n, adj_type, params, seed = NULL){
     set.seed(seed)
   }
   
-  if(!adj_type %in% c('banded_trig', 'banded_trig2', 'banded_c0', 'banded_c1', 'banded_c2')){
+  if(!adj_type %in% c('banded_trig1', 'banded_trig2', 
+                      'banded_c0', 'banded_c1', 'banded_c2',
+                      'sparse_v1', 'sparse_v2')){
     stop('adj_type is not supported')
   }
   
-  if(adj_type == 'banded_trig'){
+  if(adj_type %in% c('banded_trig1', 'banded_c1', 'sparse_v1')){
     
-    # params = c(min, max)
+    # params[1] = min
+    # params[2] = max
+    # the premise is that regardless of the value of Y, the underlying graph is the same
+    # randomly sample between min and max
     
     Y_continuous <- matrix(runif(n, params[1], params[2]), nrow = n, ncol = 1)
     
@@ -190,9 +195,11 @@ generate_y_c_adj_type <- function(n, adj_type, params, seed = NULL){
     
   }
   
-  if(adj_type == 'banded_trig2'){
+  if(adj_type %in% c('banded_trig2', 'banded_c2', 'sparse_v2')){
     
-    # params = c(min, max, max_amp)
+    # params[1] = min
+    # params[2] = max
+    # equal spacing between all y_c_k's
     
     Y_continuous <- matrix(seq(params[1], params[2], length.out = n), nrow = n, ncol = 1)
     
@@ -209,30 +216,6 @@ generate_y_c_adj_type <- function(n, adj_type, params, seed = NULL){
     
     return(Y_continuous)
     
-  }  
-  
-  if(adj_type == 'banded_c1'){
-    
-    # params = c(min, max)
-    # the premise is that regardless of the value of Y, the underlying graph is the same
-    
-    Y_continuous <- matrix(runif(n, params[1], params[2]), nrow = n, ncol = 1)
-    
-    return(Y_continuous)
-    
-  }
-  
-  if(adj_type == 'banded_c2'){
-    
-    # params = c(min, max)
-    # the premise is that regardless of the value of Y, the underlying graph is the same
-    # but we uniformly assign Y to be between min and max, inclusive
-    
-    Y_continuous <- matrix(seq(params[1], params[2], length.out = n), nrow = n, ncol = 1)
-    
-    return(Y_continuous)
-    
-  }  
-  
+  } 
 }  
     
