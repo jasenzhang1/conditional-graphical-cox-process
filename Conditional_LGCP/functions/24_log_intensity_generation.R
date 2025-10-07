@@ -301,7 +301,7 @@ generate_sparse_precision_matrix <- function(y_c_k, p, adj_type, adj_params){
     result <- prec_mat_massager(result_banded$precision_matrix)
   } 
   
-  if(adj_type %in% c('banded_trig', 'banded_trig2')){
+  if(adj_type %in% c('banded_trig1', 'banded_trig2')){
     
     # adj_params = [y_min = 0, y_max = 1, rho_max = 0.9]
     #
@@ -323,21 +323,26 @@ generate_sparse_precision_matrix <- function(y_c_k, p, adj_type, adj_params){
     result <- prec_mat_massager(mat, rho^3)
   } 
   
-  if(adj_type == 'sparse_v1'){
+  if(adj_type %in% c('sparse_v1', 'sparse_v2')){
 
     
     # utilizes y_c_k 
     
-    # adj_params = [s, connection_prob, covariate_strength, epsilon]
+    # adj_params = [y_min, y_max, s, connection_prob, base_strength, covariate_strength, epsilon]
     
-    s <- adj_params[1] # 10
-    cp <- adj_params[2] # 0.01
-    cs <- adj_params[3] # 0.5
-    epsilon <- adj_params[4] # 0.04
+    s <- adj_params[3] 
+    cp <- adj_params[4] 
+    bs <- adj_params[5]
+    cs <- adj_params[6] 
+    epsilon <- adj_params[7] # 0.04
+    
     
     # Sparse structure with s=10 connections per node
     sparse_params <- list(s = s)
-    alpha_funcs_sparse <- create_sparse_alpha(p, s = s, connection_prob = cp, covariate_strength = cs)
+    alpha_funcs_sparse <- create_sparse_alpha(p, s = s, 
+                                              connection_prob = cp, 
+                                              base_strength = bs,
+                                              covariate_strength = cs)
     
     result_sparse <- construct_gershgorin_precision_matrix(
       p, y_c_k, alpha_funcs_sparse,
