@@ -156,8 +156,11 @@ simulate_subject_data <- function(n, p, Y_continuous, adj_type, adj_params,
   
   subject_data <- pbmclapply(1:n, function(k){
     
+    if(k %% 50 == 0){
+      print(paste0(k, ' out of ', n))
+    }
     
-
+    
     
     
     y_c_k <- Y_continuous[k, ]  
