@@ -14,7 +14,7 @@ ncores = parallel::detectCores() - 1
 
 # 2) output parameters
 terse = TRUE
-results_folder_name <- "simu_results_banded_trig2_1"
+results_folder_name <- "simu_results_banded_trig2_2"
 if (!dir.exists(results_folder_name)) dir.create(results_folder_name)
 
 
@@ -54,7 +54,7 @@ query_y_cs = matrix(0:8/8)               # query y_values
 
 
 # 6) sample size and # of processes
-ns <- c(100, 300, 1000)     # Sample size (n)
+ns <- c(101, 401, 1601)     # Sample size (n)
 
 n_large <- max(ns)
 
@@ -90,12 +90,17 @@ for(n in ns){
   
   t_n_start <- Sys.time()
   
+  seq_i <- seq(0, T_max, length.out = n)
+  seq_max <- seq(0, T_max, length.out = n_large)
+  
+  idx <- which(seq_max %in% seq_i)
+  
   dataset_i <- dataset
-  # dataset_i$subject_data <- dataset$subject_data[1:n]
-  dataset_i$X_k_truth <- dataset$X_k_truth[,,1:n]
-  dataset_i$X_k_coarse_truth <- dataset$X_k_coarse_truth[,,1:n]
-  dataset_i$X_k_both_truth <- dataset$X_k_both_truth[,,1:n]
-  dataset_i$Y_continuous <- matrix(dataset$Y_continuous[1:n,], nrow = n)
+  # dataset_i$subject_data <- dataset$subject_data[idx]
+  dataset_i$X_k_truth <- dataset$X_k_truth[,,idx]
+  dataset_i$X_k_coarse_truth <- dataset$X_k_coarse_truth[,,idx]
+  dataset_i$X_k_both_truth <- dataset$X_k_both_truth[,,idx]
+  dataset_i$Y_continuous <- matrix(dataset$Y_continuous[idx,], nrow = n)
   dataset_i$simulation_params$n <- n
   
   # if(method == 'CPGM'){
