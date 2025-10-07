@@ -628,7 +628,10 @@ visualize_metrics <- function(folder_name, metrics, i = NULL, j = NULL){
   
   files <- list.files(folder_name, full.names = TRUE)
   
-  ns <-  as.numeric(sub(".*_(.*)\\.RData$", "\\1", files)) # retrieve numbers
+  ns <- suppressWarnings({
+    as.numeric(sub(".*_(.*)\\.RData$", "\\1", files)) # retrieve numbers
+  })
+  
   
   results_list <- lapply(files, function(f) {
     e <- new.env()          # create an isolated environment
@@ -705,7 +708,7 @@ visualize_metrics <- function(folder_name, metrics, i = NULL, j = NULL){
     if(metric_name %in% c('auc')){
       g <- g + ylim(0, 1)
     } else{
-      g <- g + ylim(0, NA)
+      g <- g + scale_y_log10(limits = c(NA, NA))
     }
     graphs[[metric_name]] <- g
   }
