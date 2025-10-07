@@ -64,6 +64,59 @@ construct_kernel_matrix_step_6 <- function(Y_continuous_stratum, y_query, gamma_
   return(K_c)
 }
 
+construct_kernel_matrix_mice <- function(Y_continuous_stratum, y_query, gamma_time = 1/500, gamma_week = 1){
+  
+  # ----------------------------------------------------------------------------
+  # 
+  # 
+  # GOAL: construct K_c^y_d matrix
+  #
+  #       recall that it is k(. , y_c_k) * k(. , y_c_k)
+  #       so we need to input y_query with every combination of y_c_k 
+  #       Y_continuous_stratum is [week #, minutes_elapsed]
+  # 
+  # Input:
+  # 
+  # - Y_continuous_stratum    (n_stratum x 2 matrix)
+  #   - first column = week #
+  #   - second column = minutes_elapsed
+  # - y_query                 (q_c = 2-dim vector)
+  # - gamma_time              (scalar)
+  # - gamma_week              (scalar)
+  #
+  #
+  # Output: 
+  #
+  # - K_c (n_stratum x n_stratum matrix)
+  #
+  #
+  # ----------------------------------------------------------------------------  
+  
+  n_stratum <- nrow(Y_continuous_stratum)
+  K_c <- matrix(0, nrow=n_stratum, ncol=n_stratum)
+  
+  for (i in 1:n_stratum) {
+    for (j in i:n_stratum) {
+      
+      # Compute RBF kernel between two q_c-dimensional vectors
+      y_i <- Y_continuous_stratum[i, ]  # 2 x 1 vector
+      y_j <- Y_continuous_stratum[j, ]  # 2 x 1 vector
+      
+      # if the weeks are the same, focus on their time-disparity
+      if(y_i[1] == y_j[1]){
+        K_c[i, j] <- step_6_kernel(y_i[2], y_query[2], gamma_time) * step_6_kernel(y_j[2], y_query[2], gamma_time)
+        K_c[j, i] <- K_c[i, j]        
+      } else{ # if they are not the same week, focus on their week
+        K_c[i, j] <- step_6_kernel(y_i[1], y_query[1], gamma_week) * step_6_kernel(y_j[1], y_query[1], gamma_week)
+        K_c[j, i] <- K_c[i, j]        
+      }
+    }
+  }
+  
+  return(K_c)
+  
+}
+
 construct_kernel_matrix_v2 <- function(alpha_hat, Y_c_stratum, gamma_c) {
   
   #
