@@ -158,7 +158,7 @@ roc_with_threshold <- function(w_mat, adj_mat, g_title = NULL) {
   
   # Ensure labels are binary factors
   labels <- as.factor(labels)
-  if (length(levels(labels)) != 2) stop("Labels must have two classes.")
+  if (length(levels(labels)) != 2) stop("Step_12: Labels must have two classes.")
   
   # Compute ROC
   roc_obj <- roc(labels, scores, quiet = TRUE)
@@ -208,8 +208,9 @@ roc_with_threshold <- function(w_mat, adj_mat, g_title = NULL) {
     threshold = ideal_threshold,
     sensitivity = ideal_sens,
     specificity = ideal_spec,
-    auc = auc(roc_obj),
+    auc = auc_value,
     accuracy = accuracy,
+    roc_df = roc_df,
     plot = p
   )
 }
@@ -232,7 +233,7 @@ get_metrics <- function(results){
   # - P_cond_full     (pm_est x pm_est)  
   # - C_cond_full     (pm_est x pm_est)  the same as V_cond_full
   # - V_cond_full     (pm_est x pm_est)  
-  # - w_mat           (p x p)            hilbert schmidt norm matrix
+  # - w_mat_est       (p x p)            hilbert schmidt norm matrix
   # - adj_mat
   # - roc_est                                   [[9]]
   # - rho_i_est            (p x m_est matrix)   [[10]]
