@@ -555,14 +555,42 @@ visualize_truths_from_est <- function(step_list, graph_ids, time_grid_est, time_
     #   - roc_X_coarse_truth
     #   - roc_est
     
-    graphs[['g_113']] <- grid.arrange(step_12[[1]]$plot,
-                                      step_12[[2]]$plot,
-                                      step_12[[3]]$plot,
-                                      step_12[[4]]$plot,
-                                      step_12[[5]]$plot,
-                                      step_12[[6]]$plot,
+    # ROC plot - done on qrsh 
+    roc_graphs <- list()
+    
+    for(i in 1:7){
+      
+      roc_df          <- step_12[[i]]$roc_df
+      ideal_spec      <- step_12[[i]]$specificity
+      ideal_sens      <- step_12[[i]]$sensitivity
+      ideal_threshold <- step_12[[i]]$threshold
+      auc_value       <- step_12[[i]]$auc
+      
+      roc_graphs[[i]] <- ggplot(roc_df, aes(x = FPR, y = TPR)) +
+        geom_step(direction = "vh", color = "blue", size = 1) +
+        geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "grey") +
+        labs(title = "ROC Curve", x = "False Positive Rate", y = "True Positive Rate") +
+        annotate("point", x = 1 - ideal_spec, y = ideal_sens, color = "red", size = 3) +
+        annotate("text", x = 1 - ideal_spec, y = ideal_sens, 
+                 label = paste0("Threshold=", round(ideal_threshold, 3)),
+                 hjust = -0.1, vjust = -0.5, color = "red") +
+        
+        annotate("text", x = 0.6, y = 0.2,            # position for AUC label
+                 label = paste0("AUC = ", round(auc_value, 3)),
+                 color = "darkgreen", size = 5) +    
+        theme_minimal()         
+    }
+    
+    
+    
+    graphs[['g_113']] <- grid.arrange(roc_graphs[[1]],
+                                      roc_graphs[[2]],
+                                      roc_graphs[[3]],
+                                      roc_graphs[[4]],
+                                      roc_graphs[[5]],
+                                      roc_graphs[[6]],
                                       textGrob("12. ROC Curve", gp = gpar(fontsize = 14)),
-                                      step_12[[7]]$plot,
+                                      roc_graphs[[7]],
                                       layout_matrix = arr_mat_8)     
   }
   
@@ -572,7 +600,7 @@ visualize_truths_from_est <- function(step_list, graph_ids, time_grid_est, time_
 }
 
 
-unpacking_pipeline <- function(folder_name, graph_id, time_grid_est, time_grid, n, p){
+unpacking_pipeline <- function(folder_name, graph_id, time_grid_est, time_grid, n, p, query_id){
   
   # ----------------------------------------------------------------------------
   #
@@ -601,6 +629,7 @@ unpacking_pipeline <- function(folder_name, graph_id, time_grid_est, time_grid, 
   # - time_grid      (m-dim vec)      time grid discretization
   # - n              (integer)
   # - p              (integer)
+  # - query_id       (integer)        integer denoting which query to look at
   #
   # output:
   #
@@ -611,9 +640,16 @@ unpacking_pipeline <- function(folder_name, graph_id, time_grid_est, time_grid, 
   
   files <- list.files(folder_name, full.names = TRUE)
   
-  ns <-  as.numeric(sub(".*_(.*)\\.RData$", "\\1", files)) # retrieve numbers
+  ns <- suppressWarnings({
+    as.numeric(sub(".*_(.*)\\.RData$", "\\1", files))   # retrieve numbers
+  })
+
   
-  method <- sub("_.*", "", sub(".*/", "", files[1]))
+  non_na_idx <- which(!is.na(ns))
+  
+  method <- sub("_.*", "", sub(".*/", "", files[non_na_idx[1]]))
+  
+  ns <- ns[!is.na(ns)]
   
   if(n %in% ns){
     idx <- which(ns == n)
@@ -631,27 +667,27 @@ unpacking_pipeline <- function(folder_name, graph_id, time_grid_est, time_grid, 
                          step_5 = graph_results_i$estimated_graphs_part_1$step_5,
                          step_6 = NA,
                          step_7 = NA,
-                         step_8 = graph_results_i$estimated_graphs_part_2[[1]]$step_8,
-                         step_9 = graph_results_i$estimated_graphs_part_2[[1]]$step_9,
-                         step_10 = graph_results_i$estimated_graphs_part_2[[1]]$step_10,
-                         step_11 = graph_results_i$estimated_graphs_part_2[[1]]$step_11,
-                         step_12 = graph_results_i$estimated_graphs_part_2[[1]]$step_12,
+                         step_8 = graph_results_i$estimated_graphs_part_2[[query_id]]$step_8,
+                         step_9 = graph_results_i$estimated_graphs_part_2[[query_id]]$step_9,
+                         step_10 = graph_results_i$estimated_graphs_part_2[[query_id]]$step_10,
+                         step_11 = graph_results_i$estimated_graphs_part_2[[query_id]]$step_11,
+                         step_12 = graph_results_i$estimated_graphs_part_2[[query_id]]$step_12,
                          step_2b = graph_results_i$estimated_graphs_part_1$step_2b
     )    
   } else if(method == 'CPGM'){
     step_list <- list(step_1 = graph_results_i$estimated_graphs_part_1$step_1,
-                           step_2 = graph_results_i$estimated_graphs_part_2[[1]]$step_2,
-                           step_3 = graph_results_i$estimated_graphs_part_2[[1]]$step_3,
-                           step_4 = graph_results_i$estimated_graphs_part_2[[1]]$step_4,
-                           step_5 = graph_results_i$estimated_graphs_part_2[[1]]$step_5,
+                           step_2 = graph_results_i$estimated_graphs_part_2[[query_id]]$step_2,
+                           step_3 = graph_results_i$estimated_graphs_part_2[[query_id]]$step_3,
+                           step_4 = graph_results_i$estimated_graphs_part_2[[query_id]]$step_4,
+                           step_5 = graph_results_i$estimated_graphs_part_2[[query_id]]$step_5,
                            step_6 = NA,
                            step_7 = NA,
                            step_8 = NA,
-                           step_9 = graph_results_i$estimated_graphs_part_2[[1]]$step_9,
-                           step_10 = graph_results_i$estimated_graphs_part_2[[1]]$step_10,
-                           step_11 = graph_results_i$estimated_graphs_part_2[[1]]$step_11,
-                           step_12 = graph_results_i$estimated_graphs_part_2[[1]]$step_12,
-                           step_2b = graph_results_i$estimated_graphs_part_2[[1]]$step_2b
+                           step_9 = graph_results_i$estimated_graphs_part_2[[query_id]]$step_9,
+                           step_10 = graph_results_i$estimated_graphs_part_2[[query_id]]$step_10,
+                           step_11 = graph_results_i$estimated_graphs_part_2[[query_id]]$step_11,
+                           step_12 = graph_results_i$estimated_graphs_part_2[[query_id]]$step_12,
+                           step_2b = graph_results_i$estimated_graphs_part_2[[query_id]]$step_2b
     )    
   } else{
     stop('unknown method')
