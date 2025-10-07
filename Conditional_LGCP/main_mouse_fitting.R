@@ -3,7 +3,7 @@
 # 2) for each mouse, fit the model
 
 
-t_start <- Sys.time()
+t0 <- Sys.time()
 
 source('functions/00_function_wrapper.R')
 
@@ -13,9 +13,9 @@ ncores = parallel::detectCores() - 1
 
 # 2) data/output parameters
 terse = TRUE
-task_name <- 'task_04'
+
 data_folder_name <- 'data/'
-results_folder_name <- paste0("results/", task_name)
+results_folder_name <- 'mouse_results_1'
 if (!dir.exists(results_folder_name)) dir.create(results_folder_name)
 
 # 3) continuous covariate parameters

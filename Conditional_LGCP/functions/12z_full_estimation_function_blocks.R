@@ -115,7 +115,7 @@ step_0_preprocess <- function(dataset){
 }
 
 
-step_1_log_intensities <- function(dataset, data_df4, time_grid_est, time_grid, time_grid_both){
+step_1_log_intensities <- function(dataset, data_df4, time_grid_est, time_grid, time_grid_both, full = T){
   
   
   # ----------------------------------------------------------------------------
@@ -144,24 +144,28 @@ step_1_log_intensities <- function(dataset, data_df4, time_grid_est, time_grid, 
   #
   # ----------------------------------------------------------------------------
   
-  
-  
-  X_k_est <- subject_specific_log_intensity(data_df4, time_grid_est)
-  X_k_truth <- dataset$X_k_truth
-  X_k_coarse_truth <- dataset$X_k_coarse_truth
-  X_k_both_truth <- dataset$X_k_both_truth
-  
-  Lambda_k_truth <- exp(X_k_truth)
-  Lambda_k_coarse_truth <- exp(X_k_coarse_truth)
-  
+  if(! full){
+    X_k_est <- subject_specific_log_intensity(data_df4, time_grid_est)
+    return(list(X_k_est = X_k_est))
+  } else{
 
+    X_k_est <- subject_specific_log_intensity(data_df4, time_grid_est)
+    X_k_truth <- dataset$X_k_truth
+    X_k_coarse_truth <- dataset$X_k_coarse_truth
+    X_k_both_truth <- dataset$X_k_both_truth
+    
+    Lambda_k_truth <- exp(X_k_truth)
+    Lambda_k_coarse_truth <- exp(X_k_coarse_truth)
+    
   
-  return(list(X_k_est = X_k_est,
-              X_k_truth = X_k_truth,
-              X_k_coarse_truth = X_k_coarse_truth,
-              X_k_both_truth = X_k_both_truth,
-              Lambda_k_truth = Lambda_k_truth,
-              Lambda_k_coarse_truth = Lambda_k_coarse_truth))
+    
+    return(list(X_k_est = X_k_est,
+                X_k_truth = X_k_truth,
+                X_k_coarse_truth = X_k_coarse_truth,
+                X_k_both_truth = X_k_both_truth,
+                Lambda_k_truth = Lambda_k_truth,
+                Lambda_k_coarse_truth = Lambda_k_coarse_truth))
+  }
 }
 
 step_2_rho_i <- function(dataset, data_df4, kernel_params, rho_kernel, patient_sel, feature_sel, 
