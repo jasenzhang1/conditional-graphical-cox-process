@@ -14,7 +14,7 @@ ncores = parallel::detectCores() - 1
 
 # 2) output parameters
 terse = TRUE
-results_folder_name <- "simu_results_banded_c2_2"
+results_folder_name <- "simu_results_banded_c2_CPGM"
 if (!dir.exists(results_folder_name)) dir.create(results_folder_name)
 
 
@@ -38,6 +38,10 @@ if(base_kernel_params$base_kernel == 'rbf_pd'){
 }
 
 # 5) adj matrix params
+
+# adj_type = "sparse_v2"           
+# adj_params <- c(0, 1, 2, 0.3, -1, 2, 0.01)           
+
 # adj_type = "banded_trig2"                 # Graph topology
 # adj_params <- c(0, 1, 0.3)                # associated parameters
 
@@ -50,11 +54,11 @@ adj_params <- c(0, 1, 0.3)
 # adj_type = "banded_c0"
 # adj_params <- c(0.5, 0.3)
 
-query_y_cs = matrix(0:8/8)               # query y_values
+query_y_cs = matrix(0:9/9)               # query y_values
 
 
 # 6) sample size and # of processes
-ns <- c(101, 401, 1601)     # Sample size (n)
+ns <- c(201, 401, 801, 1601, 3201)     # Sample size (n)
 
 n_large <- max(ns)
 
@@ -96,12 +100,13 @@ for(n in ns){
   idx <- which(seq_max %in% seq_i)
   
   dataset_i <- dataset
-  # dataset_i$subject_data <- dataset$subject_data[idx]
+  dataset_i$event_times <- NULL
+  dataset_i$subject_data <- dataset$subject_data[idx]
   dataset_i$X_k_truth <- dataset$X_k_truth[,,idx]
   dataset_i$X_k_coarse_truth <- dataset$X_k_coarse_truth[,,idx]
   dataset_i$X_k_both_truth <- dataset$X_k_both_truth[,,idx]
-  dataset_i$Y_continuous <- matrix(dataset$Y_continuous[idx,], nrow = n)
-  dataset_i$simulation_params$n <- n
+  dataset_i$Y_continuous <- matrix(dataset$Y_continuous[idx,], nrow = length(idx))
+  dataset_i$simulation_params$n <- length(idx)
   
   # if(method == 'CPGM'){
   #   graph_results_CPGM <- full_conditional_estimation_with_truths_v3(dataset, method, terse, ncores)
@@ -144,6 +149,10 @@ for(n in ns){
   print(strrep("-", 50))
 }
 
+# keep warnings
+sink(paste0(results_folder_name, "/warnings.txt"))
+print(warnings())
+sink()
 
 print(paste0('Grand total time: ', round(as.numeric(t_n_end - t0, units = "hours"), 2), ' hours'))  
 

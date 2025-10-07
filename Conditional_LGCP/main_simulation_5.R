@@ -14,7 +14,7 @@ ncores = parallel::detectCores() - 1
 
 # 2) output parameters
 terse = TRUE
-results_folder_name <- "simu_results_banded_trig2_OG"
+results_folder_name <- "simu_results_sparse_v2_OG"
 if (!dir.exists(results_folder_name)) dir.create(results_folder_name)
 
 
@@ -39,11 +39,11 @@ if(base_kernel_params$base_kernel == 'rbf_pd'){
 
 # 5) adj matrix params
 
-# adj_type = "sparse_v2"           
-# adj_params <- c(0, 1, 2, 0.3, -1, 2, 0.01)           
+adj_type = "sparse_v2"
+adj_params <- c(0, 1, 2, 0.3, -1, 2, 0.01)
 
-adj_type = "banded_trig2"                 # Graph topology
-adj_params <- c(0, 1, 0.3)                # associated parameters
+# adj_type = "banded_trig2"                 # Graph topology
+# adj_params <- c(0, 1, 0.3)                # associated parameters
 
 # adj_type = "banded_c2"
 # adj_params <- c(0, 1, 0.3)

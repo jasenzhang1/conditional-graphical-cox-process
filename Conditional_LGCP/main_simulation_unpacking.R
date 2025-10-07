@@ -4,6 +4,8 @@ library(gridExtra)
 library(tidyverse)
 source('functions/28_Simulation_Visualization.R')
 source('functions/28b_Simulation_Visualization_2.R')
+source('functions/00d_debugging.R')
+
 # 1) graphs that don't change over time 
 # 2) graphs that change over time, but values below adjacency threshold are 0
 # 3) ...
@@ -20,14 +22,15 @@ time_grid_est <- 1:19/20
 time_grid_both <- sort(union(time_grid, time_grid_est))
 p <- 10
 
-
-unpacking_pipeline('simu_results_banded_c1_8', '112', time_grid_est, time_grid, 1000, p)
+n <- 1601
+query_id <- 2
+unpacking_pipeline('simu_results_banded_c2_2', '112', time_grid_est, time_grid, n, p, query_id)
 
 # convergence of intermediate estimators
 
 metrics <- c('rho_i_dist', 'rho_ij_dist', 'g_ij_dist', 'C_HS', 'P_HS', 'auc')
 grid.newpage()
-metrics_summary <- visualize_metrics('simu_results_banded_c1_9', metrics, 1, 2)
+metrics_summary <- visualize_metrics('simu_results_banded_trig2_1', metrics, 1, 2)
 View(metrics_summary$metric_table)
 print(grid.arrange(metrics_summary$metric_graph))
 
