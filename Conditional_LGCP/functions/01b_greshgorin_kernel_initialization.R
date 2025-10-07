@@ -92,7 +92,7 @@ create_sparse_alpha <- function(p, s, connection_prob, base_strength, covariate_
     }
   }
   
-  cat("Created", length(alpha_functions), "sparse connections\n")
+
   return(alpha_functions)
 }
 
