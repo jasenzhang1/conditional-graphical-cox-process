@@ -11,6 +11,7 @@ source('functions/00_function_wrapper.R')
 # 1) system parameters
 seed = 1
 ncores = parallel::detectCores() - 1
+ncores = floor(ncores / 6)
 
 # 2) output parameters
 terse = TRUE
