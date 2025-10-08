@@ -23,14 +23,14 @@ time_grid_both <- sort(union(time_grid, time_grid_est))
 p <- 10
 
 n <- 1601
-query_id <- 2
-unpacking_pipeline('simu_results_banded_c2_2', '112', time_grid_est, time_grid, n, p, query_id)
+query_id <- 1
+unpacking_pipeline('simu_results_banded_c2_2', '113', time_grid_est, time_grid, n, p, query_id)
 
 # convergence of intermediate estimators
 
 metrics <- c('rho_i_dist', 'rho_ij_dist', 'g_ij_dist', 'C_HS', 'P_HS', 'auc')
 grid.newpage()
-metrics_summary <- visualize_metrics('simu_results_banded_trig2_1', metrics, 1, 2)
+metrics_summary <- visualize_metrics('simu_results_sparse_v2_CPGM', metrics, 1, 2)
 View(metrics_summary$metric_table)
 print(grid.arrange(metrics_summary$metric_graph))
 

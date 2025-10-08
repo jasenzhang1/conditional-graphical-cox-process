@@ -11,11 +11,11 @@ source('functions/00_function_wrapper.R')
 # 1) system parameters
 seed = 1
 ncores = parallel::detectCores() - 1
-ncores = floor(ncores / 6)
+ncores = floor(ncores / 10)
 
 # 2) output parameters
 terse = TRUE
-results_folder_name <- "simu_results_banded_c2_OG"
+results_folder_name <- "simu_results_a_sparse_v2_OG"
 if (!dir.exists(results_folder_name)) dir.create(results_folder_name)
 
 
@@ -40,14 +40,17 @@ if(base_kernel_params$base_kernel == 'rbf_pd'){
 
 # 5) adj matrix params
 
-# adj_type = "sparse_v2"           
-# adj_params <- c(0, 1, 2, 0.3, -1, 2, 0.01)           
+adj_type = "sparse_v2"
+adj_params <- c(0, 1, 2, 0.3, -1, 2, 0.01)
 
 # adj_type = "banded_trig2"                 # Graph topology
 # adj_params <- c(0, 1, 0.3)                # associated parameters
 
-adj_type = "banded_c2"
-adj_params <- c(0, 1, 0.3)
+# adj_type = "banded_c3"
+# adj_params <- c(0, 1, 11, 0.4)
+
+# adj_type = "banded_c2"
+# adj_params <- c(0, 1, 0.3)
 
 # adj_type = "banded_c1"
 # adj_params <- c(0, 1, 0.3)
@@ -59,7 +62,7 @@ query_y_cs = matrix(0:9/9)               # query y_values
 
 
 # 6) sample size and # of processes
-ns <- c(201, 401, 801, 1601, 3201)     # Sample size (n)
+ns <- c(500)     # Sample size (n)
 
 n_large <- max(ns)
 
@@ -94,11 +97,8 @@ all_results <- list()
 for(n in ns){
   
   t_n_start <- Sys.time()
-  
-  seq_i <- seq(0, T_max, length.out = n)
-  seq_max <- seq(0, T_max, length.out = n_large)
-  
-  idx <- which(seq_max %in% seq_i)
+
+  idx <- round(seq(1, n_large, length.out = n))
   
   dataset_i <- dataset
   dataset_i$event_times <- NULL
