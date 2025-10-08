@@ -230,29 +230,28 @@ generate_sparse_precision_matrix <- function(y_c_k, p, adj_type, adj_params){
   # 
   # ----------------------------------------------------------------------------
   
-  prec_mat <- diag(1, p)
   
-  if(adj_type == 'banded_c0'){
+  
+  
+  if(adj_type %in% c('banded_c0', 'banded_c1', 'banded_c2', 'banded_c3')){
     
-    # adj_params = adj_params = [value = 1, rho = 0.3]
+    if(adj_type == 'banded_c0'){
+      rho <- adj_params[2]
+    }
+    
+    if(adj_type %in% c('banded_c1', 'banded_c2')){
+      rho <- adj_params[3]
+    }
+    
+    if(adj_type == 'banded_c3'){
+      rho <- adj_params[4]
+    }    
+    
+    # rho = 0.3
     # 0.3's on off diagonals - constant over time
     # nothing else
     
-    rho <- adj_params[2]
-    
-    prec_mat[row(prec_mat) == col(prec_mat) - 1] <- rho
-    prec_mat[row(prec_mat) == col(prec_mat) + 1] <- rho 
-    
-    result <- prec_mat_massager(prec_mat) # helper function above
-  }  
-  
-  if(adj_type %in% c('banded_c1', 'banded_c2')){
-    
-    # adj_params = adj_params = [y_min = 0, y_max = 1, rho = 0.3]
-    # 0.3's on off diagonals - constant over time
-    # nothing else
-    
-    rho <- adj_params[3]
+    prec_mat <- diag(1, p)
     
     prec_mat[row(prec_mat) == col(prec_mat) - 1] <- rho
     prec_mat[row(prec_mat) == col(prec_mat) + 1] <- rho 
@@ -271,6 +270,8 @@ generate_sparse_precision_matrix <- function(y_c_k, p, adj_type, adj_params){
     # for y_c_k = 2, make next set of off-diagonals 0.3
     # for y_c_k = 2, make next set of off-diagonals 0.3
     # etc...
+    
+    prec_mat <- diag(1, p)
     
     for(i in 1:y_c_k){
       prec_mat[row(prec_mat) == col(prec_mat) - i] <- rho
