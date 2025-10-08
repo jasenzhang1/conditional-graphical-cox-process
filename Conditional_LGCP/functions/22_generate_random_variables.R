@@ -177,10 +177,21 @@ generate_y_c_adj_type <- function(n, adj_type, params, seed = NULL){
   }
   
   if(!adj_type %in% c('banded_trig1', 'banded_trig2', 
-                      'banded_c0', 'banded_c1', 'banded_c2',
+                      'banded_c0', 'banded_c1', 'banded_c2', 'banded_c3',
                       'sparse_v1', 'sparse_v2')){
     stop('adj_type is not supported')
   }
+  
+  if(adj_type == 'banded_c0'){
+    
+    # params = c(value)
+    # all covariates are the same
+    
+    Y_continuous <- matrix(rep(params[1], n), nrow = n, ncol = 1)
+    
+    return(Y_continuous)
+    
+  }   
   
   if(adj_type %in% c('banded_trig1', 'banded_c1', 'sparse_v1')){
     
@@ -207,15 +218,23 @@ generate_y_c_adj_type <- function(n, adj_type, params, seed = NULL){
     
   }  
   
-  if(adj_type == 'banded_c0'){
+  if(adj_type %in% c('banded_c3')){
     
-    # params = c(value)
-    # all covariates are the same
+    # params[1] = min
+    # params[2] = max
+    # params[3] = num_groups
+    # mimic weeks. have y_c take on repeated values spread throughtout [min, max]
+    m <- params[3]
+    values <- seq(params[1], params[2], length.out = m)
     
-    Y_continuous <- matrix(rep(params[1], n), nrow = n, ncol = 1)
+    counts <- rep(floor(n / m), m)
+    counts[1:(n %% m)] <- counts[1:(n %% m)] + 1
     
-    return(Y_continuous)
+    # repeat each value accordingly
+    Y_continuous <- matrix(rep(values, counts), nrow = n, ncol = 1)
     
-  } 
+  }
+  
+
 }  
     
