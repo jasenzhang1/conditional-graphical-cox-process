@@ -63,7 +63,7 @@ query_y_cs = matrix(0:9/9)               # query y_values
 
 # 6) sample size and # of processes
 ns <- c(500)     # Sample size (n)
-
+ns <- c(50)
 n_large <- max(ns)
 
 p = 10                                   # Number of processes (p)  
