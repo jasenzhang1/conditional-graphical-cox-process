@@ -30,6 +30,8 @@ for n in "${ns[@]}"; do
     done    
     
     Rscript script_fit_generated_data.R "$n_large" "$n" "$adj_type" > "$outfile" 2>&1 &
+    
+  done
 done
 
 wait
