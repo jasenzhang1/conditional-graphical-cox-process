@@ -1,13 +1,19 @@
-
-
 t0 <- Sys.time()
+args <- commandArgs(trailingOnly = TRUE)
+
+
 
 # adj_type = "sparse_v2"
 # adj_params <- c(0, 1, 2, 0.3, -1, 2, 0.01)
 
-adj_type <- args[1]
-adj_params <- args[2]
-n_large <- args[3]
+n_large <- as.numeric(args[1])
+adj_type <- args[2]
+adj_params <- as.numeric(args[3:length(args)])
+
+
+cat("n: ", n_large, "\n")
+cat("adj_type: ", adj_type, "\n")
+cat("adj_params: ", paste(adj_params, collapse = ", "), "\n")
 
 source('functions/20_simulation_function_wrapper.R')
 source('functions/00_function_wrapper.R')
@@ -63,3 +69,14 @@ dataset <- simulate_conditional_cox_data_v4(n_large, p, T_max, query_y_cs,
 if (!dir.exists('simu_data')) dir.create('simu_data')
 
 save(dataset, file = paste0('simu_data/', adj_type, '_n_', n_large, '.RData'))
+
+# time taken
+t1 <- Sys.time()
+elapsed_time <- as.numeric(difftime(t1, t0, units = "mins"))
+
+
+
+
+cat('Time to generate ', n, ' subjects: ', elapsed_time, ' mins\n')
+
+
