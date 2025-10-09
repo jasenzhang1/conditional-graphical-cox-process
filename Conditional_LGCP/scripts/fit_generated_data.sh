@@ -12,10 +12,10 @@ adj_types=(
   "sparse_v2"
 )
 
-n_large=100
+n_large=2000
 
-ns=(25 50)
-max_jobs=4   # limit to 4 concurrent background jobs
+ns=(250, 500)
+max_jobs=12   # limit to 4 concurrent background jobs
 
 mkdir -p script_outputs
 
