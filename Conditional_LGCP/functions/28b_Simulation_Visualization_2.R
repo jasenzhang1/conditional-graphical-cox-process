@@ -4,7 +4,8 @@ visualize_truths_from_est <- function(step_list, graph_ids, time_grid_est, time_
   
   
   # load step_list
-
+  
+  step_0 <- step_list$step_0 
   step_1 <- step_list$step_1 
   step_2 <- step_list$step_2 
   step_3 <- step_list$step_3 
@@ -30,6 +31,36 @@ visualize_truths_from_est <- function(step_list, graph_ids, time_grid_est, time_
   
   m <- length(time_grid)
   m_est <- length(time_grid_est)
+  
+  
+  if('01' %in% graph_ids){
+    
+
+    n_graphs <- min(length(step_0), 5)
+    
+    
+    
+    # Build plots dynamically
+    plots <- lapply(seq_len(n_graphs), function(i) {
+      visualize_matrix_heatmap(step_0[[i]],
+                               paste0('y_c = ', as.character(i)), -10, NULL, 10)
+    })
+    
+    # Add caption grob
+    caption <- textGrob("0. Ground Truth\n Precision wrt Queried\nContinuous Covariate", gp = gpar(fontsize = 14))
+    
+    # Combine plots + caption
+    grobs <- c(plots, list(caption))
+    
+    # Layout: 2 rows × 3 cols (last cell reserved for caption if fewer than 5 plots)
+    lay_mat <- matrix(1:6, nrow = 2, byrow = TRUE)
+    
+
+    
+    graphs[['g_01']] <- grid.arrange(grobs = grobs, layout_matrix = lay_mat)
+      
+    
+  }
   
   if('11' %in% graph_ids){
     #   - X_k_est                   (p x m_est   x n)
@@ -660,7 +691,8 @@ unpacking_pipeline <- function(folder_name, graph_id, time_grid_est, time_grid, 
   load(files[idx])
   
   if(method %in% c('OG', 'JASA')){
-    step_list <- list(step_1 = graph_results_i$estimated_graphs_part_1$step_1,
+    step_list <- list(step_0 = graph_results_i$estimated_graphs_part_1$step_0,
+                      step_1 = graph_results_i$estimated_graphs_part_1$step_1,
                          step_2 = graph_results_i$estimated_graphs_part_1$step_2,
                          step_3 = graph_results_i$estimated_graphs_part_1$step_3,
                          step_4 = graph_results_i$estimated_graphs_part_1$step_4,
@@ -675,7 +707,8 @@ unpacking_pipeline <- function(folder_name, graph_id, time_grid_est, time_grid, 
                          step_2b = graph_results_i$estimated_graphs_part_1$step_2b
     )    
   } else if(method == 'CPGM'){
-    step_list <- list(step_1 = graph_results_i$estimated_graphs_part_1$step_1,
+    step_list <- list(step_0 = graph_results_i$estimated_graphs_part_1$step_0,
+                      step_1 = graph_results_i$estimated_graphs_part_1$step_1,
                            step_2 = graph_results_i$estimated_graphs_part_2[[query_id]]$step_2,
                            step_3 = graph_results_i$estimated_graphs_part_2[[query_id]]$step_3,
                            step_4 = graph_results_i$estimated_graphs_part_2[[query_id]]$step_4,
