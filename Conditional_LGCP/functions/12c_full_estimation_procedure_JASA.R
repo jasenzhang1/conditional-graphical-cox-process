@@ -51,8 +51,8 @@ full_conditional_estimation_with_truths_v2 <- function(dataset, method, terse, n
   
   # part 0 - check ground truth precisions and process data --------------------
   
-  g_01 <- step_0_check(dataset)
-  
+  step_0 <- step_0_store(dataset)
+  step_0_check(dataset)
   
   # process data
   processed_data <- step_0_preprocess(dataset)
@@ -190,7 +190,7 @@ full_conditional_estimation_with_truths_v2 <- function(dataset, method, terse, n
   
   # what to output
   
-  estimated_graphs_part_1 <- list(g_01 = g_01,
+  estimated_graphs_part_1 <- list(step_0 = step_0,
                                   step_1 = step_1,
                                   step_2 = step_2,
                                   step_2b = step_2b,
@@ -249,7 +249,8 @@ full_conditional_estimation_with_truths_v3 <- function(dataset, method, terse, n
   
   # part 0 - check ground truth precisions and process data --------------------
   
-  g_01 <- step_0_check(dataset)
+  step_0 <- step_0_store(dataset)
+  step_0_check(dataset)
   
 
   # process data
@@ -393,7 +394,7 @@ full_conditional_estimation_with_truths_v3 <- function(dataset, method, terse, n
   # what to output
   
 
-  estimated_graphs_part_1 <- list(g_01 = g_01, step_1 = step_1)
+  estimated_graphs_part_1 <- list(step_0 = step_0, step_1 = step_1)
   
   return(list(estimated_graphs_part_1 = estimated_graphs_part_1,      
               estimated_graphs_part_2 = estimated_graphs_v2))      

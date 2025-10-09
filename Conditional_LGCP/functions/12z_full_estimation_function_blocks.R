@@ -19,41 +19,46 @@ step_0_check <- function(dataset){
   
   # 0.1) check ground truth precision pxp matrices
   
-  prec_ground_truths <- lapply(dataset$true_graphs, function(item) item$P_block_kronecker$prec_mat)
-  n_graphs <- min(length(prec_ground_truths), 5)
-  
-
-  
-  # Build plots dynamically
-  plots <- lapply(seq_len(n_graphs), function(i) {
-    visualize_matrix_heatmap(prec_ground_truths[[i]]$simu_mat,
-                             paste0('y_c = ', as.character(i)), -10, NULL, 10)
-  })
-  
-  # Add caption grob
-  caption <- textGrob("0. Ground Truth\n Precision wrt Queried\nContinuous Covariate", gp = gpar(fontsize = 14))
-  
-  # Combine plots + caption
-  grobs <- c(plots, list(caption))
-  
-  # Layout: 2 rows × 3 cols (last cell reserved for caption if fewer than 5 plots)
-  lay_mat <- matrix(1:6, nrow = 2, byrow = TRUE)
-  
-  # Arrange
-  g_01 <- grid.arrange(grobs = grobs, layout_matrix = lay_mat)
+  prec_ground_truths <- lapply(dataset$true_graphs, function(item) item$P_block_kronecker$prec_mat_truth$prec_mat)
   
   # check if any prec mat is too nonnegative!
   check_psd <- sapply(1:length(prec_ground_truths), function(i) {
-    min(eigen(prec_ground_truths[[i]]$simu_mat, symmetric = TRUE, only.values = TRUE)$values) > -1e-10
+    min(eigen(prec_ground_truths[[i]], symmetric = TRUE, only.values = TRUE)$values) > -1e-10
   })  
   
   if(! any(check_psd)){
     warning("code 01: some ground truth prec mats are not psd, proceeding anyway")
   } 
   
-  return(g_01)
+  
 }
 
+
+
+step_0_store <- function(dataset){
+  
+  # ----------------------------------------------------------------------------
+  #
+  #
+  # GOAL: store the ground truth precision matrices
+  #
+  # 
+  # input:
+  #
+  # - dataset (dataset generated from simulation)
+  #
+  # output: 
+  #
+  # - warnings and g_01
+  #
+  # ----------------------------------------------------------------------------
+  
+  # 0.1) check ground truth precision pxp matrices
+  
+  prec_ground_truths <- lapply(dataset$true_graphs, function(item) item$P_block_kronecker$prec_mat_truth$prec_mat)
+  
+  return(prec_ground_truths)
+}
 
 step_0_preprocess <- function(dataset){
 
