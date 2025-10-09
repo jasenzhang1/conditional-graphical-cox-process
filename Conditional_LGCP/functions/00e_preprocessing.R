@@ -32,3 +32,33 @@ convert_data_for_estimation <- function(subject_list, Tmax){
   return(as.data.table(df))  
   
 }
+
+extract_event_times_df <- function(subject_list) {
+  
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: helper function for convert_data_for_estimation
+  # 
+  # ----------------------------------------------------------------------------
+  
+  
+  do.call(rbind, lapply(seq_along(subject_list), function(subject_id) {
+    event_times <- subject_list[[subject_id]]$event_times
+    
+    # Handle if event_times is NULL or missing
+    if (is.null(event_times)) return(NULL)
+    
+    do.call(rbind, lapply(seq_along(event_times), function(event_id) {
+      values <- event_times[[event_id]]
+      
+      if (length(values) == 0) return(NULL)  # skip empty vectors
+      
+      data.frame(
+        value = values,
+        event_id = event_id,
+        subject_id = subject_id
+      )
+    }))
+  }))
+}
