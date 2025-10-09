@@ -14,7 +14,7 @@ adj_types=(
 
 n_large=2000
 
-ns=(250, 500)
+ns=(250 500)
 max_jobs=12   # limit to 4 concurrent background jobs
 
 mkdir -p script_outputs
