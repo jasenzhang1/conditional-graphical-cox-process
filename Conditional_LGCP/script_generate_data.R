@@ -1,4 +1,10 @@
 t0 <- Sys.time()
+library(RhpcBLASctl)
+
+# limit threads in BLAS/LAPACK
+blas_set_num_threads(1)   # limit BLAS
+omp_set_num_threads(1)    # limit OpenMP
+
 args <- commandArgs(trailingOnly = TRUE)
 
 
