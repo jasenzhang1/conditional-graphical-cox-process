@@ -10,7 +10,8 @@ simulate_conditional_cox_data_v4 <- function(
   base_kernel_params,
   ncores,
   seed = NULL,
-  verbose = FALSE        # do we return everything?
+  verbose = FALSE,        # do we return everything?
+  parallel = TRUE
 ){
   
   # ----------------------------------------------------------------------------
@@ -51,28 +52,37 @@ simulate_conditional_cox_data_v4 <- function(
   
   subject_data <- simulate_subject_data(n, p, Y_continuous, adj_type, adj_params,
                                         time_grid, time_grid_est,
-                                        base_kernel_params, ncores)
+                                        base_kernel_params, ncores, parallel)
 
   # 3) for each query point, generate parameters
   print('at query point generation')
-  query_data <- mclapply(1:nrow(query_y_cs), function(k){
-    
-    
-    y_c_k <- query_y_cs[k, ]  
-    
-    # ground truth precision matrix
-    prec_mat_truth <- generate_sparse_precision_matrix(y_c_k, p, adj_type, adj_params)
-    
-    
-    # Generate precision operator P^{(y_c^k, y_d^k)} and adjacency matrix E_{y_c^k, y_d^k}
-    mats_k <- sample_conditional_precision_v3(time_grid, time_grid_est, 
-                                              base_kernel_params,
-                                              prec_mat_truth,
-                                              y_c_k)
-    
-    mats_k
-    
-  }, mc.cores = ncores) # end of pbmclapply 
+  
+  apply_fun <- function(X, FUN, ...) {
+    if (parallel) {
+      mclapply(X, FUN, mc.cores = ncores, ...)
+    } else {
+      lapply(X, FUN, ...)
+    }
+  }
+  query_data <- apply_fun(
+    1:nrow(query_y_cs), 
+    function(k){
+      y_c_k <- query_y_cs[k, ]  
+      
+      # ground truth precision matrix
+      prec_mat_truth <- generate_sparse_precision_matrix(y_c_k, p, adj_type, adj_params)
+      
+      # Generate precision operator P^{(y_c^k, y_d^k)} and adjacency matrix
+      mats_k <- sample_conditional_precision_v3(
+        time_grid, time_grid_est, 
+        base_kernel_params,
+        prec_mat_truth,
+        y_c_k
+      )
+      
+      mats_k
+    }
+  )
   
   # 5) get list of event_times for each subject (n) and process (p)
   
@@ -152,9 +162,18 @@ simulate_conditional_cox_data_v4 <- function(
 
 simulate_subject_data <- function(n, p, Y_continuous, adj_type, adj_params, 
                                   time_grid, time_grid_est,
-                                  base_kernel_params, ncores){
+                                  base_kernel_params, ncores, parallel){
   
-  subject_data <- pbmclapply(1:n, function(k){
+  # Wrapper function to unify interface
+  apply_fun <- function(X, FUN, ...) {
+    if (parallel) {
+      pbmclapply(X, FUN, mc.cores = ncores, ...)
+    } else {
+      lapply(X, FUN, ...)
+    }
+  }  
+  
+  subject_data <- apply_fun(1:n, function(k){
     
     if(k %% 50 == 0){
       print(paste0(k, ' out of ', n))
@@ -208,7 +227,7 @@ simulate_subject_data <- function(n, p, Y_continuous, adj_type, adj_params,
     
     # Store complete subject information
     
-    result <- list(
+    list(
       Y_continuous = y_c_k,
       X_functions_full = X_k_list[[1]],
       X_functions = X_k_list[[2]],
@@ -219,7 +238,7 @@ simulate_subject_data <- function(n, p, Y_continuous, adj_type, adj_params,
     )
     
     
-  }, mc.cores = ncores) # end of pbmclapply  
+  }) # end of apply_fun
 }
 
 convert_data_for_estimation <- function(subject_list, Tmax){

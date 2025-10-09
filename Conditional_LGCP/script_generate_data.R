@@ -20,7 +20,7 @@ source('functions/00_function_wrapper.R')
 
 # 1) system parameters
 seed = 1
-ncores = 6
+ncores = 1
 
 # 2) output parameters
 terse = TRUE
@@ -64,7 +64,8 @@ dataset <- simulate_conditional_cox_data_v4(n_large, p, T_max, query_y_cs,
                                             base_kernel_params,
                                             ncores,
                                             seed = NULL,
-                                            verbose = FALSE)
+                                            verbose = FALSE,
+                                            parallel = FALSE)
 
 if (!dir.exists('simu_data')) dir.create('simu_data')
 
@@ -77,6 +78,6 @@ elapsed_time <- as.numeric(difftime(t1, t0, units = "mins"))
 
 
 
-cat('Time to generate ', n, ' subjects: ', elapsed_time, ' mins\n')
+cat('Time to generate ', n_large, ' subjects: ', elapsed_time, ' mins\n')
 
 
