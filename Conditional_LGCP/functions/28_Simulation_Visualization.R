@@ -632,8 +632,12 @@ visualize_metrics <- function(folder_name, metrics, i = NULL, j = NULL){
     as.numeric(sub(".*_(.*)\\.RData$", "\\1", files)) # retrieve numbers
   })
   
+  data_files <- files[!is.na(ns)]
   
-  results_list <- lapply(files, function(f) {
+  ns <- ns[!is.na(ns)]
+  
+  
+  results_list <- lapply(data_files, function(f) {
     e <- new.env()          # create an isolated environment
     load(f, envir = e)      # load into that environment
     as.list(e)              # convert to a list (in case multiple objects)
