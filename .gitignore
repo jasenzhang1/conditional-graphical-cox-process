@@ -8,6 +8,7 @@ Conditional_LGCP/results/
 Conditional_LGCP/simu_results*
 Conditional_LGCP/scripts/nohup.out
 Conditional_LGCP/functions/99_recycle.R
+Conditional_LGCP/simu_data/
 
 joblog*
 output*
