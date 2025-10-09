@@ -31,7 +31,7 @@ cat("adj_type: ", adj_type, "\n")
 cat("method: ", method, "\n")
 
 # load `dataset`
-load(paste0('simu_data/', adj_type, '_n_', n, '.RData'))
+load(paste0('simu_data/', adj_type, '_n_', n_large, '.RData'))
 
 idx <- round(seq(1, n_large, length.out = n))
 
