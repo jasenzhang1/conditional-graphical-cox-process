@@ -66,7 +66,7 @@ sink(paste0(results_folder_name, "/warnings.txt"))
 print(warnings())
 sink()
 
-t_n_end <- Sys.time()
+t1 <- Sys.time()
 
-print(paste0('Time to finish: ', round(as.numeric(t_n_end - t_n_start, units = "mins"), 2), ' minutes'))  
+print(paste0('Time to finish: ', round(as.numeric(t1 - t0, units = "mins"), 2), ' minutes'))  
 print(strrep("-", 50))
