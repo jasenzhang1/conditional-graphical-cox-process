@@ -5,9 +5,8 @@ scrap/
 Conditional_LGCP/data/
 Conditional_LGCP/figures/
 Conditional_LGCP/results/
-Conditional_LGCP/scripts/
 Conditional_LGCP/simu_results*
-
+Conditional_LGCP/scripts/nohup.out
 Conditional_LGCP/functions/99_recycle.R
 
 joblog*
