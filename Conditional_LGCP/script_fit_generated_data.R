@@ -28,7 +28,7 @@ if (!dir.exists(results_folder_name)) dir.create(results_folder_name)
 cat("n_large: ", n_large, "\n")
 cat("n: ", n, "\n")
 cat("adj_type: ", adj_type, "\n")
-
+cat("method: ", method, "\n")
 
 # load `dataset`
 load(paste0('simu_data/', adj_type, '_n_', n, '.RData'))

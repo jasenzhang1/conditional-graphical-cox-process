@@ -282,6 +282,7 @@ full_conditional_estimation_with_truths_v3 <- function(dataset, method, terse, n
     
     # obtain this query's parameters
     kernel_params_i = dataset$true_graphs[[cont_ind]]$P_block_kronecker
+    p <- dim(kernel_params_i$prec_mat_truth$adj_mat)[1]    
     adj_mat_i <- dataset$true_graphs[[cont_ind]]$adj_mat
     query_y_c <- query_y_cs[cont_ind, ] %>% as.numeric()    
   
