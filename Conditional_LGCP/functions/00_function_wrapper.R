@@ -30,5 +30,4 @@ source('functions/13_estimation_validation.R')
 
 library(dplyr)
 library(data.table)
-library(ggplot2)
 library(pROC)
