@@ -1,6 +1,7 @@
 source('functions/00a_matrix_massaging.R')
 source('functions/00b_matrix_norms.R')
 source('functions/00c_block_matrix_arrange.R')
+source('functions/00e_preprocessing.R')
 source('functions/01_kernel_estimation.R')
 source('functions/01a_kernel_initialization.R')
 source('functions/01b_greshgorin_kernel_initialization.R')
