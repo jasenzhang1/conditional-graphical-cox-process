@@ -9,7 +9,7 @@ adj_type_params=(
   "banded_trig2 0 1 0.3"
   "sparse_v2 0 1 2 0.3 -1 2 0.01"
 )
-n=2000
+n=100
 
 mkdir -p script_outputs
 
