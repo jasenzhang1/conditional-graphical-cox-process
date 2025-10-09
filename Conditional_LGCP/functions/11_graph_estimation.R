@@ -210,7 +210,7 @@ roc_with_threshold <- function(w_mat, adj_mat, g_title = NULL) {
     specificity = ideal_spec,
     auc = auc_value,
     accuracy = accuracy,
-    roc_df = roc_df,
+    roc_df = roc_df
     # plot = p
   )
 }
