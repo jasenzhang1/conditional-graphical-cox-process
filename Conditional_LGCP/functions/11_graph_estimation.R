@@ -129,7 +129,7 @@ select_threshold_by_stability <- function(P_conditional, p) {
 
 
 
-library(pROC)
+
 
 roc_with_threshold <- function(w_mat, adj_mat, g_title = NULL) {
   
@@ -189,20 +189,20 @@ roc_with_threshold <- function(w_mat, adj_mat, g_title = NULL) {
   roc_df <- roc_df[order(roc_df$FPR, roc_df$TPR), ]
   
   # ROC plot
-  p <- ggplot(roc_df, aes(x = FPR, y = TPR)) +
-    geom_step(direction = "vh", color = "blue", size = 1) +
-    geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "grey") +
-    labs(title = "ROC Curve", x = "False Positive Rate", y = "True Positive Rate") +
-    annotate("point", x = 1 - ideal_spec, y = ideal_sens, color = "red", size = 3) +
-    annotate("text", x = 1 - ideal_spec, y = ideal_sens, 
-             label = paste0("Threshold=", round(ideal_threshold, 3)),
-             hjust = -0.1, vjust = -0.5, color = "red") +
-    
-    annotate("text", x = 0.6, y = 0.2,            # position for AUC label
-             label = paste0("AUC = ", round(auc_value, 3)),
-             color = "darkgreen", size = 5) +    
-    theme_minimal() + 
-    ggtitle(g_title)
+  # p <- ggplot(roc_df, aes(x = FPR, y = TPR)) +
+  #   geom_step(direction = "vh", color = "blue", size = 1) +
+  #   geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "grey") +
+  #   labs(title = "ROC Curve", x = "False Positive Rate", y = "True Positive Rate") +
+  #   annotate("point", x = 1 - ideal_spec, y = ideal_sens, color = "red", size = 3) +
+  #   annotate("text", x = 1 - ideal_spec, y = ideal_sens, 
+  #            label = paste0("Threshold=", round(ideal_threshold, 3)),
+  #            hjust = -0.1, vjust = -0.5, color = "red") +
+  #   
+  #   annotate("text", x = 0.6, y = 0.2,            # position for AUC label
+  #            label = paste0("AUC = ", round(auc_value, 3)),
+  #            color = "darkgreen", size = 5) +    
+  #   theme_minimal() + 
+  #   ggtitle(g_title)
   
   list(
     threshold = ideal_threshold,
@@ -211,7 +211,7 @@ roc_with_threshold <- function(w_mat, adj_mat, g_title = NULL) {
     auc = auc_value,
     accuracy = accuracy,
     roc_df = roc_df,
-    plot = p
+    # plot = p
   )
 }
 
