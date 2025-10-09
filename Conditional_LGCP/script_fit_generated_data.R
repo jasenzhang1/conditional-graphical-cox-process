@@ -13,14 +13,16 @@ args <- commandArgs(trailingOnly = TRUE)
 
 n_large <- as.numeric(args[1])
 n <- as.numeric(args[2])
-adj_type <- args[2]
-
+adj_type <- args[3]
+method <- args[4]
 
 terse <- T
 ncores <- 1
 
 #simu_results_a_sparse_v2_OG
-results_folder_name <- paste0("simu_results_a_", adj_type, '_', method)
+folder_1_name <- 'simu_results'
+if (!dir.exists(folder_1_name)) dir.create(folder_1_name)
+results_folder_name <- paste0(folder_1_name, "/", adj_type)
 if (!dir.exists(results_folder_name)) dir.create(results_folder_name)
 
 cat("n_large: ", n_large, "\n")
