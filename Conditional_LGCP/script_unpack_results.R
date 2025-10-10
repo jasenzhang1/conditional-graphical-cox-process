@@ -11,8 +11,8 @@ args <- commandArgs(trailingOnly = TRUE)
 base_folder <- args[1]
 adj_type <- args[2]
 method <- args[3]
-i <- args[4]
-j <- args[5]
+i <- as.numeric(args[4])
+j <- as.numeric(args[5])
 
 # convergence of intermediate estimators
 
