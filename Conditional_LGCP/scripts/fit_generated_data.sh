@@ -14,16 +14,20 @@ adj_types=(
 
 n_large=2000
 
-ns=(250 500)
-max_jobs=12   # limit to 4 concurrent background jobs
+ns=(20)
+max_jobs=12  
 
 mkdir -p script_outputs
 
 for n in "${ns[@]}"; do
+
   for adj_type in "${adj_types[@]}"; do
+    mkdir -p script_outputs/${adj_type}
+    
     for method in "${methods[@]}"; do
-  
-      outfile="script_outputs/fit_generated_data_ALL.txt"
+      mkdir -p script_outputs/${adj_type}/${method}
+      
+      outfile="script_outputs/${adj_type}/${method}/fit_log_n${n}.txt"
       echo "Fitting dataset: n_large=$n_large, n=$n, adj_type=$adj_type, method=$method"
       echo "Logging to: $outfile"
       

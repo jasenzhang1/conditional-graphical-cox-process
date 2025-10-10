@@ -22,7 +22,11 @@ ncores <- 1
 #simu_results_a_sparse_v2_OG
 folder_1_name <- 'simu_results'
 if (!dir.exists(folder_1_name)) dir.create(folder_1_name)
-results_folder_name <- paste0(folder_1_name, "/", adj_type)
+
+folder_2_name <- paste0(folder_1_name, "/", adj_type)
+if (!dir.exists(folder_2_name)) dir.create(folder_2_name)
+
+results_folder_name <- paste0(folder_2_name, "/", method)
 if (!dir.exists(results_folder_name)) dir.create(results_folder_name)
 
 cat("n_large: ", n_large, "\n")
@@ -61,12 +65,13 @@ save(graph_results_i, file = file_dir)
 cat('saved estimate')
 
 
-# keep warnings
-sink(paste0(results_folder_name, "/warnings.txt"))
-print(warnings())
-sink()
-
 t1 <- Sys.time()
 
 print(paste0('Time to finish: ', round(as.numeric(t1 - t0, units = "mins"), 2), ' minutes'))  
 print(strrep("-", 50))
+
+
+# ALL WARNINGS
+print('all warnings below:')
+print(warnings())
+
