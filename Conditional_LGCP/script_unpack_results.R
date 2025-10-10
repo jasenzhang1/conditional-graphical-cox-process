@@ -26,6 +26,6 @@ metrics_summary <- visualize_metrics(results_folder, metrics, i, j)
 write.csv(metrics_summary$metric_table, paste0(results_folder, "/metrics_summary.csv"), row.names = FALSE)
 
 
-pdf(paste0(results_folder, "metrics_summary.pdf"), width = 8, height = 6)  # open PDF file
+pdf(paste0(results_folder, "/metrics_summary.pdf"), width = 8, height = 6)  # open PDF file
 grid.arrange(metrics_summary$metric_graph)                                 # draw the grob/layout
 dev.off()                                                                  # close the file
