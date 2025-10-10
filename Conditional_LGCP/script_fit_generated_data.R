@@ -29,10 +29,10 @@ if (!dir.exists(folder_2_name)) dir.create(folder_2_name)
 results_folder_name <- paste0(folder_2_name, "/", method)
 if (!dir.exists(results_folder_name)) dir.create(results_folder_name)
 
-cat("n_large: ", n_large, "\n")
-cat("n: ", n, "\n")
-cat("adj_type: ", adj_type, "\n")
-cat("method: ", method, "\n")
+print(paste0("n_large: ", n_large))
+print(paste0("n: ", n))
+print(paste0("adj_type: ", adj_type))
+print(paste0("method: ", method))
 
 # load `dataset`
 load(paste0('simu_data/', adj_type, '_n_', n_large, '.RData'))
@@ -57,12 +57,12 @@ if(method == 'CPGM'){
   stop('Invalid method. Must be CPGM, OG, or JASA')
 }
 
-cat('obtained estimate')
+print('obtained estimate')
 
 file_dir <- paste0(results_folder_name, '/', method, '_', 'n_', n, '.RData')
 save(graph_results_i, file = file_dir)
 
-cat('saved estimate')
+print('saved estimate')
 
 
 t1 <- Sys.time()
