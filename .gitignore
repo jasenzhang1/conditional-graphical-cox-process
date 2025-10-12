@@ -5,7 +5,8 @@ scrap/
 Conditional_LGCP/data/
 Conditional_LGCP/figures/
 Conditional_LGCP/results/
-Conditional_LGCP/simu_results*
+Conditional_LGCP/simu_results_*
+Conditional_LGCP/simu_results/**/*.RData
 Conditional_LGCP/scripts/nohup.out
 Conditional_LGCP/functions/99_recycle.R
 Conditional_LGCP/simu_data/
