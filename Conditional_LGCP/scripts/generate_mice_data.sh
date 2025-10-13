@@ -4,11 +4,8 @@
 
 cd "$(dirname "$0")/.."   # go one level up (from /scripts to /)
 
-# IDs=(346 351 366 361 362 368)
-# time_scales=(1 2 5 10)
-
-IDs=(346 351)
-time_scales=(1 2)
+IDs=(346 351 366 361 362 368)
+time_scales=(2 5 10)
 max_jobs=12
 
 mkdir -p script_outputs
