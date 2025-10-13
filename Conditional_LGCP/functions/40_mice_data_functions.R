@@ -190,7 +190,7 @@ get_spiketrain_dataset_conditional_LGCP <- function(ID, time_scale, discrete_cov
         dplyr::select(-time) %>%
         unique()
       
-      if(nrow(strata_iter) == 1){  # only continue if there is only 1 discrete strata level
+      if(nrow(strata_iter) == 1 & nrow(spikes_iter) > 0){  # only continue if there is only 1 discrete strata level
         y_d <- strata_iter[1,]
         
         # store data in a df
