@@ -40,9 +40,9 @@ ID2 <- c('Tau1', 'Tau2', 'Tau3', 'WT1', 'WT2', 'WT3') # our name
 num_neurons <- c(169, 250, 240, 249, 235, 294)
 
 # 8.1) truncated mouse parameters
-IDs <- c('346',  '368')  
-ID2 <- c('Tau1', 'WT3') 
-num_neurons <- c(169,  294)
+IDs <- c('351',  '368')  
+ID2 <- c('Tau2', 'WT3') 
+num_neurons <- c(250,  294)
 
 
 
