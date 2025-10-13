@@ -12,7 +12,8 @@ mkdir -p script_outputs
 
 outfile="script_outputs/generate_mice_data.txt"
 echo "Logging to: $outfile"
-
+# start fresh each run
+> "$outfile"
 
 for ID in "${IDs[@]}"; do
   for time_scale in "${time_scales[@]}"; do
