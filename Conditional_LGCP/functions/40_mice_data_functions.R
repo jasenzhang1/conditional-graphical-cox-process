@@ -137,8 +137,11 @@ get_spiketrain_dataset_conditional_LGCP <- function(ID, time_scale, discrete_cov
     tmax_j <- dataset[[j]][[3]]
     
     # long format, dataframe of ('neuron', 'spike_times')
-    spikes_j <- enframe(dataset_j, name = "neuron", value = "spike_times") %>%
-      unnest(spike_times)
+    
+    spikes_j <- data.frame(
+      neuron = rep(1:length(dataset_j), lengths(dataset_j)),
+      spike_times = unlist(dataset_j, use.names = FALSE)
+    )
     
     # 1b) create binary covariate labels
     
