@@ -29,6 +29,46 @@ load_brain_region_dataset <- function(data_dir){
   return(as.list(env))
 }
 
+neuron_info <- function(mouse_ID, df_all_neurons){
+  
+  # --------------------------------------------------------------------
+  # goal:
+  #
+  # From the spiketrain dataset for a specific mouse, tell me about which electrode and brain region each 
+  # neuron is from
+  #    
+  # --------------------------------------------------------------------
+  # dependencies:
+  # 
+  # none
+  #   
+  # --------------------------------------------------------------------
+  # inputs:
+  # 
+  # mouse_ID        (string)    = the three digit number for a mouse ID (string)
+  # df_all_neurons  (dataframe) = path to the realigned data (string)
+  #
+  # --------------------------------------------------------------------
+  # output: 
+  #
+  # df_neuron_info    =  a dataframe with three columns. 
+  #                                           - Neuron_Num (numeric): denoting the ID number of the neuron
+  #                                           - Electrode_Num (numeric): denoting the ID number of the electrode
+  #                                           - Brain_Region (factor): Hippocampus or Entorhinal Cortex
+  #
+  #
+  # example: df_neuron_info <- neuron_info('366')
+  # --------------------------------------------------------------------
+  
+  # mouse_ID <- '346'
+  # data_dir <- '/u/home/j/jasenzz/Alzheimers/Data/Brain_Region.RData'
+  
+  df_neuron_info <- df_all_neurons %>% filter(Mouse == as.name(mouse_ID)) %>% 
+    dplyr::select(Neuron_Num, Electrode_Num, Brain_Region)
+  
+  return(df_neuron_info)
+}
+
 get_spiketrain_dataset_conditional_LGCP <- function(ID, time_scale, discrete_covariates, continuous_covariates, weekly_dataset, neuron_df){
   
   # ----------------------------------------------------------------------------
