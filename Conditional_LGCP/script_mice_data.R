@@ -10,7 +10,7 @@ ID <- args[1]
 time_scale <- as.numeric(args[2])
 
 
-
+library(dplyr)
 source('functions/40_mice_data_functions.R')
 data_dir <- 'data/'
 
