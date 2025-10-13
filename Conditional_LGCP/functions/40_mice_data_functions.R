@@ -1,3 +1,5 @@
+library(dplyr)
+
 # load data that has been pre-made
 
 load_realigned_dataset <- function(data_dir){
