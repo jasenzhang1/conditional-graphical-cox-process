@@ -1,6 +1,6 @@
 suppressPackageStartupMessages(library(dplyr))
 
-library(data.table)
+suppressPackageStartupMessages(library(data.table))
 
 # load data that has been pre-made
 
@@ -129,7 +129,7 @@ get_spiketrain_dataset_conditional_LGCP <- function(ID, time_scale, discrete_cov
   
   for(j in weeks2){ # 1) for each week
     
-    
+    print(paste0('Week ', which(j == weeks2), ' out of ', length(weeks2)))
     
     border_times_j <- c()
     
