@@ -1,4 +1,6 @@
-library(dplyr)
+suppressPackageStartupMessages(library(dplyr))
+
+library(data.table)
 
 # load data that has been pre-made
 
