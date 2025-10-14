@@ -162,9 +162,18 @@ generate_y_c_adj_type <- function(n, adj_type, params, seed = NULL){
   
   # ----------------------------------------------------------------------------
   #
-  # depending on the adj_type, generate Y_continuous
+  # GOAL: depending on the adj_type, generate Y_continuous
   #
+  # - for now, assume q_c = 1, so Y_continuous is just a scalar for each subject
   #
+  # inputs:
+  #
+  # - n               (integer)          sample size
+  # - adj_type        (string)           precision matrix adjacency type
+  # - params          (vector)           associated vector of parameters of the adjacency type
+  # - seed            (integer)          reproducibility seed 
+  #
+  # 
   # output:
   #
   # - Y_continuous (n x q_c matrix)
@@ -176,7 +185,9 @@ generate_y_c_adj_type <- function(n, adj_type, params, seed = NULL){
     set.seed(seed)
   }
   
-  if(!adj_type %in% c('banded_trig1', 'banded_trig2', 
+  if(!adj_type %in% c('indep_2',
+                      'single_c2', 'single_v2',
+                      'banded_trig1', 'banded_trig2', 
                       'banded_c0', 'banded_c1', 'banded_c2', 'banded_c3',
                       'sparse_v1', 'sparse_v2')){
     stop('adj_type is not supported')
@@ -206,7 +217,7 @@ generate_y_c_adj_type <- function(n, adj_type, params, seed = NULL){
     
   }
   
-  if(adj_type %in% c('banded_trig2', 'banded_c2', 'sparse_v2')){
+  if(adj_type %in% c('indep_2', 'single_c2', 'single_v2', 'banded_trig2', 'banded_c2', 'sparse_v2')){
     
     # params[1] = min
     # params[2] = max

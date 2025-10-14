@@ -230,8 +230,56 @@ generate_sparse_precision_matrix <- function(y_c_k, p, adj_type, adj_params){
   # 
   # ----------------------------------------------------------------------------
   
+  if(!adj_type %in% c('indep_2',
+                      'single_c2', 'single_v2',
+                      'banded_c0', 'banded_c1', 'banded_c2', 'banded_c3',
+                      'banded_v1', 'banded_v2',
+                      'banded_trig1', 'banded_trig2',
+                      'sparse_v1', 'sparse_v2')){
+    stop('ERROR: generate_sparse_precision_matrix - adj_type not supported')
+  }
   
+  if(adj_type %in% c('indep_2')){
+    prec_mat <- diag(1, p)
+    
+    result <- prec_mat_massager(prec_mat) # helper function above
+  }
   
+  if(adj_type %in% c('single_c2')){
+    rho <- adj_params[3]
+    
+    # rho = 0.3
+    # 0.3's on [1,2] and [2,1] - constant over time
+    # nothing else
+    
+    prec_mat <- diag(1, p)
+    
+    prec_mat[1,2] <- rho
+    prec_mat[2,1] <- rho 
+    
+    result <- prec_mat_massager(prec_mat) # helper function above    
+    
+  }
+  
+  if(adj_type %in% c('single_v2')){
+    
+    # adj_params = [y_min = 0, y_max = 1, rho_max = 0.9]
+    #
+    # only [1,2] and [2,1] are nonzero, where rho(y) = rho_max * y_c / y_max
+    #
+    # - this allows us to start with a very positive network, then no network, then very negative, then none, then positive again
+    
+    y_min <- adj_params[1]
+    y_max <- adj_params[2]
+    rho_max <- adj_params[3]
+    rho <- rho_max * (y_c_k - y_min) / (y_max - y_min)
+    
+    prec_mat <- diag(1, p)
+    prec_mat[1,2] <- rho
+    prec_mat[2,1] <- rho
+    
+    result <- prec_mat_massager(prec_mat)    
+  }
   
   if(adj_type %in% c('banded_c0', 'banded_c1', 'banded_c2', 'banded_c3')){
     
