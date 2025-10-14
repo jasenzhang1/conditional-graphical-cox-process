@@ -32,7 +32,7 @@ if(!dir.exists(save_dir)){
 LGCP_data <- get_spiketrain_dataset_conditional_LGCP(ID, time_scale, discrete_covariates, continuous_covariates, weekly_dataset, neuron_df)
 
 # prepare to save
-file_name <- paste0(save_dir, '/', ID2, '_t', time_scale, '_data.rda')
+file_name <- paste0(save_dir, '/', ID2, '_t', time_scale, '_data.RData')
 
 # save 
 save(LGCP_data, file = file_name)

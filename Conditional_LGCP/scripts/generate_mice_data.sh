@@ -28,7 +28,7 @@ for ID in "${IDs[@]}"; do
     # Run Rscript in background and measure time
     (
       start_time=$(date +%s)
-      Rscript script_mice_data.R $ID $time_scale >> "$outfile" 2>&1
+      Rscript script_generate_mice_data.R $ID $time_scale >> "$outfile" 2>&1
       end_time=$(date +%s)
       elapsed=$((end_time - start_time))
       minutes=$((elapsed / 60))

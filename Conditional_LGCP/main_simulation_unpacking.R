@@ -32,6 +32,8 @@ print(grid.arrange(metrics_summary$metric_graph))
 
 
 
+# 2) ground truth vs estimated p x p matrix
+
 
 
 
