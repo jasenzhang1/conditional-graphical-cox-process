@@ -231,7 +231,7 @@ generate_sparse_precision_matrix <- function(y_c_k, p, adj_type, adj_params){
   # ----------------------------------------------------------------------------
   
   if(!adj_type %in% c('indep_2',
-                      'single_c2', 'single_v2',
+                      'single_c2', 'single_v2', 'single_j2',
                       'banded_c0', 'banded_c1', 'banded_c2', 'banded_c3',
                       'banded_v1', 'banded_v2',
                       'banded_trig1', 'banded_trig2',
@@ -280,6 +280,31 @@ generate_sparse_precision_matrix <- function(y_c_k, p, adj_type, adj_params){
     
     result <- prec_mat_massager(prec_mat)    
   }
+  
+  if(adj_type %in% c('single_j2')){
+    
+    # adj_params = [y_min = 0, y_max = 1, jump = 0.5, rho_1 = 0.3, rho_2 = 0.7]
+    #
+    # only [1,2] and [2,1] are nonzero, where rho(y) = rho_1 if (y_c_k < jump) and rho_2 if (y_c_k >= jump)
+    
+    y_min <- adj_params[1]
+    y_max <- adj_params[2]
+    y_jump <- adj_params[3]
+    rho_1 <- adj_params[4]
+    rho_2 <- adj_params[5]
+    
+    if(y_c_k < y_jump){
+      rho <- rho_1
+    } else{
+      rho <- rho_2
+    }
+    
+    prec_mat <- diag(1, p)
+    prec_mat[1,2] <- rho
+    prec_mat[2,1] <- rho
+    
+    result <- prec_mat_massager(prec_mat)    
+  }  
   
   if(adj_type %in% c('banded_c0', 'banded_c1', 'banded_c2', 'banded_c3')){
     

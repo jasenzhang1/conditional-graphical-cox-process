@@ -186,7 +186,7 @@ generate_y_c_adj_type <- function(n, adj_type, params, seed = NULL){
   }
   
   if(!adj_type %in% c('indep_2',
-                      'single_c2', 'single_v2',
+                      'single_c2', 'single_v2', 'single_j2',
                       'banded_trig1', 'banded_trig2', 
                       'banded_c0', 'banded_c1', 'banded_c2', 'banded_c3',
                       'sparse_v1', 'sparse_v2')){
@@ -217,7 +217,7 @@ generate_y_c_adj_type <- function(n, adj_type, params, seed = NULL){
     
   }
   
-  if(adj_type %in% c('indep_2', 'single_c2', 'single_v2', 'banded_trig2', 'banded_c2', 'sparse_v2')){
+  if(adj_type %in% c('indep_2', 'single_c2', 'single_v2', 'single_j2', 'banded_trig2', 'banded_c2', 'sparse_v2')){
     
     # params[1] = min
     # params[2] = max
