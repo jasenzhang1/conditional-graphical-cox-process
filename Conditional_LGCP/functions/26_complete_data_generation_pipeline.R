@@ -16,11 +16,26 @@ simulate_conditional_cox_data_v4 <- function(
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: simulate data
+  # GOAL: simulate data according to
   #
-  # - same as v3 but parallelized
+  # - a specific adj_type with adj_params
+  # - a specific base_kernel with base_kernel_params
+  #
   # 
-  # - 9/10/2025 - cutting down lots of parameters
+  # inputs:
+  #
+  # - n               (integer)          sample size
+  # - p               (integer)          number of processes
+  # - T_max           (number)           point processes lie in [0, T_max], usually 1
+  # - query_y_cs      (n x q_c matrix)   continuous covariates
+  # - adj_type        (string)           precision matrix adjacency type
+  # - adj_params      (vector)           associated vector of parameters of the adjacency type
+  # - time_grid       (m-dim vec)        discretized time points from 0 to T_max
+  # - time_grid_est   (m_est-dim vec)    discretized time points from 0 to T_max for estimation
+  # - ncores          (integer)          number of cores
+  # - seed            (integer)          seed number for reproducibility 
+  # - verbose         (boolean)          do we want to see extra outputs?
+  # - parallel        (boolean)          do we want to enable parallel computing?
   #
   # ----------------------------------------------------------------------------
   
