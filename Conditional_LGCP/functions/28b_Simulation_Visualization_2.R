@@ -1,3 +1,328 @@
+# visualize ||V_cond - V_cond_est||_HS convergence
+
+visualize_V_cond_convergence <- function(folder_name, mat_name, i, j){
+  
+  # ----------------------------------------------------------------------------
+  #
+  #
+  # GOAL: visualize V_cond_convergence at block matrix (i, j)
+  #
+  #       error =  || V_{X_i, X_j}^(y_c) - \hat{V}_{X_i, X_j}^(y_c) ||_HS
+  #
+  #
+  # input:
+  #
+  # - folder_name (string)  'simu_results_banded_c1_3'
+  # - mat_name    (string)  'V', 'C', or 'P'
+  # - i, j        (scalar)  block matrix numbers
+  #
+  #
+  # output:
+  #
+  # - graph of V_12 error as we change sample size 
+  #
+  #
+  # ----------------------------------------------------------------------------
+  
+  
+  files <- list.files(folder_name, full.names = TRUE)
+  
+  ns <-  as.numeric(sub(".*_(.*)\\.RData$", "\\1", files)) # retrieve numbers
+  
+  results_list <- lapply(files, function(f) {
+    e <- new.env()          # create an isolated environment
+    load(f, envir = e)      # load into that environment
+    as.list(e)              # convert to a list (in case multiple objects)
+  })
+  
+  names(results_list) <- ns
+  
+  
+  # retrieve the 1_2 entry from metrics of V_cond 9written by chatgpt)
+  
+  results_df <- do.call(rbind, lapply(names(results_list), function(top_name) {
+    
+    top_entry <- results_list[[top_name]]$graph_results_i$estimated_graphs_part_2
+    
+    do.call(rbind, lapply(names(top_entry), function(low_name) {
+      low_entry <- top_entry[[low_name]]
+      
+      # Dynamically select the matrix
+      mat <- if (mat_name == "V") {
+        low_entry$metrics$V_HS
+      } else if (mat_name == "C") {
+        low_entry$metrics$C_HS
+      } else if (mat_name == "P") {
+        low_entry$metrics$P_HS
+      } else {
+        stop("Unknown mat_name: must be 'V', 'C', or 'P'")
+      }
+      
+      value <- mat[i, j]
+      
+      data.frame(
+        top_level = top_name,
+        low_level = low_name,
+        value = value,
+        stringsAsFactors = FALSE
+      )
+    }))
+  }))
+  
+  colnames(results_df) <- c('n', 'y_c_query', 'V_12_error')
+  
+  results_df$n <- as.numeric(results_df$n)
+  results_df$y_c_query <- as.numeric(results_df$y_c_query)
+  
+  if(mat_name == 'V'){
+    title_name <- 'Covariance'
+  } else if(mat_name == 'C'){
+    title_name <- 'Correlation'
+  } else if (mat_name == 'P'){
+    title_name <- 'Precision'
+  } else{
+    stop("Unknown mat_name: must be 'V', 'C', or 'P'")
+  }
+  
+  g <- ggplot() + geom_line(data = results_df, aes(x = y_c_query, y = V_12_error, group = n, color = n)) + 
+    ylab(paste0(mat_name, '_' , i, '_', j, ' Error')) + 
+    xlab('Y_c Query') + 
+    ggtitle(paste0('Conditional ', title_name, ' Operator Convergence')) + 
+    ylim(0, NA) + 
+    theme_bw() 
+  
+  return(g)
+  
+  
+}
+
+# across all n's, plot Y_c_query vs AUC
+
+visualize_AUC_across_n <- function(folder_name){
+  
+  # ----------------------------------------------------------------------------
+  #
+  #
+  # GOAL: visualize AUC metric across n and y_c_query
+  #
+  #
+  #
+  # input:
+  #
+  # - folder_name (string)  'simu_results_banded_c1_3'
+  #
+  #
+  # output:
+  #
+  # - graph of AUC vs y_c_query (x-axis) and n (color)
+  #
+  #
+  # ----------------------------------------------------------------------------
+  
+  
+  files <- list.files(folder_name, full.names = TRUE)
+  
+  ns <-  as.numeric(sub(".*_(.*)\\.RData$", "\\1", files)) # retrieve numbers
+  
+  results_list <- lapply(files, function(f) {
+    e <- new.env()          # create an isolated environment
+    load(f, envir = e)      # load into that environment
+    as.list(e)              # convert to a list (in case multiple objects)
+  })
+  
+  names(results_list) <- ns
+  
+  
+  # retrieve the 1_2 entry from metrics of V_cond 9written by chatgpt)
+  
+  results_df <- do.call(rbind, lapply(names(results_list), function(top_name) {
+    
+    top_entry <- results_list[[top_name]]$graph_results_i$estimated_graphs_part_2
+    
+    do.call(rbind, lapply(names(top_entry), function(low_name) {
+      low_entry <- top_entry[[low_name]]
+      
+      
+      
+      AUC <- low_entry$metrics$auc
+      
+      data.frame(
+        top_level = top_name,
+        low_level = low_name,
+        value = AUC,
+        stringsAsFactors = FALSE
+      )
+    }))
+  }))
+  
+  colnames(results_df) <- c('n', 'y_c_query', 'AUC')
+  
+  results_df$n <- as.numeric(results_df$n)
+  results_df$y_c_query <- as.numeric(results_df$y_c_query)
+  
+  title_name <- 'AUC'
+  
+  
+  
+  g <- ggplot() + geom_line(data = results_df, aes(x = y_c_query, y = AUC, group = n, color = n)) + 
+    ylab('AUC') + 
+    xlab('Y_c Query') + 
+    ggtitle('AUC versus n and y_c_query') + 
+    ylim(0, 1) + 
+    theme_bw() 
+  
+  return(g)
+  
+  
+}
+
+
+visualize_metrics <- function(folder_name, metrics, i = NULL, j = NULL){
+  
+  # ----------------------------------------------------------------------------
+  #
+  #
+  # GOAL: visualize convergences of various metrics:
+  #
+  # - metrics
+  #   - rho_i_dist (scalar)
+  #   - rho_ij_dist (pxp matrix, each value is HS norm of m_est x m_est rho_ij)
+  #   - g_ij_dist   (pxp matrix)
+  #   - P_HS        (pxp matrix, each value is HS norm of difference of P_hat - P)
+  #   - C_HS        (pxp matrix)
+  #   - V_HS        (pxp matrix)
+  #   - sens        (scalar)
+  #   - spec        (scalar)
+  #   - auc         (scalar)
+  #   - accuracy    (scalar)
+  #
+  #
+  #
+  # input:
+  #
+  # - folder_name (string)  'simu_results_banded_c1_3'
+  # - metric      (string)  
+  #   - 'rho_i_dist'
+  #   - 'rho_ij_dist'
+  #   - 'g_ij_dist'
+  #   - 'P_HS', 'C_HS', 'V_HS'
+  # - i and j    (integers)  indices for matrix metrics
+  #
+  # output:
+  #
+  # - table and graph of intermediate convergence metrics:
+  # 
+  #   - ||rho_i(t) - rho_i_est(t)||
+  #   - ||rho_ij(s,t) - rho_ij_est(s,t)||
+  #   - ||g_ij(s,t) - g_ij_est(s,t)||
+  #   - ||C_ij - C_ij_est||
+  #   - ||P_ij - P_ij_est||
+  #   - AUC
+  #
+  # ----------------------------------------------------------------------------
+  
+  
+  files <- list.files(folder_name, full.names = TRUE)
+  
+  ns <- suppressWarnings({
+    as.numeric(sub(".*_(.*)\\.RData$", "\\1", files)) # retrieve numbers
+  })
+  
+  data_files <- files[!is.na(ns)]
+  
+  ns <- ns[!is.na(ns)]
+  
+  
+  results_list <- lapply(data_files, function(f) {
+    e <- new.env()          # create an isolated environment
+    load(f, envir = e)      # load into that environment
+    as.list(e)              # convert to a list (in case multiple objects)
+  })
+  
+  names(results_list) <- ns
+  
+  
+  # retrieve the 1_2 entry from metrics of V_cond (written by chatgpt)
+  
+  # top_name = '100', '200' etc n
+  # low_name = '0', '0.125', '0.25', etc y_c_query  
+  results_df <- do.call(rbind, lapply(names(results_list), function(top_name) {
+    
+    top_entry <- results_list[[top_name]]$graph_results_i$estimated_graphs_part_2
+    
+    do.call(rbind, lapply(names(top_entry), function(low_name) {
+      low_entry <- top_entry[[low_name]]
+      
+      values <- c()
+      for(metric in metrics){
+        
+        metric_value <- low_entry[['metrics']][[metric]]
+        
+        if(metric %in% c('rho_ij_dist', 'g_ij_dist', 'P_HS', 'C_HS', 'V_HS')){
+          metric_value = metric_value[i, j]
+        }
+        
+        values <- c(values, metric_value)
+        
+      }
+      
+      
+      c(top_name, low_name, values)
+    }))
+  }))
+  
+  # names 
+  metric_names <- c()
+  for(metric in metrics){
+    
+    
+    if(metric %in% c('rho_ij_dist', 'g_ij_dist', 'P_HS', 'C_HS', 'V_HS')){
+      metric_name <- paste0(metric, '_', i, '_', j)
+    } else{
+      metric_name <- metric  
+    }
+    
+    metric_names <- c(metric_names, metric_name)
+  }
+  
+  results_df <- data.frame(results_df) %>% mutate_all(as.numeric)
+  colnames(results_df) <- c('n', 'y_c_query', metric_names)
+  
+  
+  results_df$n <- as.factor(results_df$n)
+  
+  # graph
+  graphs <- list()
+  
+  for(metric_name in metric_names){
+    
+    title_name <- paste0(metric_name, ' versus n and y_c_query')
+    
+    g <- ggplot() + geom_line(data = results_df, aes(x = y_c_query, y = .data[[metric_name]], group = n, color = n)) + 
+      geom_point(data = results_df, aes(x = y_c_query, y = .data[[metric_name]], group = n, color = n)) + 
+      ylab(metric_name) + 
+      xlab('Y_c Query') + 
+      # ggtitle(title_name) + 
+      theme_bw() 
+    
+    if(metric_name %in% c('auc')){
+      g <- g + ylim(0, 1)
+    } else{
+      g <- g + scale_y_log10(limits = c(NA, NA))
+    }
+    graphs[[metric_name]] <- g
+  }
+  
+  # grid arrange
+  
+  arranged_plots <- do.call(arrangeGrob, c(graphs, ncol = 3))
+  
+  # Display it
+  return(list(metric_graph = arranged_plots,
+              metric_table = results_df))
+  
+  
+}
 
 
 visualize_truths_from_est <- function(step_list, graph_ids, time_grid_est, time_grid, time_grid_both, p){
@@ -625,18 +950,114 @@ visualize_truths_from_est <- function(step_list, graph_ids, time_grid_est, time_
                                       layout_matrix = arr_mat_8)     
   }
   
+
+  
   return(graphs)
  
   
 }
 
+unpack_step_list <- function(folder_name, n, query_id){
+  
+  # ----------------------------------------------------------------------------
+  #
+  #
+  # GOAL: get step_list of a specific dataset in a folder, to prepare to visualize results
+  #
+  # - metrics
+  #   - rho_i_dist (scalar)
+  #   - rho_ij_dist (pxp matrix, each value is HS norm of m_est x m_est rho_ij)
+  #   - g_ij_dist   (pxp matrix)
+  #   - P_HS        (pxp matrix, each value is HS norm of difference of P_hat - P)
+  #   - C_HS        (pxp matrix)
+  #   - V_HS        (pxp matrix)
+  #   - sens        (scalar)
+  #   - spec        (scalar)
+  #   - auc         (scalar)
+  #   - accuracy    (scalar)
+  #
+  #
+  #
+  # input:
+  #
+  # - folder_name    (string)         'simu_results_banded_c1_3'
+  # - n              (integer)        sample size result in the folder that we want
+  # - query_id       (integer)        integer denoting which query to look at
+  #
+  # output:
+  #
+  # - step_list (list with all relevant estimates)
+  #
+  # ----------------------------------------------------------------------------
+  
+  
+  files <- list.files(folder_name, full.names = TRUE)
+  
+  ns <- suppressWarnings({
+    as.numeric(sub(".*_(.*)\\.RData$", "\\1", files))   # retrieve numbers
+  })
+  
+  
+  non_na_idx <- which(!is.na(ns))
+  
+  method <- sub("_.*", "", sub(".*/", "", files[non_na_idx[1]]))
+  
+  ns <- ns[!is.na(ns)]
+  
+  if(n %in% ns){
+    idx <- which(ns == n)
+  } else{
+    stop('n not available')
+  }
+  
+  load(files[non_na_idx[idx]])
+  
+  if(method %in% c('OG', 'JASA')){
+    step_list <- list(step_0 = graph_results_i$estimated_graphs_part_1$step_0,
+                      step_1 = graph_results_i$estimated_graphs_part_1$step_1,
+                      step_2 = graph_results_i$estimated_graphs_part_1$step_2,
+                      step_3 = graph_results_i$estimated_graphs_part_1$step_3,
+                      step_4 = graph_results_i$estimated_graphs_part_1$step_4,
+                      step_5 = graph_results_i$estimated_graphs_part_1$step_5,
+                      step_6 = NA,
+                      step_7 = NA,
+                      step_8 = graph_results_i$estimated_graphs_part_2[[query_id]]$step_8,
+                      step_9 = graph_results_i$estimated_graphs_part_2[[query_id]]$step_9,
+                      step_10 = graph_results_i$estimated_graphs_part_2[[query_id]]$step_10,
+                      step_11 = graph_results_i$estimated_graphs_part_2[[query_id]]$step_11,
+                      step_12 = graph_results_i$estimated_graphs_part_2[[query_id]]$step_12,
+                      step_2b = graph_results_i$estimated_graphs_part_1$step_2b
+    )    
+  } else if(method == 'CPGM'){
+    step_list <- list(step_0 = graph_results_i$estimated_graphs_part_1$step_0,
+                      step_1 = graph_results_i$estimated_graphs_part_1$step_1,
+                      step_2 = graph_results_i$estimated_graphs_part_2[[query_id]]$step_2,
+                      step_3 = graph_results_i$estimated_graphs_part_2[[query_id]]$step_3,
+                      step_4 = graph_results_i$estimated_graphs_part_2[[query_id]]$step_4,
+                      step_5 = graph_results_i$estimated_graphs_part_2[[query_id]]$step_5,
+                      step_6 = NA,
+                      step_7 = NA,
+                      step_8 = NA,
+                      step_9 = graph_results_i$estimated_graphs_part_2[[query_id]]$step_9,
+                      step_10 = graph_results_i$estimated_graphs_part_2[[query_id]]$step_10,
+                      step_11 = graph_results_i$estimated_graphs_part_2[[query_id]]$step_11,
+                      step_12 = graph_results_i$estimated_graphs_part_2[[query_id]]$step_12,
+                      step_2b = graph_results_i$estimated_graphs_part_2[[query_id]]$step_2b
+    )    
+  } else{
+    stop('unknown method')
+  }
+  
+  return(step_list)
+  
+}
 
 unpacking_pipeline <- function(folder_name, graph_id, time_grid_est, time_grid, n, p, query_id){
   
   # ----------------------------------------------------------------------------
   #
   #
-  # GOAL: visualize convergences of various metrics:
+  # GOAL: for a specific query_id and specific n, visualize a specific result
   #
   # - metrics
   #   - rho_i_dist (scalar)
