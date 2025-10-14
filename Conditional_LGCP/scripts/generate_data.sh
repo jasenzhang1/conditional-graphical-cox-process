@@ -5,11 +5,14 @@
 cd "$(dirname "$0")/.."   # go one level up (from /scripts to /)
 
 adj_type_params=(
-  "banded_c2 0 1 0.3"
-  "banded_trig2 0 1 0.3"
-  "sparse_v2 0 1 2 0.3 -1 2 0.01"
+  "indep_2 0 1"
+  "single_c2 0 1 0.7"
+  "single_v2 0 1 0.7"
+  #"banded_c2 0 1 0.3"
+  #"banded_trig2 0 1 0.3"
+  #"sparse_v2 0 1 2 0.3 -1 2 0.01"
 )
-n=100
+n=2000
 
 mkdir -p script_outputs
 
