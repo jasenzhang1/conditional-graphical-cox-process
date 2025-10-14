@@ -158,7 +158,17 @@ roc_with_threshold <- function(w_mat, adj_mat, g_title = NULL) {
   
   # Ensure labels are binary factors
   labels <- as.factor(labels)
-  if (length(levels(labels)) != 2) stop("Step_12: Labels must have two classes.")
+  if (length(levels(labels)) != 2){
+    return(list(
+      threshold = NA,
+      sensitivity = NA,
+      specificity = NA,
+      auc = NA,
+      accuracy = NA,
+      roc_df = NA
+      # plot = p
+    ))
+  }
   
   # Compute ROC
   roc_obj <- roc(labels, scores, quiet = TRUE)
@@ -204,7 +214,7 @@ roc_with_threshold <- function(w_mat, adj_mat, g_title = NULL) {
   #   theme_minimal() + 
   #   ggtitle(g_title)
   
-  list(
+  return(list(
     threshold = ideal_threshold,
     sensitivity = ideal_sens,
     specificity = ideal_spec,
@@ -212,7 +222,7 @@ roc_with_threshold <- function(w_mat, adj_mat, g_title = NULL) {
     accuracy = accuracy,
     roc_df = roc_df
     # plot = p
-  )
+  ))
 }
 
 get_metrics <- function(results){
