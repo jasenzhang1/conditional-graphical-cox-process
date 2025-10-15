@@ -4,12 +4,11 @@
 
 cd "$(dirname "$0")/.." || exit 1   # go one level up (from /scripts to /) and exit if fails
 
-methods=("OG" "CPGM")
+methods=("OG")
 
 adj_types=(
-  "banded_c2"
-  "banded_trig2"
-  "sparse_v2"
+  "single_c2"
+  "single_v2"
 )
 
 

@@ -20,7 +20,7 @@ n <- 500
 query_id <- 1
 
 # only look at one dataset
-unpacking_pipeline('simu_results/banded_c2/OG', '112', time_grid_est, time_grid, n, p, query_id)
+unpacking_pipeline('simu_results/indep_2/OG', '112', time_grid_est, time_grid, n, p, query_id)
 
 # convergence of intermediate estimators
 
