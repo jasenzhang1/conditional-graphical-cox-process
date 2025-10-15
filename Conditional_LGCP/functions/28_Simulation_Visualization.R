@@ -205,18 +205,27 @@ visualize_error_histogram <- function(mat_est, mat_reconstruct, g_title, bin_cou
   return(g)
 }
 
-visualize_log_intensity <- function(X_k, time_grid, g_title, legend_title = 'Process'){
+visualize_log_intensity <- function(X_k, time_grid, g_title, mu_t = NULL, legend_title = 'Process'){
   
+  # ----------------------------------------------------------------------------
   #
+  # 
   # visualize the log intensities
   # 
-  # X_k = (p x m matrix)
-  # time_grid = (m-dim vec of timepoints)
-  #
+  # inputs:
+  # 
+  # - X_k            (p x m matrix)
+  # - time_grid      (m-dim vec of timepoints)
+  # - g_title        (string)
+  # - mu_t           (m-dim vec of the mean of the GP)
+  # - legend_title   (string)
   #
   # output:
   # 
   # graph of all p log intensites at m timepoints
+  #
+  # 
+  # ----------------------------------------------------------------------------
   
   p <- dim(X_k)[1]
   m <- dim(X_k)[2]
@@ -234,6 +243,12 @@ visualize_log_intensity <- function(X_k, time_grid, g_title, legend_title = 'Pro
     theme_minimal() +
     labs(title = g_title, x = "Time", y = "Value", color = legend_title) +
     theme(legend.position = "right")  
+  
+  # add a dotted line to represent mean of the GP
+  
+  if(!is.null(y_val)){
+    g <- g + geom_line(aes(x = time_grid, y = mu_t), linetype = "dotted", size = 1)
+  }
   
   return(g)
   
