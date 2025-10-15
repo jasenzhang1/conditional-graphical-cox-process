@@ -36,7 +36,7 @@ dev.off()                                                                  # clo
 
 max_n <- max(get_ns(results_folder))
 
-n_y_c_query <- length(get_y_c_query(folder_name, max_n))
+n_y_c_query <- length(get_y_c_query(results_folder, max_n))
 
 prec_mat_comparison <- visualize_prec_mat_over_time(results_folder, max_n)
 pdf(paste0(results_folder, "/prec_mat_over_time.pdf"), width = 3 * (n_y_c_query-2), height = 3)  # open PDF file
