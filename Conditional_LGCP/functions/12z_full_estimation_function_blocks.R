@@ -57,6 +57,7 @@ step_0_store <- function(dataset){
   
   prec_ground_truths <- lapply(dataset$true_graphs, function(item) item$P_block_kronecker$prec_mat_truth$prec_mat)
   
+  
   return(prec_ground_truths)
 }
 
@@ -205,6 +206,7 @@ step_2_rho_i <- function(dataset, data_df4, kernel_params, rho_kernel, patient_s
   #   - rho_i_X_coarse_truth      (p x m_est)
   #   - rho_i_est                 (p x m_est)
   #   - rho_list                  (list format, [[1]] = rho_i, [[2]] = rho_ij, rho_ij may be rho_ii only)
+  #   - weights                   (n-dim vector)
   #
   # ----------------------------------------------------------------------------
   
@@ -212,15 +214,12 @@ step_2_rho_i <- function(dataset, data_df4, kernel_params, rho_kernel, patient_s
   # prep
   p <- dim(kernel_params$prec_mat_truth$adj_mat)[1]
   
-  
   # 1) rho_truth
   # rho_i_truth = exp(mu(t) + 0.5 * diag(GP_cov))
   
   
   
   rho_i_truth_value   <- exp(kernel_params$base_kernel_params$base_GP_mean + 0.5 * kernel_params$base_kernel_params$base_variance)
-  # rho_i_truth         <- replicate(p, exp(kernel_params$GP_simu_mean + 0.5 * diag(kernel_params$base_cov))) %>% t() 
-  # rho_i_coarse_truth  <- replicate(p, exp(kernel_params$GP_simu_mean_est + 0.5 * diag(kernel_params$base_cov_est))) %>% t()  
   rho_i_truth         <- replicate(p, exp(kernel_params$base_mean + 0.5 * diag(kernel_params$base_cov))) %>% t() 
   rho_i_coarse_truth  <- replicate(p, exp(kernel_params$base_mean_est + 0.5 * diag(kernel_params$base_cov_est))) %>% t()   
   
@@ -253,10 +252,12 @@ step_2_rho_i <- function(dataset, data_df4, kernel_params, rho_kernel, patient_s
     
     # 2) sample mean of the X_functions, beacuse there is no weight
     mat_list <- lapply(dataset$subject_data, function(x) exp(x$X_functions))
-    rho_i_X_truth <- Reduce("+", mat_list) / length(mat_list)
+    weights2 <- rep(1/length(mat_list), length(mat_list))
+    
+    rho_i_X_truth <- Reduce(`+`, Map(function(m, wt) m * wt, mat_list, weights2))
     
     mat_list_coarse <- lapply(dataset$subject_data, function(x) exp(x$X_functions_coarse))
-    rho_i_X_coarse_truth <- Reduce("+", mat_list_coarse) / length(mat_list_coarse)   
+    rho_i_X_coarse_truth <- Reduce(`+`, Map(function(m, wt) m * wt, mat_list_coarse, weights2))
     
     # i_neq_j is false because we don't care about G_ij
     rho_list <- estimate_intensities_stratum_parallel_v4(data_df4, patient_sel, feature_sel, time_grid_est, F, ncores)
@@ -270,7 +271,8 @@ step_2_rho_i <- function(dataset, data_df4, kernel_params, rho_kernel, patient_s
               rho_i_X_truth = rho_i_X_truth,
               rho_i_X_coarse_truth = rho_i_X_coarse_truth,
               rho_i_est = rho_i_est,
-              rho_list = rho_list))
+              rho_list = rho_list,
+              weights = weights2))
 }
 
 step_2_rho_ij <- function(step_1, step_2, kernel_params, i_neq_j){
