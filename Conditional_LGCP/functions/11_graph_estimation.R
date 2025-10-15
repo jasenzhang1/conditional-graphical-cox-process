@@ -241,7 +241,7 @@ get_metrics <- function(results){
   # - C_cond_est_full (pm_est x pm_est)  correlation matrix estimate
   # - V_cond_est_full (pm_est x pm_est)  covariance matrix estimate  
   # - P_cond_full     (pm_est x pm_est)  
-  # - C_cond_full     (pm_est x pm_est)  the same as V_cond_full
+  # - C_cond_full     (pm_est x pm_est)  
   # - V_cond_full     (pm_est x pm_est)  
   # - w_mat_est       (p x p)            hilbert schmidt norm matrix
   # - adj_mat
@@ -252,6 +252,12 @@ get_metrics <- function(results){
   # - rho_ii_coarse_truth  (i_j list of m_est x m_est matrices)  [[13]]
   # - g_ij_est             (i_j list of m_est x m_est matrices)  [[14]]
   # - g_ij_coarse_truth    (i_j list of m_est x m_est matrices)  [[15]]
+  # - K_base               (m x m matrix)                        [[16]]
+  # - K_base_est           (m_est x m_est matrix)                [[17]]
+  # - K_adj                (p x p matrix)                        [[18]]
+  # - K_base_inv           (m x m matrix)                        [[19]]
+  # - K_base_est_inv       (m_est x m_est matrix)                [[20]]
+  # - K_adj_inv            (p x p matrix)                        [[21]]
   #
   # - i_neq_j   (boolean)
   #
@@ -279,6 +285,20 @@ get_metrics <- function(results){
     V_HS <- hilbert_schmidt_norm_pm(results[[3]] - results[[6]], p, m_est)
   }
   
+  # 1b) find HS_norm of difference via ground truths
+  
+  P_est_12 <- extract_block_structure_ij(results[[1]], m_est, 1, 2)
+  P_true_12 <- results[[21]][1,2] * results[[19]]
+  P_true_12_cor <- results[[21]][1,2] * cov2cor(results[[19]])
+  P_HS_12 <- hilbert_schmidt_norm(P_est_12 - P_true_12)
+  P_HS_12_cor <- hilbert_schmidt_norm(P_est_12 - P_true_12_cor)
+  
+  C_est_12 <- extract_block_structure_ij(results[[2]], m_est, 1, 2)
+  C_true_12 <- results[[18]][1,2] * results[[16]] 
+  C_true_12_cor <- results[[18]][1,2] * cov2cor(results[[16]])
+  C_HS_12 <- hilbert_schmidt_norm(P_est_12 - P_true_12)
+  C_HS_12_cor <- hilbert_schmidt_norm(P_est_12 - P_true_12_cor)  
+  
   # 2) find distance between rho_i and rho_i_coarse_truth
   
   rho_i_dist <- hilbert_schmidt_norm(results[[10]] - results[[11]])
@@ -297,6 +317,10 @@ get_metrics <- function(results){
               P_HS = P_HS,
               C_HS = C_HS,
               V_HS = V_HS,
+              P_HS_12 = P_HS_12,
+              P_HS_12_cor = P_HS_12_cor,
+              C_HS_12 = C_HS_12,
+              C_HS_12_cor = C_HS_12_cor,
               sens = results[[9]]$sensitivity,
               spec = results[[9]]$specificity,
               auc = as.numeric(results[[9]]$auc),
