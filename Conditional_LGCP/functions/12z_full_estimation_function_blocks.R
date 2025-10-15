@@ -1235,16 +1235,9 @@ step_11_HS_norms <- function(step_10, adj_mat_i, p){
   w_mat_coarse_truth   <- hilbert_schmidt_norm_pm(P_cond_coarse_truth_full,   p, m_est)
   w_mat_truth          <- hilbert_schmidt_norm_pm(P_cond_truth_full,          p, m)
   
-  diag(w_mat_est) <- 0
-  diag(w_mat_X_coarse_truth) <- 0
-  diag(w_mat_X_truth) <- 0
-  diag(w_mat_coarse_truth) <- 0  
-  diag(w_mat_truth) <- 0
-  
   w_mat_ground_truth        <- hilbert_schmidt_norm_pm(P_cond_ground_truth_full, p, m)
   w_mat_coarse_ground_truth <- hilbert_schmidt_norm_pm(P_cond_coarse_ground_truth_full, p, m_est)
-  diag(w_mat_ground_truth) <- 0
-  diag(w_mat_coarse_ground_truth) <- 0
+
   
   # hilbert schmidt normalized HS norms 
   
