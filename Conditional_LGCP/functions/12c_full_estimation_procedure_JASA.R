@@ -165,7 +165,14 @@ full_conditional_estimation_with_truths_v2 <- function(dataset, method, terse, n
                                 step_2b$rho_ii_est,   # rho_ii_est
                                 step_2b$rho_ii_coarse_truth,   # rho_ii_coarse_truth
                                 step_3$g_ij_est,    # g_ij_est
-                                step_3$g_ij_coarse_truth))   # g_ij_coarse_truth
+                                step_3$g_ij_coarse_truth,  # g_ij_coarse_truth
+                                kernel_params_i$base_cov,
+                                kernel_params_i$base_cov_est,
+                                kernel_params_i$prec_mat_truth$cor_mat, 
+                                kernel_params_i$base_precision,
+                                kernel_params_i$base_precision_est,
+                                kernel_params_i$prec_mat_truth$prec_mat)
+                           )
     
 
     # 8) return all results
@@ -371,7 +378,13 @@ full_conditional_estimation_with_truths_v3 <- function(dataset, method, terse, n
                                 step_2b$rho_ii_est,   # rho_ii_est
                                 step_2b$rho_ii_coarse_truth,   # rho_ii_coarse_truth
                                 step_3$g_ij_est,    # g_ij_est
-                                step_3$g_ij_coarse_truth))   # g_ij_coarse_truth     
+                                step_3$g_ij_coarse_truth,  # g_ij_coarse_truth
+                                kernel_params_i$base_cov,
+                                kernel_params_i$base_cov_est,
+                                kernel_params_i$prec_mat_truth$cor_mat, 
+                                kernel_params_i$base_precision,
+                                kernel_params_i$base_precision_est,
+                                kernel_params_i$prec_mat_truth$prec_mat))   # g_ij_coarse_truth     
     
     
     # 8) save graphs (recall that we have ground truths of the form a_b_c)
