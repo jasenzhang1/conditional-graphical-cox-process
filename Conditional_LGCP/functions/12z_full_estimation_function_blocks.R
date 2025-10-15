@@ -188,6 +188,8 @@ step_2_rho_i <- function(dataset, data_df4, kernel_params, rho_kernel, patient_s
   #
   # - dataset
   # - kernel_params   (list of parameters for various kernels)
+  #     only need base_kernel params (that don't change over time)
+  # 
   # - rho_kernel      (binary) do we utilize y_c here?
   # - patient_sel     (id's of patients that are included)
   # - feature_sel     (id's of features that are included)
