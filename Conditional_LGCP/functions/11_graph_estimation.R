@@ -252,12 +252,10 @@ get_metrics <- function(results){
   # - rho_ii_coarse_truth  (i_j list of m_est x m_est matrices)  [[13]]
   # - g_ij_est             (i_j list of m_est x m_est matrices)  [[14]]
   # - g_ij_coarse_truth    (i_j list of m_est x m_est matrices)  [[15]]
-  # - K_base               (m x m matrix)                        [[16]]
-  # - K_base_est           (m_est x m_est matrix)                [[17]]
-  # - K_adj                (p x p matrix)                        [[18]]
-  # - K_base_inv           (m x m matrix)                        [[19]]
-  # - K_base_est_inv       (m_est x m_est matrix)                [[20]]
-  # - K_adj_inv            (p x p matrix)                        [[21]]
+  # - K_base_est           (m_est x m_est matrix)                [[16]]
+  # - K_adj                (p x p matrix)                        [[17]]
+  # - K_base_est_inv       (m_est x m_est matrix)                [[18]]
+  # - K_adj_inv            (p x p matrix)                        [[19]]
   #
   # - i_neq_j   (boolean)
   #
@@ -288,14 +286,14 @@ get_metrics <- function(results){
   # 1b) find HS_norm of difference via ground truths
   
   P_est_12 <- extract_block_structure_ij(results[[1]], m_est, 1, 2)
-  P_true_12 <- results[[21]][1,2] * results[[19]]
-  P_true_12_cor <- results[[21]][1,2] * cov2cor(results[[19]])
+  P_true_12 <- results[[19]][1,2] * results[[18]]
+  P_true_12_cor <- results[[19]][1,2] * cov2cor(results[[18]])
   P_HS_12 <- hilbert_schmidt_norm(P_est_12 - P_true_12)
   P_HS_12_cor <- hilbert_schmidt_norm(P_est_12 - P_true_12_cor)
   
   C_est_12 <- extract_block_structure_ij(results[[2]], m_est, 1, 2)
-  C_true_12 <- results[[18]][1,2] * results[[16]] 
-  C_true_12_cor <- results[[18]][1,2] * cov2cor(results[[16]])
+  C_true_12 <- results[[17]][1,2] * results[[16]] 
+  C_true_12_cor <- results[[17]][1,2] * cov2cor(results[[16]])
   C_HS_12 <- hilbert_schmidt_norm(P_est_12 - P_true_12)
   C_HS_12_cor <- hilbert_schmidt_norm(P_est_12 - P_true_12_cor)  
   

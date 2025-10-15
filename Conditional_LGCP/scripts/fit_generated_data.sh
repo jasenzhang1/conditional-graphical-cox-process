@@ -12,13 +12,13 @@ adj_types=(
   #"sparse_v2"
   #"indep_2"
   #"single_c2"
-  #"single_v2"
-  "single_j2"
+  "single_v2"
+  #"single_j2"
 )
 
 n_large=2000
 
-ns=(500 1000 1500 2000)
+ns=(100 200 300 400 500)
 max_jobs=12  
 
 mkdir -p script_outputs
