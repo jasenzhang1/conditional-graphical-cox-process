@@ -274,8 +274,8 @@ get_metrics <- function(results){
   
   # 1) find HS_norm of differences between pm x pm matrices
   
-  print(dim(step_9$C_cond_est_full))
-  print(dim(step_9$C_cond_coarse_ground_truth_full))
+  print(dim(results[[2]]))
+  print(dim(results[[5]]))
   print(p)
   print(m_est)
   
