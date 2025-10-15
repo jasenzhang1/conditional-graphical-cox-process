@@ -230,7 +230,7 @@ generate_sparse_precision_matrix <- function(y_c_k, p, adj_type, adj_params){
   # 
   # ----------------------------------------------------------------------------
   
-  if(!adj_type %in% c('indep_2',
+  if(!adj_type %in% c('indep_c2',
                       'single_c2', 'single_v2', 'single_j2',
                       'banded_c0', 'banded_c1', 'banded_c2', 'banded_c3',
                       'banded_v1', 'banded_v2',
@@ -239,7 +239,7 @@ generate_sparse_precision_matrix <- function(y_c_k, p, adj_type, adj_params){
     stop('ERROR: generate_sparse_precision_matrix - adj_type not supported')
   }
   
-  if(adj_type %in% c('indep_2')){
+  if(adj_type %in% c('indep_c2')){
     prec_mat <- diag(1, p)
     
     result <- prec_mat_massager(prec_mat) # helper function above
