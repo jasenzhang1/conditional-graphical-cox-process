@@ -198,8 +198,13 @@ full_conditional_estimation_with_truths_v2 <- function(dataset, method, terse, n
                                   step_4 = step_4,
                                   step_5 = step_5)
   
+  true_K_base <- lapply(dataset$true_graphs, function(x) x$P_block_kronecker$base_cov)
+  true_K_adj <- lapply(dataset$true_graphs, function(x) x$P_block_kronecker$prec_mat_truth$cor_mat)
+  
   return(list(estimated_graphs_part_1 = estimated_graphs_part_1,      
-              estimated_graphs_part_2 = estimated_graphs_v2))  
+              estimated_graphs_part_2 = estimated_graphs_v2,
+              true_K_base = true_K_base,
+              true_K_adj = true_K_adj))  
   
 
 }
@@ -397,8 +402,13 @@ full_conditional_estimation_with_truths_v3 <- function(dataset, method, terse, n
 
   estimated_graphs_part_1 <- list(step_0 = step_0, step_1 = step_1)
   
+  true_K_base <- lapply(dataset$true_graphs, function(x) x$P_block_kronecker$base_cov)
+  true_K_adj <- lapply(dataset$true_graphs, function(x) x$P_block_kronecker$prec_mat_truth$cor_mat)  
+  
   return(list(estimated_graphs_part_1 = estimated_graphs_part_1,      
-              estimated_graphs_part_2 = estimated_graphs_v2))      
+              estimated_graphs_part_2 = estimated_graphs_v2,
+              true_K_base = true_K_base,
+              true_K_adj = true_K_adj))      
     
 
   
