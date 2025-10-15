@@ -50,8 +50,11 @@ visualize_prec_mat_over_time <- function(folder_name, n){
                              paste0('y_c = ', as.character(i)), zmid = 0)
   }) 
   
-  return(grid.arrange(grobs = c(plots_truth, plots_w_est), nrow = 2, ncol = n_graphs,
-                      left = textGrob("Est \t Ground Truth", rot = 90, gp = gpar(fontsize = 16))))
+  return(list(graph = grid.arrange(grobs = c(plots_truth, plots_w_est), nrow = 2, ncol = n_graphs,
+                                   left = textGrob("Est \t Ground Truth", rot = 90, gp = gpar(fontsize = 16))),
+              values = list(truth = step_0,
+                            est = step_11))
+  )
   
   
   
