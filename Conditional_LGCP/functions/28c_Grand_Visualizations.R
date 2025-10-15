@@ -1,89 +1,9 @@
 
+source('functions/28z_Visualization_helpers.R')
+source('functions/00c_block_matrix_arrange.R')
 
 # these functions open an entire dataset and search through all query_id 
 
-# helper function
-
-get_ns <- function(folder_name){
-  
-  # ----------------------------------------------------------------------------
-  #
-  # GOAL: within a folder, there are several datasets that end in a number then .RData
-  #       get all possible n's 
-  #
-  # inputs:
-  #
-  # - folder_name     (string)    'simu_results/banded_trig2/OG'
-  # 
-  #
-  # outputs:
-  #
-  # - ns              (vector)
-  #
-  # ----------------------------------------------------------------------------  
-  
-  # 1) find the file in the folder and load it 
-  files <- list.files(folder_name, full.names = TRUE)
-  
-  ns <- suppressWarnings({
-    as.numeric(sub(".*_(.*)\\.RData$", "\\1", files))   # retrieve number before .RData and after recent underscore
-  })
-  
-  ns <- ns[!is.na(ns)]
-  
-  return(ns)
-}
-
-# helper function
-get_file_name_and_load <- function(folder_name, n){
-  
-  # ----------------------------------------------------------------------------
-  #
-  # GOAL: within a folder, there are several datasets that end in a number then .RData
-  #       load that file
-  #
-  # inputs:
-  #
-  # - folder_name     (string)    'simu_results/banded_trig2/OG'
-  # - n               (integer)   100
-  # 
-  #
-  # outputs:
-  #
-  # - NULL, just loads that file
-  #
-  # ----------------------------------------------------------------------------
-  
-  # 1) find the file in the folder and load it 
-  files <- list.files(folder_name, full.names = TRUE)
-  
-  ns <- suppressWarnings({
-    as.numeric(sub(".*_(.*)\\.RData$", "\\1", files))   # retrieve number before .RData and after recent underscore
-  })
-  
-  
-  if(n %in% ns){
-    idx <- which(ns == n)
-  } else{
-    stop('ERROR on get_file_name: n not available')
-  }  
-  
-  env <- new.env()
-  
-  load(files[idx], envir = env) 
-  
-  return(as.list(env)[[1]])
-  
-}
-
-# helper function
-get_y_c_query <- function(folder_name, n){
-  
-  graph_results_i <- get_file_name_and_load(folder_name, n)
-  
-  return(names(graph_results_i$estimated_graphs_part_2))
-  
-}
 
 visualize_prec_mat_over_time <- function(folder_name, n){
   
@@ -136,3 +56,54 @@ visualize_prec_mat_over_time <- function(folder_name, n){
   
   
 }
+
+
+# everything over all query_id
+
+visualize_over_time <- function(folder_name, n, est_only, graph_id, m_est, m, i, j){
+  
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: for a single dataset, plot a specific intermediate value over time
+  #
+  # - this is to be done for a single simulation (adj_method, est_method, n)
+  # 
+  # input: 
+  #
+  # - folder_name   (string)
+  # - n             (integer)
+  # - est_only      (boolean)  if true, only display est over time with ground truth 
+  # 
+  # output:
+  #
+  #
+  # 
+  # ---------------------------------------------------------------------------- 
+  
+  
+  # 1) load
+  
+  graph_results_i <- get_file_name_and_load(folder_name, n) 
+  
+  # 2) figure out which steps have unique results for y_c_query and which steps are constant
+  
+  step_const <- names(graph_results_i$estimated_graphs_part_1)
+  step_vary <- names(graph_results_i$estimated_graphs_part_2[[1]])
+  y_c_query <- names(graph_results_i$estimated_graphs_part_2)
+  
+  if('81' %in% graph_ids & 'step_8' %in% step_vary){
+    est_graphs <- lapply(graph_results_i$estimated_graphs_part_2, function(x) extract_block_structure_ij(x$step_8$V_cond_est_full, m_est, i, j))
+  }
+  
+  
+}
+
+
+
+
+
+
+
+
+
