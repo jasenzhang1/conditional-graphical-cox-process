@@ -538,7 +538,7 @@ full_conditional_estimation_with_truths_v4 <- function(dataset, method, terse, n
     # step 5 to 9 split:
     
     if(method %in% c('OG', 'JASA')){
-      step_5 <- step_5_KL_expansion(step_1, step_4, kernel_params, time_grid, time_grid_est, ncores)
+      step_5 <- step_5_KL_expansion(step_1, step_4, kernel_params_i, time_grid, time_grid_est, ncores)
       step_8 <- steps_78(step_4, step_5, kernel_params_i, y_c_strata, query_y_c, method, ncores)
       step_9 <- step_9_C_cond_from_V_cond(step_8, kernel_params_i)
     } else{
@@ -565,7 +565,7 @@ full_conditional_estimation_with_truths_v4 <- function(dataset, method, terse, n
     step_11 <- step_11_HS_norms(step_10, adj_mat_i, p)
     step_12 <- step_12_ROC(step_11, adj_mat_i)
     
-    metrics <- get_metrics(list(
+    metrics_list <- list(
       step_10$P_cond_est_full,
       step_9$C_cond_est_full,
       NULL,
@@ -585,12 +585,15 @@ full_conditional_estimation_with_truths_v4 <- function(dataset, method, terse, n
       kernel_params_i$prec_mat_truth$cor_mat,
       kernel_params_i$base_precision_est,
       kernel_params_i$prec_mat_truth$prec_mat
-    ))
+    )   
     
     if(method %in% c('OG', 'JASA')){
-      metrics[[3]] <- step_8$V_cond_est_full
-      metrics[[6]] <- step_8$V_cond_coarse_ground_truth_full
-    }
+      metrics_list[[3]] <- step_8$V_cond_est_full
+      metrics_list[[6]] <- step_8$V_cond_coarse_ground_truth_full
+    }  
+    
+    metrics <- get_metrics(metrics_list)
+    
     
     
     list(step_2 = step_2, step_2b = step_2b, step_3 = step_3,
