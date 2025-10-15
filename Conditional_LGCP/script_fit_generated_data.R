@@ -17,6 +17,7 @@ adj_type <- args[3]
 method <- args[4]
 
 terse <- T
+# ncores <- parallel::detectCores() - 1
 ncores <- 1
 
 #simu_results_a_sparse_v2_OG
@@ -49,13 +50,9 @@ dataset_i$Y_continuous <- matrix(dataset$Y_continuous[idx,], nrow = length(idx))
 dataset_i$simulation_params$n <- length(idx)
 
 
-if(method == 'CPGM'){
-  graph_results_i <- full_conditional_estimation_with_truths_v3(dataset_i, method, terse, ncores, results_folder_name)
-} else if(method %in% c('OG', 'JASA')){
-  graph_results_i <- full_conditional_estimation_with_truths_v2(dataset_i, method, terse, ncores, results_folder_name)
-} else{
-  stop('Invalid method. Must be CPGM, OG, or JASA')
-}
+# estimate
+graph_results_i <- full_conditional_estimation_with_truths_v4(dataset_i, method, terse, ncores, results_folder_name)
+
 
 print('obtained estimate')
 

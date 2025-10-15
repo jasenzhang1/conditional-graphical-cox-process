@@ -10,11 +10,11 @@ source('functions/00d_debugging.R')
 
 args <- commandArgs(trailingOnly = TRUE)
 
-base_folder <- args[1]
-adj_type <- args[2]
-method <- args[3]
-i <- as.numeric(args[4])
-j <- as.numeric(args[5])
+base_folder <- args[1]    # simu_results
+adj_type <- args[2]       # single_v2
+method <- args[3]         # CPGM
+i <- as.numeric(args[4])  # 1
+j <- as.numeric(args[5])  # 2
 
 # convergence of intermediate estimators
 
