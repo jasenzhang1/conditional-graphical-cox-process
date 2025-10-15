@@ -1,3 +1,5 @@
+source('functions/28z_Visualization_helpers.R')
+
 # visualize ||V_cond - V_cond_est||_HS convergence
 
 visualize_V_cond_convergence <- function(folder_name, mat_name, i, j){
@@ -1089,27 +1091,10 @@ unpacking_pipeline <- function(folder_name, graph_id, time_grid_est, time_grid, 
   #
   # ----------------------------------------------------------------------------
   
+  # 1) load file and method 
+  graph_results_i <- get_file_name_and_load(folder_name, n)  
   
-  files <- list.files(folder_name, full.names = TRUE)
-  
-  ns <- suppressWarnings({
-    as.numeric(sub(".*_(.*)\\.RData$", "\\1", files))   # retrieve numbers
-  })
-
-  
-  non_na_idx <- which(!is.na(ns))
-  
-  method <- sub("_.*", "", sub(".*/", "", files[non_na_idx[1]]))
-  
-  ns <- ns[!is.na(ns)]
-  
-  if(n %in% ns){
-    idx <- which(ns == n)
-  } else{
-    stop('n not available')
-  }
-  
-  load(files[idx])
+  method <- get_method(folder_name)
   
   if(method %in% c('OG', 'JASA')){
     step_list <- list(step_0 = graph_results_i$estimated_graphs_part_1$step_0,
