@@ -943,7 +943,7 @@ step_9_C_cond_from_V_cond <- function(step_8, kernel_params_i){
   # 
   # - list of:
   #   - C_cond_ground_truth_full          (pm x pm matrix)
-  #   - C_cond_corase_ground_truth_full   (pm_est x pm_est matrix)
+  #   - C_cond_coarse_ground_truth_full   (pm_est x pm_est matrix)
   #   - C_cond_truth_full                 (pm x pm matrix)
   #   - C_cond_coarse_truth_full          (pm_est x pm_est matrix)
   #   - C_cond_X_truth_full               (pm x pm matrix)
@@ -1037,7 +1037,7 @@ step_9_C_cond_from_KL_cov <- function(step_4, step_5, kernel_params){
   # 
   # - list of:
   #   - C_cond_ground_truth_full          (pm x pm matrix)
-  #   - C_cond_corase_ground_truth_full   (pm_est x pm_est matrix)
+  #   - C_cond_coarse_ground_truth_full   (pm_est x pm_est matrix)
   #   - C_cond_truth_full                 (pm x pm matrix)
   #   - C_cond_coarse_truth_full          (pm_est x pm_est matrix)
   #   - C_cond_X_truth_full               (pm x pm matrix)
@@ -1084,7 +1084,7 @@ step_9_C_cond_from_KL_cov <- function(step_4, step_5, kernel_params){
   # 4) assemble and visualize the entire pm x pm block 
   
   C_cond_ground_truth_full          <- assemble_block_matrix_v2(C_cond_ground_truth,        p, m)
-  C_cond_corase_ground_truth_full   <- assemble_block_matrix_v2(C_cond_coarse_ground_truth, p, m_est)
+  C_cond_coarse_ground_truth_full   <- assemble_block_matrix_v2(C_cond_coarse_ground_truth, p, m_est)
   C_cond_truth_full                 <- assemble_block_matrix_v2(C_cond_truth,               p, m)
   C_cond_coarse_truth_full          <- assemble_block_matrix_v2(C_cond_coarse_truth,        p, m_est)
   C_cond_X_truth_full               <- assemble_block_matrix_v2(C_cond_X_truth,             p, m)  
@@ -1095,7 +1095,7 @@ step_9_C_cond_from_KL_cov <- function(step_4, step_5, kernel_params){
 
   
   return(list(C_cond_ground_truth_full = C_cond_ground_truth_full,
-              C_cond_corase_ground_truth_full = C_cond_corase_ground_truth_full,
+              C_cond_coarse_ground_truth_full = C_cond_coarse_ground_truth_full,
               C_cond_truth_full = C_cond_truth_full,
               C_cond_coarse_truth_full = C_cond_coarse_truth_full,
               C_cond_X_truth_full = C_cond_X_truth_full,
@@ -1116,7 +1116,7 @@ step_10_P_cond <- function(step_9, kernel_params, p, block, MP){
   #
   # - step_9
   #   - C_cond_ground_truth_full          (pm x pm matrix)
-  #   - C_cond_corase_ground_truth_full   (pm_est x pm_est matrix)
+  #   - C_cond_coarse_ground_truth_full   (pm_est x pm_est matrix)
   #   - C_cond_truth_full                 (pm x pm matrix)
   #   - C_cond_coarse_truth_full          (pm_est x pm_est matrix)
   #   - C_cond_X_truth_full               (pm x pm matrix)
