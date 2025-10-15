@@ -274,11 +274,6 @@ get_metrics <- function(results){
   
   # 1) find HS_norm of differences between pm x pm matrices
   
-  print(dim(results[[2]]))
-  print(dim(results[[5]]))
-  print(p)
-  print(m_est)
-  
   P_HS <- hilbert_schmidt_norm_pm(results[[1]] - results[[4]], p, m_est)
   C_HS <- hilbert_schmidt_norm_pm(results[[2]] - results[[5]], p, m_est)
   
