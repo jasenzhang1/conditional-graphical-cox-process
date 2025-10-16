@@ -1,5 +1,4 @@
 #!/bin/bash
 
 # Run R script and write output to output.txt
-Rscript Alzheimers_run_02.R > cox_output_02.txt 2>&1
-
+Rscript main_simulation_5.R > simu_results/simu_5.txt 2>&1
