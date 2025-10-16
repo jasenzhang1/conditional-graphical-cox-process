@@ -104,3 +104,23 @@ get_method <- function(folder_name){
   
   return(method)
 }
+
+# helper function
+old_to_new_graph_results_i <- function(graph_results_i){
+  
+  # old graph_results_i had 
+  # - estimated_graphs_part_1
+  # - estimated_graphs_part_2
+  #
+  #
+  
+  steps <- unique(unlist(lapply(graph_results_i$estimated_graphs_part_2, names)))
+  reorganized <- setNames(lapply(steps, function(step) {
+    sapply(graph_results_i$estimated_graphs_part_2, `[[`, step, simplify = FALSE)
+  }), steps)
+  
+  # Return step_0, step_1 (shared) + reorganized per-subject steps
+
+  return(c(graph_results_i$estimated_graphs_part_1, reorganized))  
+  
+}
