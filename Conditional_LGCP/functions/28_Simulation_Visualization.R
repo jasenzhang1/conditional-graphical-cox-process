@@ -246,8 +246,10 @@ visualize_log_intensity <- function(X_k, time_grid, g_title, mu_t = NULL, legend
   
   # add a dotted line to represent mean of the GP
   
-  if(!is.null(y_val)){
-    g <- g + geom_line(aes(x = time_grid, y = mu_t), linetype = "dotted", size = 1)
+  
+  if(!is.null(mu_t)){
+    mu_df <- data.frame(time_grid = time_grid, mu_t = mu_t)
+    g <- g + geom_line(data = mu_df, aes(x = time_grid, y = mu_t), linetype = "dashed", size = 1, alpha = 0.7)
   }
   
   return(g)
