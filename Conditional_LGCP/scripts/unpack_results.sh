@@ -9,7 +9,8 @@ methods=("OG" "CPGM")
 adj_types=(
   #"single_c2"
   #"single_v2"
-  "single_j2"
+  #"single_j2"
+  "sparse_v2"
 )
 
 
