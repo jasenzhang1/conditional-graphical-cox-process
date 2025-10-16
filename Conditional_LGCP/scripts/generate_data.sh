@@ -5,7 +5,7 @@
 cd "$(dirname "$0")/.."   # go one level up (from /scripts to /)
 
 adj_type_params=(
-  #"indep_2 0 1"
+  #"indep_c2 0 1"
   #"single_c2 0 1 0.7"
   #"single_v2 0 1 0.7"
   "single_j2 0 1 0.5 0.3 0.7"
