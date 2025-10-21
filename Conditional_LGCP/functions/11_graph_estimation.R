@@ -256,6 +256,7 @@ get_metrics <- function(results){
   # - K_adj                (p x p matrix)                        [[17]]
   # - K_base_est_inv       (m_est x m_est matrix)                [[18]]
   # - K_adj_inv            (p x p matrix)                        [[19]]
+  # - C_cond_full_v2       (pm_est x pm_est)                     [[20]]
   #
   # - i_neq_j   (boolean)
   #
@@ -274,8 +275,9 @@ get_metrics <- function(results){
   
   # 1) find HS_norm of differences between pm x pm matrices
   
-  P_HS <- hilbert_schmidt_norm_pm(results[[1]] - results[[4]], p, m_est)
-  C_HS <- hilbert_schmidt_norm_pm(results[[2]] - results[[5]], p, m_est)
+  P_HS    <- hilbert_schmidt_norm_pm(results[[1]] - results[[4]], p, m_est)
+  C_HS    <- hilbert_schmidt_norm_pm(results[[2]] - results[[5]], p, m_est)
+  C_HS_v2 <- hilbert_schmidt_norm_pm(results[[2]] - results[[20]], p, m_est)
   
   if(is.null(results[[3]])){
     V_HS <- NA
@@ -314,6 +316,7 @@ get_metrics <- function(results){
               g_ij_dist = g_ij_dist,
               P_HS = P_HS,
               C_HS = C_HS,
+              C_HS_v2 = C_HS_v2,
               V_HS = V_HS,
               P_HS_12 = P_HS_12,
               P_HS_12_cor = P_HS_12_cor,
