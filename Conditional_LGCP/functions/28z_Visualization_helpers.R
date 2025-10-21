@@ -124,3 +124,31 @@ old_to_new_graph_results_i <- function(graph_results_i){
   return(c(graph_results_i$estimated_graphs_part_1, reorganized))  
   
 }
+
+
+load_all_results <- function(folder_name){
+  
+  # in a folder with multiple fitted datasets, load them all into a list
+  
+  files <- list.files(folder_name, full.names = TRUE)
+  
+  ns <- suppressWarnings({
+    as.numeric(sub(".*_(.*)\\.RData$", "\\1", files)) # retrieve numbers
+  })
+  
+  data_files <- files[!is.na(ns)]
+  
+  ns <- ns[!is.na(ns)]
+  
+  
+  results_list <- lapply(data_files, function(f) {
+    e <- new.env()          # create an isolated environment
+    load(f, envir = e)      # load into that environment
+    as.list(e)              # convert to a list (in case multiple objects)
+  })
+  
+  names(results_list) <- ns    
+  
+  return(results_list)
+  
+}
