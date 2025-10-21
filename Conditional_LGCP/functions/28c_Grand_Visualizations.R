@@ -129,8 +129,38 @@ visualize_over_time <- function(folder_name, n, est_only, graph_id, m_est, m, i,
                                      layout_matrix = arr_mat) 
   }  
   
+  # weights, all y_c_query settings in a row
+  
+  if('29' %in% graph_ids){
+    graph_list <- lapply(graph_results_i$step_2, result_29) 
+    
+    graphs[['g_29']] <- do.call(grid.arrange, c(graph_list, nrow = 1))
+  }
+  
   if('81' %in% graph_ids & 'step_8' %in% names(graph_results_i)){
     est_graphs <- lapply(graph_results_i$step_8, function(x) extract_block_structure_ij(x$step_8$V_cond_est_full, m_est, i, j))
+  }
+  
+  if('91' %in% graph_ids){
+    graph_list <- lapply(graph_results_i$step_9, function(x){ result_91_prep(x, m, m_est) })
+    
+    n_y_c_query <- length(graph_list)
+    n_settings <- length(graph_list[[1]])
+    
+    # Flatten the nested list: row-wise
+    flat_graphs <- unlist(graph_list, recursive = FALSE)
+    
+    # Create column-major index mapping
+    # R's matrix() fills column-wise by default, so we transpose to reorder properly
+    idx <- as.vector(t(matrix(seq_along(flat_graphs), nrow = n_settings, ncol = n_y_c_query)))
+    
+    # Reorder the flat list
+    flat_graphs_colwise <- flat_graphs[idx]
+    
+    # Arrange in n_settings rows x n_y_c_query columns
+    graphs[['g_91']] <- do.call(grid.arrange, c(flat_graphs_colwise, nrow = n_settings, ncol = n_y_c_query))
+    
+    
   }
   
   if('113' %in% graph_ids){
@@ -169,7 +199,7 @@ visualize_over_time <- function(folder_name, n, est_only, graph_id, m_est, m, i,
     
     # arrange all 70 plots in a 10x7 grid
     graphs[['113']] <- wrap_plots(all_plots, ncol = 7, nrow = 10) 
- 
+    
   }
   
   return(graphs)
