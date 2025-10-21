@@ -78,7 +78,7 @@ estimate_cross_kl_coefficients_parallel <- function(g_ij_k_est, df_pair, eigenfu
 
 # we now estimate the covariance between KL coefficients as per CPGM paper
 
-estimate_KL_covariance <- function(G_hat, eigenfunctions){
+estimate_KL_covariance <- function(G_hat, eigenfunctions, norm_G){
   
   # ----------------------------------------------------------------------------
   # 
@@ -90,6 +90,7 @@ estimate_KL_covariance <- function(G_hat, eigenfunctions){
   #
   # - G_hat            (list of i_j m x m matrices)              each i_j is a G_{i,j}(s,t) covariance matrix
   # - eigenfunctions   (list of p entries, m x d_i matrices)     each entry represents the eigenfunctions for the i-th process
+  # - norm_G           (boolean)    do we apply G_ii <- G_ii / m to get constant eigenvalues?
   #
   #
   # output:
@@ -114,7 +115,12 @@ estimate_KL_covariance <- function(G_hat, eigenfunctions){
       eigen_i <- eigenfunctions[[i]]
       eigen_j <- eigenfunctions[[j]]
       
-      cov_ij <- t(eigen_i) %*% G_ij %*% eigen_j  / m
+      if(norm_G){
+        cov_ij <- t(eigen_i) %*% (G_ij / m) %*% eigen_j 
+      } else{
+        cov_ij <- t(eigen_i) %*% G_ij %*% eigen_j 
+      }
+      
       
       # in case we need to force a d_max x d_max result
       # cov_ij2 <- matrix(0, nrow = d, ncol = d)
