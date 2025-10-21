@@ -18,7 +18,7 @@ j <- as.numeric(args[5])  # 2
 
 # convergence of intermediate estimators
 
-metrics <- c('rho_i_dist', 'rho_ij_dist', 'g_ij_dist', 'C_HS', 'P_HS', 'auc')
+metrics <- c('rho_i_dist', 'rho_ij_dist', 'g_ij_dist', 'C_HS', 'C_HS_v2', 'P_HS', 'auc')
 results_folder <- paste0(base_folder, '/', adj_type, '/', method)
 metrics_summary <- visualize_metrics(results_folder, metrics, i, j)
 

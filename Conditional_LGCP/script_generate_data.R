@@ -12,10 +12,17 @@ args <- commandArgs(trailingOnly = TRUE)
 # adj_type = "sparse_v2"
 # adj_params <- c(0, 1, 2, 0.3, -1, 2, 0.01)
 
+# n_large <- 100
+# adj_type = "single_c2"
+# adj_params <- c(0, 1, 0.5)
+
 n_large <- as.numeric(args[1])
 adj_type <- args[2]
 adj_params <- as.numeric(args[3:length(args)])
 
+query_y_cs <- matrix(0:3/3)               # query y_values
+
+p = 5
 
 cat("n: ", n_large, "\n")
 cat("adj_type: ", adj_type, "\n")
@@ -26,6 +33,7 @@ source('functions/00_function_wrapper.R')
 
 # 1) system parameters
 seed = 1
+# ncores <- parallel::detectCores() - 1
 ncores = 1
 
 # 2) output parameters
@@ -53,11 +61,7 @@ if(base_kernel_params$base_kernel == 'rbf_pd'){
 }
 
 
-# 6) sample size and # of processes
 
-query_y_cs <- matrix(0:9/9)               # query y_values
-
-p = 10                                   # Number of processes (p)  
 
 
 # 1) generate dataset ----------------------------------------------------------

@@ -11,16 +11,16 @@ source('functions/00_function_wrapper.R')
 # args 
 args <- commandArgs(trailingOnly = TRUE)
 
-n_large <- as.numeric(args[1])
-n <- as.numeric(args[2])
-adj_type <- args[3]
-method <- args[4]
+n_large <- as.numeric(args[1])  # n_large <- 100
+n <- as.numeric(args[2])        # n <- 100
+adj_type <- args[3]             # adj_type <- 'single_c2'
+method <- args[4]               # method <- 'CPGM'
 
 terse <- T
 # ncores <- parallel::detectCores() - 1
 ncores <- 1
 
-#simu_results_a_sparse_v2_OG
+
 folder_1_name <- 'simu_results'
 if (!dir.exists(folder_1_name)) dir.create(folder_1_name)
 
