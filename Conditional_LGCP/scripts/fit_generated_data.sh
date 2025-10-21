@@ -19,7 +19,7 @@ adj_types=(
 
 n_large=2000
 
-ns=(100 300 500 700 900)
+ns=(900 1100 1300 1500)
 max_jobs=30  
 
 mkdir -p script_outputs
