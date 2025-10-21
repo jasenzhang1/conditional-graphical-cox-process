@@ -33,14 +33,43 @@ step_0_check <- function(dataset){
   
 }
 
-
+step_0_keep_events <- function(dataset, k, i_vec){
+  
+  
+  # ----------------------------------------------------------------------------
+  #
+  # keep point process events for subject k and processes i
+  #
+  #
+  # input:
+  #
+  # - dataset    (list)
+  # - k          (integer)          ubject id
+  # - i_vec      (q-dim vector)  vector of process ID's
+  #
+  # 
+  # outputs:
+  # 
+  # - events     (list of q vectors)
+  #
+  # ----------------------------------------------------------------------------
+  
+  events <- dataset$subject_data[[k]]$event_times[i_vec]
+  
+  return(events)
+  
+}
 
 step_0_store <- function(dataset){
   
   # ----------------------------------------------------------------------------
   #
   #
-  # GOAL: store the ground truth precision matrices
+  # GOAL: store values before we begin estimating:
+  # 
+  # - ground truth precision matrices
+  # - P_block_kronecker
+  # - 
   #
   # 
   # input:
@@ -56,6 +85,8 @@ step_0_store <- function(dataset){
   # 0.1) check ground truth precision pxp matrices
   
   prec_ground_truths <- lapply(dataset$true_graphs, function(item) item$P_block_kronecker$prec_mat_truth$prec_mat)
+  
+  
   
   
   return(prec_ground_truths)
@@ -147,6 +178,7 @@ step_1_log_intensities <- function(dataset, data_df4, time_grid_est, time_grid, 
   #   - X_k_both_truth            (p x m_both  x n)
   #   - Lambda_k_truth            (p x m_truth x n)
   #   - Lambda_k_coarse_truth     (p x m_est   x n)
+  #   - Lambda_k_est              (p x m_est   x n)
   #
   # ----------------------------------------------------------------------------
   
@@ -160,9 +192,9 @@ step_1_log_intensities <- function(dataset, data_df4, time_grid_est, time_grid, 
     X_k_coarse_truth <- dataset$X_k_coarse_truth
     X_k_both_truth <- dataset$X_k_both_truth
     
-    Lambda_k_truth <- exp(X_k_truth)
+    Lambda_k_truth        <- exp(X_k_truth)
     Lambda_k_coarse_truth <- exp(X_k_coarse_truth)
-    
+    Lambda_k_est          <- exp(X_k_est)
   
     
     return(list(X_k_est = X_k_est,
@@ -170,7 +202,8 @@ step_1_log_intensities <- function(dataset, data_df4, time_grid_est, time_grid, 
                 X_k_coarse_truth = X_k_coarse_truth,
                 X_k_both_truth = X_k_both_truth,
                 Lambda_k_truth = Lambda_k_truth,
-                Lambda_k_coarse_truth = Lambda_k_coarse_truth))
+                Lambda_k_coarse_truth = Lambda_k_coarse_truth,
+                Lambda_k_est = Lambda_k_est))
   }
 }
 
@@ -209,6 +242,7 @@ step_2_rho_i <- function(dataset, data_df4, kernel_params, rho_kernel, patient_s
   #   - rho_i_est                 (p x m_est)
   #   - rho_list                  (list format, [[1]] = rho_i, [[2]] = rho_ij, rho_ij may be rho_ii only)
   #   - weights                   (n-dim vector)
+  #   - y_c_s                     (n-dim vector)
   #
   # ----------------------------------------------------------------------------
   
@@ -268,13 +302,19 @@ step_2_rho_i <- function(dataset, data_df4, kernel_params, rho_kernel, patient_s
   rho_i_est <- do.call(rbind, lapply(rho_list[[1]], function(v) as.numeric(v))) # p x m matrix of estimated mean intensities     
 
   
-  return(list(rho_i_truth = rho_i_truth,
-              rho_i_coarse_truth = rho_i_coarse_truth,
-              rho_i_X_truth = rho_i_X_truth,
-              rho_i_X_coarse_truth = rho_i_X_coarse_truth,
-              rho_i_est = rho_i_est,
-              rho_list = rho_list,
-              weights = weights2))
+  result_list <- list(rho_i_truth = rho_i_truth,
+                      rho_i_coarse_truth = rho_i_coarse_truth,
+                      rho_i_X_truth = rho_i_X_truth,
+                      rho_i_X_coarse_truth = rho_i_X_coarse_truth,
+                      rho_i_est = rho_i_est,
+                      rho_list = rho_list,
+                      weights = weights2)
+  
+  if(rho_kernel){
+    result_list$y_c_s <- y_c_strata
+  } 
+  
+  return(result_list)
 }
 
 step_2_rho_ij <- function(step_1, step_2, kernel_params, i_neq_j){
@@ -341,6 +381,7 @@ step_2_rho_ij <- function(step_1, step_2, kernel_params, i_neq_j){
     keys <- apply(which(upper.tri(matrix(1, p, p), diag = TRUE), arr.ind = TRUE), 1, 
                   function(x) paste0(x[1], "_", x[2]))
   } else{
+    # i_i keys
     keys <- paste0(1:p, '_', 1:p)
   }
   
@@ -352,13 +393,13 @@ step_2_rho_ij <- function(step_1, step_2, kernel_params, i_neq_j){
     
     # theory
     
-    GP_simu_var <- kronecker(kernel_params$prec_mat_truth$cor_mat, kernel_params$base_cov)
+    GP_simu_var <- kronecker(kernel_params$prec_mat_truth$cor_mat, kernel_params$base_cov) # pm x pm matrix
     GP_simu_var_est <- kronecker(kernel_params$prec_mat_truth$cor_mat, kernel_params$base_cov_est)
     
     rho_ii_truth[[key]]        <- tcrossprod(rho_i_truth[i,],        rho_i_truth[j,])        * exp(extract_block_structure_ij(GP_simu_var, m, i, j))
     rho_ii_coarse_truth[[key]] <- tcrossprod(rho_i_coarse_truth[i,], rho_i_coarse_truth[j,]) * exp(extract_block_structure_ij(GP_simu_var_est, m_est, i, j))
     
-    # X_k portion
+    # X_k truths
     mats <- array(0, dim = c(m, m))
     coarse_mats <- array(0, dim = c(m_est, m_est))  
     
@@ -472,9 +513,6 @@ step_3_g_ij <- function(step_2, step_2b, kernel_params, i_neq_j){
   g_ij_coarse_ground_truth <- extract_block_structure_v2(g_ij_coarse_ground_truth_pm, p, m_est)
   
   
-
-
-  
   return(list(g_ij_ground_truth = g_ij_ground_truth,
               g_ij_coarse_ground_truth = g_ij_coarse_ground_truth,
               g_ij_truth = g_ij_truth,
@@ -484,7 +522,7 @@ step_3_g_ij <- function(step_2, step_2b, kernel_params, i_neq_j){
               g_ij_est = g_ij_est))
 }
 
-step_4_eigendecomp <- function(step_3, p, time_grid, time_grid_est){
+step_4_eigendecomp <- function(step_3, p, time_grid, time_grid_est, norm_G, norm_vec){
   
 
   # ----------------------------------------------------------------------------
@@ -505,7 +543,8 @@ step_4_eigendecomp <- function(step_3, p, time_grid, time_grid_est){
   # - p              (scalar)
   # - time_grid      (m-dim vector)
   # - time_grid_est  (m_est-dim vector)
-  # - i_neq_j        (boolean) do we include i =/= j terms?
+  # - norm_G         (boolean)    do we apply G_ii <- G_ii / m to get constant eigenvalues?
+  # - norm_vec       (boolean)    do we normalize the eigenvectors so that Delta * eta^\top \eta = 1?
   #
   #
   # outputs:
@@ -548,12 +587,11 @@ step_4_eigendecomp <- function(step_3, p, time_grid, time_grid_est){
 
   
   # perform eigendecomposition
-  inner_1 <- T
-  eigen_decomp_truth          <- compute_eigendecomposition_ii(g_ii_truth, inner_1)
-  eigen_decomp_coarse_truth   <- compute_eigendecomposition_ii(g_ii_coarse_truth, inner_1)
-  eigen_decomp_X_truth        <- compute_eigendecomposition_ii(g_ii_X_truth, inner_1)
-  eigen_decomp_X_coarse_truth <- compute_eigendecomposition_ii(g_ii_X_coarse_truth, inner_1)
-  eigen_decomp_est            <- compute_eigendecomposition_ii(g_ii_est, inner_1)
+  eigen_decomp_truth          <- compute_eigendecomposition_ii(g_ii_truth, norm_G, norm_vec)
+  eigen_decomp_coarse_truth   <- compute_eigendecomposition_ii(g_ii_coarse_truth, norm_G, norm_vec)
+  eigen_decomp_X_truth        <- compute_eigendecomposition_ii(g_ii_X_truth, norm_G, norm_vec)
+  eigen_decomp_X_coarse_truth <- compute_eigendecomposition_ii(g_ii_X_coarse_truth, norm_G, norm_vec)
+  eigen_decomp_est            <- compute_eigendecomposition_ii(g_ii_est, norm_G, norm_vec)
   
   
   
@@ -678,7 +716,7 @@ step_5_KL_expansion <- function(step_1, step_4, kernel_params, time_grid, time_g
   
 }
 
-step_5_KL_covariance <- function(step_3, step_4){
+step_5_KL_covariance <- function(step_3, step_4, norm_G){
   
   # ----------------------------------------------------------------------------
   # 
@@ -706,6 +744,7 @@ step_5_KL_covariance <- function(step_3, step_4){
   #   - eigen_decomp_X_coarse_truth
   #   - eigen_decomp_est
   #
+  # - norm_G       (boolean)    do we apply G_ii <- G_ii / m to get constant eigenvalues?
   #
   # outputs:
   #
@@ -718,11 +757,11 @@ step_5_KL_covariance <- function(step_3, step_4){
   #
   # ----------------------------------------------------------------------------
   
-  KL_cov_truth          <- estimate_KL_covariance(step_3[[3]], step_4[[1]]$eigenfunctions)
-  KL_cov_coarse_truth   <- estimate_KL_covariance(step_3[[4]], step_4[[2]]$eigenfunctions)
-  KL_cov_X_truth        <- estimate_KL_covariance(step_3[[5]], step_4[[3]]$eigenfunctions)
-  KL_cov_X_coarse_truth <- estimate_KL_covariance(step_3[[6]], step_4[[4]]$eigenfunctions)
-  KL_cov_est            <- estimate_KL_covariance(step_3[[7]], step_4[[5]]$eigenfunctions)  
+  KL_cov_truth          <- estimate_KL_covariance(step_3[[3]], step_4[[1]]$eigenfunctions, norm_G)
+  KL_cov_coarse_truth   <- estimate_KL_covariance(step_3[[4]], step_4[[2]]$eigenfunctions, norm_G)
+  KL_cov_X_truth        <- estimate_KL_covariance(step_3[[5]], step_4[[3]]$eigenfunctions, norm_G)
+  KL_cov_X_coarse_truth <- estimate_KL_covariance(step_3[[6]], step_4[[4]]$eigenfunctions, norm_G)
+  KL_cov_est            <- estimate_KL_covariance(step_3[[7]], step_4[[5]]$eigenfunctions, norm_G)  
   
   return(list(KL_cov_truth = KL_cov_truth,
               KL_cov_coarse_truth = KL_cov_coarse_truth,
@@ -1036,13 +1075,15 @@ step_9_C_cond_from_KL_cov <- function(step_4, step_5, kernel_params){
   # outputs:
   # 
   # - list of:
-  #   - C_cond_ground_truth_full          (pm x pm matrix)
-  #   - C_cond_coarse_ground_truth_full   (pm_est x pm_est matrix)
-  #   - C_cond_truth_full                 (pm x pm matrix)
-  #   - C_cond_coarse_truth_full          (pm_est x pm_est matrix)
-  #   - C_cond_X_truth_full               (pm x pm matrix)
-  #   - C_cond_X_coarse_truth_full        (pm_est x pm_est matrix)
-  #   - C_cond_est_full                   (pm_est x pm_est matrix)  
+  #   - C_cond_ground_truth_full           (pm x pm matrix)
+  #   - C_cond_coarse_ground_truth_full    (pm_est x pm_est matrix)
+  #   - C_cond_truth_full                  (pm x pm matrix)
+  #   - C_cond_coarse_truth_full           (pm_est x pm_est matrix)
+  #   - C_cond_X_truth_full                (pm x pm matrix)
+  #   - C_cond_X_coarse_truth_full         (pm_est x pm_est matrix)
+  #   - C_cond_est_full                    (pm_est x pm_est matrix) 
+  #   - C_cond_ground_truth_full_v2        (pm x pm matrix)
+  #   - C_cond_coarse_ground_truth_full_v2 (pm_est x pm_est matrix)
   #
   # ----------------------------------------------------------------------------
   
@@ -1076,15 +1117,13 @@ step_9_C_cond_from_KL_cov <- function(step_4, step_5, kernel_params){
   # 2) ground truth is cor_mat \otimes I_m
   C_cond_ground_truth_full          <- kronecker(kernel_params$prec_mat_truth$cor_mat, diag(m))
   C_cond_coarse_ground_truth_full   <- kronecker(kernel_params$prec_mat_truth$cor_mat, diag(m_est))
-  C_cond_ground_truth               <- extract_block_structure_v2(C_cond_ground_truth_full, p, m)
-  C_cond_coarse_ground_truth        <- extract_block_structure_v2(C_cond_coarse_ground_truth_full, p, m_est)
-  
-  
+
+  # 3) or is ground truth cor_mat \otimes K_base?
+  C_cond_ground_truth_full_v2          <- kronecker(kernel_params$prec_mat_truth$cor_mat, kernel_params$base_cov)
+  C_cond_coarse_ground_truth_full_v2   <- kronecker(kernel_params$prec_mat_truth$cor_mat, kernel_params$base_cov_est)
 
   # 4) assemble and visualize the entire pm x pm block 
   
-  C_cond_ground_truth_full          <- assemble_block_matrix_v2(C_cond_ground_truth,        p, m)
-  C_cond_coarse_ground_truth_full   <- assemble_block_matrix_v2(C_cond_coarse_ground_truth, p, m_est)
   C_cond_truth_full                 <- assemble_block_matrix_v2(C_cond_truth,               p, m)
   C_cond_coarse_truth_full          <- assemble_block_matrix_v2(C_cond_coarse_truth,        p, m_est)
   C_cond_X_truth_full               <- assemble_block_matrix_v2(C_cond_X_truth,             p, m)  
@@ -1100,7 +1139,9 @@ step_9_C_cond_from_KL_cov <- function(step_4, step_5, kernel_params){
               C_cond_coarse_truth_full = C_cond_coarse_truth_full,
               C_cond_X_truth_full = C_cond_X_truth_full,
               C_cond_X_coarse_truth_full = C_cond_X_coarse_truth_full,
-              C_cond_est_full = C_cond_est_full))
+              C_cond_est_full = C_cond_est_full,
+              C_cond_ground_truth_full_v2 = C_cond_ground_truth_full_v2,
+              C_cond_coarse_ground_truth_full_v2 = C_cond_coarse_ground_truth_full_v2))
     
 }
 
