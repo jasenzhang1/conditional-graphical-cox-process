@@ -512,26 +512,7 @@ sample_conditional_precision_v3 <- function(time_grid, time_grid_est,
   base_precision_both <- solve_sym(base_cov_both)
   base_precision_est <- solve_sym(base_cov_est)
   
-  # 3) get pm x pm matrices for variance and precision
-  #    also get pm-dim mean vector
-  
-  # GP_simu_var_both  <- kronecker(prec_mat_truth$cor_mat, base_cov_both)
-  # GP_simu_prec_both <- kronecker(prec_mat_truth$simu_mat, base_precision_both)
-  # GP_simu_mean_both <- rep(base_kernel_params$base_GP_mean, length(time_grid_both))
-  # 
-  # GP_simu_var  <- kronecker(prec_mat_truth$cor_mat, base_cov)
-  # GP_simu_prec <- kronecker(prec_mat_truth$simu_mat, base_precision)
-  # GP_simu_mean <- rep(base_kernel_params$base_GP_mean, length(time_grid))
-  # 
-  # GP_simu_var_est  <- kronecker(prec_mat_truth$cor_mat, base_cov_est)
-  # GP_simu_prec_est <- kronecker(prec_mat_truth$simu_mat, base_precision_est)
-  # GP_simu_mean_est <- rep(base_kernel_params$base_GP_mean, length(time_grid_est))
-  
-  # verify if cor_mat and simu_mat are inverses
-  #           base_cov_both and base_precision_both are inverses
-  # summary(as.numeric(prec_mat_truth$cor_mat - solve(prec_mat_truth$simu_mat)))
-  # summary(as.numeric(base_cov_both - solve(base_precision_both)))
-  
+
   
   # 4) statistics to report
   
@@ -556,19 +537,6 @@ sample_conditional_precision_v3 <- function(time_grid, time_grid_est,
                                        prec_mat_truth = prec_mat_truth),
  
                                        
-                                       # mean, var, prec, for all 3 time_grids
-                                       # GP_simu_mean = GP_simu_mean,
-                                       # GP_simu_var = GP_simu_var,
-                                       # GP_simu_prec = GP_simu_prec,
-                                       # GP_simu_mean_est = GP_simu_mean_est,
-                                       # GP_simu_var_est = GP_simu_var_est,
-                                       # GP_simu_prec_est = GP_simu_prec_est,
-                                       # GP_simu_mean_both = GP_simu_mean_both,        
-                                       # GP_simu_var_both = GP_simu_var_both,
-                                       # GP_simu_prec_both = GP_simu_prec_both),  
-              
-         
-              
               adj_mat = prec_mat_truth$adj_mat, 
               num_edges = num_edges, 
               obs_sparsity = obs_sparsity,
