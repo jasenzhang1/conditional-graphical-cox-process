@@ -127,9 +127,9 @@ correlation_estimation_KL_cov <- function(eigendecomp, KL_cov, identity = T){
         for(a in 1:d_i){
           for(b in 1:d_j){
             
-            # REMEMBER, we have eigenvectors defined as Delta * (v^\top v) = 1. 
-            # to keep them in the 
-            C_ij <- C_ij + coeffs[a,b] * Delta * tcrossprod(evec_i[, a], evec_j[, b])
+            # REMEMBER, we could have eigenvectors defined as Delta * (v^\top v) = 1. 
+            
+            C_ij <- C_ij + coeffs[a,b] * tcrossprod(evec_i[, a], evec_j[, b])
             
           }
         }
