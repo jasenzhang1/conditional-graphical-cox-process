@@ -4,22 +4,22 @@
 
 cd "$(dirname "$0")/.." || exit 1   # go one level up (from /scripts to /) and exit if fails
 
-methods=("OG" "CPGM")
+methods=("CPGM")
 
 adj_types=(
   #"banded_c2"
   #"banded_trig2"
   #"sparse_v2"
-  "indep_c2"
+  #"indep_c2"
   "single_c2"
-  "single_j2"
-  "single_v2"
+  #"single_j2"
+  #"single_v2"
   
 )
 
 n_large=2000
 
-ns=(100 300 500)
+ns=(100 300 500 700)
 max_jobs=30  
 
 mkdir -p script_outputs
