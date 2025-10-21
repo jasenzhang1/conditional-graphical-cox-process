@@ -104,7 +104,7 @@ prep_eigendecomposition_ii <- function(G_hat, p){
   return(G_mat)
 }
 
-compute_eigendecomposition_ii <- function(G_hat, inner_1, var_explained = 0.999) {
+compute_eigendecomposition_ii <- function(G_hat, norm_G, norm_vec, var_explained = 0.999) {
   
   # ----------------------------------------------------------------------------
   #
@@ -116,8 +116,9 @@ compute_eigendecomposition_ii <- function(G_hat, inner_1, var_explained = 0.999)
   # Input: 
   # 
   # - G_hat (m x m array) (m x m x p)
-  # - inner_1       (boolean)  does the inner product of eta^\top eta = 1? 
-  #                            If false, Delta * eta^\top \eta = 1
+  # - norm_G       (boolean)    do we apply G_ii <- G_ii / m to get constant eigenvalues?
+  # - norm_vec     (boolean)    do we normalize the eigenvectors so that Delta * eta^\top \eta = 1?
+  #                            
   # - var_explained (percentage)
   # 
   # 
@@ -140,10 +141,10 @@ compute_eigendecomposition_ii <- function(G_hat, inner_1, var_explained = 0.999)
   for (i in 1:p) {
     # Extract marginal covariance matrix: m x m
     
-    if(inner_1){
-      G_ii <- G_hat[, , i]  # / m
+    if(norm_G){
+      G_ii <- G_hat[, , i] / m
     } else{
-      G_ii <- G_hat[, , i]  # / m
+      G_ii <- G_hat[, , i] 
     }
     
     
@@ -169,38 +170,33 @@ compute_eigendecomposition_ii <- function(G_hat, inner_1, var_explained = 0.999)
       stop(e)  # Re-throw the error after printing
     })
     
+    # store and massage eigendecomposition
+    
+    etas <- eigen_result$vectors    # m x m matrix
     lambdas <- eigen_result$values  # m x 1 vector
     lambdas2 <- lambdas
     lambdas2[lambdas2 < 0] <- 0
     
     cum_var <- cumsum(lambdas2) / sum(lambdas2)
     d_i <- which(cum_var > var_explained)[1]
-    etas <- eigen_result$vectors    # m x m matrix
     
-    
-    
+
     # Keep only top d components
     
     eigenvalues[[i]] <- lambdas[1:d_i]        # d x 1 vector
     
-    if(inner_1){
-      if(d_i == 1){
-        eigenfunctions[[i]] <- matrix(etas[, 1:d_i], nrow = m)
-      } else{
-        eigenfunctions[[i]] <- etas[, 1:d_i]      # m x d matrix
-      }
+    if(d_i == 1){
+      eigenfunctions[[i]] <- matrix(etas[, 1:d_i], nrow = m)
     } else{
-      if(d_i == 1){
-        eigenfunctions[[i]] <- matrix(etas[, 1:d_i], nrow = m) # / sqrt(Delta)
-      } else{
-        eigenfunctions[[i]] <- etas[, 1:d_i] # / sqrt(Delta)     # m x d matrix
-      }      
+      eigenfunctions[[i]] <- etas[, 1:d_i]      # m x d matrix
+    }  
+
+    if(norm_vec){ # normalize the eigenvectors so that Delta * eta^\top * eta = 1
+      eigenfunctions[[i]] <- eigenfunctions[[i]] / sqrt(Delta)
     }
     
     n_dims[[i]] <- d_i
   }
-  
-  # keep track of how many components are needed to explain 90%
   
   return(list(eigenvalues = eigenvalues, eigenfunctions = eigenfunctions, n_dims = n_dims))
 }
