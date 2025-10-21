@@ -344,7 +344,7 @@ block_matrix_HS <- function(pm_mat, p){
   
 }
 
-# visualize how a precision matrix changes over time
+# visualize how a precision matrix changes over time using a gif
 # such as for banded_trig
 
 visualize_precision_yc <- function(query_y_cs, p, adj_type, adj_params, ncores){
