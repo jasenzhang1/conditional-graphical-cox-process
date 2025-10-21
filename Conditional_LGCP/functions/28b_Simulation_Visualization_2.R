@@ -1,4 +1,109 @@
 source('functions/28z_Visualization_helpers.R')
+source('functions/28_Simulation_Visualization.R')
+
+library(ggplot2)
+library(gridExtra)
+library(grid)
+library(tidyr)
+
+visualize_points <- function(step_0_events){
+  
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: plot the events from t = 0 to t = 1 for various processes
+  #
+  # 
+  # input: 
+  #
+  # - step_0_events   (list)  each item denotes a process and is a vector of points
+  #
+  # 
+  # output:
+  #
+  # - g     (graph)
+  #
+  # ----------------------------------------------------------------------------
+  
+  
+  
+  df <- do.call(rbind, lapply(seq_along(step_0_events), function(i) {
+    data.frame(process = i, time = events[[i]])
+  }))  
+  
+  g <- ggplot(df, aes(x = time, y = process)) +
+    geom_point(size = 0.8, alpha = 0.5) +
+    labs(x = "Time", y = "Process", title = "Point Process Events of First Subject") +
+    theme_bw() + 
+    theme(panel.grid = element_blank())
+
+  
+}
+
+visualize_points_on_intensity <- function(step_0_events, step_1, time_grid){
+  
+  
+  # ----------------------------------------------------------------------------
+  #
+  # 
+  # GOAL: map the events onto the estimated and true intensities from step_1
+  #
+  # inputs:
+  #
+  # - step_0_events   (list)    each item denotes a process and is a vector of points
+  # - step_1          (list)    
+  #   - X_k_est                   (p x m_est   x n)
+  #   - X_k_truth                 (p x m_truth x n)
+  #   - X_k_coarse_truth          (p x m_est   x n)
+  #   - X_k_both_truth            (p x m_both  x n)
+  #   - Lambda_k_truth            (p x m_truth x n)
+  #   - Lambda_k_coarse_truth     (p x m_est   x n)
+  #   - Lambda_k_est              (p x m_est   x n)
+  #
+  # 
+  # - time_grid_est  (m_est-dim vec)    vector of timepoints
+  #
+  #
+  # outputs:
+  #
+  # - graphs   (list of graphs)       graph of all processes mapped on their Lambda_k_truth and Lambda_k_est
+  #
+  #
+  # ----------------------------------------------------------------------------
+  
+  process_id <- 1:length(step_0_events)
+  
+  graphs <- list()
+  
+  nbins <- 30
+
+  
+  for(i in process_id){
+    x <- step_0_events[[i]]
+    
+    df_est <- data.frame(x = time_grid_est, y = step_1$Lambda_k_est[i, , 1] / nbins)
+    df_truth <- data.frame(x = time_grid, y = step_1$Lambda_k_truth[i, , 1] / nbins)
+    
+    graphs[[i]] <- ggplot() + geom_histogram(data = data.frame(x), aes(x = x, fill = 'Events'), bins = nbins) + 
+      geom_line(data = df_est, aes(x = x, y = y, color = 'Estimate')) + 
+      geom_line(data = df_truth, aes(x = x, y = y, color = 'Truth')) + 
+      labs(
+        title = paste0("Process ", i),
+        x = "Time",
+        y = "Count or Intensity / Bin Width",
+        fill = "Event",
+        color = "Intensity",
+      ) +
+      scale_fill_manual(values = c("Events" = "lightblue")) +
+      scale_color_manual(values = c("Estimate" = "red", "Truth" = "green")) +
+      theme_minimal()
+  }
+  
+  return(graphs)
+  
+  
+  
+}
 
 # visualize ||V_cond - V_cond_est||_HS convergence
 
@@ -192,6 +297,7 @@ visualize_metrics <- function(folder_name, metrics, i = NULL, j = NULL){
   #   - g_ij_dist   (pxp matrix)
   #   - P_HS        (pxp matrix, each value is HS norm of difference of P_hat - P)
   #   - C_HS        (pxp matrix)
+  #   - C_HS_v2     (pxp matrix)
   #   - V_HS        (pxp matrix)
   #   - sens        (scalar)
   #   - spec        (scalar)
@@ -224,6 +330,8 @@ visualize_metrics <- function(folder_name, metrics, i = NULL, j = NULL){
   # ----------------------------------------------------------------------------
   
   
+  # 1) loading all datasets in a folder
+  
   files <- list.files(folder_name, full.names = TRUE)
   
   ns <- suppressWarnings({
@@ -244,13 +352,17 @@ visualize_metrics <- function(folder_name, metrics, i = NULL, j = NULL){
   names(results_list) <- ns
   
   
-  # retrieve the 1_2 entry from metrics of V_cond (written by chatgpt)
+  # 2) getting all metrics
   
   # top_name = '100', '200' etc n
   # low_name = '0', '0.125', '0.25', etc y_c_query  
   results_df <- do.call(rbind, lapply(names(results_list), function(top_name) {
     
-    top_entry <- results_list[[top_name]]$graph_results_i$estimated_graphs_part_2
+    top_entry <- results_list[[top_name]]$graph_results_i$metrics
+    
+    if(is.null(names(top_entry))){
+      names(top_entry) <- 1:length(top_entry)
+    }
     
     do.call(rbind, lapply(names(top_entry), function(low_name) {
       low_entry <- top_entry[[low_name]]
@@ -258,9 +370,9 @@ visualize_metrics <- function(folder_name, metrics, i = NULL, j = NULL){
       values <- c()
       for(metric in metrics){
         
-        metric_value <- low_entry[['metrics']][[metric]]
+        metric_value <- low_entry[[metric]]
         
-        if(metric %in% c('rho_ij_dist', 'g_ij_dist', 'P_HS', 'C_HS', 'V_HS')){
+        if(metric %in% c('rho_ij_dist', 'g_ij_dist', 'P_HS', 'C_HS', 'C_HS_v2', 'V_HS')){
           metric_value = metric_value[i, j]
         }
         
@@ -404,6 +516,8 @@ visualize_truths_from_est <- function(step_list, graph_ids, time_grid_est, time_
                                      layout_matrix = arr_mat) 
   }
   
+  
+  # rho_i for first 5 processes 
   if('22' %in% graph_ids){
     #   - rho_i_truth               (p x m)
     #   - rho_i_coarse_truth        (p x m_est)
@@ -421,6 +535,8 @@ visualize_truths_from_est <- function(step_list, graph_ids, time_grid_est, time_
                                      layout_matrix = arr_mat) 
   }
   
+  
+  # rho_ij(s,t) for process pair 1_1
   if('24' %in% graph_ids){
     #   - rho_ii_truth               (list of m x m matrices)
     #   - rho_ii_coarse_truth        (list of m_est x m_est matrices)
@@ -437,6 +553,8 @@ visualize_truths_from_est <- function(step_list, graph_ids, time_grid_est, time_
                                      layout_matrix = arr_mat)
   }
   
+  
+  # rho_ij(s,t) for process pair 1_2
   if('25' %in% graph_ids){
     graphs[['g_25']] <- grid.arrange(visualize_matrix_heatmap(step_2b[[1]][['1_2']],   'Truth Theory',        40000, NULL, 100000),
                                      visualize_matrix_heatmap(step_2b[[2]][['1_2']],   'Coarse Truth Theory', 40000, NULL, 100000),
@@ -447,15 +565,28 @@ visualize_truths_from_est <- function(step_list, graph_ids, time_grid_est, time_
                                      layout_matrix = arr_mat)    
   }
   
+  # rho_ij (s,t) for process pair 3_5
   if('26' %in% graph_ids){
-    graphs[['g_26']] <- grid.arrange(visualize_matrix_heatmap(step_2b[[1]][['3_6']],   'Truth Theory',        40000, NULL, 120000),
-                                     visualize_matrix_heatmap(step_2b[[2]][['3_6']],   'Coarse Truth Theory', 40000, NULL, 120000),
-                                     visualize_matrix_heatmap(step_2b[[3]][['3_6']],   'Truth X',             40000, NULL, 120000),
-                                     visualize_matrix_heatmap(step_2b[[4]][['3_6']],   'Coarse Truth X',      40000, NULL, 120000),
-                                     textGrob("2. Rho ij\nEstimation \n for process 3 and 6", gp = gpar(fontsize = 14)),
-                                     visualize_matrix_heatmap(step_2b[[5]][['3_6']],   'Estimate',            40000, NULL, 120000),
+    graphs[['g_26']] <- grid.arrange(visualize_matrix_heatmap(step_2b[[1]][['3_5']],   'Truth Theory',        40000, NULL, 120000),
+                                     visualize_matrix_heatmap(step_2b[[2]][['3_5']],   'Coarse Truth Theory', 40000, NULL, 120000),
+                                     visualize_matrix_heatmap(step_2b[[3]][['3_5']],   'Truth X',             40000, NULL, 120000),
+                                     visualize_matrix_heatmap(step_2b[[4]][['3_5']],   'Coarse Truth X',      40000, NULL, 120000),
+                                     textGrob("2. Rho ij\nEstimation \n for process 3 and 5", gp = gpar(fontsize = 14)),
+                                     visualize_matrix_heatmap(step_2b[[5]][['3_5']],   'Estimate',            40000, NULL, 120000),
                                      layout_matrix = arr_mat)     
   }
+  
+  # distribution of weights due to continuous covariate
+  result_29 <- function(step_2){
+    df_29 <- data.frame(x = step_2$y_c_s[,1], y = step_2$weights)
+    g <- ggplot(data = df_29, aes(x = x, y = y)) + geom_line() + geom_point() + 
+      ylab('weight') + 
+      xlab('y_c_k')
+    
+    return(g)
+  }
+  
+  if('29' %in% graph_ids){ graphs[['g_29']] <- result_29(step_2) }
   
   if('31' %in% graph_ids){
     #   - g_ij_ground_truth                (list of m x m matrices for i_j entries)
@@ -476,19 +607,35 @@ visualize_truths_from_est <- function(step_list, graph_ids, time_grid_est, time_
                                      layout_matrix = arr_mat_8)     
   }
   
+  # g_ij(s,t) at 1_2
+  if('32' %in% graph_ids){
+    graphs[['g_32']] <- grid.arrange(visualize_matrix_heatmap(step_3[[1]][['1_2']], 'Ground Truth', -1, 0, 1),
+                                     visualize_matrix_heatmap(step_3[[2]][['1_2']], 'Coarse Ground Truth', -1, 0, 1),
+                                     visualize_matrix_heatmap(step_3[[3]][['1_2']], 'Truth Theory', -1, 0, 1),  
+                                     visualize_matrix_heatmap(step_3[[4]][['1_2']], 'Coarse Truth Theory', -1, 0, 1),
+                                     visualize_matrix_heatmap(step_3[[5]][['1_2']], 'Truth X', -1, 0, 1),    
+                                     visualize_matrix_heatmap(step_3[[6]][['1_2']], 'Coarse Truth X', -1, 0, 1),
+                                     textGrob("3. Covariance Function\nEstimation (G_ii)\nof Processes 1 and 2", gp = gpar(fontsize = 14)),
+                                     visualize_matrix_heatmap(step_3[[7]][['1_2']], 'Estimate', -1, 0, 1),
+                                     layout_matrix = arr_mat_8)     
+  }  
 
-  # 4.1) do the eigenfunctions between coarse and regular truths differ? - yes - the g_ij is too different from the truth
+  # g_ij(s,t) at 3_5
+  if('33' %in% graph_ids){
+    graphs[['g_33']] <- grid.arrange(visualize_matrix_heatmap(step_3[[1]][['3_5']], 'Ground Truth', -1, 0, 1),
+                                     visualize_matrix_heatmap(step_3[[2]][['3_5']], 'Coarse Ground Truth', -1, 0, 1),
+                                     visualize_matrix_heatmap(step_3[[3]][['3_5']], 'Truth Theory', -1, 0, 1),  
+                                     visualize_matrix_heatmap(step_3[[4]][['3_5']], 'Coarse Truth Theory', -1, 0, 1),
+                                     visualize_matrix_heatmap(step_3[[5]][['3_5']], 'Truth X', -1, 0, 1),    
+                                     visualize_matrix_heatmap(step_3[[6]][['3_5']], 'Coarse Truth X', -1, 0, 1),
+                                     textGrob("3. Covariance Function\nEstimation (G_ii)\nof Processes 3 and 5", gp = gpar(fontsize = 14)),
+                                     visualize_matrix_heatmap(step_3[[7]][['3_5']], 'Estimate', -1, 0, 1),
+                                     layout_matrix = arr_mat_8)     
+  }    
+  
+  # 4.1) plot eigenfunctions
   
   if('41' %in% graph_ids){
-    #   - eigen_decomp_truth               (list of 3 things)
-    #     - [[1]] eigenvalues  (list of p vectors of eigenvalues)
-    #     - [[2]] eigenvectors (list of p matrices of m x d_i)
-    #     - [[3]] n_dims       (list of p integers denoting d_i)
-    #
-    #   - eigen_decomp_coarse_truth
-    #   - eigen_decomp_X_truth
-    #   - eigen_decomp_X_coarse_truth
-    #   - eigen_decomp_est    
     graphs[['g_41']] <- grid.arrange(visualize_log_intensity(t(step_4[[1]]$eigenfunctions[[1]]),    time_grid,      'Truth Theory'),
                                      visualize_log_intensity(t(step_4[[2]]$eigenfunctions[[1]]),    time_grid_est,  'Coarse Truth Theory'),
                                      visualize_log_intensity(t(step_4[[3]]$eigenfunctions[[1]]),    time_grid,      'Truth X'),
@@ -527,17 +674,9 @@ visualize_truths_from_est <- function(step_list, graph_ids, time_grid_est, time_
                                      layout_matrix = arr_mat_8)
   }
   
-  # checking eigenreconstruction
+  #  are all eigenfunctions orthogonal? Orthonormal? 
   if('43' %in% graph_ids){
     
-    eigen_decomp_est <- step_4[[1]]
-    eigen_decomp_est <- step_4[[1]]
-    eigen_decomp_est <- step_4[[1]]
-    eigen_decomp_est <- step_4[[1]]
-    eigen_decomp_est <- step_4[[5]]
-    
-    # 4.2) are all eigenfunctions orthogonal? Orthonormal? 
-
     
     mat_truth          <- t(step_4[[1]]$eigenfunctions[[1]]) %*% step_4[[1]]$eigenfunctions[[1]]
     mat_coarse_truth   <- t(step_4[[2]]$eigenfunctions[[1]]) %*% step_4[[2]]$eigenfunctions[[1]]   
@@ -554,7 +693,7 @@ visualize_truths_from_est <- function(step_list, graph_ids, time_grid_est, time_
                                      layout_matrix = arr_mat)
   }
   
-  # reconstruction error
+  # reconstruction error histogram
   if('44' %in% graph_ids){
     
     g_ii_truth          <- prep_eigendecomposition_ii(step_3[[3]], p)
@@ -582,7 +721,86 @@ visualize_truths_from_est <- function(step_list, graph_ids, time_grid_est, time_
 
   }
   
-
+  # eigenvalue decay - check if G_ii / m makes the eigenvalues similar between coarse/fine settings
+  
+  if('45' %in% graph_ids){
+    
+    # keep eigenvalues of at most 5 processes
+    step_4_evals <- lapply(step_4, function(x) x$eigenvalues[1:min(5, length(x$eigenvalues))])
+    
+    
+    # reorganize dataframe of eigenvalues 
+    df <- data.frame()
+    
+    for (outer_name in names(step_4_evals)) {
+      inner_list <- step_4_evals[[outer_name]]
+      
+      for (j in seq_along(inner_list)) {
+        vals <- inner_list[[j]]
+        temp <- data.frame(
+          description = outer_name,
+          process = j,
+          eigen_index = seq_along(vals),
+          value = vals
+        )
+        df <- rbind(df, temp)
+      }
+    }
+    
+    # Plot: one plot per component, colored by process
+    graphs[['g_45']] <- ggplot(df, aes(x = eigen_index, y = value, color = description)) +
+      geom_line() + 
+      geom_point() + 
+      facet_wrap(~process, scales = "free_y") +
+      labs(x = "Eigenvalue index", y = "Eigenvalue", color = "Process") +
+      theme_minimal()    
+    
+  }
+  
+  if('46' %in% graph_ids){
+    
+    # keep eigenvalues of at most 5 processes
+    step_4_evecs <- lapply(step_4, function(x) x$eigenfunctions)    
+    
+    Y1 <- data.frame(step_4_evecs[[1]][[1]])
+    Y2 <- data.frame(step_4_evecs[[2]][[1]])
+    
+    
+    df1 <- as.data.frame(Y1) %>%
+      mutate(x = time_grid) %>%
+      pivot_longer(
+        cols = -x,
+        names_to = "series",
+        values_to = "y"
+      ) %>%
+      mutate(group = "50-dim")
+    
+    df2 <- as.data.frame(Y2) %>%
+      mutate(x = time_grid_est) %>%
+      pivot_longer(
+        cols = -x,
+        names_to = "series",
+        values_to = "y"
+      ) %>%
+      mutate(group = "19-dim")
+    
+    # Combine both
+    df_all <- bind_rows(df1, df2)
+    
+    # Plot
+    graphs[['g_45']] <- ggplot(df_all, aes(x = x, y = y, group = interaction(series, group), color = group)) +
+      geom_line(size = 0.8, alpha = 0.9) +
+      scale_color_manual(values = c("50-dim" = "red", "19-dim" = "blue")) +
+      theme_minimal() +
+      labs(
+        x = "Time",
+        y = "Value",
+        color = "Series type",
+        title = "Eigenvectors of Fine and Coarse Grids"
+      )
+    
+    
+  }
   
   
   # 5.3) Graph X_k (true, true_reconstruct, estimate, estimate_reconstruct)  for the first subject
@@ -641,6 +859,72 @@ visualize_truths_from_est <- function(step_list, graph_ids, time_grid_est, time_
       xlab('Time') +
       labs(color = "Truth or Estimate") +
       theme_bw()
+  }
+  
+  # 54 = how do the eigenvalues in step 5, var(alpha) = mu, differ from those in step 4?
+  
+  if('54' %in% graph_ids){
+    
+
+    p_min <- min(p, 5)
+    
+    # extract diagonal entries from i_i
+    step_5_diags <- lapply(step_5, function(inner_list) {
+
+      ii_names <- paste0(1:p_min, "_", 1:p_min)
+      
+      # keep only those entries that exist in the inner list
+      ii_mats <- inner_list[ii_names]
+      
+      # extract diagonals from each
+      lapply(ii_mats, diag)
+    })
+    
+    # eigenvalues from step 4
+    step_4_evals <- lapply(step_4, function(x) x$eigenvalues[1:p_min])
+    
+    # 3) for each process, est/truth combo, plot the eigenvalues to make sure they are equal
+    
+    df <- data.frame()
+    
+    names_truth <- factor(c('Truth', 'Coarse_Truth', 'X_Truth', 'X_Coarse_Truth', 'Est'), 
+                          levels = c('Truth', 'Coarse_Truth', 'X_Truth', 'X_Coarse_Truth', 'Est'))
+    
+    for (k in seq_along(step_5_diags)) {  # over a,b,c,d,e
+      name_k <- names_truth[k]
+      
+      for (p in seq_along(step_5_diags[[k]])) {  # over 1:p eigenvalue vectors
+        v1 <- step_5_diags[[k]][[p]]
+        v2 <- step_4_evals[[k]][[p]]
+        
+        n <- min(length(v1), length(v2))  # ensure same length
+        
+        temp <- data.frame(
+          index = seq_len(n),
+          eigen1 = v1[1:n],
+          eigen2 = v2[1:n],
+          process = name_k,
+          component = p
+        )
+        
+        df <- rbind(df, temp)
+      }
+    }    
+    
+    graphs[['g_54']] <- ggplot(df, aes(x = index)) +
+      geom_line(aes(y = eigen1, color = "Var(KL)")) +
+      geom_line(aes(y = eigen2, color = "Eigenvalue"), linetype = "dashed") +
+      geom_point(aes(y = eigen1, color = "Var(KL)")) +
+      geom_point(aes(y = eigen2, color = "Eigenvalue")) +      
+      facet_grid(process ~ component, scales = "free_y") +
+      labs(
+        title = "Eigenvalue Comparison between Two Lists",
+        x = "Eigenvalue index",
+        y = "Eigenvalue",
+        color = "Source"
+      ) +
+      theme_minimal()
+    
   }
   
   
@@ -702,27 +986,38 @@ visualize_truths_from_est <- function(step_list, graph_ids, time_grid_est, time_
                                      visualize_pm_block_matrix_heatmap(step_8[[7]], 'Estimate'),
                                      layout_matrix = arr_mat_8)      
   }
-
-
   
-  if('91' %in% graph_ids){
-    #   - C_cond_ground_truth_full          (pm x pm matrix)
-    #   - C_cond_corase_ground_truth_full   (pm_est x pm_est matrix)
-    #   - C_cond_truth_full                 (pm x pm matrix)
-    #   - C_cond_coarse_truth_full          (pm_est x pm_est matrix)
-    #   - C_cond_X_truth_full               (pm x pm matrix)
-    #   - C_cond_X_coarse_truth_full        (pm_est x pm_est matrix)
-    #   - C_cond_est_full                   (pm_est x pm_est matrix)      
-    graphs[['g_91']] <- grid.arrange(visualize_matrix_heatmap(extract_block_structure_ij(step_9[[1]], m,     1, 2), 'Ground Truth', zmid = 0),
-                                     visualize_matrix_heatmap(extract_block_structure_ij(step_9[[2]], m_est, 1, 2), 'Coarse Ground Truth', zmid = 0),
-                                     visualize_matrix_heatmap(extract_block_structure_ij(step_9[[3]], m,     1, 2), 'Truth Theory', zmid = 0),
-                                     visualize_matrix_heatmap(extract_block_structure_ij(step_9[[4]], m_est, 1, 2), 'Coarse Truth Theory', zmid = 0),
-                                     visualize_matrix_heatmap(extract_block_structure_ij(step_9[[5]], m,     1, 2), 'Truth X', zmid = 0),
-                                     visualize_matrix_heatmap(extract_block_structure_ij(step_9[[6]], m_est, 1, 2), 'Coarse Truth X', zmid = 0),
-                                     textGrob("9. Conditional\nCorrelation Operator\nProcess 1 with 2", gp = gpar(fontsize = 14)),  
-                                     visualize_matrix_heatmap(extract_block_structure_ij(step_9[[7]], m_est, 1, 2), 'Estimate', zmid = 0),
-                                     layout_matrix = arr_mat_8)      
+  result_91_prep <- function(step_9, m, m_est){
+    
+    g_list <- list(visualize_matrix_heatmap(extract_block_structure_ij(step_9[[1]], m,     1, 2), 'Ground Truth', zmid = 0),
+                   visualize_matrix_heatmap(extract_block_structure_ij(step_9[[2]], m_est, 1, 2), 'Coarse Ground Truth', zmid = 0),
+                   visualize_matrix_heatmap(extract_block_structure_ij(step_9[[8]], m,     1, 2), 'Ground Truth v2', zmid = 0),
+                   visualize_matrix_heatmap(extract_block_structure_ij(step_9[[9]], m_est, 1, 2), 'Coarse Ground Truth v2', zmid = 0),
+                   visualize_matrix_heatmap(extract_block_structure_ij(step_9[[3]], m,     1, 2), 'Truth Theory', zmid = 0),
+                   visualize_matrix_heatmap(extract_block_structure_ij(step_9[[4]], m_est, 1, 2), 'Coarse Truth Theory', zmid = 0),
+                   visualize_matrix_heatmap(extract_block_structure_ij(step_9[[5]], m,     1, 2), 'Truth X', zmid = 0),
+                   visualize_matrix_heatmap(extract_block_structure_ij(step_9[[6]], m_est, 1, 2), 'Coarse Truth X', zmid = 0),
+                   visualize_matrix_heatmap(extract_block_structure_ij(step_9[[7]], m_est, 1, 2), 'Estimate', zmid = 0))
+    
+    return(g_list)
   }
+  
+  result_91 <- function(step_9, m, m_est, arr_mat_10){
+    
+    g_list <- result_91_prep(step_9, m, m_est)
+    
+    g <- grid.arrange(g_list[[1]], g_list[[2]], g_list[[3]], g_list[[4]],
+                      g_list[[5]], g_list[[6]], g_list[[7]], g_list[[8]],
+                      textGrob("9. Conditional\nCorrelation Operator\nProcess 1 with 2", gp = gpar(fontsize = 14)),  
+                      g_list[[9]], 
+                      layout_matrix = arr_mat_10)
+    
+    return(g)
+    
+  }
+  
+
+  if('91' %in% graph_ids){ graphs[['g_91']] <- result_91(step_9, m, m_est, arr_mat_10) }
 
   if('92' %in% graph_ids){
     graphs[['g_92']] <- grid.arrange(visualize_matrix_heatmap(extract_block_structure_ij(step_9[[1]], m,     3, 6), 'Ground Truth', zmid = 0),
