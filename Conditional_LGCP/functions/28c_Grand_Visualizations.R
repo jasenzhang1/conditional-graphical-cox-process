@@ -1,4 +1,6 @@
 source('functions/28_Simulation_Visualization.R')
+source('functions/28b_Simulation_Visualization_2.R')
+source('functions/28y_Visualization_Blocks.R')
 source('functions/28z_Visualization_helpers.R')
 source('functions/00c_block_matrix_arrange.R')
 
@@ -79,8 +81,8 @@ visualize_over_time <- function(folder_name, n, est_only, graph_id, m_est, m, i,
   # 
   # input: 
   #
-  # - folder_name   (string)
-  # - n             (integer)
+  # - folder_name   (string)   "simu_results/single_c2/CPGM"
+  # - n             (integer)  
   # - est_only      (boolean)  if true, only display est over time with ground truth 
   # 
   # output:
@@ -93,17 +95,20 @@ visualize_over_time <- function(folder_name, n, est_only, graph_id, m_est, m, i,
   # 1) load
   
   graph_results_i <- get_file_name_and_load(folder_name, n) 
-  graph_results_i <- old_to_new_graph_results_i(graph_results_i)
+  # graph_results_i <- old_to_new_graph_results_i(graph_results_i)
   
   # prep
-  arr_mat <- matrix(1:6, nrow = 2, byrow = F)
+  arr_mat_6 <- matrix(1:6, nrow = 2, byrow = F)
   arr_mat_8 <- matrix(1:8, nrow = 2, byrow = F)
   arr_mat_10 <- matrix(1:10, nrow = 2, byrow = F)  
   
   
   graphs <- list()
   
-  y_c_names <- names(graph_results_i$kernel_params_i) %>% as.numeric() %>% round(2)
+  y_c_names <- graph_results_i$y_c_query %>%
+    as.numeric() %>%
+    round(2) %>%
+    formatC(format = "f", digits = 2)
   
   # 2) figure out which steps have unique results for y_c_query and which steps are constant
   
@@ -141,8 +146,10 @@ visualize_over_time <- function(folder_name, n, est_only, graph_id, m_est, m, i,
     est_graphs <- lapply(graph_results_i$step_8, function(x) extract_block_structure_ij(x$step_8$V_cond_est_full, m_est, i, j))
   }
   
+  # C_X1_X2
+  
   if('91' %in% graph_ids){
-    graph_list <- lapply(graph_results_i$step_9, function(x){ result_91_prep(x, m, m_est) })
+    graph_list <- lapply(graph_results_i$step_9, function(x){ result_90s_prep(x, m, m_est, i = 1, j = 2) })
     
     n_y_c_query <- length(graph_list)
     n_settings <- length(graph_list[[1]])
@@ -162,6 +169,30 @@ visualize_over_time <- function(folder_name, n, est_only, graph_id, m_est, m, i,
     
     
   }
+  
+  # C_X1_X2
+  
+  if('92' %in% graph_ids){
+    graph_list <- lapply(graph_results_i$step_9, function(x){ result_90s_prep(x, m, m_est, i = 3, j = 5) })
+    
+    n_y_c_query <- length(graph_list)
+    n_settings <- length(graph_list[[1]])
+    
+    # Flatten the nested list: row-wise
+    flat_graphs <- unlist(graph_list, recursive = FALSE)
+    
+    # Create column-major index mapping
+    # R's matrix() fills column-wise by default, so we transpose to reorder properly
+    idx <- as.vector(t(matrix(seq_along(flat_graphs), nrow = n_settings, ncol = n_y_c_query)))
+    
+    # Reorder the flat list
+    flat_graphs_colwise <- flat_graphs[idx]
+    
+    # Arrange in n_settings rows x n_y_c_query columns
+    graphs[['g_92']] <- do.call(grid.arrange, c(flat_graphs_colwise, nrow = n_settings, ncol = n_y_c_query))
+    
+    
+  }  
   
   if('113' %in% graph_ids){
     
