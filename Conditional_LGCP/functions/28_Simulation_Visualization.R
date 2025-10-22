@@ -4,38 +4,7 @@ library(ggplot2)
 #library(gganimate)
 #library(magick)
 
-visualize_pm_block_matrix_heatmap <- function(pm_block_matrix, g_title = NULL){
-  
-  
-  # ----------------------------------------------------------------------------
-  # 
-  # GOAL: visualize the pm block matrix in a heatmap 
-  #
-  # - force midpoint to be white = 0
-  # 
-  # input:
-  #
-  # - pm_block_matrix (pm x pm matrix)
-  #
-  #
-  # ----------------------------------------------------------------------------
-  
-  df <- reshape2::melt(pm_block_matrix)
-  colnames(df) <- c("Row", "Col", "Value")
-  
-  # Plot heatmap
-  g <- ggplot(df, aes(x = Col, y = Row, fill = Value)) +
-    geom_tile(color = "white") +
-    scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0) +
-    theme_minimal() +
-    scale_y_reverse() +
-    coord_fixed() +
-    labs(title = "Matrix Heatmap", fill = "Value") + 
-    ggtitle(g_title)
-  
-  return(g)
-  
-}
+
 
 visualize_matrix_heatmap <- function(mat, g_title = NULL, zmin = NULL, zmid = NULL, zmax = NULL) {
   
