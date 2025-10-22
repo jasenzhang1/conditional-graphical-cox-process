@@ -449,28 +449,32 @@ visualize_truths_from_est <- function(step_list, graph_ids, time_grid_est, time_
   
   # load step_list
   
+  y_c_id <- 1 # first y_c_query
+  
   step_0 <- step_list$step_0 
   step_1 <- step_list$step_1 
-  step_2 <- step_list$step_2 
-  step_3 <- step_list$step_3 
-  step_4 <- step_list$step_4 
-  step_5 <- step_list$step_5 
-  step_6 <- step_list$step_6 
-  step_7 <- step_list$step_7 
-  step_8 <- step_list$step_8 
-  step_9 <- step_list$step_9 
-  step_10 <- step_list$step_10 
-  step_11 <- step_list$step_11 
-  step_12 <- step_list$step_12 
-  step_2b <- step_list$step_2b 
+  step_2 <- step_list$step_2[[y_c_id]] 
+  step_3 <- step_list$step_3[[y_c_id]] 
+  step_4 <- step_list$step_4[[y_c_id]]  
+  step_5 <- step_list$step_5[[y_c_id]]  
+  step_6 <- step_list$step_6[[y_c_id]]  
+  step_7 <- step_list$step_7[[y_c_id]]  
+  step_8 <- step_list$step_8[[y_c_id]]  
+  step_9 <- step_list$step_9[[y_c_id]]  
+  step_10 <- step_list$step_10[[y_c_id]]  
+  step_11 <- step_list$step_11[[y_c_id]]  
+  step_12 <- step_list$step_12[[y_c_id]]  
+  step_2b <- step_list$step_2b[[y_c_id]]  
   
-  y_c_id <- 1 # first y_c_query
+
   
 
   
   graphs = list()
   
-  arr_mat <- matrix(1:6, nrow = 2, byrow = F)
+  arr_mat_3 <- matrix(1:3, nrow = 1, byrow = F)
+  arr_mat_4 <- matrix(1:4, nrow = 2, byrow = F)
+  arr_mat_6 <- matrix(1:6, nrow = 2, byrow = F)
   arr_mat_8 <- matrix(1:8, nrow = 2, byrow = F)
   arr_mat_10 <- matrix(1:10, nrow = 2, byrow = F)  
   
@@ -480,123 +484,120 @@ visualize_truths_from_est <- function(step_list, graph_ids, time_grid_est, time_
   
   if('01' %in% graph_ids){ graphs[['g_01']] <- result_01(step_0) }
   
-  if('11' %in% graph_ids){ graphs[['g_11']] <- result_11(step_1, time_grid, time_grid_est, arr_mat) }
+  if('11' %in% graph_ids){ 
+
+    g_list <- result_11_prep(step_1, time_grid, time_grid_est)
+    grob_caption <- "0. Log Intensity\n of first 5 processes\nof subject 1"
+    graphs[['g_11']] <- result_arr_mat(g_list, grob_caption, arr_mat_6)
+
+    }
   
   
   # rho_i for first 5 processes 
-  if('22' %in% graph_ids){ graphs[['g_22']] <- result_22(step_2[[y_c_id]], time_grid, time_grid_est, arr_mat) }
+  if('22' %in% graph_ids){ 
+
+    
+    g_list <- result_22_prep(step_2, time_grid, time_grid_est)
+    grob_caption <- "2. Rho_i\nEstimation for \n first 5 processes"
+    graphs[['g_22']] <- result_arr_mat(g_list, grob_caption, arr_mat_6)
+    
+
+    }
   
   
   # rho_ij(s,t) for process pair 1_1
-  if('24' %in% graph_ids){ graphs[['g_24']] <- result_20s(step_2b[[y_c_id]], 1, 1, arr_mat) }
+  if('24' %in% graph_ids){ 
+    
+    g_list <- result_20s_prep(step_2b, i = 1, j = 1)
+    grob_caption <- "2. Rho ii\nEstimation \n for processes 1_1"
+    graphs[['g_24']] <- result_arr_mat(g_list, grob_caption, arr_mat_6)    
+    
+  }
   
   
   # rho_ij(s,t) for process pair 1_2
-  if('25' %in% graph_ids){ graphs[['g_25']] <- result_20s(step_2b[[y_c_id]], 1, 2, arr_mat) }
+  if('25' %in% graph_ids){ 
+    
+    g_list <- result_20s_prep(step_2b, i = 1, j = 2)
+    grob_caption <- "2. Rho ii\nEstimation \n for processes 1_2"
+    graphs[['g_25']] <- result_arr_mat(g_list, grob_caption, arr_mat_6)  
+    
+  }
   
   # rho_ij (s,t) for process pair 3_5
-  if('26' %in% graph_ids){ graphs[['g_26']] <- result_20s(step_2b[[y_c_id]], 3, 5, arr_mat) }
+  if('26' %in% graph_ids){ 
+    g_list <- result_20s_prep(step_2b, i = 3, j = 5)
+    grob_caption <- "2. Rho ii\nEstimation \n for processes 3_5"
+    graphs[['g_26']] <- result_arr_mat(g_list, grob_caption, arr_mat_6)  
+  
+    }
   
   # distribution of weights due to continuous covariate
 
-  if('29' %in% graph_ids){ graphs[['g_29']] <- result_29(step_2[[y_c_id]], y_c_id) }
+  if('29' %in% graph_ids){ 
+    graphs[['g_29']] <- result_29(step_2, y_c_id) 
+  }
   
   # g_ij(s,t) at 1_1
-  if('31' %in% graph_ids){ graphs[['g_31']] <- result_30s(step_3[[y_c_id]], 1, 1, arr_mat_8) }
+  if('31' %in% graph_ids){ 
+    
+    g_list <- result_30s_prep(step_3, i = 1, j = 1)
+    grob_caption <- "3. Covariance Function\nEstimation (G_ii)\nfor 1_1"
+    graphs[['g_31']] <- result_arr_mat(g_list, grob_caption, arr_mat_8) 
+    
+  }
   
   # g_ij(s,t) at 1_2
-  if('32' %in% graph_ids){ graphs[['g_32']] <- result_30s(step_3[[y_c_id]], 1, 2, arr_mat_8) }
+  if('32' %in% graph_ids){ 
+    g_list <- result_30s_prep(step_3, i = 1, j = 2)
+    grob_caption <- "3. Covariance Function\nEstimation (G_ii)\nfor 1_2"
+    graphs[['g_32']] <- result_arr_mat(g_list, grob_caption, arr_mat_8) 
+  }
   
 
   # g_ij(s,t) at 3_5
-  if('33' %in% graph_ids){ graphs[['g_33']] <- result_30s(step_3[[y_c_id]], 3, 5, arr_mat_8) }    
+  if('33' %in% graph_ids){ 
+    g_list <- result_30s_prep(step_3, i = 3, j = 5)
+    grob_caption <- "3. Covariance Function\nEstimation (G_ii)\nfor 3_5"
+    graphs[['g_33']] <- result_arr_mat(g_list, grob_caption, arr_mat_8) 
+  }    
   
   # 4.1) plot eigenfunctions
   
-  if('41' %in% graph_ids){
-    graphs[['g_41']] <- grid.arrange(visualize_log_intensity(t(step_4[[1]]$eigenfunctions[[1]]),    time_grid,      'Truth Theory'),
-                                     visualize_log_intensity(t(step_4[[2]]$eigenfunctions[[1]]),    time_grid_est,  'Coarse Truth Theory'),
-                                     visualize_log_intensity(t(step_4[[3]]$eigenfunctions[[1]]),    time_grid,      'Truth X'),
-                                     visualize_log_intensity(t(step_4[[4]]$eigenfunctions[[1]]),    time_grid_est,  'Coarse Truth X'),
-                                     textGrob("4. Eigenfunction\nBasis of\nProcess 1", gp = gpar(fontsize = 14)),
-                                     visualize_log_intensity(t(step_4[[5]]$eigenfunctions[[1]]),    time_grid_est,  'Estimate'),
-                                     layout_matrix = arr_mat)    
+  if('41' %in% graph_ids){ 
+    
+    g_list <- result_41_prep(step_4, time_grid, time_grid_est)
+    grob_caption <- "4. Eigenfunction\nBasis of\nProcess 1"
+    graphs[['g_41']] <- result_arr_mat(g_list, grob_caption, arr_mat_6)
+    
   }
 
   # visualize g_ij vs its eigendecomposition reconstruction
   
-  if('42' %in% graph_ids){
+  if('42' %in% graph_ids){ 
     
-    g_ii_truth          <- prep_eigendecomposition_ii(step_3[[3]], p)
-    g_ii_coarse_truth   <- prep_eigendecomposition_ii(step_3[[4]], p)
-    g_ii_X_truth        <- prep_eigendecomposition_ii(step_3[[5]], p)
-    g_ii_X_coarse_truth <- prep_eigendecomposition_ii(step_3[[6]], p)
-    g_ii_est            <- prep_eigendecomposition_ii(step_3[[7]], p) 
+    g_list <- result_42_prep(step_3, step_4, p)
+    grob_caption <- "4. Eigenfunction\nReconstruction"
+    graphs[['g_42']] <- result_arr_mat(g_list, grob_caption, arr_mat_8)
     
-    # validate
-    g_ii_truth_decomp           <- validate_eigendecomposition_ii(g_ii_truth,          step_4[[1]])
-    g_ii_coarse_truth_decomp    <- validate_eigendecomposition_ii(g_ii_coarse_truth,   step_4[[2]]) 
-    g_ii_X_truth_decomp         <- validate_eigendecomposition_ii(g_ii_X_truth,        step_4[[3]]) 
-    g_ii_X_coarse_truth_decomp  <- validate_eigendecomposition_ii(g_ii_X_coarse_truth, step_4[[4]])  
-    g_ii_est_decomp             <- validate_eigendecomposition_ii(g_ii_est,            step_4[[5]])
-    
-    
-    
-    graphs[['g_42']] <- grid.arrange(visualize_matrix_heatmap(g_ii_truth[,,1],               'Truth Theory (TT)', -1, 0, 1),  # ground truth 50 x 50 covariance
-                                     visualize_matrix_heatmap(g_ii_truth_decomp[,,1],        'TT Reconstruct', -1,0, 1), # ground truth reconstructed
-                                     visualize_matrix_heatmap(g_ii_coarse_truth[,,1],        'Coarse Truth Theory (CTT)', -1, 0, 1), # ground truth 19 x 19 covariance
-                                     visualize_matrix_heatmap(g_ii_coarse_truth_decomp[,,1], 'CTT Reconstruct', -1, 0, 1), # ground truth 19 x 19 covariance
-                                     visualize_matrix_heatmap(g_ii_est[,,1],                 'Estimate (E)', -1, 0, 1),    # estimate 19 x 19 covariance
-                                     visualize_matrix_heatmap(g_ii_est_decomp[,,1],          'E Reconstruct', -1, 0, 1), # reconstructed estimate
-                                     textGrob("4. Eigenfunction\nReconstruction", gp = gpar(fontsize = 14)),
-                                     layout_matrix = arr_mat_8)
   }
   
   #  are all eigenfunctions orthogonal? Orthonormal? 
-  if('43' %in% graph_ids){
+  if('43' %in% graph_ids){ 
     
+    g_list <- result_43_prep(step_4)
+    grob_caption <- "4. Eigenfunction\nOrthogonality"
+    graphs[['g_43']] <- result_arr_mat(g_list, grob_caption, arr_mat_6)
     
-    mat_truth          <- t(step_4[[1]]$eigenfunctions[[1]]) %*% step_4[[1]]$eigenfunctions[[1]]
-    mat_coarse_truth   <- t(step_4[[2]]$eigenfunctions[[1]]) %*% step_4[[2]]$eigenfunctions[[1]]   
-    mat_X_truth        <- t(step_4[[3]]$eigenfunctions[[1]]) %*% step_4[[3]]$eigenfunctions[[1]]
-    mat_X_coarse_truth <- t(step_4[[4]]$eigenfunctions[[1]]) %*% step_4[[4]]$eigenfunctions[[1]]
-    mat_est            <- t(step_4[[5]]$eigenfunctions[[1]]) %*% step_4[[5]]$eigenfunctions[[1]]
-    
-    graphs[['g_43']] <- grid.arrange(visualize_matrix_heatmap(mat_truth,   'Truth Theory', zmid = 0),
-                                     visualize_matrix_heatmap(mat_truth,   'Coarse Truth Theory', zmid = 0),
-                                     visualize_matrix_heatmap(mat_truth,   'Truth X', zmid = 0),
-                                     visualize_matrix_heatmap(mat_truth,   'Coarse Truth X', zmid = 0),
-                                     textGrob("4. Eigenfunction\nOrthogonality", gp = gpar(fontsize = 14)),
-                                     visualize_matrix_heatmap(mat_truth,   'Estimate', zmid = 0),
-                                     layout_matrix = arr_mat)
   }
   
   # reconstruction error histogram
-  if('44' %in% graph_ids){
+  if('44' %in% graph_ids){ 
     
-    g_ii_truth          <- prep_eigendecomposition_ii(step_3[[3]], p)
-    g_ii_coarse_truth   <- prep_eigendecomposition_ii(step_3[[4]], p)
-    g_ii_X_truth        <- prep_eigendecomposition_ii(step_3[[5]], p)
-    g_ii_X_coarse_truth <- prep_eigendecomposition_ii(step_3[[6]], p)
-    g_ii_est            <- prep_eigendecomposition_ii(step_3[[7]], p) 
+    g_list <- result_44_prep(step_3, step_4, p)
+    grob_caption <- "4. Eigendecomposition\nReconstruction Error"
+    graphs[['g_44']] <- result_arr_mat(g_list, grob_caption, arr_mat_6)
     
-    # validate
-    g_ii_truth_decomp           <- validate_eigendecomposition_ii(g_ii_truth,          step_4[[1]])
-    g_ii_coarse_truth_decomp    <- validate_eigendecomposition_ii(g_ii_coarse_truth,   step_4[[2]]) 
-    g_ii_X_truth_decomp         <- validate_eigendecomposition_ii(g_ii_X_truth,        step_4[[3]]) 
-    g_ii_X_coarse_truth_decomp  <- validate_eigendecomposition_ii(g_ii_X_coarse_truth, step_4[[4]])  
-    g_ii_est_decomp             <- validate_eigendecomposition_ii(g_ii_est,            step_4[[5]]) 
-    
-    
-    graphs[['g_44']] <- grid.arrange(visualize_error_histogram(g_ii_truth, g_ii_truth_decomp, 'Truth Theory', 20),
-                                     visualize_error_histogram(g_ii_coarse_truth, g_ii_coarse_truth_decomp, 'Coarse Truth Theory', 20),
-                                     visualize_error_histogram(g_ii_X_truth, g_ii_X_truth_decomp, 'Truth X', 20),
-                                     visualize_error_histogram(g_ii_X_coarse_truth, g_ii_X_coarse_truth_decomp, 'Coarse Truth X', 20),
-                                     textGrob("4. Eigendecomposition\nReconstruction Error", gp = gpar(fontsize = 14)),
-                                     visualize_error_histogram(g_ii_est, g_ii_est_decomp, 'Estimate', 20),
-                                     layout_matrix = arr_mat)  
-  
-
   }
   
   # eigenvalue decay - check if G_ii / m makes the eigenvalues similar between coarse/fine settings
@@ -809,40 +810,22 @@ visualize_truths_from_est <- function(step_list, graph_ids, time_grid_est, time_
   # for pair 1_2, plot estimate and truths - this one should look correlated
   
   if('81' %in% graph_ids){
-    #   - V_cond_ground_truth_full          (pm x pm matrix)
-    #   - V_cond_coarse_ground_truth_full   (pm_est x pm_est matrix)
-    #   - V_cond_truth_full                 (pm x pm matrix)
-    #   - V_cond_coarse_truth_full          (pm_est x pm_est matrix)
-    #   - V_cond_X_truth_full               (pm x pm matrix)
-    #   - V_cond_X_coarse_truth_full        (pm_est x pm_est matrix)
-    #   - V_cond_est_full                   (pm_est x pm_est matrix)    
-    graphs[['g_81']] <- grid.arrange(visualize_matrix_heatmap(extract_block_structure_ij(step_8[[1]], m,     1, 2), 'Ground Truth'), 
-                                     visualize_matrix_heatmap(extract_block_structure_ij(step_8[[2]], m_est, 1, 2), 'Coarse Ground Truth'), 
-                                     visualize_matrix_heatmap(extract_block_structure_ij(step_8[[3]], m,     1, 2), 'Truth Theory'),
-                                     visualize_matrix_heatmap(extract_block_structure_ij(step_8[[4]], m_est, 1, 2), 'Coarse Truth Theory'),
-                                     visualize_matrix_heatmap(extract_block_structure_ij(step_8[[5]], m,     1, 2), 'Truth X'), 
-                                     visualize_matrix_heatmap(extract_block_structure_ij(step_8[[6]], m_est, 1, 2), 'Coarse Truth X'), 
-                                     textGrob("8. Conditional\nCovariance Operator\nProcess 1 with 2", gp = gpar(fontsize = 14)),
-                                     visualize_matrix_heatmap(extract_block_structure_ij(step_8[[7]], m_est, 1, 2), 'Estimate'), 
-                                     layout_matrix = arr_mat_8)      
+    
+    g_list <- result_80s_prep(step_8, m, m_est, i = 1, j = 2)
+    grob_caption <- "8. Conditional\nCovariance Operator\nProcess 1 with 2"
+    graphs[['g_81']] <- result_arr_mat(g_list, grob_caption, arr_mat_8)
+    
   }
   
   # visualize again for process 3 with 6 - they should not look correlated  
   if('82' %in% graph_ids){
-    graphs[['g_82']] <- grid.arrange(visualize_matrix_heatmap(extract_block_structure_ij(step_8[[1]], m,     3, 6), 'Ground Truth'), 
-                                     visualize_matrix_heatmap(extract_block_structure_ij(step_8[[2]], m_est, 3, 6), 'Coarse Ground Truth'), 
-                                     visualize_matrix_heatmap(extract_block_structure_ij(step_8[[3]], m,     3, 6), 'Truth Theory'),
-                                     visualize_matrix_heatmap(extract_block_structure_ij(step_8[[4]], m_est, 3, 6), 'Coarse Truth Theory'),
-                                     visualize_matrix_heatmap(extract_block_structure_ij(step_8[[5]], m,     3, 6), 'Truth X'), 
-                                     visualize_matrix_heatmap(extract_block_structure_ij(step_8[[6]], m_est, 3, 6), 'Coarse Truth X'), 
-                                     textGrob("8. Conditional\nCovariance Operator\nProcess 3 with 6", gp = gpar(fontsize = 14)),
-                                     visualize_matrix_heatmap(extract_block_structure_ij(step_8[[7]], m_est, 3, 6), 'Estimate'), 
-                                     layout_matrix = arr_mat_8)      
+    
+    g_list <- result_80s_prep(step_8, m, m_est, i = 3, j = 6)
+    grob_caption <- "8. Conditional\nCovariance Operator\nProcess 3 with 6"
+    graphs[['g_82']] <- result_arr_mat(g_list, grob_caption, arr_mat_8)    
   }
   
 
- 
-  
   # est vs truth vs ground truth
   if('83' %in% graph_ids){
     graphs[['g_83']] <- grid.arrange(visualize_pm_block_matrix_heatmap(step_8[[1]], 'Ground Truth'), 
@@ -870,25 +853,29 @@ visualize_truths_from_est <- function(step_list, graph_ids, time_grid_est, time_
 
   
 
-  if('91' %in% graph_ids){ graphs[['g_91']] <- result_91(step_9, m, m_est, arr_mat_10) }
+  if('91' %in% graph_ids){
+    i <- 1
+    j <- 2
+    g_list <- result_90s_prep_ij(step_9, m, m_est, i, j)
+    caption <- "9. Conditional\nCorrelation Operator\nProcess 1 with 2"
+    graphs[['g_91']] <- result_arr_mat(g_list, caption, arr_mat_10)    
+  }
 
   if('92' %in% graph_ids){
-    graphs[['g_92']] <- grid.arrange(visualize_matrix_heatmap(extract_block_structure_ij(step_9[[1]], m,     3, 6), 'Ground Truth', zmid = 0),
-                                     visualize_matrix_heatmap(extract_block_structure_ij(step_9[[2]], m_est, 3, 6), 'Coarse Ground Truth', zmid = 0),
-                                     visualize_matrix_heatmap(extract_block_structure_ij(step_9[[3]], m,     3, 6), 'Truth Theory', zmid = 0),
-                                     visualize_matrix_heatmap(extract_block_structure_ij(step_9[[4]], m_est, 3, 6), 'Coarse Truth Theory', zmid = 0),
-                                     visualize_matrix_heatmap(extract_block_structure_ij(step_9[[5]], m,     3, 6), 'Truth X', zmid = 0),
-                                     visualize_matrix_heatmap(extract_block_structure_ij(step_9[[6]], m_est, 3, 6), 'Coarse Truth X', zmid = 0),
-                                     textGrob("9. Conditional\nCorrelation Operator\nProcess 3 with 6", gp = gpar(fontsize = 14)),  
-                                     visualize_matrix_heatmap(extract_block_structure_ij(step_9[[7]], m_est, 3, 6), 'Estimate', zmid = 0),
-                                     layout_matrix = arr_mat_8)     
+    i <- 3
+    j <- 5
+    g_list <- result_90s_prep_ij(step_9, m, m_est, i, j)
+    caption <- "9. Conditional\nCorrelation Operator\nProcess 3 with 6"
+    graphs[['g_92']] <- result_arr_mat(g_list, caption, arr_mat_10)
   }
   
   if('93' %in% graph_ids){
-    graphs[['g_93']] <- grid.arrange(visualize_pm_block_matrix_heatmap(step_9[[1]], 'Ground Truth'), 
-                                     visualize_pm_block_matrix_heatmap(step_9[[3]], 'Truth Theory'), 
-                                     visualize_pm_block_matrix_heatmap(step_9[[7]], 'Estimate'),
-                                     nrow = 1)      
+
+    g_list <- result_90s_prep_pm(step_9, m, m_est)
+    grob_caption <- "9. Conditional\nCorrelation Operator\nAll Processes"
+    g_list <- g_list[c(1,3,7)]
+    graphs[['g_93']] <- result_arr_mat(g_list, grob_caption, arr_mat_4)  
+    
   }
   
   
@@ -896,103 +883,66 @@ visualize_truths_from_est <- function(step_list, graph_ids, time_grid_est, time_
   # all 5 + ground truth
   
   if('94' %in% graph_ids){
-    graphs[['g_94']] <- grid.arrange(visualize_pm_block_matrix_heatmap(step_9[[1]], 'Ground Truth'), 
-                                     visualize_pm_block_matrix_heatmap(step_9[[2]], 'Coarse Ground Truth'), 
-                                     visualize_pm_block_matrix_heatmap(step_9[[3]], 'Truth Theory'), 
-                                     visualize_pm_block_matrix_heatmap(step_9[[4]], 'Coarse Truth Theory'), 
-                                     visualize_pm_block_matrix_heatmap(step_9[[5]], 'Truth X'), 
-                                     visualize_pm_block_matrix_heatmap(step_9[[6]], 'Coarse Truth X'), 
-                                     textGrob("9. Conditional\nCorrelation Operator\nAll Processes", gp = gpar(fontsize = 14)),
-                                     visualize_pm_block_matrix_heatmap(step_9[[7]], 'Estimate'),
-                                     layout_matrix = arr_mat_8)      
+    
+    g_list <- result_90s_prep_pm(step_9, m, m_est)
+    grob_caption <- "9. Conditional\nCorrelation Operator\nAll Processes"
+    graphs[['g_94']] <- result_arr_mat(g_list, grob_caption, arr_mat_8)     
+    
   }
 
   
   # sanity check - hilbert schmidt norms of the C_Cond
   if('95' %in% graph_ids){
     
-    C_HS_ground_truth_full          <- hilbert_schmidt_norm_pm(step_9[[1]], p, m) 
-    C_HS_coarse_ground_truth_full   <- hilbert_schmidt_norm_pm(step_9[[2]], p, m_est)
-    C_HS_truth_full                 <- hilbert_schmidt_norm_pm(step_9[[3]], p, m)
-    C_HS_coarse_truth_full          <- hilbert_schmidt_norm_pm(step_9[[4]], p, m_est)
-    C_HS_X_truth_full               <- hilbert_schmidt_norm_pm(step_9[[5]], p, m)
-    C_HS_X_coarse_truth_full        <- hilbert_schmidt_norm_pm(step_9[[6]], p, m_est)
-    C_HS_est                        <- hilbert_schmidt_norm_pm(step_9[[7]], p, m_est)
-    
-    diag(C_HS_ground_truth_full) <- 0
-    diag(C_HS_coarse_ground_truth_full) <- 0
-    diag(C_HS_truth_full) <- 0
-    diag(C_HS_coarse_truth_full) <- 0
-    diag(C_HS_X_truth_full) <- 0
-    diag(C_HS_X_coarse_truth_full) <- 0
-    diag(C_HS_est) <- 0
-    
-    graphs[['g_95']] <- grid.arrange(visualize_matrix_heatmap(C_HS_ground_truth_full,        'Ground Truth', zmid = 0),
-                                     visualize_matrix_heatmap(C_HS_coarse_ground_truth_full, 'Coarse Ground Truth', zmid = 0),
-                                     visualize_matrix_heatmap(C_HS_truth_full,               'Truth Theory', zmid = 0),
-                                     visualize_matrix_heatmap(C_HS_coarse_truth_full,        'Coarse Truth Theory', zmid = 0),
-                                     visualize_matrix_heatmap(C_HS_X_truth_full,             'Truth X', zmid = 0),
-                                     visualize_matrix_heatmap(C_HS_X_coarse_truth_full,      'Coarse Truth X', zmid = 0),
-                                     textGrob("9. Conditional\nCorrelation Operator\nHS Norm", gp = gpar(fontsize = 14)),
-                                     visualize_matrix_heatmap(C_HS_est,                      'Estimate', zmid = 0),
-                                     layout_matrix = arr_mat_8)     
+    g_list <- result_95_prep(step_9, m, m_est, p)
+    grob_caption <- "9. Conditional\nCorrelation Operator\nHS Norm"
+    graphs[['g_95']] <- result_arr_mat(g_list, grob_caption, arr_mat_8)    
+
   }
  
   
   if('101' %in% graph_ids){
-    #   - P_cond_ground_truth_full          (pm x pm matrix)
-    #   - P_cond_coarse_ground_truth_full   (pm_est x pm_est matrix)
-    #   - P_cond_truth_full                 (pm x pm matrix)
-    #   - P_cond_coarse_truth_full          (pm_est x pm_est matrix)
-    #   - P_cond_X_truth_full               (pm x pm matrix)
-    #   - P_cond_X_coarse_truth_full        (pm_est x pm_est matrix)
-    #   - P_cond_est_full                   (pm_est x pm_est matrix)    
-    graphs[['g_101']] <- grid.arrange(visualize_pm_block_matrix_heatmap(extract_block_structure_ij(step_10[[1]], m,     1, 2), 'Truth Ground'),
-                                      visualize_pm_block_matrix_heatmap(extract_block_structure_ij(step_10[[2]], m_est, 1, 2), 'Coarse Truth Ground'),
-                                      visualize_pm_block_matrix_heatmap(extract_block_structure_ij(step_10[[3]], m,     1, 2), 'Truth Theory'),
-                                      visualize_pm_block_matrix_heatmap(extract_block_structure_ij(step_10[[4]], m_est, 1, 2), 'Coarse Truth Theory'),
-                                      visualize_pm_block_matrix_heatmap(extract_block_structure_ij(step_10[[5]], m,     1, 2), 'Truth X'),
-                                      visualize_pm_block_matrix_heatmap(extract_block_structure_ij(step_10[[6]], m_est, 1, 2), 'Coarse Truth X'),
-                                      textGrob("10. Conditional\nPrecision Operator\n Process 1 and 2", gp = gpar(fontsize = 14)),
-                                      visualize_pm_block_matrix_heatmap(extract_block_structure_ij(step_10[[7]], m_est, 1, 2), 'Estimate'),
-                                      layout_matrix = arr_mat_8)      
+    
+    i <- 1
+    j <- 2
+    g_list <- result_100s_prep_ij(step_10, m, m_est, i, j)
+    caption <- "10. Conditional\nPrecision Operator\n Process 1 and 2"
+    graphs[['g_101']] <- result_arr_mat(g_list, caption, arr_mat_8)       
+    
   }
 
+  # P_Xi_Xj for processes 3 and 5
+  
   if('102' %in% graph_ids){
-    graphs[['g_102']] <- grid.arrange(visualize_pm_block_matrix_heatmap(extract_block_structure_ij(step_10[[1]], m,     3, 6), 'Truth Ground'),
-                                      visualize_pm_block_matrix_heatmap(extract_block_structure_ij(step_10[[2]], m_est, 3, 6), 'Coarse Truth Ground'),
-                                      visualize_pm_block_matrix_heatmap(extract_block_structure_ij(step_10[[3]], m,     3, 6), 'Truth Theory'),
-                                      visualize_pm_block_matrix_heatmap(extract_block_structure_ij(step_10[[4]], m_est, 3, 6), 'Coarse Truth Theory'),
-                                      visualize_pm_block_matrix_heatmap(extract_block_structure_ij(step_10[[5]], m,     3, 6), 'Truth X'),
-                                      visualize_pm_block_matrix_heatmap(extract_block_structure_ij(step_10[[6]], m_est, 3, 6), 'Coarse Truth X'),
-                                      textGrob("10. Conditional\nPrecision Operator\n Process 3 and 6", gp = gpar(fontsize = 14)),
-                                      visualize_pm_block_matrix_heatmap(extract_block_structure_ij(step_10[[7]], m_est, 3, 6), 'Estimate'),
-                                      layout_matrix = arr_mat_8)      
+    i <- 3
+    j <- 5
+    g_list <- result_100s_prep_ij(step_10, m, m_est, i, j)
+    caption <- "10. Conditional\nPrecision Operator\n Process 3 and 5"
+    graphs[['g_102']] <- result_arr_mat(g_list, caption, arr_mat_8)       
   }
   
 
   # 10.2) visualize the entire pm x pm block
   
   if('103' %in% graph_ids){
-    graphs[['g_103']] <- grid.arrange(visualize_pm_block_matrix_heatmap(step_10[[1]], 'Ground Truth'), 
-                                      visualize_pm_block_matrix_heatmap(step_10[[3]], 'Truth Theory'), 
-                                      visualize_pm_block_matrix_heatmap(step_10[[7]], 'Estimate'),
-                                      nrow = 1)      
+    
+    g_list <- result_100s_prep_pm(step_10, m, m_est)
+    grob_caption <- "10. Conditional\nPrecision Operator\nAll Processes"
+    g_list <- g_list[c(1,3,7)]
+    graphs[['g_103']] <- result_arr_mat(g_list, grob_caption, arr_mat_4)      
+    
   }
       
   
   
   # all 5 + ground truth
   if('104' %in% graph_ids){
-    graphs[['g_104']] <- grid.arrange(visualize_pm_block_matrix_heatmap(step_10[[1]], 'Ground Truth'), 
-                                      visualize_pm_block_matrix_heatmap(step_10[[2]], 'Coarse Ground Truth'), 
-                                      visualize_pm_block_matrix_heatmap(step_10[[3]], 'Truth Theory'), 
-                                      visualize_pm_block_matrix_heatmap(step_10[[4]], 'Coarse Truth Theory'), 
-                                      visualize_pm_block_matrix_heatmap(step_10[[5]], 'Truth X'), 
-                                      visualize_pm_block_matrix_heatmap(step_10[[6]], 'Coarse Truth X'), 
-                                      textGrob("10. Conditional\nPrecision Operator\n All Processes", gp = gpar(fontsize = 14)),
-                                      visualize_pm_block_matrix_heatmap(step_10[[7]], 'Estimate'),
-                                      layout_matrix = arr_mat_8)     
+    
+    
+    g_list <- result_100s_prep_pm(step_10, m, m_est)
+    grob_caption <- "10. Conditional\nPrecision Operator\n All Processes"
+    graphs[['g_104']] <- result_arr_mat(g_list, grob_caption, arr_mat_8)
+    
   }
  
 
@@ -1020,87 +970,35 @@ visualize_truths_from_est <- function(step_list, graph_ids, time_grid_est, time_
   #                        layout_matrix = arr_mat_8)      
   
   
+  
+  
   # visualize HS norms with w_mat ground truth
   
   if('112' %in% graph_ids){
-    #   - w_mat_ground_truth        (p x p)   matrix of HS norms of the pm x pm ground truth
-    #   - w_mat_coarse_ground_truth (p x p)   matrix of HS norms of the pm_est x pm_est ground truth 
-    #   - w_mat_X_coarse_truth      (p x p)   matrix of HS norms of ...
-    #   - w_mat_X_truth             (p x p)   matrix of HS norms of ...
-    #   - w_mat_coarse_truth        (p x p)   matrix of HS norms of ...
-    #   - w_mat_truth               (p x p)   matrix of HS norms of ...
-    #   - w_mat_est                 (p x p)   matrix of HS norms of ...    
-    graphs[['g_112']] <- grid.arrange(visualize_pm_block_matrix_heatmap(step_11[[1]], 'Ground Truth'), 
-                                      visualize_pm_block_matrix_heatmap(step_11[[2]], 'Coarse Ground Truth'), 
-                                      visualize_pm_block_matrix_heatmap(step_11[[3]], 'Truth Theory'),   
-                                      visualize_pm_block_matrix_heatmap(step_11[[4]], 'Coarse Truth Theory'), 
-                                      visualize_pm_block_matrix_heatmap(step_11[[5]], 'Truth X'), 
-                                      visualize_pm_block_matrix_heatmap(step_11[[6]], 'Coarse Truth X'),
-                                      textGrob("11. Hilbert Schmidt\n Norm", gp = gpar(fontsize = 14)),   
-                                      visualize_pm_block_matrix_heatmap(step_11[[7]], 'Estimate'),
-                                      layout_matrix = arr_mat_8)     
+
+    g_list <- result_112_prep(step_11, remove_diag = F)
+    grob_caption <- "11. Hilbert Schmidt\n Norm"
+    graphs[['g_112']] <- result_arr_mat(g_list, grob_caption, arr_mat_8)
+    
   }
   
-  # g_112b <- grid.arrange(visualize_pm_block_matrix_heatmap(w_mat_normalized_coarse_ground_truth, 'Coarse Ground Truth'), 
-  #                        visualize_pm_block_matrix_heatmap(w_mat_normalized_ground_truth, 'Ground Truth'), 
-  #                        visualize_pm_block_matrix_heatmap(w_mat_normalized_coarse_truth, 'Coarse Truth Theory'), 
-  #                        visualize_pm_block_matrix_heatmap(w_mat_normalized_truth, 'Truth Theory'),   
-  #                        visualize_pm_block_matrix_heatmap(w_mat_normalized_X_coarse_truth, 'Coarse Truth X'), 
-  #                        visualize_pm_block_matrix_heatmap(w_mat_normalized_X_truth, 'Truth X'), 
-  #                        visualize_pm_block_matrix_heatmap(w_mat_normalized_est, 'Estimate'),
-  #                        textGrob("11b. Normalized\nHilbert Schmidt\n Norm", gp = gpar(fontsize = 14)),                              
-  #                        layout_matrix = arr_mat_8)  
+  # remove the diagonals
+  if('112b' %in% graph_ids){
+    
+    g_list <- result_112_prep(step_11, remove_diag = T)
+    grob_caption <- "11. Hilbert Schmidt\n Norm"
+    graphs[['g_112']] <- result_arr_mat(g_list, grob_caption, arr_mat_8)
+    
+  }
   
   if('113' %in% graph_ids){
     
-    #   - roc_ground_truth           (list of roc outputs)
-    #   - roc_coarse_ground_truth
-    #   - roc_truth
-    #   - roc_coarse_truth
-    #   - roc_X_truth
-    #   - roc_X_coarse_truth
-    #   - roc_est
-    
-    # ROC plot - done on qrsh 
-    roc_graphs <- list()
-    
-    for(i in 1:7){
-      
-      roc_df          <- step_12[[i]]$roc_df
-      ideal_spec      <- step_12[[i]]$specificity
-      ideal_sens      <- step_12[[i]]$sensitivity
-      ideal_threshold <- step_12[[i]]$threshold
-      auc_value       <- step_12[[i]]$auc
-      
-      roc_graphs[[i]] <- ggplot(roc_df, aes(x = FPR, y = TPR)) +
-        geom_step(direction = "vh", color = "blue", size = 1) +
-        geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "grey") +
-        labs(title = "ROC Curve", x = "False Positive Rate", y = "True Positive Rate") +
-        annotate("point", x = 1 - ideal_spec, y = ideal_sens, color = "red", size = 3) +
-        annotate("text", x = 1 - ideal_spec, y = ideal_sens, 
-                 label = paste0("Threshold=", round(ideal_threshold, 3)),
-                 hjust = -0.1, vjust = -0.5, color = "red") +
-        
-        annotate("text", x = 0.6, y = 0.2,            # position for AUC label
-                 label = paste0("AUC = ", round(auc_value, 3)),
-                 color = "darkgreen", size = 5) +    
-        theme_minimal()         
-    }
+    g_list <- result_113_prep(step_12)
+    grob_caption <- "12. ROC Curve"
+    graphs[['g_113']] <- result_arr_mat(g_list, grob_caption, arr_mat_8)
     
     
-    
-    graphs[['g_113']] <- grid.arrange(roc_graphs[[1]],
-                                      roc_graphs[[2]],
-                                      roc_graphs[[3]],
-                                      roc_graphs[[4]],
-                                      roc_graphs[[5]],
-                                      roc_graphs[[6]],
-                                      textGrob("12. ROC Curve", gp = gpar(fontsize = 14)),
-                                      roc_graphs[[7]],
-                                      layout_matrix = arr_mat_8)     
   }
-  
-
   
   return(graphs)
  
