@@ -61,7 +61,7 @@ assemble_block_matrix_v2 <- function(operator_list, p, block_size) {
 
 extract_block_structure_v2 <- function(block_matrix, p, block_size) {
   
-  # ------------------------------------------------------------------------
+  # ----------------------------------------------------------------------------
   #
   # GOAL: extract block sub-matrices from a block matrix
   #
@@ -80,7 +80,7 @@ extract_block_structure_v2 <- function(block_matrix, p, block_size) {
   #
   # - operator_list (list of length p + pC2, each element block_size x block_size)
   #
-  # ------------------------------------------------------------------------
+  # ----------------------------------------------------------------------------
   
   operator_list <- list()
   
