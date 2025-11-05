@@ -1,10 +1,13 @@
 
 library(reshape2)
 library(ggplot2)
+library(parallel)
+library(dplyr)
 #library(gganimate)
 #library(magick)
 
-
+source('functions/00a_matrix_massaging.R')
+source('functions/24_log_intensity_generation.R')
 
 visualize_matrix_heatmap <- function(mat, g_title = NULL, zmin = NULL, zmid = NULL, zmax = NULL) {
   
@@ -174,7 +177,7 @@ visualize_error_histogram <- function(mat_est, mat_reconstruct, g_title, bin_cou
   return(g)
 }
 
-visualize_log_intensity <- function(X_k, time_grid, g_title, mu_t = NULL, legend_title = 'Process'){
+visualize_log_intensity <- function(X_k, time_grid, g_title = 'Title', mu_t = NULL, legend_title = 'Process'){
   
   # ----------------------------------------------------------------------------
   #
@@ -316,80 +319,101 @@ block_matrix_HS <- function(pm_mat, p){
 # visualize how a precision matrix changes over time using a gif
 # such as for banded_trig
 
-visualize_precision_yc <- function(query_y_cs, p, adj_type, adj_params, ncores){
+visualize_precision_gif <- function(p, adj_type, adj_params, ncores){
   
+  # ----------------------------------------------------------------------------
   #
   # GOAL: visualize how the partial correlation matrix changes over time with a gif
   #
+  # - note that adj_params[1:2] denote the min and max y_c value
+  # 
+  #
   # input:
   #
-  # - query_y_cs (n_query x q_c dim matrix)
-  # - p 
-  # - adj_type
-  # - adj_params
+  # - p             (integer)
+  # - adj_type      (string)
+  # - adj_params    (vector)
   #
   #
   # output:
   #
-  # - animated 
+  # - animated gif
   #
-  # 
+  # ----------------------------------------------------------------------------
   
-  if(adj_type == 'banded_trig'){
-    
-    #
-    # adj_params = [y_min, y_max, rho_max]
-    #
-    
-    graphs <- pbmclapply(1:nrow(query_y_cs), function(k){
-      
-      y_c_k <- query_y_cs[k,]
-      generate_sparse_precision_matrix(y_c_k, p, adj_type, adj_params)
-    
-    }, mc.cores = ncores)
+  
+  # 1) generate precision and correlation (pxp) matrices
+  
+  y_min <- adj_params[1]
+  y_max <- adj_params[2]
+  n_times <- 100
+  query_y_cs <- matrix(seq(y_min, y_max, length.out = n_times))
+  
 
     
+  graphs <- lapply(1:nrow(query_y_cs), function(k){
     
-  }
+    y_c_k <- query_y_cs[k,]
+    prec_mats <- generate_sparse_precision_matrix(y_c_k, p, adj_type, adj_params)
+    
+    list(adj_mat = prec_mats$adj_mat,
+         prec_mat = prec_mats$prec_mat,
+         cor_mat = prec_mats$cor_mat)
   
-  # animate
+  })
+
+
+  # 2) animate
   
   imgs <- list()
   
   for (i in seq_along(graphs)) {
-    m <- graphs[[i]]$partial_cor_mat
+    
+    m1 <- graphs[[i]]$adj_mat
+    m2 <- graphs[[i]]$prec_mat
+    m3 <- graphs[[i]]$cor_mat
+    
+    y_c_print <- format(round(query_y_cs[i,], 2), nsmall = 2)
     
     # Create a temporary image for each matrix heatmap
-    tmpfile <- tempfile(fileext = ".png")
-    png(tmpfile, width = 600, height = 600)
-    
-    visualize_matrix_heatmap(m, g_title = paste("Frame", i), -1, 1) %>% print()
-    
+    tmp1 <- tempfile(fileext = ".png")
+    png(tmp1, width = 400, height = 400)
+    gif_title1 <- paste0("Adj Matrix: y_c = ", y_c_print) 
+    visualize_matrix_heatmap(m1, g_title = gif_title1, zmin = -1, zmid = 0, zmax = 1) %>% print()
     dev.off()
     
-    imgs[[i]] <- image_read(tmpfile)
+    # Middle plot
+    
+    tmp2 <- tempfile(fileext = ".png")
+    png(tmp2, width = 400, height = 400)
+    gif_title2 <- paste0("Prec Matrix: y_c = ", y_c_print) 
+    prec_max <- max(sapply(graphs, function(x){max(as.numeric(x$prec_mat))}))
+    prec_min <- min(sapply(graphs, function(x){min(as.numeric(x$prec_mat))}))
+    visualize_matrix_heatmap(m2, g_title = gif_title2, zmin = prec_min, zmid = 0, zmax = prec_max) %>% print()
+    dev.off()
+    
+    # Last plot
+    
+    tmp3 <- tempfile(fileext = ".png")
+    png(tmp3, width = 400, height = 400)
+    gif_title3 <- paste0("Cor Matrix: y_c = ", y_c_print) 
+    visualize_matrix_heatmap(m3, g_title = gif_title3, zmin = -1, zmid = 0, zmax = 1) %>% print()
+    dev.off()    
+    
+    # ---- read images and combine side by side ----
+    img1 <- image_read(tmp1)
+    img2 <- image_read(tmp2)
+    img3 <- image_read(tmp3)
+    
+    combined <- image_append(c(img1, img2, img3))  # horizontal side-by-side
+    imgs[[i]] <- combined
   }
   
-  # parallel version - doesn't work
-  #
-  # imgs <- pbmclapply(1:nrow(query_y_cs), function(i){
-  #   
-  #   m <- graphs[[i]]$partial_cor_mat
-  #   
-  #   # Create a temporary image for each matrix heatmap
-  #   tmpfile <- tempfile(fileext = ".png")
-  #   png(tmpfile, width = 600, height = 600)
-  #   
-  #   visualize_matrix_heatmap(m, g_title = paste("Frame", i), -1, 1) %>% print()
-  #   
-  #   dev.off()
-  #   
-  #   image_read(tmpfile)    
-  #   
-  # }, mc.cores = ncores)   
+
   
   # Combine into an animated gif
   animation <- image_animate(image_join(imgs), fps = 100)
-  image_write(animation, "heatmap_animation.gif")  
+  image_write(animation, "heatmap_animation_3side_single_v2.gif")  
   
 }
+
