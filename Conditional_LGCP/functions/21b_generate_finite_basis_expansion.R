@@ -80,7 +80,7 @@ trig_basis_cov_mat <- function(d, p, y_c_k, adj_type, adj_params){
   # - d                 (integer)
   # - p                 (integer)
   # - y_c_k             (q_c-dim vector)
-  # - adj_type     (string)
+  # - adj_type          (string)
   #
   #
   # outputs:
@@ -137,7 +137,7 @@ trig_basis_cov_mat <- function(d, p, y_c_k, adj_type, adj_params){
   }
 }
 
-trig_basis_log_intensity <- function(cov_mat_list, basis_list, beta_0, betas, time_grid){
+trig_basis_log_intensity <- function(cov_mat_list, basis_list, mu_t, time_grid){
   
   
   # ----------------------------------------------------------------------------
@@ -149,15 +149,15 @@ trig_basis_log_intensity <- function(cov_mat_list, basis_list, beta_0, betas, ti
   #
   # - cov_mat_list  (n-dim list of pd x pd matrix)  covariance matrix for each subject
   # - basis_list    (list of d eigenfunctions)   
-  # - beta_0        (number)                     constant added to the random function
-  # - betas         (d-dim vector)               variance factor for each eigenfunction
-  # - time_grid     (m-dim vector)               time discretization
+  # - mu_t          (m-dim vector)                baseline mean mu(t)
+  # - time_grid     (m-dim vector)                time discretization
   #
   #
   # output:
   # 
-  # - log_intensities  (n-dim list)  each item is a (p x m) matrix of log-intensities for all p processes
-  #
+  # - list of the following:
+  #   - log_intensities      (n-dim list of p x m_both matrices) each item is for the k-th subject across all p processes
+  #   - beta_coefficients    (n-dim list of p x d matrices)      each item is for the k-th subject across all p processes, realizations of beta
   # 
   # ----------------------------------------------------------------------------
   
@@ -173,6 +173,7 @@ trig_basis_log_intensity <- function(cov_mat_list, basis_list, beta_0, betas, ti
   
   # output container
   log_intensities <- vector("list", n)
+  beta_coefficients <- vector("list", n)   # realizations of beta ~ N(0, cov_mat)
   
   for (s in 1:n) {
     
@@ -196,18 +197,127 @@ trig_basis_log_intensity <- function(cov_mat_list, basis_list, beta_0, betas, ti
     # compute log-intensity for each process i
     log_int_mat <- matrix(0, nrow = p, ncol = m)
     for (i in 1:p) {
-      # linear combination: 1 + sum_k beta_k * b_ik * phi_k(t)
-      log_int_mat[i, ] <- beta_0 + colSums(matrix(betas * B_mat[i, ], nrow = d, ncol = m, byrow = FALSE) * t(Phi))
+      # linear combination: mu(t) + sum_k beta_k * b_ik * phi_k(t)
+      #log_int_mat[i, ] <- mu_t + colSums(matrix(betas * B_mat[i, ], nrow = d, ncol = m, byrow = FALSE) * t(Phi))
+      log_int_mat[i, ] <- mu_t + colSums(matrix(B_mat[i, ], nrow = d, ncol = m, byrow = FALSE) * t(Phi))
+      
     }
     
     log_intensities[[s]] <- log_int_mat
+    beta_coefficients[[s]] <- B_mat
   }
   
-  return(log_intensities)
+  return(list(log_intensities = log_intensities,
+              beta_coefficients = beta_coefficients))
   
 }
 
+
+
 # truths
+
+
+
+trig_basis_rho_truth <- function(basis_list, mean_vec, time_grid, mu_t, y_c_query, adj_type, adj_params){
+  
+  # ----------------------------------------------------------------------------
+  # 
+  # GOAL: calculate the ground truth rho_i(t), rho_ij(s,t), and G_{ij}(s,t)
+  #
+  # - recall that X_i(t) = mu(t) + sum_{k=1}^d beta_{ik} * phi^k(t)
+  # - recall that beta_i ~ N(m_i, [cov]_{ii})
+  # - where phi^k(t) are the k orthonormal basis functions
+  # - and beta_{ik} are normally distributed with a pd x pd matrix
+  #
+  # - E[exp(X_i(t))] = exp(mu(t) + \sum_{k=1}^d m_{ik} phi^k(t) +  0.5 \sum_{k=1}^d lambda_k [phi^k(t)]^2 )
+  # 
+  # input:
+  # 
+  # - basis_list       (d-dim list)                           output from trig_basis
+  # - mean_vec         (pd-dim vector)                        mean vector for beta: beta ~ N(mean_vec, cov_mat)
+  # - time_grid        (m-dim vector)                         time discretization
+  # - mu_t             (m-dim vector)                         mu(t) when defining X_i(t)
+  #
+  #
+  # output:
+  #
+  # - rho_i_truth       (p x m matrix)   marginal intensity for all p processes 
+  # - rho_ij_Truth      (list of i_j entries)  each is mxm matrix
+  # - g_ij_truth        (list of i_j entries)  each is mxm matrix
+  #
+  # ----------------------------------------------------------------------------
+  
+  # 1) generate the cov_mat (pd x pd matrix) for the following y_c_query
+  
+
+  d <- length(basis_list)
+  p <- length(mean_vec) / d
+  
+  cov_mat <- trig_basis_cov_mat(d, p, y_c_query, adj_type, adj_params)  # (pd x pd)
+  lambda_vec <- diag(cov_mat)
+
+  # 2) get phi(t) and phi^2(t) ready
+  
+  phi <- trig_basis_realization(basis_list, time_grid)  # (m x d matrix) 
+  phi_squared <- phi * phi # (m x d)
+  phi_outer <- lapply(1:d, function(i) outer(phi[ ,i], phi[, i]))  # (d-dim list of mxm matrices)
+  
+  # 3) split mean_vec and lambda_vec into a list of p d-dim vectors
+  #    lambda_vec = diag of Sigma
+  #    cov_ii_list = list of the dxd diagonal blocks
+  
+  mean_list <- split(mean_vec, rep(1:p, each = d))       # (p-dim list of d-dim vectors)
+  lambda_list <- split(lambda_vec, rep(1:p, each = d))
+  cov_ii_list <- lapply(1:p, function(i) extract_block_structure_ij(cov_mat, d, i, i))  # p-dim list of (d x d) matrices
+  
+  # 4) obtain values for rho_i_truth
+  
+  term_2 <-  lapply(mean_list, function(v) as.numeric(t(v) %*% t(phi)))              # M_i(t)  (1 x d) * (d x)
+  term_3b <- lapply(lambda_list, function(v) as.numeric(t(v) %*% t(phi_squared)))     # V_i(t)
+  term_3 <- lapply(1:p, function(i) rowSums((phi %*% cov_ii_list[[i]]) * phi))        # each phi(t) is d x 1, so we have (1 x d) * (d x d) * (d x 1) for a scalar at each timepoint
+  
+  rho_i_truth <- lapply(1:p, function(i){exp(mu_t + term_2[[i]] + 0.5 * term_3[[i]])})  
+  rho_i_truth_matrix <- do.call(rbind, rho_i_truth)
+  
+  # 5) obtain values for rho_ij_truth
+
+  rho_ij_truth <- list()
+  g_ij_truth   <- list()
+  for(i in 1:p){
+    for(j in i:p){
+      key <- paste0(i, '_', j)
+      
+      # need the covariance between beta_k of processes i and j
+      # this looks like taking the diagonal of the (i ,j)-th block
+      
+      # gamma_k_ij <- extract_block_structure_ij(cov_mat, d, i, j) %>% diag()
+      sigma_ij <- extract_block_structure_ij(cov_mat, d, i, j)
+      
+      #g_ij - linear combination of phi_outer with the gamma's
+      #g_ij_truth[[key]] <- Reduce("+", Map("*", gamma_k_ij, phi_outer))
+      g_ij_truth[[key]] <- phi %*% sigma_ij %*% t(phi)          # (m x d) * (d x d) * (d x m)
+      
+      # rho_ij can use g_ij and rho_i results
+      rho_ij_truth[[key]] <- tcrossprod(rho_i_truth[[i]], rho_i_truth[[j]]) * exp(g_ij_truth[[key]])
+
+    }
+  }
+  
+  
+
+  
+  return(list(rho_i_truth = rho_i_truth_matrix,
+              rho_ij_truth = rho_ij_truth,
+              g_ij_truth = g_ij_truth,
+              mu_t = mu_t,
+              term_2 = term_2,
+              term_3 = term_3,
+              term_3b = term_3b))
+  
+
+}
+
+
 
 trig_basis_cross_covariance_truth <- function(basis_list, cov_mat, time_grid){
   
@@ -216,6 +326,7 @@ trig_basis_cross_covariance_truth <- function(basis_list, cov_mat, time_grid){
   # 
   # GOAL: calculate the ground truth cross-covariance (pm x pm) for any time discretization setting
   #
+  # - Recall: Cov(X_i(s), X_j(t)) = \phi(s)^\top [Sigma]_{ij} \phi(t)
   # 
   # input:
   # 
@@ -226,7 +337,7 @@ trig_basis_cross_covariance_truth <- function(basis_list, cov_mat, time_grid){
   #
   # output:
   #
-  # - C_ij_st      (pm x pm matrix)            discretized cross covariance between processes i and j
+  # - G_ij_list      (list of mxm matrices) G_ij(s,t) for i_j where i <= j
   #
   #
   # ----------------------------------------------------------------------------
@@ -236,18 +347,17 @@ trig_basis_cross_covariance_truth <- function(basis_list, cov_mat, time_grid){
   d <- dim(phi)[2]
   p <- dim(cov_mat)[1] / d
   
-  blocks <- list()
+  G_ij_list <- list()
   
   for(i in 1:p){
     for(j in i:p){
       key <- paste0(i, '_', j)
-      blocks[[key]] <- phi %*% extract_block_structure_ij(cov_mat, d, i, j) %*% t(phi)
+      G_ij_list[[key]] <- phi %*% extract_block_structure_ij(cov_mat, d, i, j) %*% t(phi)
     }
   }
   
-  C_mat <- assemble_block_matrix_v2(blocks, p, m)
   
-  return(C_mat)
+  return(G_ij_list)
   
 }
 
@@ -312,9 +422,8 @@ trig_basis_eigendecomposition <- function(G, cov_mat, basis_list, time_grid, bet
   # - G             (d x d matrix)      Gram matrix
   # - cov_mat       (pd x pd matrix)    current covariance matrix for b_i's 
   # - basis_list
-  # - time_grid
-  # - betas         (d-dim vector)
-  #
+  # - time_grid     (m-dim vector)
+  # - betas         (p x d x n)        realization of beta ~ N(0, cov_mat) for all n subjects 
   #
   # outputs:
   #
@@ -336,7 +445,7 @@ trig_basis_eigendecomposition <- function(G, cov_mat, basis_list, time_grid, bet
     
     # 1) (dxd) eigendecomposition
 
-    sigma_ii <- extract_block_structure_ij(cov_mat, d, i, i)
+    sigma_ii <- extract_block_structure_ij(cov_mat, d, i, i)  # (d x d)
     
     
     
@@ -355,37 +464,51 @@ trig_basis_eigendecomposition <- function(G, cov_mat, basis_list, time_grid, bet
     
     # 3) KL coefficients - when basis functions are orthonormal, KL coeffs = betas
     
-    betas_mat <- matrix(betas, nrow = length(betas), ncol = 1)
-    KL_i <- eigen_result_i$vectors %*% betas
+
+    KL_i <- betas[i,,]  #(d x n)
     
-    # 4) Correlation between KL coefficients
+    # 4) storing
     
-    eigen_result_i$eigenfunction <- eigenfunction_i
+    eigen_result_i$eigenfunctions <- eigenfunction_i
     eigen_result_i$KL_coeffs <- KL_i
     
     eigen_result[[i]] <- eigen_result_i
     
   }
   
-  # correlation of KL coefficients (KL_cov_result)
+  # correlation of KL coefficients (KL_cor_result)
   
-  KL_cov_result <- list()
+  # - for eigencomponents m and n
+  # - for processes i and j
+  # - cor(beta_i^m, beta_j^n) = [\Sigma_{ij}]_{mn} / sqrt([\Sigma_{ii}]_{mm} [\Sigma_{jj}]_{nn})
+  
+  KL_cor_result <- list()
+  
   
   for(i in 1:p){
     for(j in i:p){
+      
       key <- paste0(i, '_', j)
-      evecs_i <- eigen_result[[i]]$vectors
-      evecs_j <- eigen_result[[j]]$vectors
-      cov_ij <- t(evecs_i) %*% extract_block_structure_ij(cov_mat, d, i, j) %*% evecs_j
       
-      denom <- outer(eigen_result[[i]]$values, eigen_result[[j]]$values)
+      # extract blocks
+      rows_i <- ((i-1)*d + 1):(i*d)
+      cols_j <- ((j-1)*d + 1):(j*d)
       
-      cor_ij <- cov_ij/denom
-      KL_cov_result[[key]] <- cor_ij
+      Sigma_ij <- cov_mat[rows_i, cols_j]       # d x d
+      Sigma_ii <- cov_mat[rows_i, rows_i]       # d x d
+      Sigma_jj <- cov_mat[cols_j, cols_j]       # d x d
+      
+      # elementwise correlation
+      R_ij <- Sigma_ij / sqrt(outer(diag(Sigma_ii), diag(Sigma_jj)))
+      
+      # store in list
+      KL_cor_result[[key]] <- R_ij
     }
   }
   
   # correlation operator (C_cond)
+  # - linear combination of KL covariances and tensor product of eigenfunctions
+  
   
   C_cond <- list()
   
@@ -393,7 +516,7 @@ trig_basis_eigendecomposition <- function(G, cov_mat, basis_list, time_grid, bet
     for(j in i:p){
       
       key <- paste0(i, '_', j)
-      coeffs <- KL_cov_result[[key]]
+      coeffs <- KL_cor_result[[key]]  #(d x d)
       eigenfunction_i <- eigen_result[[i]]$eigenfunction
       eigenfunction_j <- eigen_result[[j]]$eigenfunction  
       
@@ -412,13 +535,25 @@ trig_basis_eigendecomposition <- function(G, cov_mat, basis_list, time_grid, bet
     }
   }
   
+  C_cond_full <- assemble_block_matrix_v2(C_cond, p, m)
+  
+  
+  # reordering 
+  
+  # reorder for step_4
+  
+  eigen_result_v2 <- list(
+    eigenvalues   = lapply(eigen_result, `[[`, "values"),
+    eigenfunctions = lapply(eigen_result, `[[`, "eigenfunctions"),
+    n_dims        = lapply(eigen_result, function(x) dim(x$eigenfunction)[2])
+  )
   
   
 
   
-  return(list(eigen_decomp = eigen_result,
-              KL_cov = KL_cov_result,
-              corr_op = C_cond))
+  return(list(eigen_decomp = eigen_result_v2,
+              KL_cor = KL_cor_result,
+              corr_op = C_cond_full))
 }
 
 
