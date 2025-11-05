@@ -1,7 +1,7 @@
 # helper functions to work with the estimated dataset
 
 
-# helper function
+# helper function - return possible sample sizes from files
 
 get_ns <- function(folder_name){
   
@@ -37,7 +37,7 @@ get_ns <- function(folder_name){
   return(ns)
 }
 
-# helper function
+# helper function - load the file that ends with the number n
 get_file_name_and_load <- function(folder_name, n){
   
   # ----------------------------------------------------------------------------
@@ -150,5 +150,34 @@ load_all_results <- function(folder_name){
   names(results_list) <- ns    
   
   return(results_list)
+  
+}
+
+# helper function - load a single RData file 
+load_file <- function(file_name){
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: with the base folder as `Conditional_LGCP`, locate an RData file and load it
+  #
+  # inputs:
+  #
+  # - file_name     (string)    'simu_results/banded_trig2/OG/temp.RData'
+  # 
+  #
+  # outputs:
+  #
+  # - NULL, just loads that file
+  #
+  # ----------------------------------------------------------------------------
+  
+  # Create a new environment
+  env <- new.env()
+  
+  # Load the file into the environment
+  load(file_name, envir = env)
+  
+  # Return the first object in the environment as a list
+  as.list(env)[[1]]
   
 }
