@@ -1,10 +1,189 @@
 # truncated from "with truths" for mice data
+
+
+# DO NOT KEEP TRACK OF TRUTHS THROUGHOUT THE PROCESS
+
+full_conditional_estimation_with_no_truth <- function(dataset, method, ncores, dir){
+  
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: regular estimation without keeping track of truths
+  #
+  # 
+  #
+  #
+  # Supports:
+  #   - "OG", "JASA"  → covariate loop after step_5 (v2-style)
+  #   - "CPGM"        → covariate loop after step_1 (v3-style)
+  #
+  # Input:
+  #
+  # - dataset  (list of the following features)
+  #
+  #   - event_times         (n*p-dim list)      each item is a vector of timestamps for process i in subject k
+  #   - X_k_truth           (p x m x n matrix)
+  #   - X_k_coarse_truth    (p x m_est x n matrix)
+  #   - X_k_both_truth      (p x m_both x n matrix)
+  #   - Y_continuous        (n x q_c matrix)
+  #   - simulation_params   (list of params such as n, p, query_y_cs, adj_type, adj_params, time_grids, seed)
+  #   - true_graphs         (list of true settings for each query_y_cs)
+  #   - summary_stats       (list of summary stats)
+  #
+  # 
+  # - method   ('CPGM')  
+  # - ncores   (integer)
+  # - dir      (string)     folder name, such as "simu_results/block_banded_v2"
+  # 
+  #
+  # ----------------------------------------------------------------------------
+  
+  if (!(method %in% c("CPGM"))) {
+    stop("Error 12b: estimation method must be 'CPGM'")
+  }
+  
+  # load  
+  
+  time_grid_est <- dataset$simulation_params$time_grid_est
+  time_grid <- dataset$simulation_params$time_grid
+  time_grid_both <- dataset$simulation_params$time_grid_both
+  n <- dim(dataset$Y_continuous)[1]
+  m_est <- length(time_grid_est)
+  
+
+
+  # ----------------------------------------------------------------------------
+  # Step 0 - Check and preprocess data
+  # ----------------------------------------------------------------------------
+  
+  step_0_events <- step_0_keep_events(dataset, k = 1, i_vec = 1:5)
+
+  processed_data <- step_0_preprocess(dataset)
+  data_df4     <- processed_data[[1]]
+  y_c_strata   <- processed_data[[2]]
+  query_y_cs   <- processed_data[[3]]
+  patient_sel  <- processed_data[[4]]
+  feature_sel  <- processed_data[[5]]
+  rm(processed_data)
+  
+  p <- length(feature_sel)
+  full <- F
+  
+  # ----------------------------------------------------------------------------
+  # Step 1 - Log intensities
+  # ----------------------------------------------------------------------------
+  
+  step_1 <- step_1_log_intensities(dataset, data_df4, time_grid_est, NA, NA, full)
+  
+  # start covariate loop 
+  # ----------------------------------------------------------------------------
+  
+  print('at covariate loop')
+  cont_inds <- 1:nrow(query_y_cs)
+  estimated_graphs <- lapply(cont_inds, function(cont_ind) {
+    
+    query_y_c <- query_y_cs[cont_ind, ] %>% as.numeric()
+    
+    if(method %in% c('OG', 'JASA')){
+      rho_kernel <- F
+      i_neq_j <- F
+      query_y_c_step_2 <- 'hold'
+      y_c_strata_step_2 <- 'hold'
+    } else{
+      rho_kernel <- T
+      i_neq_j <- T
+      query_y_c_step_2 <- query_y_c
+      y_c_strata_step_2 <- y_c_strata     
+    }
+    
+    # Step 2: rho_i estimation (per subject)
+    
+    
+    step_2 <- step_2_rho_i(dataset, data_df4, kernel_params_i, rho_kernel,
+                           patient_sel, feature_sel, time_grid, time_grid_est,
+                           query_y_c_step_2, y_c_strata_step_2, ncores, full)           
+    
+    
+    # Step 2b onward
+    step_2b <- step_2_rho_ij(step_1, step_2, kernel_params_i, i_neq_j, full)
+    step_3  <- step_3_g_ij(step_2, step_2b, kernel_params_i, i_neq_j, full)
+    
+    
+    norm_G <- T # try normalizing G_ii = G_ii * diag(delta_t)
+    norm_vec <- F # normalize eta so that Delta * \eta^\top * \eta = 1
+    
+    step_4 <- tryCatch({
+      step_4_eigendecomp(step_3, p, time_grid, time_grid_est, norm_G, norm_vec, full)
+    }, error = function(e) {
+      cat("Error in step_4, saving dataset...\n")
+      save(dataset, file = file.path(dir, "dataset.RData"))
+      stop(e)
+    })
+    
+    # step 5 to 9 split:
+    
+    if(method %in% c('OG', 'JASA')){
+      step_5 <- step_5_KL_expansion(step_1, step_4, kernel_params_i, time_grid, time_grid_est, ncores)
+      step_8 <- steps_78(step_4, step_5, kernel_params_i, y_c_strata, query_y_c, method, ncores)
+      step_9 <- step_9_C_cond_from_V_cond(step_8, kernel_params_i)
+    } else{
+      step_5 <- step_5_KL_covariance(step_3, step_4, norm_G, full)
+      step_9 <- step_9_C_cond_from_KL_cov(step_4, step_5, kernel_params_i, full)
+    }
+    
+    # reunite at step 10 onwards
+    
+    block <- F
+    MP <- F
+    
+    # step_10 <- step_10_P_cond(step_9, kernel_params_i, p, block, MP)
+    result <- tryCatch({
+      step_10 <- step_10_P_cond(step_9, kernel_params_i, p, block, MP, full)
+    }, error = function(e) {
+      cat("Error occurred in step_10, saving dataset...\n")
+      save(dataset, file = paste0(dir, "/dataset.RData"))
+      cat("Dataset saved to dataset.RData\n")
+      stop(e)  # Re-throw the error
+    })
+    
+    
+    step_11 <- step_11_HS_norms(step_10, adj_mat_i, p, full)
+
+    
+    list(step_2 = step_2, step_2b = step_2b, step_3 = step_3,
+         step_4 = step_4, step_5 = step_5, step_9 = step_9,
+         step_10 = step_10, step_11 = step_11)
+  })
+  
+  # ----------------------------------------------------------------------------
+  # Optional: reorganize by steps instead of by y_c_query
+  # ----------------------------------------------------------------------------
+  
+  steps <- unique(unlist(lapply(estimated_graphs, names)))
+  reorganized <- setNames(lapply(steps, function(step) {
+    sapply(estimated_graphs, `[[`, step, simplify = FALSE)
+  }), steps)
+  
+  # Return step_0, step_1 (shared) + reorganized per-subject steps
+  estimated_graphs_part_1 <- list(step_0_events = step_0_events,
+                                  step_1 = step_1)
+  
+  all_results <- c(estimated_graphs_part_1, reorganized)
+  all_results$y_c_query <- query_y_cs
+  all_results$time_grid <- time_grid
+  all_results$time_grid_est <- time_grid_est
+  all_results$time_grid_both <- time_grid_both
+  
+  return(all_results)
+  
+}
+
 full_conditional_estimation_mice <- function(data_df4, patient_sel, feature_sel, Tseq_est, terse, ncores){
   
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: troubleshoot the full conditional estimation procedure with ground truths between steps
+  # GOAL: regular estimation without keeping track of truths
   #
   #
   # Input:
@@ -890,3 +1069,4 @@ full_conditional_estimation_CPGM <- function(processed_data, time_grid_est, meth
   
   
 }
+
