@@ -54,7 +54,9 @@ step_0_keep_events <- function(dataset, k, i_vec){
   #
   # ----------------------------------------------------------------------------
   
-  events <- dataset$subject_data[[k]]$event_times[i_vec]
+  keys <- paste0(k, '_', i_vec)
+  
+  events <- dataset$event_times[keys]
   
   return(events)
   
@@ -121,7 +123,7 @@ step_0_preprocess <- function(dataset){
   
   # 3.1) first, convert dataset into a format that can be used for estimation
   
-  data_df4 <- convert_data_for_estimation(dataset$subject_data, dataset$simulation_params$T_max) 
+  data_df4 <- convert_data_for_estimation_event_times(dataset$event_times) 
 
   y_c_strata <- dataset$Y_continuous
 
@@ -167,6 +169,7 @@ step_1_log_intensities <- function(dataset, data_df4, time_grid_est, time_grid, 
   # - time_grid_est     (m_est-dim vec of discretized times)
   # - time_grid         (m-dim vec)
   # - time_grid_both    (union of the two)
+  # - full              (boolean)      are we including truths?
   #
   #
   # outputs:
@@ -208,7 +211,7 @@ step_1_log_intensities <- function(dataset, data_df4, time_grid_est, time_grid, 
 }
 
 step_2_rho_i <- function(dataset, data_df4, kernel_params, rho_kernel, patient_sel, feature_sel, 
-                         time_grid, time_grid_est, query_y_c, y_c_strata, ncores){
+                         time_grid, time_grid_est, query_y_c, y_c_strata, ncores, full = T){
   
   
   # ----------------------------------------------------------------------------
@@ -231,6 +234,7 @@ step_2_rho_i <- function(dataset, data_df4, kernel_params, rho_kernel, patient_s
   # - query_y_c       (q-c dim vector)
   # - y_c_strata      (n x q-c matrix)
   # - ncores          (integer)
+  # - full            (boolean)    are we including truths in our estimation?
   #
   # outputs:
   # 
@@ -246,18 +250,22 @@ step_2_rho_i <- function(dataset, data_df4, kernel_params, rho_kernel, patient_s
   #
   # ----------------------------------------------------------------------------
   
+
   
   # prep
-  p <- dim(kernel_params$prec_mat_truth$adj_mat)[1]
   
-  # 1) rho_truth
-  # rho_i_truth = exp(mu(t) + 0.5 * diag(GP_cov))
+  if(full){
+    p <- dim(kernel_params$prec_mat_truth$adj_mat)[1]
   
-  
-  
-  rho_i_truth_value   <- exp(kernel_params$base_kernel_params$base_GP_mean + 0.5 * kernel_params$base_kernel_params$base_variance)
-  rho_i_truth         <- replicate(p, exp(kernel_params$base_mean + 0.5 * diag(kernel_params$base_cov))) %>% t() 
-  rho_i_coarse_truth  <- replicate(p, exp(kernel_params$base_mean_est + 0.5 * diag(kernel_params$base_cov_est))) %>% t()   
+    # 1) rho_truth
+    # rho_i_truth = exp(mu(t) + 0.5 * diag(GP_cov))
+    
+    
+    
+    rho_i_truth_value   <- exp(kernel_params$base_kernel_params$base_GP_mean + 0.5 * kernel_params$base_kernel_params$base_variance)
+    rho_i_truth         <- replicate(p, exp(kernel_params$base_mean + 0.5 * diag(kernel_params$base_cov))) %>% t() 
+    rho_i_coarse_truth  <- replicate(p, exp(kernel_params$base_mean_est + 0.5 * diag(kernel_params$base_cov_est))) %>% t()   
+  }
   
   
   # 3) rho_i_est from data
@@ -271,29 +279,39 @@ step_2_rho_i <- function(dataset, data_df4, kernel_params, rho_kernel, patient_s
     })    
     weights2 <- weights / sum(weights) # normalize
     
-    
-    # 2) rho_X_truth - weighted average of X_truths
-    mat_list <- lapply(dataset$subject_data, function(x) exp(x$X_functions))
-    rho_i_X_truth <- Reduce(`+`, Map(function(m, wt) m * wt, mat_list, weights2))
-    
-    mat_list_coarse <- lapply(dataset$subject_data, function(x) exp(x$X_functions_coarse))
-    rho_i_X_coarse_truth <- Reduce(`+`, Map(function(m, wt) m * wt, mat_list_coarse, weights2))
+    if(full){
+      
+
+      # 2) rho_X_truth - weighted average of X_truths
+      mat_list <- lapply(dataset$subject_data, function(x) exp(x$X_functions))
+      rho_i_X_truth <- Reduce(`+`, Map(function(m, wt) m * wt, mat_list, weights2))
+      
+      mat_list_coarse <- lapply(dataset$subject_data, function(x) exp(x$X_functions_coarse))
+      rho_i_X_coarse_truth <- Reduce(`+`, Map(function(m, wt) m * wt, mat_list_coarse, weights2))
+    }
+
     
     
     # i_neq_j is true because we want G_ij
     rho_list <- estimate_intensities_stratum_parallel_with_yc(data_df4, query_y_c, y_c_strata, 
                                                               patient_sel, feature_sel, 
                                                               time_grid_est, T, ncores)
+    
   } else{
     
-    # 2) sample mean of the X_functions, beacuse there is no weight
-    mat_list <- lapply(dataset$subject_data, function(x) exp(x$X_functions))
-    weights2 <- rep(1/length(mat_list), length(mat_list))
-    
-    rho_i_X_truth <- Reduce(`+`, Map(function(m, wt) m * wt, mat_list, weights2))
-    
-    mat_list_coarse <- lapply(dataset$subject_data, function(x) exp(x$X_functions_coarse))
-    rho_i_X_coarse_truth <- Reduce(`+`, Map(function(m, wt) m * wt, mat_list_coarse, weights2))
+
+    if(full){
+      
+      # 2) sample mean of the X_functions, beacuse there is no weight
+      mat_list <- lapply(dataset$subject_data, function(x) exp(x$X_functions))
+      weights2 <- rep(1/length(mat_list), length(mat_list))
+      
+      rho_i_X_truth <- Reduce(`+`, Map(function(m, wt) m * wt, mat_list, weights2))
+      
+      mat_list_coarse <- lapply(dataset$subject_data, function(x) exp(x$X_functions_coarse))
+      rho_i_X_coarse_truth <- Reduce(`+`, Map(function(m, wt) m * wt, mat_list_coarse, weights2))
+    }
+
     
     # i_neq_j is false because we don't care about G_ij
     rho_list <- estimate_intensities_stratum_parallel_v4(data_df4, patient_sel, feature_sel, time_grid_est, F, ncores)
@@ -302,13 +320,21 @@ step_2_rho_i <- function(dataset, data_df4, kernel_params, rho_kernel, patient_s
   rho_i_est <- do.call(rbind, lapply(rho_list[[1]], function(v) as.numeric(v))) # p x m matrix of estimated mean intensities     
 
   
-  result_list <- list(rho_i_truth = rho_i_truth,
-                      rho_i_coarse_truth = rho_i_coarse_truth,
-                      rho_i_X_truth = rho_i_X_truth,
-                      rho_i_X_coarse_truth = rho_i_X_coarse_truth,
-                      rho_i_est = rho_i_est,
-                      rho_list = rho_list,
-                      weights = weights2)
+  # choose what to output depending on if we have truths
+  if(full){
+    result_list <- list(rho_i_truth = rho_i_truth,
+                        rho_i_coarse_truth = rho_i_coarse_truth,
+                        rho_i_X_truth = rho_i_X_truth,
+                        rho_i_X_coarse_truth = rho_i_X_coarse_truth,
+                        rho_i_est = rho_i_est,
+                        rho_list = rho_list,
+                        weights = weights2)
+  } else{
+    result_list <- list(rho_i_est = rho_i_est,
+                        rho_list = rho_list,
+                        weights = weights2)
+  }
+
   
   if(rho_kernel){
     result_list$y_c_s <- y_c_strata
@@ -317,7 +343,7 @@ step_2_rho_i <- function(dataset, data_df4, kernel_params, rho_kernel, patient_s
   return(result_list)
 }
 
-step_2_rho_ij <- function(step_1, step_2, kernel_params, i_neq_j){
+step_2_rho_ij <- function(step_1, step_2, kernel_params, i_neq_j, full = T){
   
   # ----------------------------------------------------------------------------
   #
@@ -340,6 +366,7 @@ step_2_rho_ij <- function(step_1, step_2, kernel_params, i_neq_j){
   #
   # - kernel_params              (list of kernel params)
   # - i_neq_j                    (boolean) if true, calculate i =/= j
+  # - full                       (boolean)    are we including truths in our estimation?
   #
   # outputs:
   # 
@@ -351,6 +378,15 @@ step_2_rho_ij <- function(step_1, step_2, kernel_params, i_neq_j){
   #   - rho_ii_est                 (list of m_est x m_est matrices)
   #
   # ----------------------------------------------------------------------------
+  
+
+  if(! full){
+    # skip all this
+    rho_list  <- step_2[[2]]
+    rho_ii_est <- rho_list[[2]]
+    
+    return(list(rho_ii_est = rho_ii_est))
+  }
   
   # prep
   rho_i_truth          <- step_2[[1]]
@@ -427,7 +463,7 @@ step_2_rho_ij <- function(step_1, step_2, kernel_params, i_neq_j){
               rho_ii_est = rho_ii_est))
 }
 
-step_3_g_ij <- function(step_2, step_2b, kernel_params, i_neq_j){
+step_3_g_ij <- function(step_2, step_2b, kernel_params, i_neq_j, full = T){
   
   
   # ----------------------------------------------------------------------------
@@ -454,6 +490,7 @@ step_3_g_ij <- function(step_2, step_2b, kernel_params, i_neq_j){
   #
   # - kernel_params              (list of kernel params)
   # - i_neq_j                    (boolean) do we include i =/= j terms?
+  # - full                       (boolean)    are we including truths in our estimation?
   # 
   # outputs:
   #
@@ -467,6 +504,20 @@ step_3_g_ij <- function(step_2, step_2b, kernel_params, i_neq_j){
   #   - g_ij_est                         (list of m_est x m_est matrices for i_j entries)  
   #
   # ----------------------------------------------------------------------------
+  
+  if(! full){ # just estimation
+    rho_i_est <- step_2[[1]]
+    rho_ii_est <- step_2b[[1]]
+    
+    if(i_neq_j){
+      g_ij_est <- estimate_covariance_functions_ij(rho_i_est, rho_ii_est)
+    } else{
+      g_ij_est <- estimate_covariance_functions_ii(rho_i_est, rho_ii_est)
+    }
+    
+    return(list(g_ij_est = g_ij_est))
+  }
+  
   
   # prep
   rho_i_truth          <- step_2[[1]]
@@ -522,7 +573,7 @@ step_3_g_ij <- function(step_2, step_2b, kernel_params, i_neq_j){
               g_ij_est = g_ij_est))
 }
 
-step_4_eigendecomp <- function(step_3, p, time_grid, time_grid_est, norm_G, norm_vec){
+step_4_eigendecomp <- function(step_3, p, time_grid, time_grid_est, norm_G, norm_vec, full = T){
   
 
   # ----------------------------------------------------------------------------
@@ -540,11 +591,12 @@ step_4_eigendecomp <- function(step_3, p, time_grid, time_grid_est, norm_G, norm
   #   - g_ij_X_coarse_truth              (list of m_est x m_est matrices for i_j entries)
   #   - g_ij_est                         (list of m_est x m_est matrices for i_j entries)   
   #
-  # - p              (scalar)
-  # - time_grid      (m-dim vector)
-  # - time_grid_est  (m_est-dim vector)
-  # - norm_G         (boolean)    do we apply G_ii <- G_ii / m to get constant eigenvalues?
-  # - norm_vec       (boolean)    do we normalize the eigenvectors so that Delta * eta^\top \eta = 1?
+  # - p                   (scalar)
+  # - time_grid           (m-dim vector)
+  # - time_grid_est       (m_est-dim vector)
+  # - norm_G              (boolean)    do we apply G_ii <- G_ii / m to get constant eigenvalues?
+  # - norm_vec            (boolean)    do we normalize the eigenvectors so that Delta * eta^\top \eta = 1?
+  # - full                (boolean)    are we including truths in our estimation?
   #
   #
   # outputs:
@@ -561,6 +613,16 @@ step_4_eigendecomp <- function(step_3, p, time_grid, time_grid_est, norm_G, norm
   #   - eigen_decomp_est
   #
   # ----------------------------------------------------------------------------
+  
+  if(! full){
+    g_ij_est <- step_3[[1]]
+    g_ii_est <- prep_eigendecomposition_ii(g_ij_est, p)
+    
+    # perform eigendecomposition
+    eigen_decomp_est <- compute_eigendecomposition_ii(g_ii_est, norm_G, norm_vec)
+    
+    return(list(eigen_decomp_est = eigen_decomp_est))
+  }
 
   # prep
   g_ij_truth          <- step_3[[3]]
@@ -716,7 +778,7 @@ step_5_KL_expansion <- function(step_1, step_4, kernel_params, time_grid, time_g
   
 }
 
-step_5_KL_covariance <- function(step_3, step_4, norm_G){
+step_5_KL_covariance <- function(step_3, step_4, norm_G, full = T){
   
   # ----------------------------------------------------------------------------
   # 
@@ -745,6 +807,8 @@ step_5_KL_covariance <- function(step_3, step_4, norm_G){
   #   - eigen_decomp_est
   #
   # - norm_G       (boolean)    do we apply G_ii <- G_ii / m to get constant eigenvalues?
+  # - full         (boolean)    are we including truths in our estimation?
+  #
   #
   # outputs:
   #
@@ -756,6 +820,13 @@ step_5_KL_covariance <- function(step_3, step_4, norm_G){
   #   - KL_cov_est             (list of d_i x d_j matrices for i_j entries)
   #
   # ----------------------------------------------------------------------------
+  
+  if(! full){
+    KL_cov_est <- estimate_KL_covariance(step_3[[1]], step_4[[1]]$eigenfunctions, norm_G)
+    
+    return(list(KL_cov_est = KL_cov_est))
+  }
+  
   
   KL_cov_truth          <- estimate_KL_covariance(step_3[[3]], step_4[[1]]$eigenfunctions, norm_G)
   KL_cov_coarse_truth   <- estimate_KL_covariance(step_3[[4]], step_4[[2]]$eigenfunctions, norm_G)
@@ -1042,7 +1113,7 @@ step_9_C_cond_from_V_cond <- function(step_8, kernel_params_i){
   
 }
 
-step_9_C_cond_from_KL_cov <- function(step_4, step_5, kernel_params){
+step_9_C_cond_from_KL_cov <- function(step_4, step_5, kernel_params, full = T){
   
   # ----------------------------------------------------------------------------
   #
@@ -1070,7 +1141,7 @@ step_9_C_cond_from_KL_cov <- function(step_4, step_5, kernel_params){
   #   - KL_cov_est             (list of d_i x d_j matrices for i_j entries)
   #
   # - kernel_params
-  #
+  # - full              (boolean)    are we including truths in our estimation?
   # 
   # outputs:
   # 
@@ -1087,8 +1158,22 @@ step_9_C_cond_from_KL_cov <- function(step_4, step_5, kernel_params){
   #
   # ----------------------------------------------------------------------------
   
+  if(! full){
+    eigen_decomp_est    <- step_4[[1]]
+    KL_cov_est          <- step_5[[1]]
+    C_cond_est          <- correlation_estimation_KL_cov(eigen_decomp_est, KL_cov_est)
+    
+    p <- length(eigen_decomp_est[[1]])
+    m_est <- dim(C_cond_est[[1]])[1]
+    
+    C_cond_est_full     <- assemble_block_matrix_v2(C_cond_est, p, m_est)
+    
+    return(list(C_cond_est_full = C_cond_est_full))
+  }
+  
   # 0) prep
   
+
   eigen_decomp_truth          <- step_4[[1]]
   eigen_decomp_coarse_truth   <- step_4[[2]]
   eigen_decomp_X_truth        <- step_4[[3]]
@@ -1145,7 +1230,7 @@ step_9_C_cond_from_KL_cov <- function(step_4, step_5, kernel_params){
     
 }
 
-step_10_P_cond <- function(step_9, kernel_params, p, block, MP){
+step_10_P_cond <- function(step_9, kernel_params, p, block, MP, full = T){
   
   
   # ----------------------------------------------------------------------------
@@ -1168,7 +1253,7 @@ step_10_P_cond <- function(step_9, kernel_params, p, block, MP){
   # - p             (integer)  number of processes
   # - block         (boolean)  do we take the inverse of each block? If false, take the inverse of the entire pm x pm matrix
   # - MP            (boolean)  do we use moore-penrose inverse? If false, to regular inverse.
-  #
+  # - full          (boolean)  are we including truths in our estimation?
   #
   # outputs:
   #
@@ -1182,6 +1267,13 @@ step_10_P_cond <- function(step_9, kernel_params, p, block, MP){
   #   - P_cond_est_full                   (pm_est x pm_est matrix)
   #
   # ----------------------------------------------------------------------------
+  
+  if(! full){
+    C_cond_est_full   <- step_9[[1]]
+    P_cond_est_full   <- estimate_precision_operator_v3(C_cond_est_full, p, block, MP)
+    
+    return(list(P_cond_est_full = P_cond_est_full))
+  }
   
   # 1) prep
   C_cond_truth_full          <- step_9[[3]]
@@ -1226,7 +1318,7 @@ step_10_P_cond <- function(step_9, kernel_params, p, block, MP){
   
 }
 
-step_11_HS_norms <- function(step_10, adj_mat_i, p){
+step_11_HS_norms <- function(step_10, adj_mat_i, p, full = T){
   
   # ----------------------------------------------------------------------------
   #
@@ -1245,7 +1337,7 @@ step_11_HS_norms <- function(step_10, adj_mat_i, p){
   #
   # - adj_mat_i    (p x p matrix of 0's and 1's) ground truth adjacencies for the i-th query
   # - p            (integer)
-  # 
+  # - full         (boolean)  are we including truths in our estimation?
   #
   # outputs:
   #
@@ -1260,6 +1352,15 @@ step_11_HS_norms <- function(step_10, adj_mat_i, p){
   #
   # ----------------------------------------------------------------------------
   
+  if(! full){
+    P_cond_est_full <- step_10[[1]]
+    m_est <- dim(P_cond_est_full)[1] / p
+    w_mat_est <- hilbert_schmidt_norm_pm(P_cond_est_full, p, m_est)
+    
+    return(
+      list(w_mat_est = w_mat_est)
+    )
+  }
   
   # prep
   P_cond_ground_truth_full        <- step_10[[1]]
