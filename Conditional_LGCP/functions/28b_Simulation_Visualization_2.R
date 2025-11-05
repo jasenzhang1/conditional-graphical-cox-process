@@ -422,7 +422,7 @@ visualize_metrics <- function(folder_name, metrics, i = NULL, j = NULL){
 }
 
 
-visualize_truths_from_est <- function(step_list, graph_ids, time_grid_est, time_grid, time_grid_both, p){
+visualize_truths_from_est <- function(folder_name, n, graph_ids, cl, time_grid, time_grid_est, time_grid_both, p, y_c_id = NULL){
   
   
   # ----------------------------------------------------------------------------
@@ -431,12 +431,15 @@ visualize_truths_from_est <- function(step_list, graph_ids, time_grid_est, time_
   #
   # inputs:
   #
-  # - step_list       (list)
+  # - folder_name     (string)   "simu_results/single_c2/CPGM"
+  # - n               (integer)  
   # - graph_ids       (vector)             numerical string ID's of graphs we want
-  # - time_grid_est   (m_est-dim vector)
+  # - cl              (string)             "cross" = one timepoint, "long" = all timepoints
   # - time_grid       (m-dim vector)
+  # - time_grid_est   (m_est-dim vector)
   # - time_grid_both  (m_both-dim vector)
   # - p               (integer)
+  # - y_c_id          (integer)           which queried y_c ID to have
   #
   # 
   # outputs:
@@ -447,31 +450,62 @@ visualize_truths_from_est <- function(step_list, graph_ids, time_grid_est, time_
   # ----------------------------------------------------------------------------
   
   
-  # load step_list
+  # 0) load
   
-  y_c_id <- 1 # first y_c_query
+  graph_results_i <- get_file_name_and_load(folder_name, n)   
   
-  step_0 <- step_list$step_0 
-  step_1 <- step_list$step_1 
-  step_2 <- step_list$step_2[[y_c_id]] 
-  step_3 <- step_list$step_3[[y_c_id]] 
-  step_4 <- step_list$step_4[[y_c_id]]  
-  step_5 <- step_list$step_5[[y_c_id]]  
-  step_6 <- step_list$step_6[[y_c_id]]  
-  step_7 <- step_list$step_7[[y_c_id]]  
-  step_8 <- step_list$step_8[[y_c_id]]  
-  step_9 <- step_list$step_9[[y_c_id]]  
-  step_10 <- step_list$step_10[[y_c_id]]  
-  step_11 <- step_list$step_11[[y_c_id]]  
-  step_12 <- step_list$step_12[[y_c_id]]  
-  step_2b <- step_list$step_2b[[y_c_id]]  
+  # 1) load step_list depending on if it's cross or long
+  if (!(cl %in% c("cross", "long"))) {
+    stop("Error: must choose cross or long")
+  }  
   
+  if(cl == 'cross'){
+    if(is.null(y_c_id)){
+      stop('Error: must choose a y_c_id in cross setting')
+    }
+    
+    step_0 <- graph_results_i$step_0 
+    step_1 <- graph_results_i$step_1 
+    step_2 <- graph_results_i$step_2[[y_c_id]] 
+    step_3 <- graph_results_i$step_3[[y_c_id]] 
+    step_4 <- graph_results_i$step_4[[y_c_id]]  
+    step_5 <- graph_results_i$step_5[[y_c_id]]  
+    step_6 <- graph_results_i$step_6[[y_c_id]]  
+    step_7 <- graph_results_i$step_7[[y_c_id]]  
+    step_8 <- graph_results_i$step_8[[y_c_id]]  
+    step_9 <- graph_results_i$step_9[[y_c_id]]  
+    step_10 <- graph_results_i$step_10[[y_c_id]]  
+    step_11 <- graph_results_i$step_11[[y_c_id]]  
+    step_12 <- graph_results_i$step_12[[y_c_id]]  
+    step_2b <- graph_results_i$step_2b[[y_c_id]]  
+
+  
+  } else{
+    # step_0 <- step_list$step_0 
+    # step_1 <- step_list$step_1 
+    step_2 <- graph_results_i$step_2
+    step_3 <- graph_results_i$step_3
+    step_4 <- graph_results_i$step_4
+    step_5 <- graph_results_i$step_5
+    step_6 <- graph_results_i$step_6
+    step_7 <- graph_results_i$step_7
+    step_8 <- graph_results_i$step_8 
+    step_9 <- graph_results_i$step_9
+    step_10 <- graph_results_i$step_10
+    step_11 <- graph_results_i$step_11
+    step_12 <- graph_results_i$step_12 
+    step_2b <- graph_results_i$step_2b    
+  }
+  
+  y_c_names <- graph_results_i$y_c_query %>%
+    as.numeric() %>%
+    round(2) %>%
+    formatC(format = "f", digits = 2)
 
   
 
-  
-  graphs = list()
-  
+  # 3) preparing other constants
+
   arr_mat_3 <- matrix(1:3, nrow = 1, byrow = F)
   arr_mat_4 <- matrix(1:4, nrow = 2, byrow = F)
   arr_mat_6 <- matrix(1:6, nrow = 2, byrow = F)
@@ -481,128 +515,170 @@ visualize_truths_from_est <- function(step_list, graph_ids, time_grid_est, time_
   m <- length(time_grid)
   m_est <- length(time_grid_est)
   
+  graphs = list()  
   
-  if('01' %in% graph_ids){ graphs[['g_01']] <- result_01(step_0) }
   
-  if('11' %in% graph_ids){ 
+  if('01' %in% graph_ids & cl == 'cross'){
+    graphs[['g_01']] <- result_01(step_0) 
+  }
+  
+  if('11' %in% graph_ids & cl == 'cross'){ 
 
     g_list <- result_11_prep(step_1, time_grid, time_grid_est)
     grob_caption <- "0. Log Intensity\n of first 5 processes\nof subject 1"
     graphs[['g_11']] <- result_arr_mat(g_list, grob_caption, arr_mat_6)
 
-    }
+  }
   
   
   # rho_i for first 5 processes 
   if('22' %in% graph_ids){ 
-
-    
-    g_list <- result_22_prep(step_2, time_grid, time_grid_est)
-    grob_caption <- "2. Rho_i\nEstimation for \n first 5 processes"
-    graphs[['g_22']] <- result_arr_mat(g_list, grob_caption, arr_mat_6)
-    
-
+    if(cl == 'cross'){
+      g_list <- result_22_prep(step_2, time_grid, time_grid_est)
+      grob_caption <- "2. Rho_i\nEstimation for \n first 5 processes"
+      graphs[['g_22']] <- result_arr_mat(g_list, grob_caption, arr_mat_6)      
+    } else{
+      g_list <- lapply(step_2, function(x){result_22_prep(x, time_grid, time_grid_est)})
+      graphs[['g_22']] <- rearrange_plots(g_list)
     }
-  
+  }
   
   # rho_ij(s,t) for process pair 1_1
   if('24' %in% graph_ids){ 
-    
-    g_list <- result_20s_prep(step_2b, i = 1, j = 1)
-    grob_caption <- "2. Rho ii\nEstimation \n for processes 1_1"
-    graphs[['g_24']] <- result_arr_mat(g_list, grob_caption, arr_mat_6)    
-    
+    if(cl == 'cross'){
+      g_list <- result_20s_prep(step_2b, i = 1, j = 1)
+      grob_caption <- "2. Rho ii\nEstimation \n for processes 1_1"
+      graphs[['g_24']] <- result_arr_mat(g_list, grob_caption, arr_mat_6) 
+    } else{
+      g_list <- lapply(step_2b, function(x){result_20s_prep(x, i = 1, j = 1)})
+      graphs[['g_24']] <- rearrange_plots(g_list)      
+    }
   }
-  
   
   # rho_ij(s,t) for process pair 1_2
   if('25' %in% graph_ids){ 
-    
-    g_list <- result_20s_prep(step_2b, i = 1, j = 2)
-    grob_caption <- "2. Rho ii\nEstimation \n for processes 1_2"
-    graphs[['g_25']] <- result_arr_mat(g_list, grob_caption, arr_mat_6)  
-    
+    if(cl == 'cross'){
+      g_list <- result_20s_prep(step_2b, i = 1, j = 2)
+      grob_caption <- "2. Rho ii\nEstimation \n for processes 1_2"
+      graphs[['g_25']] <- result_arr_mat(g_list, grob_caption, arr_mat_6)       
+    } else{
+      g_list <- lapply(step_2b, function(x){result_20s_prep(x, i = 1, j = 2)})
+      graphs[['g_25']] <- rearrange_plots(g_list)
+    }
   }
   
   # rho_ij (s,t) for process pair 3_5
   if('26' %in% graph_ids){ 
-    g_list <- result_20s_prep(step_2b, i = 3, j = 5)
-    grob_caption <- "2. Rho ii\nEstimation \n for processes 3_5"
-    graphs[['g_26']] <- result_arr_mat(g_list, grob_caption, arr_mat_6)  
-  
+    if(cl == 'cross'){
+      g_list <- result_20s_prep(step_2b, i = 3, j = 5)
+      grob_caption <- "2. Rho ii\nEstimation \n for processes 3_5"
+      graphs[['g_26']] <- result_arr_mat(g_list, grob_caption, arr_mat_6)     
+    } else{
+      g_list <- lapply(step_2b, function(x){result_20s_prep(x, i = 3, j = 5)})
+      graphs[['g_26']] <- rearrange_plots(g_list)
     }
+  }
   
   # distribution of weights due to continuous covariate
-
   if('29' %in% graph_ids){ 
-    graphs[['g_29']] <- result_29(step_2, y_c_id) 
+    if(cl == 'cross'){
+      graphs[['g_29']] <- result_29(step_2, y_c_id) 
+    } else{
+      graph_list <- lapply(seq_along(step_2), function(i) {
+        result_29(step_2[[i]], y_c_names[i])
+      })
+      
+      graphs[['g_29']] <- do.call(grid.arrange, c(graph_list, nrow = 1))
+    }
   }
   
   # g_ij(s,t) at 1_1
   if('31' %in% graph_ids){ 
-    
-    g_list <- result_30s_prep(step_3, i = 1, j = 1)
-    grob_caption <- "3. Covariance Function\nEstimation (G_ii)\nfor 1_1"
-    graphs[['g_31']] <- result_arr_mat(g_list, grob_caption, arr_mat_8) 
-    
+    if(cl == 'cross'){
+      g_list <- result_30s_prep(step_3, i = 1, j = 1)
+      grob_caption <- "3. Covariance Function\nEstimation (G_ii)\nfor 1_1"
+      graphs[['g_31']] <- result_arr_mat(g_list, grob_caption, arr_mat_8)
+    } else{
+      g_list <- lapply(step_3, function(x){result_30s_prep(x, i = 1, j = 1)})
+      graphs[['g_31']] <- rearrange_plots(g_list)      
+    }
   }
   
   # g_ij(s,t) at 1_2
   if('32' %in% graph_ids){ 
-    g_list <- result_30s_prep(step_3, i = 1, j = 2)
-    grob_caption <- "3. Covariance Function\nEstimation (G_ii)\nfor 1_2"
-    graphs[['g_32']] <- result_arr_mat(g_list, grob_caption, arr_mat_8) 
+    if(cl == 'cross'){
+      g_list <- result_30s_prep(step_3, i = 1, j = 2)
+      grob_caption <- "3. Covariance Function\nEstimation (G_ii)\nfor 1_2"
+      graphs[['g_32']] <- result_arr_mat(g_list, grob_caption, arr_mat_8) 
+    } else{
+      g_list <- lapply(step_3, function(x){result_30s_prep(x, i = 1, j = 2)})
+      graphs[['g_32']] <- rearrange_plots(g_list)      
+    }
   }
   
-
   # g_ij(s,t) at 3_5
   if('33' %in% graph_ids){ 
-    g_list <- result_30s_prep(step_3, i = 3, j = 5)
-    grob_caption <- "3. Covariance Function\nEstimation (G_ii)\nfor 3_5"
-    graphs[['g_33']] <- result_arr_mat(g_list, grob_caption, arr_mat_8) 
+    if(cl == 'cross'){
+      g_list <- result_30s_prep(step_3, i = 3, j = 5)
+      grob_caption <- "3. Covariance Function\nEstimation (G_ii)\nfor 3_5"
+      graphs[['g_33']] <- result_arr_mat(g_list, grob_caption, arr_mat_8) 
+    } else{
+      g_list <- lapply(step_3, function(x){result_30s_prep(x, i = 3, j = 5)})
+      graphs[['g_33']] <- rearrange_plots(g_list)
+    }
   }    
   
   # 4.1) plot eigenfunctions
-  
   if('41' %in% graph_ids){ 
-    
-    g_list <- result_41_prep(step_4, time_grid, time_grid_est)
-    grob_caption <- "4. Eigenfunction\nBasis of\nProcess 1"
-    graphs[['g_41']] <- result_arr_mat(g_list, grob_caption, arr_mat_6)
+    if(cl == 'cross'){
+      g_list <- result_41_prep(step_4, time_grid, time_grid_est)
+      grob_caption <- "4. Eigenfunction\nBasis of\nProcess 1"
+      graphs[['g_41']] <- result_arr_mat(g_list, grob_caption, arr_mat_6)
+    } else{
+      g_list <- lapply(step_4, function(x){result_41_prep(x, time_grid, time_grid_est)})
+      graphs[['g_41']] <- rearrange_plots(g_list)
+    }
     
   }
 
   # visualize g_ij vs its eigendecomposition reconstruction
-  
   if('42' %in% graph_ids){ 
-    
-    g_list <- result_42_prep(step_3, step_4, p)
-    grob_caption <- "4. Eigenfunction\nReconstruction"
-    graphs[['g_42']] <- result_arr_mat(g_list, grob_caption, arr_mat_8)
-    
+    if(cl == 'cross'){
+      g_list <- result_42_prep(step_3, step_4, p)
+      grob_caption <- "4. Eigenfunction\nReconstruction"
+      graphs[['g_42']] <- result_arr_mat(g_list, grob_caption, arr_mat_8)    
+    } else{
+      g_list <- Map(function(x, y) result_42_prep(x, y, p), step_3, step_4)
+      graphs[['g_42']] <- rearrange_plots(g_list)
+    }
   }
   
   #  are all eigenfunctions orthogonal? Orthonormal? 
   if('43' %in% graph_ids){ 
-    
-    g_list <- result_43_prep(step_4)
-    grob_caption <- "4. Eigenfunction\nOrthogonality"
-    graphs[['g_43']] <- result_arr_mat(g_list, grob_caption, arr_mat_6)
-    
+    if(cl == 'cross'){
+      g_list <- result_43_prep(step_4)
+      grob_caption <- "4. Eigenfunction\nOrthogonality"
+      graphs[['g_43']] <- result_arr_mat(g_list, grob_caption, arr_mat_6)
+    } else{
+      g_list <- lapply(step_4, function(x){result_43_prep(x)})
+      graphs[['g_43']] <- rearrange_plots(g_list)
+    }
   }
   
   # reconstruction error histogram
   if('44' %in% graph_ids){ 
-    
-    g_list <- result_44_prep(step_3, step_4, p)
-    grob_caption <- "4. Eigendecomposition\nReconstruction Error"
-    graphs[['g_44']] <- result_arr_mat(g_list, grob_caption, arr_mat_6)
-    
+    if(cl == 'cross'){
+      g_list <- result_44_prep(step_3, step_4, p)
+      grob_caption <- "4. Eigendecomposition\nReconstruction Error"
+      graphs[['g_44']] <- result_arr_mat(g_list, grob_caption, arr_mat_6)
+    } else{
+      g_list <- Map(function(x, y) result_44_prep(x, y, p), step_3, step_4)
+      graphs[['g_44']] <- rearrange_plots(g_list)
+    }
   }
   
   # eigenvalue decay - check if G_ii / m makes the eigenvalues similar between coarse/fine settings
-  
-  if('45' %in% graph_ids){
+  if('45' %in% graph_ids & cl == 'cross'){
     
     # keep eigenvalues of at most 5 processes
     step_4_evals <- lapply(step_4, function(x) x$eigenvalues[1:min(5, length(x$eigenvalues))])
@@ -636,7 +712,8 @@ visualize_truths_from_est <- function(step_list, graph_ids, time_grid_est, time_
     
   }
   
-  if('46' %in% graph_ids){
+  # see if the eigenfunctions have different amplitudes
+  if('46' %in% graph_ids & cl == 'cross'){
     
     # keep eigenvalues of at most 5 processes
     step_4_evecs <- lapply(step_4, function(x) x$eigenfunctions)    
@@ -683,8 +760,7 @@ visualize_truths_from_est <- function(step_list, graph_ids, time_grid_est, time_
   
   
   # 5.3) Graph X_k (true, true_reconstruct, estimate, estimate_reconstruct)  for the first subject
-  
-  if (any(c('51', '52', '53') %in% graph_ids)) {
+  if (any(c('51', '52', '53') %in% graph_ids) & cl == 'cross') {
     #   - X_k_est                   (p x m_est   x n)
     #   - X_k_truth                 (p x m_truth x n)
     #   - X_k_coarse_truth          (p x m_est   x n)
@@ -692,8 +768,6 @@ visualize_truths_from_est <- function(step_list, graph_ids, time_grid_est, time_
     #   - Lambda_k_truth            (p x m_truth x n)
     #   - Lambda_k_coarse_truth     (p x m_est   x n)    
     
-
-
     df1 <- validate_kl_full(step_1[[1]], step_4[[5]]$eigenfunctions, time_grid_est,  'Estimate',            ncores)
     df2 <- validate_kl_full(step_1[[3]], step_4[[4]]$eigenfunctions, time_grid_est,  'Coarse Truth X',      ncores)
     df3 <- validate_kl_full(step_1[[2]], step_4[[3]]$eigenfunctions, time_grid,      'Truth X',             ncores)
@@ -741,8 +815,7 @@ visualize_truths_from_est <- function(step_list, graph_ids, time_grid_est, time_
   }
   
   # 54 = how do the eigenvalues in step 5, var(alpha) = mu, differ from those in step 4?
-  
-  if('54' %in% graph_ids){
+  if('54' %in% graph_ids & cl == 'cross'){
     
 
     p_min <- min(p, 5)
@@ -797,9 +870,9 @@ visualize_truths_from_est <- function(step_list, graph_ids, time_grid_est, time_
       geom_point(aes(y = eigen2, color = "Eigenvalue")) +      
       facet_grid(process ~ component, scales = "free_y") +
       labs(
-        title = "Eigenvalue Comparison between Two Lists",
-        x = "Eigenvalue index",
-        y = "Eigenvalue",
+        title = "Eigenvalue Comparison",
+        x = "Eigenvalue index (Processes 1-5)",
+        y = "Eigenvalue Magnitude (Truth/Est)",
         color = "Source"
       ) +
       theme_minimal()
@@ -852,97 +925,118 @@ visualize_truths_from_est <- function(step_list, graph_ids, time_grid_est, time_
   
 
   
-
+  # conditional correlation of C_X1X2
   if('91' %in% graph_ids){
-    i <- 1
-    j <- 2
-    g_list <- result_90s_prep_ij(step_9, m, m_est, i, j)
-    caption <- "9. Conditional\nCorrelation Operator\nProcess 1 with 2"
-    graphs[['g_91']] <- result_arr_mat(g_list, caption, arr_mat_10)    
+    if(cl == 'cross'){
+      g_list <- result_90s_prep_ij(step_9, m, m_est, i = 1, j = 2)
+      caption <- "9. Conditional\nCorrelation Operator\nProcess 1 with 2"
+      graphs[['g_91']] <- result_arr_mat(g_list, caption, arr_mat_10)   
+    } else{
+      g_list <- lapply(step_9, function(x){result_90s_prep_ij(x, m, m_est, i = 1, j = 2)})
+      graphs[['g_91']] <- rearrange_plots(g_list)      
+    }
   }
 
+  # conditional correlation of C_X3X5
   if('92' %in% graph_ids){
-    i <- 3
-    j <- 5
-    g_list <- result_90s_prep_ij(step_9, m, m_est, i, j)
-    caption <- "9. Conditional\nCorrelation Operator\nProcess 3 with 6"
-    graphs[['g_92']] <- result_arr_mat(g_list, caption, arr_mat_10)
+    if(cl == 'cross'){
+      g_list <- result_90s_prep_ij(step_9, m, m_est, i = 3, j = 5)
+      caption <- "9. Conditional\nCorrelation Operator\nProcess 3 with 5"
+      graphs[['g_92']] <- result_arr_mat(g_list, caption, arr_mat_10)
+    } else{
+      g_list <- lapply(step_9, function(x){result_90s_prep_ij(x, m, m_est, i = 3, j = 5)})
+      graphs[['g_92']] <- rearrange_plots(g_list)  
+    }
   }
   
+  # conditional correlation of entire pm x pm matrix C_XX (only 3 of them)
   if('93' %in% graph_ids){
-
-    g_list <- result_90s_prep_pm(step_9, m, m_est)
-    grob_caption <- "9. Conditional\nCorrelation Operator\nAll Processes"
-    g_list <- g_list[c(1,3,7)]
-    graphs[['g_93']] <- result_arr_mat(g_list, grob_caption, arr_mat_4)  
-    
+    if(cl == 'cross'){
+      g_list <- result_90s_prep_pm(step_9, m, m_est)
+      grob_caption <- "9. Conditional\nCorrelation Operator\nAll Processes"
+      g_list <- g_list[c(1,3,7)]
+      graphs[['g_93']] <- result_arr_mat(g_list, grob_caption, arr_mat_4) 
+    } else{
+      g_list <- lapply(step_9, function(x){result_90s_prep_pm(x, m, m_est)})
+      g_list <- lapply(g_list, function(x){x[c(1,3,7)]})
+      graphs[['g_93']] <- rearrange_plots(g_list)
+    }
   }
   
-  
-  
-  # all 5 + ground truth
-  
+  # conditional correlation of entire pm x pm matrix C_XX (all of them)
   if('94' %in% graph_ids){
-    
-    g_list <- result_90s_prep_pm(step_9, m, m_est)
-    grob_caption <- "9. Conditional\nCorrelation Operator\nAll Processes"
-    graphs[['g_94']] <- result_arr_mat(g_list, grob_caption, arr_mat_8)     
-    
+    if(cl == 'cross'){
+      g_list <- result_90s_prep_pm(step_9, m, m_est)
+      grob_caption <- "9. Conditional\nCorrelation Operator\nAll Processes"
+      graphs[['g_94']] <- result_arr_mat(g_list, grob_caption, arr_mat_8)  
+    } else{
+      g_list <- lapply(step_9, function(x){result_90s_prep_pm(x, m, m_est)})
+      graphs[['g_94']] <- rearrange_plots(g_list)
+    }
+   
   }
 
-  
   # sanity check - hilbert schmidt norms of the C_Cond
   if('95' %in% graph_ids){
-    
-    g_list <- result_95_prep(step_9, m, m_est, p)
-    grob_caption <- "9. Conditional\nCorrelation Operator\nHS Norm"
-    graphs[['g_95']] <- result_arr_mat(g_list, grob_caption, arr_mat_8)    
-
+    if(cl == 'cross'){
+      g_list <- result_95_prep(step_9, m, m_est, p)
+      grob_caption <- "9. Conditional\nCorrelation Operator\nHS Norm"
+      graphs[['g_95']] <- result_arr_mat(g_list, grob_caption, arr_mat_8)   
+    } else{
+      g_list <- lapply(step_9, function(x){result_95_prep(x, m, m_est, p)})
+      graphs[['g_95']] <- rearrange_plots(g_list)
+    }
   }
  
-  
+  # conditional precision, P_X1X2
   if('101' %in% graph_ids){
-    
-    i <- 1
-    j <- 2
-    g_list <- result_100s_prep_ij(step_10, m, m_est, i, j)
-    caption <- "10. Conditional\nPrecision Operator\n Process 1 and 2"
-    graphs[['g_101']] <- result_arr_mat(g_list, caption, arr_mat_8)       
-    
+    if(cl == 'cross'){
+      g_list <- result_100s_prep_ij(step_10, m, m_est, i = 1, j = 2)
+      caption <- "10. Conditional\nPrecision Operator\n Process 1 and 2"
+      graphs[['g_101']] <- result_arr_mat(g_list, caption, arr_mat_8)  
+    } else{
+      g_list <- lapply(step_10, function(x){result_100s_prep_ij(x, m, m_est, i = 1, j = 2)})
+      graphs[['g_101']] <- rearrange_plots(g_list)
+    }
   }
 
-  # P_Xi_Xj for processes 3 and 5
-  
+  # conditional precision, P_X3X5
   if('102' %in% graph_ids){
-    i <- 3
-    j <- 5
-    g_list <- result_100s_prep_ij(step_10, m, m_est, i, j)
-    caption <- "10. Conditional\nPrecision Operator\n Process 3 and 5"
-    graphs[['g_102']] <- result_arr_mat(g_list, caption, arr_mat_8)       
+    if(cl == 'cross'){
+      g_list <- result_100s_prep_ij(step_10, m, m_est, i = 3, j = 5)
+      caption <- "10. Conditional\nPrecision Operator\n Process 3 and 5"
+      graphs[['g_102']] <- result_arr_mat(g_list, caption, arr_mat_8)  
+    } else{
+      g_list <- lapply(step_10, function(x){result_100s_prep_ij(x, m, m_est, i = 3, j = 5)})
+      graphs[['g_102']] <- rearrange_plots(g_list)
+    }
   }
   
 
-  # 10.2) visualize the entire pm x pm block
-  
+  # conditional correlation of entire pm x pm matrix P_XX (only 3 of them)
   if('103' %in% graph_ids){
-    
-    g_list <- result_100s_prep_pm(step_10, m, m_est)
-    grob_caption <- "10. Conditional\nPrecision Operator\nAll Processes"
-    g_list <- g_list[c(1,3,7)]
-    graphs[['g_103']] <- result_arr_mat(g_list, grob_caption, arr_mat_4)      
-    
+    if(cl == 'cross'){
+      g_list <- result_100s_prep_pm(step_10, m, m_est)
+      grob_caption <- "10. Conditional\nPrecision Operator\nAll Processes"
+      g_list <- g_list[c(1,3,7)]
+      graphs[['g_103']] <- result_arr_mat(g_list, grob_caption, arr_mat_4)  
+    } else{
+      g_list <- lapply(step_10, function(x){result_100s_prep_pm(x, m, m_est)})
+      g_list <- lapply(g_list, function(x){x[c(1,3,7)]})
+      graphs[['g_103']] <- rearrange_plots(g_list)
+    }
   }
       
-  
-  
-  # all 5 + ground truth
+  # conditional correlation of entire pm x pm matrix P_XX (all of them)
   if('104' %in% graph_ids){
-    
-    
-    g_list <- result_100s_prep_pm(step_10, m, m_est)
-    grob_caption <- "10. Conditional\nPrecision Operator\n All Processes"
-    graphs[['g_104']] <- result_arr_mat(g_list, grob_caption, arr_mat_8)
-    
+    if(cl == 'cross'){
+      g_list <- result_100s_prep_pm(step_10, m, m_est)
+      grob_caption <- "10. Conditional\nPrecision Operator\n All Processes"
+      graphs[['g_104']] <- result_arr_mat(g_list, grob_caption, arr_mat_8)
+    } else{
+      g_list <- lapply(step_10, function(x){result_100s_prep_pm(x, m, m_est)})
+      graphs[['g_104']] <- rearrange_plots(g_list)
+    }
   }
  
 
@@ -973,29 +1067,41 @@ visualize_truths_from_est <- function(step_list, graph_ids, time_grid_est, time_
   
   
   # visualize HS norms with w_mat ground truth
-  
   if('112' %in% graph_ids){
-
-    g_list <- result_112_prep(step_11, remove_diag = F)
-    grob_caption <- "11. Hilbert Schmidt\n Norm"
-    graphs[['g_112']] <- result_arr_mat(g_list, grob_caption, arr_mat_8)
-    
+    if(cl == 'cross'){
+      g_list <- result_112_prep(step_11, remove_diag = F)
+      grob_caption <- "11. Hilbert Schmidt\n Norm"
+      graphs[['g_112']] <- result_arr_mat(g_list, grob_caption, arr_mat_8)
+    } else{
+      g_list <- lapply(step_11, function(x){result_112_prep(x, remove_diag = F)})
+      graphs[['g_112']] <- rearrange_plots(g_list)
+    }
   }
   
   # remove the diagonals
   if('112b' %in% graph_ids){
-    
-    g_list <- result_112_prep(step_11, remove_diag = T)
-    grob_caption <- "11. Hilbert Schmidt\n Norm"
-    graphs[['g_112']] <- result_arr_mat(g_list, grob_caption, arr_mat_8)
+    if(cl == 'cross'){
+      g_list <- result_112_prep(step_11, remove_diag = T)
+      grob_caption <- "11. Hilbert Schmidt\n Norm"
+      graphs[['g_112b']] <- result_arr_mat(g_list, grob_caption, arr_mat_8)
+    } else{
+      g_list <- lapply(step_11, function(x){result_112_prep(x, remove_diag = T)})
+      graphs[['g_112b']] <- rearrange_plots(g_list)
+    }
+
     
   }
   
+  # ROC curves
   if('113' %in% graph_ids){
-    
-    g_list <- result_113_prep(step_12)
-    grob_caption <- "12. ROC Curve"
-    graphs[['g_113']] <- result_arr_mat(g_list, grob_caption, arr_mat_8)
+    if(cl == 'cross'){
+      g_list <- result_113_prep(step_12)
+      grob_caption <- "12. ROC Curve"
+      graphs[['g_113']] <- result_arr_mat(g_list, grob_caption, arr_mat_8)
+    } else{
+      
+    }
+
     
     
   }
