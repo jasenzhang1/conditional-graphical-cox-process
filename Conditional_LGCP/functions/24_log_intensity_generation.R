@@ -179,7 +179,7 @@ prec_mat_massager <- function(prec_mat, manual_thresh = NULL){
   
   if(!is.null(manual_thresh)){
     adj_mat <- matrix(0, p, p)
-    adj_mat[prec_mat >= manual_thresh] <- 1
+    adj_mat[abs(prec_mat) >= manual_thresh] <- 1
     diag(adj_mat) <- 0       
   } else{
     adj_mat <- matrix(0, p, p)
@@ -263,7 +263,7 @@ generate_sparse_precision_matrix <- function(y_c_k, p, adj_type, adj_params){
   
   if(adj_type %in% c('single_v2')){
     
-    # adj_params = [y_min = 0, y_max = 1, rho_max = 0.9]
+    # adj_params = [y_min = 0, y_max = 1, rho_1 = -0.8, rho_2 = -0.2]
     #
     # only [1,2] and [2,1] are nonzero, where rho(y) = rho_max * y_c / y_max
     #
@@ -271,8 +271,10 @@ generate_sparse_precision_matrix <- function(y_c_k, p, adj_type, adj_params){
     
     y_min <- adj_params[1]
     y_max <- adj_params[2]
-    rho_max <- adj_params[3]
-    rho <- rho_max * (y_c_k - y_min) / (y_max - y_min)
+    rho_1 <- adj_params[3]
+    rho_2 <- adj_params[4]
+    
+    rho <- rho_1 + (rho_2 - rho_1) * (y_c_k - y_min) / (y_max - y_min)
     
     prec_mat <- diag(1, p)
     prec_mat[1,2] <- rho
