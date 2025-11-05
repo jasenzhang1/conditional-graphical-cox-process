@@ -57,7 +57,14 @@ result_11_prep <- function(step_1, time_grid, time_grid_est){
   return(g_list)
 }
 
-result_22_prep <- function(step_2, time_grid, time_grid_est){
+result_22_prep <- function(step_2, time_grid, time_grid_est, full = T){
+  
+  if(! full){
+    g_list <- list(visualize_log_intensity(step_2$rho_i_est[1:5,],     time_grid_est, 'Estimate'),
+                   visualize_log_intensity(step_2$rho_i_truth[1:5,],   time_grid,     'Truth'))
+    return(g_list)
+  }
+  
   #   - rho_i_truth               (p x m)
   #   - rho_i_coarse_truth        (p x m_est)
   #   - rho_i_X_truth             (p x m)
@@ -74,7 +81,7 @@ result_22_prep <- function(step_2, time_grid, time_grid_est){
   return(g_list)
 }
 
-result_20s_prep <- function(step_2b, i, j){
+result_20s_prep <- function(step_2b, i, j, full = T){
   #   - rho_ii_truth               (list of m x m matrices)
   #   - rho_ii_coarse_truth        (list of m_est x m_est matrices)
   #   - rho_ii_X_truth             (list of m x m matrices)
@@ -82,6 +89,12 @@ result_20s_prep <- function(step_2b, i, j){
   #   - rho_ii_est                 (list of m_est x m_est matrices)
   
   key <- paste0(i, '_', j)
+  
+  if(! full){
+    g_list <- list(visualize_matrix_heatmap(step_2b$rho_ii_truth[[key]],   'Truth Theory',        40000, NULL, 200000),
+                   visualize_matrix_heatmap(step_2b$rho_ii_est[[key]],     'Estimate',            40000, NULL, 200000))
+    return(g_list)
+  }
   
   g_list <- list(visualize_matrix_heatmap(step_2b[[1]][[key]],   'Truth Theory',        40000, NULL, 200000),
                  visualize_matrix_heatmap(step_2b[[2]][[key]],   'Coarse Truth Theory', 40000, NULL, 200000),
@@ -106,7 +119,7 @@ result_29 <- function(step_2, y_c_id){
   
 }
 
-result_30s_prep <- function(step_3, i, j){
+result_30s_prep <- function(step_3, i, j, full = T){
   #   - g_ij_ground_truth                (list of m x m matrices for i_j entries)
   #   - g_ij_coarse_ground_truth         (list of m_est x m_est matrices for i_j entries)
   #   - g_ij_truth                       (list of m x m matrices for i_j entries)
@@ -116,6 +129,13 @@ result_30s_prep <- function(step_3, i, j){
   #   - g_ij_est                         (list of m_est x m_est matrices for i_j entries)   
   
   key <- paste0(i, '_', j)
+  
+  if(! full){
+    g_list <- list(visualize_matrix_heatmap(step_3$g_ij_truth[[key]], 'Truth_v1',        -1, 0, 1),
+                   visualize_matrix_heatmap(step_3$g_ij_truth_v2[[key]], 'Truth_v2',     -1, 0, 1),
+                   visualize_matrix_heatmap(step_3$g_ij_est[[key]], 'Estimate',          -1, 0, 1))
+    return(g_list)
+  }
   
   g_list <- list(visualize_matrix_heatmap(step_3[[1]][[key]], 'Ground Truth',        -1, 0, 1),
                  visualize_matrix_heatmap(step_3[[2]][[key]], 'Coarse Ground Truth', -1, 0, 1),
@@ -236,11 +256,18 @@ result_80s_prep <- function(step_8, m, m_est, i, j){
   
 }
 
-result_90s_prep_ij <- function(step_9, m, m_est, i, j){
+result_90s_prep_ij <- function(step_9, m, m_est, i, j, full = T){
   
   # list of heatmaps of C_Xi_Xj 
   # i = 1
   # j = 2
+  
+  if(! full){
+    g_list <- list(visualize_matrix_heatmap(extract_block_structure_ij(step_9$C_cond_truth_full, m,     i, j), 'Truth',               zmid = 0),
+                   visualize_matrix_heatmap(extract_block_structure_ij(step_9$C_cond_est_full,   m_est, i, j), 'Estimate',            zmid = 0))
+    
+    return(g_list)
+  }
   
   g_list <- list(visualize_matrix_heatmap(extract_block_structure_ij(step_9[[1]], m,     i, j), 'Ground Truth',           zmid = 0),
                  visualize_matrix_heatmap(extract_block_structure_ij(step_9[[2]], m_est, i, j), 'Coarse Ground Truth',    zmid = 0),
@@ -255,7 +282,13 @@ result_90s_prep_ij <- function(step_9, m, m_est, i, j){
   return(g_list)
 }
 
-result_90s_prep_pm <- function(step_9, m, m_est){
+result_90s_prep_pm <- function(step_9, m, m_est, full = T){
+  
+  if(! full){
+    g_list <- list(visualize_matrix_heatmap(step_9$C_cond_truth_full, 'Ground Truth',           zmid = 0),
+                   visualize_matrix_heatmap(step_9$C_cond_est_full,   'Estimate',               zmid = 0))
+    return(g_list)
+  }
   
   g_list <- list(visualize_matrix_heatmap(step_9[[1]], 'Ground Truth',           zmid = 0),
                  visualize_matrix_heatmap(step_9[[2]], 'Coarse Ground Truth',    zmid = 0),
@@ -272,7 +305,22 @@ result_90s_prep_pm <- function(step_9, m, m_est){
   return(g_list)
 }
 
-result_95_prep <- function(step_9, m, m_est, p){
+result_95_prep <- function(step_9, m, m_est, p, full = T){
+  
+  
+  if(! full){
+    C_HS_truth_full                 <- hilbert_schmidt_norm_pm(step_9$C_cond_truth_full, p, m) 
+    C_HS_est                        <- hilbert_schmidt_norm_pm(step_9$C_cond_est_full,   p, m_est)
+    
+    diag(C_HS_truth_full) <- 0
+    diag(C_HS_est) <- 0
+    
+    g_list <- list(visualize_matrix_heatmap(C_HS_truth_full,        'Truth',        zmid = 0),
+                   visualize_matrix_heatmap(C_HS_est,               'Estimate',     zmid = 0)) 
+    
+    return(g_list)
+  }
+  
   C_HS_ground_truth_full          <- hilbert_schmidt_norm_pm(step_9[[1]], p, m) 
   C_HS_coarse_ground_truth_full   <- hilbert_schmidt_norm_pm(step_9[[2]], p, m_est)
   C_HS_truth_full                 <- hilbert_schmidt_norm_pm(step_9[[3]], p, m)
@@ -320,7 +368,7 @@ result_100s_prep_ij <- function(step_10, m, m_est, i, j){
   return(g_list)
 }
 
-result_100s_prep_pm <- function(step_9, m, m_est){
+result_100s_prep_pm <- function(step_10, m, m_est){
   
   g_list <- list(visualize_matrix_heatmap(step_10[[1]], 'Ground Truth',           zmid = 0),
                  visualize_matrix_heatmap(step_10[[2]], 'Coarse Ground Truth',    zmid = 0),
