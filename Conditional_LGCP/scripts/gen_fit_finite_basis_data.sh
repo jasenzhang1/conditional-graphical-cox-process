@@ -42,7 +42,7 @@ for entry in "${adj_type_params[@]}"; do
   # Step 1: Generate
   # -------------------
   echo "[STEP 1] Generating dataset..." | tee -a "$outfile"
-  Rscript script_generatefinite_basis_data.R $n $entry >> "$outfile" 2>&1
+  Rscript script_generate_finite_basis_data.R $n $entry >> "$outfile" 2>&1
   echo "[DONE] Generation complete." | tee -a "$outfile"
   echo "" | tee -a "$outfile"
 
