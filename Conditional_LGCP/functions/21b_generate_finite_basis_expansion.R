@@ -104,6 +104,7 @@ trig_basis_cov_mat <- function(d, p, y_c_k, adj_type, adj_params){
       y_c_max <- adj_params[2]
       c_min <- adj_params[3]
       c_max <- adj_params[4]
+      beta_var <- adj_params[5] 
       
       J_2_const <- c_min + (c_max - c_min) * (y_c_k - y_c_min) / (y_c_max - y_c_min)
     } else{
@@ -113,7 +114,7 @@ trig_basis_cov_mat <- function(d, p, y_c_k, adj_type, adj_params){
     J_2 <- J_2_const * (-1)^(1 + 1:d)
     off_block <- diag(J_2)
     
-    on_block <- diag(d)
+    on_block <- diag(d) * beta_var
     
     full_pd_mat <- matrix(0, nrow = p*d, ncol = p*d)
     
@@ -176,7 +177,6 @@ trig_basis_log_intensity <- function(cov_mat_list, basis_list, mu_t, time_grid){
   beta_coefficients <- vector("list", n)   # realizations of beta ~ N(0, cov_mat)
   
   for (s in 1:n) {
-    
     cov_mat <- cov_mat_list[[s]]
     pd <- nrow(cov_mat)
     p <- pd / d
