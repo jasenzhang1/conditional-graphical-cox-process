@@ -130,7 +130,8 @@ full_conditional_estimation_with_no_truth <- function(dataset, method, ncores, d
       step_9 <- step_9_C_cond_from_V_cond(step_8, kernel_params_i)
     } else{
       step_5 <- step_5_KL_covariance(step_3, step_4, norm_G, full)
-      step_9 <- step_9_C_cond_from_KL_cov(step_4, step_5, kernel_params_i, full)
+      step_5b <- step_5b_KL_correlation(step_5, p, full)
+      step_9 <- step_9_C_cond_from_KL_cor(step_4, step_5b, kernel_params_i, full)
     }
     
     # reunite at step 10 onwards
