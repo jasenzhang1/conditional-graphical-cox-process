@@ -832,13 +832,63 @@ step_5_KL_covariance <- function(step_3, step_4, norm_G, full = T){
   KL_cov_coarse_truth   <- estimate_KL_covariance(step_3[[4]], step_4[[2]]$eigenfunctions, norm_G)
   KL_cov_X_truth        <- estimate_KL_covariance(step_3[[5]], step_4[[3]]$eigenfunctions, norm_G)
   KL_cov_X_coarse_truth <- estimate_KL_covariance(step_3[[6]], step_4[[4]]$eigenfunctions, norm_G)
-  KL_cov_est            <- estimate_KL_covariance(step_3[[7]], step_4[[5]]$eigenfunctions, norm_G)  
+  KL_cov_est            <- estimate_KL_covariance(step_3[[7]], step_4[[5]]$eigenfunctions, norm_G)
   
   return(list(KL_cov_truth = KL_cov_truth,
               KL_cov_coarse_truth = KL_cov_coarse_truth,
               KL_cov_X_truth = KL_cov_X_truth,
               KL_cov_X_coarse_truth = KL_cov_X_coarse_truth,
               KL_cov_est = KL_cov_est))
+}
+
+step_5b_KL_correlation <- function(step_5, p, full = T){
+  
+  # ----------------------------------------------------------------------------
+  # 
+  # GOAL: estimate correlations of the KL coefficients for CPGM method
+  #
+  # inputs:
+  #
+  # - step_5
+  #   - KL_cov_truth           (list of d_i x d_j matrices for i_j entries)
+  #   - KL_cov_coarse_truth    (list of d_i x d_j matrices for i_j entries)
+  #   - KL_cov_X_truth         (list of d_i x d_j matrices for i_j entries)
+  #   - KL_cov_X_coarse_truth  (list of d_i x d_j matrices for i_j entries)
+  #   - KL_cov_est             (list of d_i x d_j matrices for i_j entries)
+  # 
+  # - p            (integer)
+  # - full         (boolean)    are we including truths in our estimation?
+  #
+  #
+  # outputs:
+  #
+  # - list of:
+  #   - KL_cor_truth           (list of d_i x d_j matrices for i_j entries)
+  #   - KL_cor_coarse_truth    (list of d_i x d_j matrices for i_j entries)
+  #   - KL_cor_X_truth         (list of d_i x d_j matrices for i_j entries)
+  #   - KL_cor_X_coarse_truth  (list of d_i x d_j matrices for i_j entries)
+  #   - KL_cor_est             (list of d_i x d_j matrices for i_j entries)
+  #
+  # ----------------------------------------------------------------------------
+  
+  if(! full){
+    KL_cor_est <- estimate_KL_correlation(step_5$KL_cov_est, p)
+    
+    return(list(KL_cor_est = KL_cor_est))
+  }
+  
+  
+  KL_cor_truth          <- estimate_KL_correlation(step_5$[[1]], p)
+  KL_cor_coarse_truth   <- estimate_KL_correlation(step_5$[[2]], p)
+  KL_cor_X_truth        <- estimate_KL_correlation(step_5$[[3]], p)
+  KL_cor_X_coarse_truth <- estimate_KL_correlation(step_5$[[4]], p)
+  KL_cor_est            <- estimate_KL_correlation(step_5$[[5]], p)
+  
+  return(list(KL_cor_truth = KL_cor_truth,
+              KL_cor_coarse_truth = KL_cor_coarse_truth,
+              KL_cor_X_truth = KL_cor_X_truth,
+              KL_cor_X_coarse_truth = KL_cor_X_coarse_truth,
+              KL_cor_est = KL_cor_est))
 }
 
 steps_78_OG <- function(kl_coeffs, y_c_strata, query_y_c, eigenfunctions, ncores){
