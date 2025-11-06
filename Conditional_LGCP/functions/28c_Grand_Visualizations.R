@@ -249,6 +249,12 @@ visualize_over_time <- function(graph_results_i, graph_ids, i, j, full = T){
     graphs[['g_33']] <- rearrange_plots(g_list)
   }    
   
+  # eigenfunctions
+  if('41' %in% graph_ids){ 
+    g_list <- lapply(step_4, function(x){result_41_prep(x, time_grid, time_grid_est, full)})
+    graphs[['g_33']] <- rearrange_plots(g_list)
+  }  
+  
   if('81' %in% graph_ids & 'step_8' %in% names(graph_results_i)){
     est_graphs <- lapply(graph_results_i$step_8, function(x) extract_block_structure_ij(x$step_8$V_cond_est_full, m_est, i, j))
   }
