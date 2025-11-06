@@ -18,7 +18,7 @@ adj_type_params=(
 )
 
 ns=(200 400 600 800 1000)
-methods=("CPGM")
+method="CPGM"
 n_large=1000
 max_jobs=30
 
@@ -61,28 +61,27 @@ for entry in "${adj_type_params[@]}"; do
   
   echo "[STEP 2] Start" | tee -a "$outfile"
   step2_very_beginning=$(date +%s)
+  
   for n in "${ns[@]}"; do
-      echo "[STEP 2] Starting fits for n=$n" | tee -a "$outfile"
-      step2_start=$(date +%s)
-  
-      for method in "${methods[@]}"; do
-          echo "[STEP 2] Fitting method=$method, n=$n, adj_type=$adj_type" | tee -a "$outfile"
-  
-          # Wait until fewer than max_jobs are running
-          while (( $(jobs -r | wc -l) >= max_jobs )); do
-              sleep 1
-          done
-  
-          Rscript script_fit_generated_finite_basis_data.R "$n_large" "$n" "$adj_type" "$method" >> "$outfile" 2>&1 &
+      # Wait if max_jobs reached
+      while (( $(jobs -r | wc -l) >= max_jobs )); do
+          sleep 1
       done
   
-      # Wait for all background fits for this n to finish
-      wait
-  
-      step2_end=$(date +%s)
-      step2_elapsed=$(( step2_end - step2_start ))
-      echo "[DONE] Fitting for n=$n complete. Elapsed: ${step2_elapsed}s" | tee -a "$outfile"
+      # Run Rscript in background with timing
+      (
+          step_start=$(date +%s)
+          echo "[STEP 2] Fitting for n=$n, method=$method" | tee -a "$outfile"
+          Rscript script_fit_generated_finite_basis_data.R "$n_large" "$n" "$adj_type" "$method" >> "$outfile" 2>&1
+          step_end=$(date +%s)
+          step_elapsed=$(( step_end - step_start ))
+          echo "[DONE] Fitting for n=$n complete. Elapsed: ${step_elapsed}s" | tee -a "$outfile"
+      ) &
   done
+  
+  # Wait for all background jobs
+  wait
+  
   step2_very_end=$(date +%s)
   echo "[DONE] STEP 2 End" | tee -a "$outfile"
   step2_total_elapsed=$(( step2_very_end - step2_very_beginning ))
