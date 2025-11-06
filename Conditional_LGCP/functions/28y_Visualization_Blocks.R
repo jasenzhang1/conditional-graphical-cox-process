@@ -148,7 +148,13 @@ result_30s_prep <- function(step_3, i, j, full = T){
   return(g_list)
 }
 
-result_41_prep <- function(step_4, time_grid, time_grid_est){
+result_41_prep <- function(step_4, time_grid, time_grid_est, full = T){
+  
+  if(! full){
+    g_list <- list(visualize_log_intensity(t(step_4$eigen_decomp_truth$eigenfunctions[[1]]),    time_grid,      'Truth Theory'),
+                   visualize_log_intensity(t(step_4$eigen_decomp_est$eigenfunctions[[1]]),      time_grid_est,  'Estimate'))  
+    return(g_list)
+  }
   
   g_list <- list(visualize_log_intensity(t(step_4[[1]]$eigenfunctions[[1]]),    time_grid,      'Truth Theory'),
                  visualize_log_intensity(t(step_4[[2]]$eigenfunctions[[1]]),    time_grid_est,  'Coarse Truth Theory'),
@@ -191,6 +197,7 @@ result_42_prep <- function(step_3, step_4, p){
 
 }
 
+# orthogonality of eigenfunctions
 result_43_prep <- function(step_4){
   
   mat_truth          <- t(step_4[[1]]$eigenfunctions[[1]]) %*% step_4[[1]]$eigenfunctions[[1]]
@@ -232,6 +239,27 @@ result_44_prep <- function(step_3, step_4, p){
                          
   
   return(g_list)
+}
+
+result_55_prep <- function(step_5, i, j, full = T){
+  
+  #   - KL_cov_est      (i_j list)
+  #   - KL_cov_truth    (i_j list)
+  
+  key <- paste0(i, '_', j)
+  
+  if(! full){
+    
+    
+    
+    g_list <- list(visualize_matrix_heatmap(step_5$KL_cov_truth[[key]], g_title = 'Ground Truth'),
+                   visualize_matrix_heatmap(step_5$KL_cov_est[[key]], g_title = 'Estimate')) 
+    
+    return(g_list)
+  }
+  
+  return(NULL)
+  
 }
 
 result_80s_prep <- function(step_8, m, m_est, i, j){
