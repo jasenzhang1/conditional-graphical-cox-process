@@ -312,13 +312,37 @@ simulate_finite_basis_cox_data <- function(n, d, p, adj_type, adj_params, beta_0
                                            time_grid, time_grid_est, time_grid_both,
                                            T_max, y_c_query, seed){
   
+  
+  # ----------------------------------------------------------------------------
+  # 
+  # GOAL: simulate finite basis data
+  #
+  # 
+  # inputs:
+  #
+  # - n                 (scalar)      number of replicates
+  # - d                 (scalar)      number of eigenfunctions
+  # - p                 (scalar)      number of processes
+  # - adj_type          (string)      "block_banded_v2"
+  # - adj_params        (vector)      parameters associated with the adj_type
+  # - beta_0            (scalar)      value for mu(t) which is constant across time and for all processes
+  # - time_grid         (m-dim vec)
+  # - time_grid_est     (m_est-dim vec)
+  # - time_grid_both    (m_both-dim vcec)
+  # - T_max             (scalar)    
+  # - y_c_query         (n_query x q_c dim vec)
+  # - seed              (integer)
   #
   #
+  # outputs:
   #
-  # - beta_0        (scalar)                      value for mu(t) which is constant across time and for all processes
+  # - list of 2 items:
+  #
+  #   - dataset
+  #   - all_truths
   #
   #
-  #
+  # ----------------------------------------------------------------------------
   
 
   
@@ -326,7 +350,7 @@ simulate_finite_basis_cox_data <- function(n, d, p, adj_type, adj_params, beta_0
   
   Y_c <- generate_y_c_adj_type(n, adj_type, adj_params, seed = NULL)
   
-  # 1) get log intensities for all n subjects and p processes
+  # 1) generate cov_mat (pd x pd) for all n subjects according to their y_c_k
   
   basis_list <- trig_basis(d)
   basis_mat <- trig_basis_realization(basis_list, time_grid)
@@ -337,10 +361,14 @@ simulate_finite_basis_cox_data <- function(n, d, p, adj_type, adj_params, beta_0
   
   # 2) set up for generating X_i(t)
   
+  m <- length(time_grid)
+  m_est <- length(time_grid_est)
+  m_both <- length(time_grid_both)
  
-  mu_t <- rep(beta_0, m)    # mu(t) = beta_0 (constant)
-  mu_t_both <- rep(beta_0, length(time_grid_both))
-  mu_t_coarse <- rep(beta_0, length(time_grid_est))
+  mu_t        <- rep(beta_0, m)    # mu(t) = beta_0 (constant)
+  mu_t_both   <- rep(beta_0, m_both)
+  mu_t_coarse <- rep(beta_0, m_est)
+  
   mean_vec <- rep(0, p*d)   # m(t)  = all 0's, where beta ~ N(mean_vec, cov_mat) = pd-dim vec
   
   # 3) for each subject, obtain realizations of log intensities and beta coefficients that got them there
@@ -433,7 +461,12 @@ simulate_finite_basis_cox_data <- function(n, d, p, adj_type, adj_params, beta_0
   })
   
   step_5 <- lapply(eigen_truths, function(x) {
-    list(KL_cov_truth = x$KL_cov)
+    list(KL_coeffs_truth = beta_coeffs,          # (p x d x n)
+         KL_cov_truth = x$KL_cov)
+  })  
+  
+  step_5b <- lapply(eigen_truths, function(x) {
+    list(KL_cor_truth = x$KL_cor)
   })  
   
   step_9 <- lapply(eigen_truths, function(x) {
