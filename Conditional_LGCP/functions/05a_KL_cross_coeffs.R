@@ -134,3 +134,45 @@ estimate_KL_covariance <- function(G_hat, eigenfunctions, norm_G){
   return(KL_cov)
   
 }
+
+estimate_KL_correlation <- function(KL_cov, p){
+  
+  # ----------------------------------------------------------------------------
+  # 
+  #
+  # GOAL: estimate cor(alpha_i^a, alpha_j^b) between processes i and j and eigencomponents a and b
+  #
+  #
+  # inputs:
+  #
+  # - KL_cov           (list of i_j d_max x d_max matrices)     each entry represents the covariance of KL coefficients for process i and j
+  # - p                (integer)
+  #
+  # output:
+  #
+  # - KL_cor           (list of i_j d_max x d_max matrices)     each entry represents the correlation of KL coefficients for process i and j 
+  #
+  # ----------------------------------------------------------------------------
+  
+  # --- Compute correlations using the KL variances ---
+  
+  KL_cor <- list()
+  
+  for(i in 1:p){
+    for(j in i:p){
+      key <- paste0(i, '_', j)
+      
+      cov_ij <- KL_cov[[key]]
+      var_i  <- diag(KL_cov[[paste0(i, '_', i)]])
+      var_j  <- diag(KL_cov[[paste0(j, '_', j)]])
+      
+      # Outer product of std deviations
+      denom <- sqrt(outer(var_i, var_j))
+      cor_ij <- cov_ij / denom
+      
+      KL_cor[[key]] <- cor_ij
+    }
+  }
+  
+}
+
