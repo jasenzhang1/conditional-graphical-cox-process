@@ -17,9 +17,9 @@ adj_type_params=(
   "block_banded_v2 0 1 0 0.12 0.3"
 )
 
-ns=(200 400 600 800 1000)
+ns=(150 250)
 method="CPGM"
-n_large=1000
+n_large=250
 max_jobs=30
 
 mkdir -p script_outputs

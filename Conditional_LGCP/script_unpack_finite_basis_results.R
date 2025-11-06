@@ -17,7 +17,7 @@ i <- as.numeric(args[4])  # i <- 1
 j <- as.numeric(args[5])  # j <- 2
 
 data_folder <- 'simu_data'
-n <- 100
+n <- 1000
 
 # heatmaps of certain metrics 
 
