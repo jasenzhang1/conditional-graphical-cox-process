@@ -174,5 +174,7 @@ estimate_KL_correlation <- function(KL_cov, p){
     }
   }
   
+  return(KL_cor)
+  
 }
 
