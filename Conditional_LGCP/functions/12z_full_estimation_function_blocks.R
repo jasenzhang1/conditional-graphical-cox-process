@@ -878,11 +878,11 @@ step_5b_KL_correlation <- function(step_5, p, full = T){
   }
   
   
-  KL_cor_truth          <- estimate_KL_correlation(step_5$[[1]], p)
-  KL_cor_coarse_truth   <- estimate_KL_correlation(step_5$[[2]], p)
-  KL_cor_X_truth        <- estimate_KL_correlation(step_5$[[3]], p)
-  KL_cor_X_coarse_truth <- estimate_KL_correlation(step_5$[[4]], p)
-  KL_cor_est            <- estimate_KL_correlation(step_5$[[5]], p)
+  KL_cor_truth          <- estimate_KL_correlation(step_5[[1]], p)
+  KL_cor_coarse_truth   <- estimate_KL_correlation(step_5[[2]], p)
+  KL_cor_X_truth        <- estimate_KL_correlation(step_5[[3]], p)
+  KL_cor_X_coarse_truth <- estimate_KL_correlation(step_5[[4]], p)
+  KL_cor_est            <- estimate_KL_correlation(step_5[[5]], p)
   
   return(list(KL_cor_truth = KL_cor_truth,
               KL_cor_coarse_truth = KL_cor_coarse_truth,
@@ -1163,6 +1163,7 @@ step_9_C_cond_from_V_cond <- function(step_8, kernel_params_i){
   
 }
 
+# depreciated
 step_9_C_cond_from_KL_cov <- function(step_4, step_5, kernel_params, full = T){
   
   # ----------------------------------------------------------------------------
@@ -1278,6 +1279,123 @@ step_9_C_cond_from_KL_cov <- function(step_4, step_5, kernel_params, full = T){
               C_cond_ground_truth_full_v2 = C_cond_ground_truth_full_v2,
               C_cond_coarse_ground_truth_full_v2 = C_cond_coarse_ground_truth_full_v2))
     
+}
+
+step_9_C_cond_from_KL_cor <- function(step_4, step_5b, kernel_params, full = T){
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: construct correlation matrix from CPGM method USING cor() instead of cov
+  #
+  #
+  # inputs:
+  #
+  # - step_4
+  #   - eigen_decomp_truth               (list of 3 things)
+  #     - [[1]] eigenvalues  (list of p vectors of eigenvalues)
+  #     - [[2]] eigenvectors (list of p matrices of m x d_i)
+  #     - [[3]] n_dims       (list of p integers denoting d_i)
+  #
+  #   - eigen_decomp_coarse_truth
+  #   - eigen_decomp_X_truth
+  #   - eigen_decomp_X_coarse_truth
+  #   - eigen_decomp_est
+  #
+  # - step_5b
+  #   - KL_cor_truth           (list of d_i x d_j matrices for i_j entries)
+  #   - KL_cor_coarse_truth    (list of d_i x d_j matrices for i_j entries)
+  #   - KL_cor_X_truth         (list of d_i x d_j matrices for i_j entries)
+  #   - KL_cor_X_coarse_truth  (list of d_i x d_j matrices for i_j entries)
+  #   - KL_cor_est             (list of d_i x d_j matrices for i_j entries)
+  #
+  # - kernel_params
+  # - full              (boolean)    are we including truths in our estimation?
+  # 
+  # outputs:
+  # 
+  # - list of:
+  #   - C_cond_ground_truth_full           (pm x pm matrix)
+  #   - C_cond_coarse_ground_truth_full    (pm_est x pm_est matrix)
+  #   - C_cond_truth_full                  (pm x pm matrix)
+  #   - C_cond_coarse_truth_full           (pm_est x pm_est matrix)
+  #   - C_cond_X_truth_full                (pm x pm matrix)
+  #   - C_cond_X_coarse_truth_full         (pm_est x pm_est matrix)
+  #   - C_cond_est_full                    (pm_est x pm_est matrix) 
+  #   - C_cond_ground_truth_full_v2        (pm x pm matrix)
+  #   - C_cond_coarse_ground_truth_full_v2 (pm_est x pm_est matrix)
+  #
+  # ----------------------------------------------------------------------------
+  
+  if(! full){
+    eigen_decomp_est    <- step_4$eigen_decomp_est
+    KL_cor_est          <- step_5b$KL_cor_est
+    C_cond_est          <- correlation_estimation_KL_cor(eigen_decomp_est, KL_cor_est)
+    
+    p <- length(eigen_decomp_est[[1]])
+    m_est <- dim(C_cond_est[[1]])[1]
+    
+    C_cond_est_full     <- assemble_block_matrix_v2(C_cond_est, p, m_est)
+    
+    return(list(C_cond_est_full = C_cond_est_full))
+  }
+  
+  # 0) prep
+  
+  
+  eigen_decomp_truth          <- step_4[[1]]
+  eigen_decomp_coarse_truth   <- step_4[[2]]
+  eigen_decomp_X_truth        <- step_4[[3]]
+  eigen_decomp_X_coarse_truth <- step_4[[4]]
+  eigen_decomp_est            <- step_4[[5]]
+  
+  KL_cor_truth          <- step_5b[[1]]
+  KL_cor_coarse_truth   <- step_5b[[2]]
+  KL_cor_X_truth        <- step_5b[[3]]
+  KL_cor_X_coarse_truth <- step_5b[[4]]
+  KL_cor_est            <- step_5b[[5]]
+  
+  p     <- length(eigen_decomp_truth[[1]])
+  m     <- dim(eigen_decomp_truth[[2]][[1]])[1]
+  m_est <- dim(eigen_decomp_coarse_truth[[2]][[1]])[1]
+  
+  # 1) estimation
+  C_cond_truth          <- correlation_estimation_KL_cov(eigen_decomp_truth,          KL_cor_truth)
+  C_cond_coarse_truth   <- correlation_estimation_KL_cov(eigen_decomp_coarse_truth,   KL_cor_coarse_truth)
+  C_cond_X_truth        <- correlation_estimation_KL_cov(eigen_decomp_X_truth,        KL_cor_X_truth)
+  C_cond_X_coarse_truth <- correlation_estimation_KL_cov(eigen_decomp_X_coarse_truth, KL_cor_X_coarse_truth)
+  C_cond_est            <- correlation_estimation_KL_cov(eigen_decomp_est,            KL_cor_est)
+  
+  
+  
+  # 2) ground truth is cor_mat \otimes I_m
+  C_cond_ground_truth_full          <- kronecker(kernel_params$prec_mat_truth$cor_mat, diag(m))
+  C_cond_coarse_ground_truth_full   <- kronecker(kernel_params$prec_mat_truth$cor_mat, diag(m_est))
+  
+  # 3) or is ground truth cor_mat \otimes K_base?
+  C_cond_ground_truth_full_v2          <- kronecker(kernel_params$prec_mat_truth$cor_mat, kernel_params$base_cov)
+  C_cond_coarse_ground_truth_full_v2   <- kronecker(kernel_params$prec_mat_truth$cor_mat, kernel_params$base_cov_est)
+  
+  # 4) assemble and visualize the entire pm x pm block 
+  
+  C_cond_truth_full                 <- assemble_block_matrix_v2(C_cond_truth,               p, m)
+  C_cond_coarse_truth_full          <- assemble_block_matrix_v2(C_cond_coarse_truth,        p, m_est)
+  C_cond_X_truth_full               <- assemble_block_matrix_v2(C_cond_X_truth,             p, m)  
+  C_cond_X_coarse_truth_full        <- assemble_block_matrix_v2(C_cond_X_coarse_truth,      p, m_est)
+  C_cond_est_full                   <- assemble_block_matrix_v2(C_cond_est,                 p, m_est)
+  
+  
+  
+  
+  return(list(C_cond_ground_truth_full = C_cond_ground_truth_full,
+              C_cond_coarse_ground_truth_full = C_cond_coarse_ground_truth_full,
+              C_cond_truth_full = C_cond_truth_full,
+              C_cond_coarse_truth_full = C_cond_coarse_truth_full,
+              C_cond_X_truth_full = C_cond_X_truth_full,
+              C_cond_X_coarse_truth_full = C_cond_X_coarse_truth_full,
+              C_cond_est_full = C_cond_est_full,
+              C_cond_ground_truth_full_v2 = C_cond_ground_truth_full_v2,
+              C_cond_coarse_ground_truth_full_v2 = C_cond_coarse_ground_truth_full_v2))
+  
 }
 
 step_10_P_cond <- function(step_9, kernel_params, p, block, MP, full = T){
