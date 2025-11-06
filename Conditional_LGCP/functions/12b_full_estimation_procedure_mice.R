@@ -82,6 +82,8 @@ full_conditional_estimation_with_no_truth <- function(dataset, method, ncores, d
   cont_inds <- 1:nrow(query_y_cs)
   estimated_graphs <- lapply(cont_inds, function(cont_ind) {
     
+    print(paste0(cont_ind, ' out of ', length(cont_inds)))
+    
     query_y_c <- query_y_cs[cont_ind, ] %>% as.numeric()
     
     if(method %in% c('OG', 'JASA')){
