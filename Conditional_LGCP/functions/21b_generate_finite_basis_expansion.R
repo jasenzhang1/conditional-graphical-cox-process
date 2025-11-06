@@ -427,7 +427,16 @@ trig_basis_eigendecomposition <- function(G, cov_mat, basis_list, time_grid, bet
   #
   # outputs:
   #
-  # - eigen_result (p-dim list)    each list has a list of eigenvalues and eigenvectors
+  # - eigen_result (list)  each list contains the following truths:
+  #
+  #   - eigen_decomp (list of 3 things)
+  #     - eigenvalues         (p-dim list of d_i-dim vector of eigenvalues)
+  #     - eigenfunctions      (p-dim list of m x d_i matrices of eigenfunctions)
+  #     - n_dims              (p-dim list of d_i scalars)
+  #
+  #   - KL_cor      (list of i_j items) each item is a d x d correlation matrix
+  #   - corr_op     (pm x pm matrix)
+  #
   #
   # ----------------------------------------------------------------------------
   
@@ -462,15 +471,10 @@ trig_basis_eigendecomposition <- function(G, cov_mat, basis_list, time_grid, bet
 
     eigenfunction_i <- phi %*% eigen_result_i$vectors   # (m x d) times (d x 2)
     
-    # 3) KL coefficients - when basis functions are orthonormal, KL coeffs = betas
-    
-
-    KL_i <- betas[i,,]  #(d x n)
     
     # 4) storing
     
     eigen_result_i$eigenfunctions <- eigenfunction_i
-    eigen_result_i$KL_coeffs <- KL_i
     
     eigen_result[[i]] <- eigen_result_i
     
@@ -481,6 +485,8 @@ trig_basis_eigendecomposition <- function(G, cov_mat, basis_list, time_grid, bet
   # - for eigencomponents m and n
   # - for processes i and j
   # - cor(beta_i^m, beta_j^n) = [\Sigma_{ij}]_{mn} / sqrt([\Sigma_{ii}]_{mm} [\Sigma_{jj}]_{nn})
+  
+  KL_cov_result <- extract_block_structure_v2(cov_mat, p, d)
   
   KL_cor_result <- list()
   
@@ -527,7 +533,7 @@ trig_basis_eigendecomposition <- function(G, cov_mat, basis_list, time_grid, bet
         for(b in 1:d){
           
           
-          C_ij <- C_ij + coeffs[a,b] * tcrossprod(eigenfunction_i[, a], eigenfunction_j[, b])
+          C_ij <- C_ij + coeffs[a,b] * tcrossprod(eigenfunction_i[, a], eigenfunction_j[, b]) # (m x m)
           
         }
       }
@@ -535,7 +541,7 @@ trig_basis_eigendecomposition <- function(G, cov_mat, basis_list, time_grid, bet
     }
   }
   
-  C_cond_full <- assemble_block_matrix_v2(C_cond, p, m)
+  C_cond_full <- assemble_block_matrix_v2(C_cond, p, m) # (pm x pm)
   
   
   # reordering 
@@ -553,6 +559,7 @@ trig_basis_eigendecomposition <- function(G, cov_mat, basis_list, time_grid, bet
   
   return(list(eigen_decomp = eigen_result_v2,
               KL_cor = KL_cor_result,
+              KL_cov = KL_cov_result,
               corr_op = C_cond_full))
 }
 
