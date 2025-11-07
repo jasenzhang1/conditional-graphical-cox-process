@@ -179,7 +179,7 @@ visualize_over_time <- function(graph_results_i, graph_ids, i, j, full = T){
                                      visualize_log_intensity(step_1[[2]][1:5,,1],   time_grid,      'Finer Truth', mu_t     ),
                                      visualize_log_intensity(step_1[[4]][1:5,,1],   time_grid_both, 'Combined Truth', mu_t_both),
                                      textGrob("0. Log Intensity\n of first 5 processes\nof subject 1", gp = gpar(fontsize = 14)),
-                                     layout_matrix = arr_mat) 
+                                     layout_matrix = arr_mat_6) 
   }
   
   if('12' %in% graph_ids){
@@ -197,6 +197,7 @@ visualize_over_time <- function(graph_results_i, graph_ids, i, j, full = T){
     }
   }
   
+  # rho_i(t) for processes 1 through 5
   if('22' %in% graph_ids){
     g_list <- lapply(step_2, function(x){result_22_prep(x, time_grid, time_grid_est, full)})
     graphs[['g_22']] <- rearrange_plots(g_list)
@@ -221,7 +222,6 @@ visualize_over_time <- function(graph_results_i, graph_ids, i, j, full = T){
   }   
   
   # weights, all y_c_query settings in a row
-  
   if('29' %in% graph_ids){
     
     graph_list <- lapply(seq_along(step_2), function(i) {
@@ -252,14 +252,49 @@ visualize_over_time <- function(graph_results_i, graph_ids, i, j, full = T){
   # eigenfunctions
   if('41' %in% graph_ids){ 
     g_list <- lapply(step_4, function(x){result_41_prep(x, time_grid, time_grid_est, full)})
-    graphs[['g_33']] <- rearrange_plots(g_list)
+    graphs[['g_41']] <- rearrange_plots(g_list)
   }  
+  
+  # reconstructing g_ij from eigenfunctions
+  if('42' %in% graph_ids){ 
+    g_list <- lapply(1:length(step_3), function(x){result_42_prep(step_3[[i]], step_4[[i]], p, full)})
+    graphs[['g_42']] <- rearrange_plots(g_list)
+  }  
+  
+  # orthonormality of eigenfunctions
+  if('43' %in% graph_ids){ 
+    g_list <- lapply(step_4, function(x){result_43_prep(x, full)})
+    graphs[['g_43']] <- rearrange_plots(g_list)
+  }
+  
+  # reconstruction error histogram 
+  if('44' %in% graph_ids){ 
+    g_list <- lapply(1:length(step_3), function(x){result_44_prep(step_3[[i]], step_4[[i]], p, full)})
+    graphs[['g_44']] <- rearrange_plots(g_list)
+  } 
+  # eigenvalue decay - check if G_ii / m makes the eigenvalues similar between coarse/fine settings
+  if('45' %in% graph_ids){
+    g_list <- lapply(step_4, function(x) result_45_prep(x))
+    graphs[['g_45']] <- rearrange_plots(g_list) 
+  }
+  
+  # KL_cov of (i, j) block
+  if('55' %in% graph_ids){
+    g_list <- lapply(step_5, function(x) result_55_prep(x))
+    graphs[['g_55']] <- rearrange_plots(g_list) 
+  }
+  
+  # KL_cor of (i, j) block
+  if('56' %in% graph_ids){
+    g_list <- lapply(step_5b, function(x) result_56_prep(x))
+    graphs[['g_56']] <- rearrange_plots(g_list) 
+  }
   
   if('81' %in% graph_ids & 'step_8' %in% names(graph_results_i)){
     est_graphs <- lapply(graph_results_i$step_8, function(x) extract_block_structure_ij(x$step_8$V_cond_est_full, m_est, i, j))
   }
   
-  # C_X1_X2
+  # C_Xi_Xj for block (1, 2)
   
   if('91' %in% graph_ids){
     graph_list <- lapply(graph_results_i$step_9, function(x){ result_90s_prep_ij(x, m, m_est, i = 1, j = 2, full) })
@@ -283,7 +318,7 @@ visualize_over_time <- function(graph_results_i, graph_ids, i, j, full = T){
     
   }
   
-  # C_X1_X2
+  # C_Xi_Xj for block (3, 5)
   
   if('92' %in% graph_ids){
     graph_list <- lapply(graph_results_i$step_9, function(x){ result_90s_prep_ij(x, m, m_est, i = 3, j = 5, full) })
