@@ -452,7 +452,7 @@ simulate_finite_basis_cox_data <- function(n, d, p, adj_type, adj_params, beta_0
   })
   
   step_3 <- lapply(1:length(rho_truths), function(x) {
-    list(g_ij_truth = rho_truths[[x]]$rho_ij_truth,
+    list(g_ij_truth = rho_truths[[x]]$g_ij_truth,
          g_ij_truth_v2 = g_ij_truth_v2[[x]])
   })
   
