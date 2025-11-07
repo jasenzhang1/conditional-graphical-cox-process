@@ -166,10 +166,26 @@ result_41_prep <- function(step_4, time_grid, time_grid_est, full = T){
   
 }
 
-result_42_prep <- function(step_3, step_4, p){
+# does eigenreconstruction give us our original g_ij?
+result_42_prep <- function(step_3, step_4, p, full = T){
   
   source('functions/04_eigendecomposition.R')
   source('functions/13_estimation_validation.R')
+  
+  if(! full){
+    g_ii_truth          <- prep_eigendecomposition_ii(step_3$g_ij_truth_v2, p)
+    g_ii_est            <- prep_eigendecomposition_ii(step_3$g_ij_est, p)
+    
+    g_ii_truth_decomp           <- validate_eigendecomposition_ii(g_ii_truth, step_4$eigen_decomp_truth)
+    g_ii_est_decomp             <- validate_eigendecomposition_ii(g_ii_est,   step_4$eigen_decomp_est)
+    
+    g_list <- list(visualize_matrix_heatmap(g_ii_truth[,,1],               'Truth Theory (TT)', -1, 0, 1),  # ground truth 50 x 50 covariance
+                   visualize_matrix_heatmap(g_ii_truth_decomp[,,1],        'TT Reconstruct', -1,0, 1), # ground truth reconstructed
+                   visualize_matrix_heatmap(g_ii_est[,,1],                 'Estimate (E)', -1, 0, 1),    # estimate 19 x 19 covariance
+                   visualize_matrix_heatmap(g_ii_est_decomp[,,1],          'E Reconstruct', -1, 0, 1)) # reconstructed estimate
+    
+    return(g_list)
+  }
   
   g_ii_truth          <- prep_eigendecomposition_ii(step_3[[3]], p)
   g_ii_coarse_truth   <- prep_eigendecomposition_ii(step_3[[4]], p)
@@ -198,7 +214,17 @@ result_42_prep <- function(step_3, step_4, p){
 }
 
 # orthogonality of eigenfunctions
-result_43_prep <- function(step_4){
+result_43_prep <- function(step_4, full = T){
+  
+  if(! full){
+    mat_truth          <- t(step_4$eigen_decomp_truth$eigenfunctions[[1]]) %*% step_4$eigen_decomp_truth$eigenfunctions[[1]]
+    mat_est            <- t(step_4$eigen_decomp_est$eigenfunctions[[1]]) %*% step_4$eigen_decomp_est$eigenfunctions[[1]]
+    
+    g_list <- list(visualize_matrix_heatmap(mat_truth,   'Truth Theory',        zmid = 0),
+                   visualize_matrix_heatmap(mat_est,     'Estimate',            zmid = 0))
+    
+    return(g_list)
+  }
   
   mat_truth          <- t(step_4[[1]]$eigenfunctions[[1]]) %*% step_4[[1]]$eigenfunctions[[1]]
   mat_coarse_truth   <- t(step_4[[2]]$eigenfunctions[[1]]) %*% step_4[[2]]$eigenfunctions[[1]]   
@@ -206,16 +232,32 @@ result_43_prep <- function(step_4){
   mat_X_coarse_truth <- t(step_4[[4]]$eigenfunctions[[1]]) %*% step_4[[4]]$eigenfunctions[[1]]
   mat_est            <- t(step_4[[5]]$eigenfunctions[[1]]) %*% step_4[[5]]$eigenfunctions[[1]]
   
-  g_list <- list(visualize_matrix_heatmap(mat_truth,   'Truth Theory',        zmid = 0),
-                 visualize_matrix_heatmap(mat_truth,   'Coarse Truth Theory', zmid = 0),
-                 visualize_matrix_heatmap(mat_truth,   'Truth X',             zmid = 0),
-                 visualize_matrix_heatmap(mat_truth,   'Coarse Truth X',      zmid = 0),
-                 visualize_matrix_heatmap(mat_truth,   'Estimate',            zmid = 0))
+  g_list <- list(visualize_matrix_heatmap(mat_truth,            'Truth Theory',        zmid = 0),
+                 visualize_matrix_heatmap(mat_coarse_truth,     'Coarse Truth Theory', zmid = 0),
+                 visualize_matrix_heatmap(mat_X_truth,          'Truth X',             zmid = 0),
+                 visualize_matrix_heatmap(mat_X_coarse_truth,   'Coarse Truth X',      zmid = 0),
+                 visualize_matrix_heatmap(mat_est,              'Estimate',            zmid = 0))
   
   return(g_list)
 }
 
-result_44_prep <- function(step_3, step_4, p){
+# reconstruction error histogram
+result_44_prep <- function(step_3, step_4, p, full = T){
+  
+  if(! full){
+    g_ii_truth          <- prep_eigendecomposition_ii(step_3$g_ij_truth_v2, p)
+    g_ii_est            <- prep_eigendecomposition_ii(step_3$g_ij_est, p) 
+    
+    # validate
+    g_ii_truth_decomp           <- validate_eigendecomposition_ii(g_ii_truth,          step_4$eigen_decomp_truth)
+    g_ii_est_decomp             <- validate_eigendecomposition_ii(g_ii_est,            step_4$eigen_decomp_est) 
+    
+    g_list <- list(visualize_error_histogram(g_ii_truth,          g_ii_truth_decomp,          'Truth Theory',        20),
+                   visualize_error_histogram(g_ii_est,            g_ii_est_decomp,            'Estimate',            20))
+    
+    
+    return(g_list)
+  }
   
   g_ii_truth          <- prep_eigendecomposition_ii(step_3[[3]], p)
   g_ii_coarse_truth   <- prep_eigendecomposition_ii(step_3[[4]], p)
@@ -241,6 +283,49 @@ result_44_prep <- function(step_3, step_4, p){
   return(g_list)
 }
 
+result_45_prep <- function(step_4){
+  
+  # keep eigenvalues of at most 5 processes
+  step_4_evals <- lapply(step_4, function(x) x$eigenvalues[1:min(5, length(x$eigenvalues))])
+  
+  
+  # reorganize dataframe of eigenvalues 
+  df <- data.frame()
+  
+  for (outer_name in names(step_4_evals)) {
+    inner_list <- step_4_evals[[outer_name]]
+    
+    for (j in seq_along(inner_list)) {
+      vals <- inner_list[[j]]
+      temp <- data.frame(
+        description = outer_name,
+        process = j,
+        eigen_index = seq_along(vals),
+        value = vals
+      )
+      df <- rbind(df, temp)
+    }
+  }
+  
+  # Plot: one plot per component, colored by process
+  
+  g_list <- list()
+  
+  for(i in 1:5){
+    g_list[[i]] <- ggplot(data = df[df$process == i,], aes(x = eigen_index, y = value, color = description)) +
+      geom_line() + 
+      geom_point() + 
+      labs(x = "Eigenvalue index", y = "Eigenvalue", color = "Quantity") +
+      ggtitle(paste0('Process ', i)) + 
+      theme_minimal() 
+  }
+  
+  return(g_list)
+  
+  
+}
+
+# plot the (dxd) KL covariance values of the (i, j) block
 result_55_prep <- function(step_5, i, j, full = T){
   
   #   - KL_cov_est      (i_j list)
@@ -254,6 +339,28 @@ result_55_prep <- function(step_5, i, j, full = T){
     
     g_list <- list(visualize_matrix_heatmap(step_5$KL_cov_truth[[key]], g_title = 'Ground Truth'),
                    visualize_matrix_heatmap(step_5$KL_cov_est[[key]], g_title = 'Estimate')) 
+    
+    return(g_list)
+  }
+  
+  return(NULL)
+  
+}
+
+# plot the (dxd) KL correlation values of the (i, j) block
+result_56_prep <- function(step_5b, i, j, full = T){
+  
+  #   - KL_cor_est      (i_j list)
+  #   - KL_cor_truth    (i_j list)
+  
+  key <- paste0(i, '_', j)
+  
+  if(! full){
+    
+    
+    
+    g_list <- list(visualize_matrix_heatmap(step_5b$KL_cor_truth[[key]], g_title = 'Ground Truth'),
+                   visualize_matrix_heatmap(step_5b$KL_cor_est[[key]], g_title = 'Estimate')) 
     
     return(g_list)
   }
