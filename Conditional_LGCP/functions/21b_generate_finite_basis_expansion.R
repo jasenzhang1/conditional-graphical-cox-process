@@ -73,7 +73,7 @@ trig_basis_cov_mat <- function(d, p, y_c_k, adj_type, adj_params){
   # ----------------------------------------------------------------------------
   #
   #
-  # GOAL: define the matrix to generate b's 
+  # GOAL: define the covariance matrix to generate beta's 
   #
   # inputs:
   #
@@ -81,6 +81,7 @@ trig_basis_cov_mat <- function(d, p, y_c_k, adj_type, adj_params){
   # - p                 (integer)
   # - y_c_k             (q_c-dim vector)
   # - adj_type          (string)
+  # - adj_params        (vector)
   #
   #
   # outputs:
@@ -97,6 +98,9 @@ trig_basis_cov_mat <- function(d, p, y_c_k, adj_type, adj_params){
   }
   
   if(adj_type %in% c('block_banded_v2', 'block_banded_c2')){
+    
+    # Theta_{i,i}   = beta_var * I_d 
+    # Theta_{i,i+1} = J_2_const * [1 0; 0 -1]
     
     # calculating J_2_const
     if(adj_type == 'block_banded_v2'){
@@ -116,7 +120,7 @@ trig_basis_cov_mat <- function(d, p, y_c_k, adj_type, adj_params){
     
     on_block <- diag(d) * beta_var
     
-    full_pd_mat <- matrix(0, nrow = p*d, ncol = p*d)
+    theta_pd <- matrix(0, nrow = p*d, ncol = p*d)
     
     for(i in 1:p){
       for(j in 1:p){
@@ -126,15 +130,19 @@ trig_basis_cov_mat <- function(d, p, y_c_k, adj_type, adj_params){
         
 
         if(i == j){
-          full_pd_mat[row_idx, col_idx] <- on_block
+          theta_pd[row_idx, col_idx] <- on_block
         }
         
         if(abs(i-j) == 1){
-          full_pd_mat[row_idx, col_idx] <- off_block
+          theta_pd[row_idx, col_idx] <- off_block
         }
       }
     }
-    return(full_pd_mat)
+    
+    cov_mat <- sym(solve(theta_pd))
+    
+    
+    return(cov_mat)
   }
 }
 
@@ -306,10 +314,10 @@ trig_basis_rho_truth <- function(basis_list, mean_vec, time_grid, mu_t, y_c_quer
   
 
   
-  return(list(rho_i_truth = rho_i_truth_matrix,
-              rho_ij_truth = rho_ij_truth,
-              g_ij_truth = g_ij_truth,
-              mu_t = mu_t,
+  return(list(rho_i_truth = rho_i_truth_matrix,   # (p x m)
+              rho_ij_truth = rho_ij_truth,        # (all pc2 lists of mxm matrices)
+              g_ij_truth = g_ij_truth,            # (pc2 list of mxm matrices)
+              mu_t = mu_t,                      
               term_2 = term_2,
               term_3 = term_3,
               term_3b = term_3b))
@@ -410,7 +418,7 @@ trig_basis_gram_matrix <- function(basis_list, t_min, t_max){
   return(G)  # your d x d Gram matrix  
 }
 
-trig_basis_eigendecomposition <- function(G, cov_mat, basis_list, time_grid, betas){
+trig_basis_eigendecomposition <- function(G, cov_mat, cor_mat, prec_mat, basis_list, time_grid){
   
   # ----------------------------------------------------------------------------
   #
@@ -420,10 +428,11 @@ trig_basis_eigendecomposition <- function(G, cov_mat, basis_list, time_grid, bet
   # inputs:
   #
   # - G             (d x d matrix)      Gram matrix
-  # - cov_mat       (pd x pd matrix)    current covariance matrix for b_i's 
+  # - cov_mat       (pd x pd matrix)    current covariance matrix for betas 
+  # - cor_mat       (pd x pd matrix)    current correlation matrix for betas 
+  # - prec_mat      (pd x pd matrix)    current precision matrix for betas 
   # - basis_list
   # - time_grid     (m-dim vector)
-  # - betas         (p x d x n)        realization of beta ~ N(0, cov_mat) for all n subjects 
   #
   # outputs:
   #
@@ -434,8 +443,12 @@ trig_basis_eigendecomposition <- function(G, cov_mat, basis_list, time_grid, bet
   #     - eigenfunctions      (p-dim list of m x d_i matrices of eigenfunctions)
   #     - n_dims              (p-dim list of d_i scalars)
   #
-  #   - KL_cor      (list of i_j items) each item is a d x d correlation matrix
-  #   - corr_op     (pm x pm matrix)
+  # - KL_cov        (pc2 list of dxd matrices)    cov(beta, beta)
+  # - KL_cor        (pc2 list of dxd matrices)    cor(beta, beta)
+  # - KL_prec       (pc2 list of dxd matrices)    prec(beta, beta)
+  # - C_cond        (pc2 list of mxm matrices)    double sum of cor(beta, beta) * tensorprod(phi, phi)
+  # - P_cond        (pc2 list of mxm matrices)    double sum of prec(beta, beta) * tensorprod(phi, phi)
+  # - P_HS          (pxp matrix)
   #
   #
   # ----------------------------------------------------------------------------
@@ -480,69 +493,53 @@ trig_basis_eigendecomposition <- function(G, cov_mat, basis_list, time_grid, bet
     
   }
   
-  # correlation of KL coefficients (KL_cor_result)
-  
-  # - for eigencomponents m and n
-  # - for processes i and j
-  # - cor(beta_i^m, beta_j^n) = [\Sigma_{ij}]_{mn} / sqrt([\Sigma_{ii}]_{mm} [\Sigma_{jj}]_{nn})
-  
-  KL_cov_result <- extract_block_structure_v2(cov_mat, p, d)
-  
-  KL_cor_result <- list()
-  
-  
-  for(i in 1:p){
-    for(j in i:p){
-      
-      key <- paste0(i, '_', j)
-      
-      # extract blocks
-      rows_i <- ((i-1)*d + 1):(i*d)
-      cols_j <- ((j-1)*d + 1):(j*d)
-      
-      Sigma_ij <- cov_mat[rows_i, cols_j]       # d x d
-      Sigma_ii <- cov_mat[rows_i, rows_i]       # d x d
-      Sigma_jj <- cov_mat[cols_j, cols_j]       # d x d
-      
-      # elementwise correlation
-      R_ij <- Sigma_ij / sqrt(outer(diag(Sigma_ii), diag(Sigma_jj)))
-      
-      # store in list
-      KL_cor_result[[key]] <- R_ij
-    }
-  }
-  
   # correlation operator (C_cond)
   # - linear combination of KL covariances and tensor product of eigenfunctions
   
   
   C_cond <- list()
+  P_cond <- list()
+  
+  cor_mat_list  <- extract_block_structure_v2(cor_mat, p, d) 
+  prec_mat_list <- extract_block_structure_v2(prec_mat, p, d) 
   
   for(i in 1:p){
     for(j in i:p){
       
       key <- paste0(i, '_', j)
-      coeffs <- KL_cor_result[[key]]  #(d x d)
+      
+      cor_ij <- cor_mat_list[[key]]  #(d x d)
+      prec_ij <- prec_mat_list[[key]]  #(d x d)
+      
       eigenfunction_i <- eigen_result[[i]]$eigenfunction
       eigenfunction_j <- eigen_result[[j]]$eigenfunction  
       
       C_ij <- matrix(0, nrow = m, ncol = m)
-
+      P_ij <- matrix(0, nrow = m, ncol = m)
       
       for(a in 1:d){
         for(b in 1:d){
-          
-          
-          C_ij <- C_ij + coeffs[a,b] * tcrossprod(eigenfunction_i[, a], eigenfunction_j[, b]) # (m x m)
-          
+          C_ij <- C_ij + cor_ij[a,b]  * tcrossprod(eigenfunction_i[, a], eigenfunction_j[, b]) # (m x m)
+          P_ij <- P_ij + prec_ij[a,b] * tcrossprod(eigenfunction_i[, a], eigenfunction_j[, b]) # (m x m)
         }
       }
       C_cond[[key]] <- C_ij
+      P_cond[[key]] <- P_ij
     }
   }
   
-  C_cond_full <- assemble_block_matrix_v2(C_cond, p, m) # (pm x pm)
+  C_cond_full <- assemble_block_matrix_v2(C_cond, p, m)
+  P_cond_full <- assemble_block_matrix_v2(P_cond, p, m)
   
+  # KL_cov and KL_cov
+  
+  KL_cov <- extract_block_structure_v2(cov_mat, p, d)
+  KL_cor <- extract_block_structure_v2(cor_mat, p, d)
+  KL_prec <- extract_block_structure_v2(prec_mat, p, d)
+  
+  # HS_truth
+  
+  P_HS <- hilbert_schmidt_norm_pm(prec_mat, p, d)
   
   # reordering 
   
@@ -558,9 +555,12 @@ trig_basis_eigendecomposition <- function(G, cov_mat, basis_list, time_grid, bet
 
   
   return(list(eigen_decomp = eigen_result_v2,
-              KL_cor = KL_cor_result,
-              KL_cov = KL_cov_result,
-              corr_op = C_cond_full))
+              KL_cov = KL_cov,             # (pc2 list of dxd matrices)
+              KL_cor = KL_cor,             # (pc2 list of dxd matrices)
+              KL_prec = KL_prec,           # (pc2 list of dxd matrices)
+              C_cond_full = C_cond_full,   # (pm x pm matrix) 
+              C_cond_full = P_cond_full,   # (pm x pm matrix)
+              P_HS = P_HS))                # (pxp matrix)
 }
 
 
