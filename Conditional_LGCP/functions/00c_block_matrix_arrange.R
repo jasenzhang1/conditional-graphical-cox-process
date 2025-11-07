@@ -135,3 +135,53 @@ extract_block_structure_ij <- function(block_matrix, block_size, i, j) {
   
   return(block_ij)
 }
+
+assemble_blockwise_correlation <- function(Sigma, p, d){
+  
+  
+  # ----------------------------------------------------------------------------
+  # 
+  # 
+  # GOAL: for a pd x pd covariance matrix, return blocks that are correlation matrices
+  #
+  # - [Sigma]_{ij} is the (i,j)th block
+  # - Let [R]_{ij} = diag(Sigma_{ii})^{-1/2} %*% Sigma_{ij} %*% diag(Sigma_{jj})^{-1/2}
+  # - Then block them into pd x pd matrix R
+  #
+  #
+  # inputs:
+  #
+  # - Sigma        (pd x pd matrix)  block covariance matrix
+  # - p            (scalar)
+  # - d            (scalar)
+  #
+  # output:
+  #
+  # - R            (pd x pd matrix)   block correlation matrix
+  #
+  # ----------------------------------------------------------------------------
+  
+
+  R <- matrix(0, nrow = p * d, ncol = p * d)
+  
+  # Precompute inverse sqrt of diagonal blocks
+  D_inv_sqrt_list <- vector("list", p)
+  for (i in 1:p) {
+    idx_i <- ((i - 1) * d + 1):(i * d)
+    Sigma_ii <- Sigma[idx_i, idx_i]
+    D_inv_sqrt_list[[i]] <- diag(1 / sqrt(diag(Sigma_ii)))
+  }
+  
+  # Fill in correlation blocks
+  for (i in 1:p) {
+    for (j in 1:p) {
+      idx_i <- ((i - 1) * d + 1):(i * d)
+      idx_j <- ((j - 1) * d + 1):(j * d)
+      Sigma_ij <- Sigma[idx_i, idx_j]
+      R[idx_i, idx_j] <- D_inv_sqrt_list[[i]] %*% Sigma_ij %*% D_inv_sqrt_list[[j]]
+    }
+  }
+  
+  return(R)
+  
+}
