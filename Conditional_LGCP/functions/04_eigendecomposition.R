@@ -104,7 +104,7 @@ prep_eigendecomposition_ii <- function(G_hat, p){
   return(G_mat)
 }
 
-compute_eigendecomposition_ii <- function(G_hat, norm_G, norm_vec, var_explained = 0.999) {
+compute_eigendecomposition_ii <- function(G_hat, var_explained = 0.999) {
   
   # ----------------------------------------------------------------------------
   #

@@ -111,14 +111,9 @@ full_conditional_estimation_with_no_truth <- function(dataset, method, ncores, d
     step_3  <- step_3_g_ij(step_2, step_2b, kernel_params_i, i_neq_j, full)
     
     
-    norm_G <- T # try normalizing G_ii = G_ii * diag(delta_t)
-    
-    # if (T), normalize eta so that Delta * \eta^\top * \eta = 1
-    # if (F), keep it so that \eta^\top & \eta = m
-    norm_vec <- F 
     
     step_4 <- tryCatch({
-      step_4_eigendecomp(step_3, p, time_grid, time_grid_est, norm_G, norm_vec, full)
+      step_4_eigendecomp(step_3, p, time_grid, time_grid_est, full)
     }, error = function(e) {
       cat("Error in step_4, saving dataset...\n")
       save(dataset, file = file.path(dir, "dataset.RData"))
@@ -132,7 +127,7 @@ full_conditional_estimation_with_no_truth <- function(dataset, method, ncores, d
       step_8 <- steps_78(step_4, step_5, kernel_params_i, y_c_strata, query_y_c, method, ncores)
       step_9 <- step_9_C_cond_from_V_cond(step_8, kernel_params_i)
     } else{
-      step_5 <- step_5_KL_covariance(step_3, step_4, norm_G, full)
+      step_5 <- step_5_KL_covariance(step_3, step_4, full)
       step_5b <- step_5b_KL_correlation(step_5, p, full)
       step_9 <- step_9_C_cond_from_KL_cor(step_4, step_5b, kernel_params_i, full)
     }
@@ -157,7 +152,7 @@ full_conditional_estimation_with_no_truth <- function(dataset, method, ncores, d
 
     
     list(step_2 = step_2, step_2b = step_2b, step_3 = step_3,
-         step_4 = step_4, step_5 = step_5, step_9 = step_9,
+         step_4 = step_4, step_5 = step_5, step_5b = step_5b, step_9 = step_9,
          step_10 = step_10, step_11 = step_11)
   })
   
