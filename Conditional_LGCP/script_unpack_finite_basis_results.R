@@ -21,7 +21,7 @@ n <- 1000
 
 # heatmaps of certain metrics 
 
-graph_ids <- c('22', '25', '91')
+graph_ids <- c('22', '25', '31', '91')
 
 truth_file_name <- paste0(data_folder, '/', adj_type, '_n_', n, '_truths.RData')
 estimates_file_name <- paste0(base_folder, '/', adj_type, '/', method, '/', method, '_n_', n, '.RData')
