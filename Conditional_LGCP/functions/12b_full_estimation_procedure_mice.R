@@ -112,7 +112,10 @@ full_conditional_estimation_with_no_truth <- function(dataset, method, ncores, d
     
     
     norm_G <- T # try normalizing G_ii = G_ii * diag(delta_t)
-    norm_vec <- F # normalize eta so that Delta * \eta^\top * \eta = 1
+    
+    # if (T), normalize eta so that Delta * \eta^\top * \eta = 1
+    # if (F), keep it so that \eta^\top & \eta = m
+    norm_vec <- F 
     
     step_4 <- tryCatch({
       step_4_eigendecomp(step_3, p, time_grid, time_grid_est, norm_G, norm_vec, full)
@@ -176,6 +179,7 @@ full_conditional_estimation_with_no_truth <- function(dataset, method, ncores, d
   all_results$time_grid <- time_grid
   all_results$time_grid_est <- time_grid_est
   all_results$time_grid_both <- time_grid_both
+  all_results$p <- p
   
   return(all_results)
   
