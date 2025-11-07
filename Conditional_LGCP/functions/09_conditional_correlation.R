@@ -172,7 +172,7 @@ correlation_estimation_KL_cor <- function(eigendecomp, KL_cor, identity = T){
   
   
   p <- length(eigendecomp$eigenvalues)
-  d <- dim(KL_cov[[1]])[1]
+  d <- dim(KL_cor[[1]])[1]
   m <- dim(eigendecomp$eigenfunctions[[1]])[1]
   Delta <- 1/m
   
