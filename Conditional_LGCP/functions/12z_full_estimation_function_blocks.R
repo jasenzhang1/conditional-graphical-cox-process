@@ -602,10 +602,10 @@ step_4_eigendecomp <- function(step_3, p, time_grid, time_grid_est, norm_G, norm
   # outputs:
   #
   # - list of:
-  #   - eigen_decomp_truth               (list of 3 things)
-  #     - [[1]] eigenvalues  (list of p vectors of eigenvalues)
-  #     - [[2]] eigenvectors (list of p matrices of m x d_i)
-  #     - [[3]] n_dims       (list of p integers denoting d_i)
+  #   - eigen_decomp_truth             (list of 4 things)
+  #     - [[1]] eigenvalues            (list of p vectors of eigenvalues)
+  #     - [[2]] eigenvectors           (list of p matrices of m x d_i)
+  #     - [[3]] n_dims                 (list of p integers denoting d_i)
   #
   #   - eigen_decomp_coarse_truth
   #   - eigen_decomp_X_truth
@@ -619,7 +619,7 @@ step_4_eigendecomp <- function(step_3, p, time_grid, time_grid_est, norm_G, norm
     g_ii_est <- prep_eigendecomposition_ii(g_ij_est, p)
     
     # perform eigendecomposition
-    eigen_decomp_est <- compute_eigendecomposition_ii(g_ii_est, norm_G, norm_vec)
+    eigen_decomp_est <- compute_eigendecomposition_ii(g_ii_est)
     
     return(list(eigen_decomp_est = eigen_decomp_est))
   }
@@ -778,7 +778,7 @@ step_5_KL_expansion <- function(step_1, step_4, kernel_params, time_grid, time_g
   
 }
 
-step_5_KL_covariance <- function(step_3, step_4, norm_G, full = T){
+step_5_KL_covariance <- function(step_3, step_4, full = T){
   
   # ----------------------------------------------------------------------------
   # 
@@ -822,7 +822,7 @@ step_5_KL_covariance <- function(step_3, step_4, norm_G, full = T){
   # ----------------------------------------------------------------------------
   
   if(! full){
-    KL_cov_est <- estimate_KL_covariance(step_3[[1]], step_4[[1]]$eigenfunctions, norm_G)
+    KL_cov_est <- estimate_KL_covariance(step_3[[1]], step_4[[1]]$eigenfunctions)
     
     return(list(KL_cov_est = KL_cov_est))
   }
@@ -1176,7 +1176,7 @@ step_9_C_cond_from_KL_cov <- function(step_4, step_5, kernel_params, full = T){
   # - step_4
   #   - eigen_decomp_truth               (list of 3 things)
   #     - [[1]] eigenvalues  (list of p vectors of eigenvalues)
-  #     - [[2]] eigenvectors (list of p matrices of m x d_i)
+  #     - [[2]] eigenvectors (list of p matrices of m x d_i)            THEY ARE NOT NORMALIZED
   #     - [[3]] n_dims       (list of p integers denoting d_i)
   #
   #   - eigen_decomp_coarse_truth
@@ -1293,7 +1293,7 @@ step_9_C_cond_from_KL_cor <- function(step_4, step_5b, kernel_params, full = T){
   # - step_4
   #   - eigen_decomp_truth               (list of 3 things)
   #     - [[1]] eigenvalues  (list of p vectors of eigenvalues)
-  #     - [[2]] eigenvectors (list of p matrices of m x d_i)
+  #     - [[2]] eigenvectors (list of p matrices of m x d_i)          THEY ARE NOT NORMALIZED
   #     - [[3]] n_dims       (list of p integers denoting d_i)
   #
   #   - eigen_decomp_coarse_truth
