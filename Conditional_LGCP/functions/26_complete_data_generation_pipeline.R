@@ -409,6 +409,9 @@ simulate_finite_basis_cox_data <- function(n, d, p, adj_type, adj_params, beta_0
     trig_basis_cov_mat(d, p, y_c_query[i, ], adj_type, adj_params)
   })
   
+  cor_mat_query <- lapply(cov_mat_query, function(x) assemble_blockwise_correlation(x, p, d))
+  prec_mat_query <- lapply(cov_mat_query, function(x) sym(solve(x)))
+  
   # Store complete subject information
   result <- package_simulation_results(event_times_list, n, p, T_max, y_c_query,
                                        adj_type, adj_params, time_grid, time_grid_est, time_grid_both, seed,
@@ -427,7 +430,7 @@ simulate_finite_basis_cox_data <- function(n, d, p, adj_type, adj_params, beta_0
   
   print('at eigen truth recovery')
   G <- trig_basis_gram_matrix(basis_list, 0, T_max)
-  eigen_truths <- lapply(1:length(cov_mat_query), function(i) trig_basis_eigendecomposition(G, cov_mat_query[[i]], basis_list, time_grid, beta_coeffs))
+  eigen_truths <- lapply(1:length(cov_mat_query), function(i) trig_basis_eigendecomposition(G, cov_mat_query[[i]], cor_mat_query[[i]], prec_mat_query[[i]], basis_list, time_grid))
   
   # ----------------------------------------------------------------------------
   # merge truths - layer 1 = item - layer 2 = y_c_query
@@ -462,19 +465,27 @@ simulate_finite_basis_cox_data <- function(n, d, p, adj_type, adj_params, beta_0
   
   step_5 <- lapply(eigen_truths, function(x) {
     list(KL_coeffs_truth = beta_coeffs,          # (p x d x n)
-         KL_cov_truth = x$KL_cov)
+         KL_cov_truth = x$KL_cov)                # (pc2 list of dxd matrices)
   })  
   
   step_5b <- lapply(eigen_truths, function(x) {
-    list(KL_cor_truth = x$KL_cor)
+    list(KL_cor_truth  = x$KL_cor,               # (pc2 list of dxd matrices)
+         KL_prec_truth = x$KL_prec)              # (pc2 list of dxd matrices)
+    
   })  
   
   step_9 <- lapply(eigen_truths, function(x) {
-    list(C_cond_truth_full = x$corr_op)
+    list(C_cond_truth_full = x$C_cond_full)          # (pm x pm matrix)
   }) 
   
+  step_10 <- lapply(eigen_truths, function(x) {
+    list(P_cond_truth_full = x$P_cond_full)          # (pm x pm matrix)
+  }) 
 
-
+  step_11 <- lapply(eigen_truths, function(x) {
+    list(w_mat_truth = x$P_HS)                       # (pxp matrix)
+  }) 
+  
   
   all_truths <- list(step_1 = step_1,
                      step_2 = step_2,
@@ -482,7 +493,10 @@ simulate_finite_basis_cox_data <- function(n, d, p, adj_type, adj_params, beta_0
                      step_3 = step_3,
                      step_4 = step_4,
                      step_5 = step_5,
-                     step_9 = step_9)
+                     step_5b = step_5b,
+                     step_9 = step_9,
+                     step_10 = step_10,
+                     step_11 = step_11)
   
   # rename to be steps
   
