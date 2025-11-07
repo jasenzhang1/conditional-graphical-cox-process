@@ -20,7 +20,7 @@ m <- 50
 T_max <- 1
 
 
-beta_0 <- 5.5
+beta_0 <- 5
 
 time_grid <- seq(0, T_max, length.out = m)
 time_grid_est <- 1:19/20
