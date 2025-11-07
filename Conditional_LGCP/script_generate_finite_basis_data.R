@@ -11,9 +11,9 @@ n <- as.numeric(args[1])
 adj_type <- args[2]
 adj_params <- as.numeric(args[3:length(args)])
 
-# n <- 100
+# n <- 200
 # adj_type <- 'block_banded_v2'
-# adj_params <- c(0, 1, 0, 0.12, 0.3)
+# adj_params <- c(0, 1, 0, 0.5, 3)
 d <- 2
 p <- 12
 m <- 50

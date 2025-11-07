@@ -13,8 +13,8 @@ source('functions/00_function_wrapper.R')
 # args 
 args <- commandArgs(trailingOnly = TRUE)
 
-n_large <- as.numeric(args[1])  # n_large <- 100
-n <- as.numeric(args[2])        # n <- 100
+n_large <- as.numeric(args[1])  # n_large <- 200
+n <- as.numeric(args[2])        # n <- 200
 adj_type <- args[3]             # adj_type <- 'block_banded_v2'
 method <- args[4]               # method <- 'CPGM'
 

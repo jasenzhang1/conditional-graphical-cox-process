@@ -14,12 +14,12 @@ adj_type_params=(
   #"banded_c2 0 1 0.5"
   #"banded_trig2 0 1 0.3"
   #"sparse_v2 0 1 2 0.3 -1 2 0.01"
-  "block_banded_v2 0 1 0 0.12 0.3"
+  "block_banded_v2 0 1 0 0.5 3"
 )
 
-ns=(150 250)
+n_large=500
+ns=(100 300 500)
 method="CPGM"
-n_large=250
 max_jobs=30
 
 mkdir -p script_outputs
