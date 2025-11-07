@@ -116,8 +116,6 @@ compute_eigendecomposition_ii <- function(G_hat, norm_G, norm_vec, var_explained
   # Input: 
   # 
   # - G_hat (m x m array) (m x m x p)
-  # - norm_G       (boolean)    do we apply G_ii <- G_ii / m to get constant eigenvalues?
-  # - norm_vec     (boolean)    do we normalize the eigenvectors so that Delta * eta^\top \eta = 1?
   #                            
   # - var_explained (percentage)
   # 
@@ -136,39 +134,35 @@ compute_eigendecomposition_ii <- function(G_hat, norm_G, norm_vec, var_explained
   
   eigenvalues <- list()
   eigenfunctions <- list()
+  eigenfunctions_regular <- list()
   n_dims <- list()
   
   for (i in 1:p) {
     # Extract marginal covariance matrix: m x m
-    
-    if(norm_G){
-      G_ii <- G_hat[, , i] / m
-    } else{
-      G_ii <- G_hat[, , i] 
-    }
-    
-    
+    G_ii_norm <- G_hat[, , i] / m
+
     # Ensure symmetry for numerical stability
-    G_ii <- (G_ii + t(G_ii)) / 2
+    G_ii_norm <- (G_ii_norm + t(G_ii_norm)) / 2
     
     # Compute eigendecomposition
     # eigen() returns: values (m x 1), vectors (m x m)
     # eigen_result <- eigen(G_ii, symmetric=TRUE)
     
     eigen_result <- tryCatch({
-      eigen(G_ii, symmetric = TRUE)
+      eigen(G_ii_norm, symmetric = TRUE)
     }, error = function(e) {
       cat("Error occurred in eigen() of compute_eigendecomposition_ii in step 4:\n")
       print(e$message)
       cat("\nG_ii contains:\n")
-      print(G_ii)
+      print(G_ii_norm)
       cat("\nSummary of G_ii:\n")
-      print(summary(as.vector(G_ii)))
-      cat("\nAny NA values:", any(is.na(G_ii)), "\n")
-      cat("Any Inf values:", any(is.infinite(G_ii)), "\n")
+      print(summary(as.vector(G_ii_norm)))
+      cat("\nAny NA values:", any(is.na(G_ii_norm)), "\n")
+      cat("Any Inf values:", any(is.infinite(G_ii_norm)), "\n")
       
       stop(e)  # Re-throw the error after printing
     })
+    
     
     # store and massage eigendecomposition
     
@@ -191,14 +185,16 @@ compute_eigendecomposition_ii <- function(G_hat, norm_G, norm_vec, var_explained
       eigenfunctions[[i]] <- etas[, 1:d_i]      # m x d matrix
     }  
 
-    if(norm_vec){ # normalize the eigenvectors so that Delta * eta^\top * eta = 1
-      eigenfunctions[[i]] <- eigenfunctions[[i]] / sqrt(Delta)
-    }
+    # keep it so that their mangitudes stay the same regardless of m
+    eigenfunctions[[i]] <- eigenfunctions[[i]] / sqrt(Delta)
+
     
     n_dims[[i]] <- d_i
   }
   
-  return(list(eigenvalues = eigenvalues, eigenfunctions = eigenfunctions, n_dims = n_dims))
+  return(list(eigenvalues = eigenvalues, 
+              eigenfunctions = eigenfunctions, 
+              n_dims = n_dims))
 }
 
 compute_eigendecomposition_dmax <- function(G_hat, d_max = 10) {
