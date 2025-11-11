@@ -130,6 +130,7 @@ full_conditional_estimation_with_no_truth <- function(dataset, method, ncores, d
       step_5 <- step_5_KL_covariance(step_3, step_4, full)
       step_5b <- step_5b_KL_correlation(step_5, p, full)
       step_9 <- step_9_C_cond_from_KL_cor(step_4, step_5b, kernel_params_i, full)
+      step_9b <- step_9b_eigenfunction_outers(step_4, full)
     }
     
     # reunite at step 10 onwards
@@ -138,8 +139,8 @@ full_conditional_estimation_with_no_truth <- function(dataset, method, ncores, d
     MP <- F
     
     # step_10 <- step_10_P_cond(step_9, kernel_params_i, p, block, MP)
-    result <- tryCatch({
-      step_10 <- step_10_P_cond(step_9, kernel_params_i, p, block, MP, full)
+    step_10 <- tryCatch({
+      step_10_P_cond(step_9, kernel_params_i, p, block, MP, full)
     }, error = function(e) {
       cat("Error occurred in step_10, saving dataset...\n")
       save(dataset, file = paste0(dir, "/dataset.RData"))
@@ -148,11 +149,11 @@ full_conditional_estimation_with_no_truth <- function(dataset, method, ncores, d
     })
     
     
-    step_11 <- step_11_HS_norms(step_10, adj_mat_i, p, full)
+    step_11 <- step_11_HS_norms(step_9, step_10, adj_mat_i, p, full)
 
     
     list(step_2 = step_2, step_2b = step_2b, step_3 = step_3,
-         step_4 = step_4, step_5 = step_5, step_5b = step_5b, step_9 = step_9,
+         step_4 = step_4, step_5 = step_5, step_5b = step_5b, step_9 = step_9, step_9b = step_9b,
          step_10 = step_10, step_11 = step_11)
   })
   
