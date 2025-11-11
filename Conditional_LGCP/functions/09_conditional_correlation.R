@@ -55,7 +55,7 @@ estimate_conditional_correlation_v4 <- function(V_cond_mat, p, identity = T, pin
   return(C_conditional)
 }
 
-correlation_estimation_KL_cor <- function(eigendecomp, KL_cor, identity = T){
+correlation_estimation_KL_cor <- function(eigendecomp, KL_cor, identity = F){
   
   # ----------------------------------------------------------------------------
   # 
@@ -84,9 +84,10 @@ correlation_estimation_KL_cor <- function(eigendecomp, KL_cor, identity = T){
   p <- length(eigendecomp$eigenvalues)
   d <- dim(KL_cor[[1]])[1]
   m <- dim(eigendecomp$eigenfunctions[[1]])[1]
-  Delta <- 1/m
+  delta <- 1/m
   
   C_cond <- list()
+  C_cond_unnorm <- list()
   
   for(i in 1:p){
     for(j in i:p){
@@ -94,12 +95,13 @@ correlation_estimation_KL_cor <- function(eigendecomp, KL_cor, identity = T){
       key <- paste0(i, '_', j)
       
       if(i == j & identity){
+        stop('Error 09: do not use the identity route')
         C_ij <- diag(m)
       } else{
         
         
-        evec_i <- eigendecomp$eigenfunctions[[i]]
-        evec_j <- eigendecomp$eigenfunctions[[j]]
+        evec_i <- eigendecomp$eigenfunctions[[i]] * sqrt(delta)
+        evec_j <- eigendecomp$eigenfunctions[[j]] * sqrt(delta)
         
         d_i <- dim(evec_i)[2]
         d_j <- dim(evec_j)[2]
@@ -111,25 +113,97 @@ correlation_estimation_KL_cor <- function(eigendecomp, KL_cor, identity = T){
         }      
         
         
-        C_ij <- matrix(0, nrow = m, ncol = m)
+        # C_ij <- matrix(0, nrow = m, ncol = m)
+        # 
+        # for(a in 1:d_i){
+        #   for(b in 1:d_j){
+        #     
+        #     # REMEMBER, EIGENFUNCTIONS ARE NOT NORMALIZED
+        #     
+        #     C_ij <- C_ij + cor_ij[a,b] * Delta^2 * tcrossprod(evec_i[, a], evec_j[, b])
+        #     
+        #   }
+        # }
         
-        for(a in 1:d_i){
-          for(b in 1:d_j){
-            
-            # REMEMBER, EIGENFUNCTIONS ARE NOT NORMALIZED
-            
-            C_ij <- C_ij + cor_ij[a,b] * Delta^2 * tcrossprod(evec_i[, a], evec_j[, b])
-            
-          }
-        }
+        C_ij <- evec_i %*% cor_ij %*% t(evec_j)
+        C_ij_unnorm <- eigendecomp$eigenfunctions[[i]] %*% cor_ij %*% t(eigendecomp$eigenfunctions[[j]])
+        
       } # end of nonidentity case 
       
       C_cond[[key]] <- C_ij
+      C_cond_unnorm[[key]] <- C_ij_unnorm
       
     }
   }
   
-  return(C_cond)
+  return(list(C_cond = C_cond,
+              C_cond_unnorm = C_cond_unnorm))
   
+  
+}
+
+
+correlation_eigenfunction_outer <- function(eigendecomp){
+  
+  # ----------------------------------------------------------------------------
+  # 
+  #
+  # GOAL: calculate the outer product of non-normalized eigenfunctions 
+  #
+  #
+  # input:
+  #
+  # - eigendecomp (list of 3 entries)
+  #
+  #   - eigenvalues
+  #   - eigenfunctions  (p-dim list of m x d_i matrices) NOT NORMALIZED
+  #   - n_dims
+  #
+  #
+  # output:
+  #
+  # - efunc_outer_list   (i_j list of mxm matrics)
+  #
+  #
+  # ----------------------------------------------------------------------------
+  
+  p <- length(eigendecomp$eigenfunctions)
+  
+  efunc_outer_list <- list()
+  efunc_outer_list_unnorm <- list()
+  
+  m <- dim(eigendecomp$eigenfunctions[[1]])[1]
+  
+  for(i in 1:p){
+    for(j in i:p){
+      
+      key <- paste0(i, '_', j)
+      
+      
+      eigenfunction_i <- eigendecomp$eigenfunctions[[i]] * sqrt(1/m)
+      eigenfunction_j <- eigendecomp$eigenfunctions[[j]] * sqrt(1/m)
+      
+      e_i2 <- eigendecomp$eigenfunctions[[i]]
+      e_j2 <- eigendecomp$eigenfunctions[[j]] 
+      
+      outer_ij        <- matrix(0, nrow = m, ncol = m)
+      outer_ij_unnorm <- matrix(0, nrow = m, ncol = m)
+      for (a in 1:ncol(eigenfunction_i)) {
+        for (b in 1:ncol(eigenfunction_j)) {
+          outer_ij <- outer_ij + (eigenfunction_i[,a] %*% t(eigenfunction_j[,b]))
+          outer_ij_unnorm <- outer_ij_unnorm + (e_i2[,a] %*% t(e_j2[,b]))
+        }
+      }
+      
+
+      
+
+      efunc_outer_list[[key]] <- outer_ij
+      efunc_outer_list_unnorm[[key]] <- outer_ij_unnorm
+    }
+  }
+  
+  return(list(efunc_outer_list = efunc_outer_list,
+              efunc_outer_list_unnorm = efunc_outer_list_unnorm))
   
 }
