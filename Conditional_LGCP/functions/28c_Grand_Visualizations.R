@@ -278,15 +278,15 @@ visualize_over_time <- function(graph_results_i, graph_ids, i, j, full = T){
     graphs[['g_45']] <- rearrange_plots(g_list) 
   }
   
-  # KL_cov of (i, j) block
+  # KL_cov of (1, 2) block
   if('55' %in% graph_ids){
-    g_list <- lapply(step_5, function(x) result_55_prep(x))
+    g_list <- lapply(step_5, function(x) result_55_prep(x, i = 1, j = 2, full))
     graphs[['g_55']] <- rearrange_plots(g_list) 
   }
   
-  # KL_cor of (i, j) block
+  # KL_cor of (1, 2) block
   if('56' %in% graph_ids){
-    g_list <- lapply(step_5b, function(x) result_56_prep(x))
+    g_list <- lapply(step_5b, function(x) result_56_prep(x, i = 1, j = 2, full))
     graphs[['g_56']] <- rearrange_plots(g_list) 
   }
   
@@ -297,23 +297,25 @@ visualize_over_time <- function(graph_results_i, graph_ids, i, j, full = T){
   # C_Xi_Xj for block (1, 2)
   
   if('91' %in% graph_ids){
-    graph_list <- lapply(graph_results_i$step_9, function(x){ result_90s_prep_ij(x, m, m_est, i = 1, j = 2, full) })
+    g_list <- lapply(graph_results_i$step_9, function(x){ result_90s_prep_ij(x, m, m_est, i = 1, j = 2, full) })
     
-    n_y_c_query <- length(graph_list)
-    n_settings <- length(graph_list[[1]])
+    graphs[['g_91']] <- rearrange_plots(g_list) 
     
-    # Flatten the nested list: row-wise
-    flat_graphs <- unlist(graph_list, recursive = FALSE)
-    
-    # Create column-major index mapping
-    # R's matrix() fills column-wise by default, so we transpose to reorder properly
-    idx <- as.vector(t(matrix(seq_along(flat_graphs), nrow = n_settings, ncol = n_y_c_query)))
-    
-    # Reorder the flat list
-    flat_graphs_colwise <- flat_graphs[idx]
-    
-    # Arrange in n_settings rows x n_y_c_query columns
-    graphs[['g_91']] <- do.call(grid.arrange, c(flat_graphs_colwise, nrow = n_settings, ncol = n_y_c_query))
+    # n_y_c_query <- length(graph_list)
+    # n_settings <- length(graph_list[[1]])
+    # 
+    # # Flatten the nested list: row-wise
+    # flat_graphs <- unlist(graph_list, recursive = FALSE)
+    # 
+    # # Create column-major index mapping
+    # # R's matrix() fills column-wise by default, so we transpose to reorder properly
+    # idx <- as.vector(t(matrix(seq_along(flat_graphs), nrow = n_settings, ncol = n_y_c_query)))
+    # 
+    # # Reorder the flat list
+    # flat_graphs_colwise <- flat_graphs[idx]
+    # 
+    # # Arrange in n_settings rows x n_y_c_query columns
+    # graphs[['g_91']] <- do.call(grid.arrange, c(flat_graphs_colwise, nrow = n_settings, ncol = n_y_c_query))
     
     
   }
@@ -340,6 +342,30 @@ visualize_over_time <- function(graph_results_i, graph_ids, i, j, full = T){
     graphs[['g_92']] <- do.call(grid.arrange, c(flat_graphs_colwise, nrow = n_settings, ncol = n_y_c_query))
     
     
+  }  
+  
+  # C for all blocks (pm x pm)
+  if('93' %in% graph_ids){
+    g_list <- lapply(graph_results_i$step_9, function(x) result_90s_prep_pm(x, m, m_est, full))
+    graphs[['g_93']] <- rearrange_plots(g_list) 
+  }  
+  
+  # C_HS for all pxp blocks
+  if('95' %in% graph_ids){
+    g_list <- lapply(graph_results_i$step_11, function(x) result_95_prep(x, m, m_est, p, full))
+    graphs[['g_95']] <- rearrange_plots(g_list) 
+  }
+  
+  # P for all blocks (pm x pm)
+  if('103' %in% graph_ids){
+    g_list <- lapply(graph_results_i$step_10, function(x) result_100s_prep_pm(x, m, m_est, full))
+    graphs[['g_103']] <- rearrange_plots(g_list) 
+  } 
+  
+  # P_HS for all pxp blocks
+  if('112' %in% graph_ids){
+    g_list <- lapply(graph_results_i$step_11, function(x) result_112_prep(x, remove_diag = T, full))
+    graphs[['g_112']] <- rearrange_plots(g_list) 
   }  
   
   if('113' %in% graph_ids){
