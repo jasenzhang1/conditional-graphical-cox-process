@@ -337,8 +337,8 @@ result_55_prep <- function(step_5, i, j, full = T){
     
     
     
-    g_list <- list(visualize_matrix_heatmap(step_5$KL_cov_truth[[key]], g_title = 'Ground Truth'),
-                   visualize_matrix_heatmap(step_5$KL_cov_est[[key]], g_title = 'Estimate')) 
+    g_list <- list(visualize_matrix_heatmap(step_5$KL_cov_truth[[key]], g_title = 'Ground Truth', zmid = 0),
+                   visualize_matrix_heatmap(step_5$KL_cov_est[[key]], g_title = 'Estimate', zmid = 0)) 
     
     return(g_list)
   }
@@ -359,8 +359,8 @@ result_56_prep <- function(step_5b, i, j, full = T){
     
     
     
-    g_list <- list(visualize_matrix_heatmap(step_5b$KL_cor_truth[[key]], g_title = 'Ground Truth'),
-                   visualize_matrix_heatmap(step_5b$KL_cor_est[[key]], g_title = 'Estimate')) 
+    g_list <- list(visualize_matrix_heatmap(step_5b$KL_cor_truth[[key]], g_title = 'Ground Truth', zmid = 0),
+                   visualize_matrix_heatmap(step_5b$KL_cor_est[[key]], g_title = 'Estimate', zmid = 0)) 
     
     return(g_list)
   }
@@ -420,8 +420,10 @@ result_90s_prep_ij <- function(step_9, m, m_est, i, j, full = T){
 result_90s_prep_pm <- function(step_9, m, m_est, full = T){
   
   if(! full){
-    g_list <- list(visualize_matrix_heatmap(step_9$C_cond_truth_full, 'Ground Truth',           zmid = 0),
-                   visualize_matrix_heatmap(step_9$C_cond_est_full,   'Estimate',               zmid = 0))
+    g_list <- list(visualize_matrix_heatmap(step_9$C_cond_truth_full,        'Truth',            zmid = 0),
+                   visualize_matrix_heatmap(step_9$C_cond_truth_unnorm_full, 'Truth Unnorm',     zmid = 0),
+                   visualize_matrix_heatmap(step_9$C_cond_est_full,          'Estimate',         zmid = 0),
+                   visualize_matrix_heatmap(step_9$C_cond_est_unnorm_full,   'Estimate Unnorm',  zmid = 0))
     return(g_list)
   }
   
@@ -440,18 +442,25 @@ result_90s_prep_pm <- function(step_9, m, m_est, full = T){
   return(g_list)
 }
 
-result_95_prep <- function(step_9, m, m_est, p, full = T){
+result_95_prep <- function(step_11, m, m_est, p, full = T){
   
   
   if(! full){
-    C_HS_truth_full                 <- hilbert_schmidt_norm_pm(step_9$C_cond_truth_full, p, m) 
-    C_HS_est                        <- hilbert_schmidt_norm_pm(step_9$C_cond_est_full,   p, m_est)
+    C_HS_truth                 <- step_11$C_HS_truth
+    C_HS_est                   <- step_11$C_HS_est
     
-    diag(C_HS_truth_full) <- 0
+    C_HS_truth_unnorm          <- step_11$C_HS_truth_unnorm
+    C_HS_est_unnorm            <- step_11$C_HS_est_unnorm
+    
+    diag(C_HS_truth) <- 0
     diag(C_HS_est) <- 0
+    diag(C_HS_truth_unnorm) <- 0
+    diag(C_HS_est_unnorm) <- 0
     
-    g_list <- list(visualize_matrix_heatmap(C_HS_truth_full,        'Truth',        zmid = 0),
-                   visualize_matrix_heatmap(C_HS_est,               'Estimate',     zmid = 0)) 
+    g_list <- list(visualize_matrix_heatmap(C_HS_truth,         'Truth',            zmid = 0),
+                   visualize_matrix_heatmap(C_HS_truth_unnorm,  'Truth Unnorm',     zmid = 0),
+                   visualize_matrix_heatmap(C_HS_est,           'Estimate',         zmid = 0),
+                   visualize_matrix_heatmap(C_HS_est_unnorm,    'Estimate Unnorm',  zmid = 0)) 
     
     return(g_list)
   }
@@ -484,6 +493,7 @@ result_95_prep <- function(step_9, m, m_est, p, full = T){
   
 }
 
+# only view the (i, j)-th block
 result_100s_prep_ij <- function(step_10, m, m_est, i, j){
   #   - P_cond_ground_truth_full          (pm x pm matrix)
   #   - P_cond_coarse_ground_truth_full   (pm_est x pm_est matrix)
@@ -503,7 +513,19 @@ result_100s_prep_ij <- function(step_10, m, m_est, i, j){
   return(g_list)
 }
 
-result_100s_prep_pm <- function(step_10, m, m_est){
+# view entire pm matrix
+result_100s_prep_pm <- function(step_10, m, m_est, full = T){
+  
+  if(!full){
+    g_list <- list(visualize_matrix_heatmap(step_10$P_cond_truth_full,        'Truth',            zmid = 0),
+                   visualize_matrix_heatmap(step_10$P_cond_truth_unnorm_full, 'Truth Unnorm',     zmid = 0),
+                   visualize_matrix_heatmap(step_10$P_cond_est_full,          'Estimate',         zmid = 0),
+                   visualize_matrix_heatmap(step_10$P_cond_est_unnorm_full,   'Estimate Unnorm',  zmid = 0))
+    
+    
+    
+    return(g_list) 
+  }
   
   g_list <- list(visualize_matrix_heatmap(step_10[[1]], 'Ground Truth',           zmid = 0),
                  visualize_matrix_heatmap(step_10[[2]], 'Coarse Ground Truth',    zmid = 0),
@@ -520,7 +542,7 @@ result_100s_prep_pm <- function(step_10, m, m_est){
   return(g_list)
 }
 
-result_112_prep <- function(step_11, remove_diag){
+result_112_prep <- function(step_11, remove_diag, full = T){
   #   - w_mat_ground_truth        (p x p)   matrix of HS norms of the pm x pm ground truth
   #   - w_mat_coarse_ground_truth (p x p)   matrix of HS norms of the pm_est x pm_est ground truth 
   #   - w_mat_X_coarse_truth      (p x p)   matrix of HS norms of ...
@@ -529,11 +551,22 @@ result_112_prep <- function(step_11, remove_diag){
   #   - w_mat_truth               (p x p)   matrix of HS norms of ...
   #   - w_mat_est                 (p x p)   matrix of HS norms of ...  
   
+
+  
   if(remove_diag){
     step_11 <- lapply(step_11, function(x) {
       diag(x) <- 0
       x
     })
+  }
+  
+  if(! full){
+    g_list <- list(visualize_matrix_heatmap(step_11$w_mat_truth,        'Truth',            zmid = 0), 
+                   visualize_matrix_heatmap(step_11$w_mat_truth_unnorm, 'Truth Unnorm',     zmid = 0),
+                   visualize_matrix_heatmap(step_11$w_mat_est ,         'Estimate',         zmid = 0), 
+                   visualize_matrix_heatmap(step_11$w_mat_est_unnorm,   'Estimate Unnorm',  zmid = 0))
+    
+    return(g_list) 
   }
   
   g_list <- list(visualize_matrix_heatmap(step_11[[1]], 'Ground Truth',        zmid = 0), 
