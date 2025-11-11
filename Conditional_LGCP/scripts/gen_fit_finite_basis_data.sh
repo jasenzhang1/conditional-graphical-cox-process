@@ -14,11 +14,11 @@ adj_type_params=(
   #"banded_c2 0 1 0.5"
   #"banded_trig2 0 1 0.3"
   #"sparse_v2 0 1 2 0.3 -1 2 0.01"
-  "block_banded_v2 0 1 0 0.5 3"
+  "block_banded_v2 0 1 0 1 3"
 )
 
-n_large=500
-ns=(100 300 500)
+n_large=1000
+ns=(100 200 500 750 1000)
 method="CPGM"
 max_jobs=30
 
@@ -68,18 +68,31 @@ for entry in "${adj_type_params[@]}"; do
           sleep 1
       done
   
-      # Run Rscript in background with timing
+      # Coarse fit
       (
           step_start=$(date +%s)
-          echo "[STEP 2] Fitting for n=$n, method=$method" | tee -a "$outfile"
-          Rscript script_fit_generated_finite_basis_data.R "$n_large" "$n" "$adj_type" "$method" >> "$outfile" 2>&1
-          step_end=$(date +%s)
-          step_elapsed=$(( step_end - step_start ))
-          echo "[DONE] Fitting for n=$n complete. Elapsed: ${step_elapsed}s" | tee -a "$outfile"
+          {
+              echo "[STEP 2-coarse] Fitting for n=$n, method=$method"
+              Rscript script_fit_generated_finite_basis_data.R \
+                  "$n_large" "$n" "$adj_type" "$method"
+              step_end=$(date +%s)
+              echo "[DONE] Coarse fit for n=$n complete. Elapsed: $((step_end - step_start))s"
+          } >> "$outfile" 2>&1
+      ) &
+  
+      # Fine fit
+      (
+          step_start=$(date +%s)
+          {
+              echo "[STEP 2-fine] Fitting for n=$n, method=$method"
+              Rscript script_fit_generated_finite_basis_data_finer.R \
+                  "$n_large" "$n" "$adj_type" "$method"
+              step_end=$(date +%s)
+              echo "[DONE] Fine fit for n=$n complete. Elapsed: $((step_end - step_start))s"
+          } >> "$outfile" 2>&1
       ) &
   done
   
-  # Wait for all background jobs
   wait
   
   step2_very_end=$(date +%s)

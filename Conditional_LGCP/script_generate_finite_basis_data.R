@@ -11,20 +11,27 @@ n <- as.numeric(args[1])
 adj_type <- args[2]
 adj_params <- as.numeric(args[3:length(args)])
 
-# n <- 200
+source('functions/20_simulation_function_wrapper.R')
+source('functions/00_function_wrapper.R')
+
+# n <- 100
 # adj_type <- 'block_banded_v2'
-# adj_params <- c(0, 1, 0, 0.5, 3)
+# adj_params <- c(0, 1, 0, 1, 3)
 d <- 2
 p <- 12
 m <- 50
+m_est <- 20
+m_est_2 <- 50
 T_max <- 1
 
 
 beta_0 <- 5
-
-time_grid <- seq(0, T_max, length.out = m)
-time_grid_est <- 1:19/20
+time_grid <- make_time_grid(m)
+time_grid_est <- make_time_grid(m_est)
 time_grid_both <- sort(union(time_grid, time_grid_est))
+
+time_grid_est_2 <- make_time_grid(m_est_2)
+time_grid_both_2 <- sort(union(time_grid, time_grid_est_2))
 
 seed <- NULL
 
@@ -36,8 +43,7 @@ cat("n: ", n, "\n")
 cat("adj_type: ", adj_type, "\n")
 cat("adj_params: ", paste(adj_params, collapse = ", "), "\n")
 
-source('functions/20_simulation_function_wrapper.R')
-source('functions/00_function_wrapper.R')
+
 
 # 1) system parameters
 seed = NULL
@@ -62,6 +68,7 @@ if (!dir.exists('simu_data')) dir.create('simu_data')
 
 save(dataset, file = paste0('simu_data/', adj_type, '_n_', n, '.RData'))
 save(truths, file = paste0('simu_data/', adj_type, '_n_', n, '_truths.RData'))
+
 
 # time taken
 t1 <- Sys.time()
