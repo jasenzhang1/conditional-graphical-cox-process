@@ -410,7 +410,7 @@ simulate_finite_basis_cox_data <- function(n, d, p, adj_type, adj_params, beta_0
   })
   
   cor_mat_query <- lapply(cov_mat_query, function(x) assemble_blockwise_correlation(x, p, d))
-  prec_mat_query <- lapply(cov_mat_query, function(x) sym(solve(x)))
+  prec_mat_query <- lapply(cor_mat_query, function(x) sym(solve(x)))
   
   # Store complete subject information
   result <- package_simulation_results(event_times_list, n, p, T_max, y_c_query,
@@ -475,15 +475,25 @@ simulate_finite_basis_cox_data <- function(n, d, p, adj_type, adj_params, beta_0
   })  
   
   step_9 <- lapply(eigen_truths, function(x) {
-    list(C_cond_truth_full = x$C_cond_full)          # (pm x pm matrix)
+    list(C_cond_truth_full = x$C_cond_full,
+         C_cond_truth_unnorm_full = x$C_cond_full_unnorm)          # (pm x pm matrix)
+  }) 
+  
+  step_9b <- lapply(eigen_truths, function(x) {
+    list(efunc_outer_truth = x$efunc_outer,
+         efunc_outer_unnorm_truth = x$efunc_outer_unnorm)          # (pc2 list of mxm matrices)
   }) 
   
   step_10 <- lapply(eigen_truths, function(x) {
-    list(P_cond_truth_full = x$P_cond_full)          # (pm x pm matrix)
+    list(P_cond_truth_full = x$P_cond_full,
+         P_cond_truth_unnorm_full = x$P_cond_full_unnorm)          # (pm x pm matrix)
   }) 
 
   step_11 <- lapply(eigen_truths, function(x) {
-    list(w_mat_truth = x$P_HS)                       # (pxp matrix)
+    list(w_mat_truth = x$P_HS,
+         C_HS_truth = x$C_HS,
+         w_mat_truth_unnorm = x$P_HS_unnorm,
+         C_HS_truth_unnorm = x$C_HS_unnorm)                       # (pxp matrix)
   }) 
   
   
@@ -495,6 +505,7 @@ simulate_finite_basis_cox_data <- function(n, d, p, adj_type, adj_params, beta_0
                      step_5 = step_5,
                      step_5b = step_5b,
                      step_9 = step_9,
+                     step_9b = step_9b,
                      step_10 = step_10,
                      step_11 = step_11)
   
