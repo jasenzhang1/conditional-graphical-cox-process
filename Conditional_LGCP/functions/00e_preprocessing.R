@@ -1,3 +1,12 @@
+make_time_grid <- function(m){
+  
+  # make m bins from 0 to 1, and create each timepoint to be in the middle of each range.
+  # 
+  # ex: m = 10 --> (0.05, 0.15, ..., 0.95)
+  
+  return((2*(1:m) - 1) / (2 * m))
+}
+
 convert_data_for_estimation <- function(subject_list, Tmax){
   
   # ----------------------------------------------------------------------------
