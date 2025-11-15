@@ -188,10 +188,8 @@ visualize_over_time <- function(graph_results_i, graph_ids, i, j, full = T){
       
       # p x m x n --> mean --> p x m --> choose first 5 processes --> 5 x m
       
-      graphs[['g_12']] <- grid.arrange(visualize_log_intensity(apply(step_1$X_k_est,          c(1, 2), mean)[1:5, ],   time_grid_est,  'Estimate',       step_1$mu_t_coarse_truth ),
-                                       visualize_log_intensity(apply(step_1$X_k_coarse_truth, c(1, 2), mean)[1:5, ],   time_grid_est,  'Coarser Truth',  step_1$mu_t_coarse_truth ),
-                                       visualize_log_intensity(apply(step_1$X_k_truth,        c(1, 2), mean)[1:5, ],   time_grid,      'Finer Truth',    step_1$mu_t_truth),
-                                       visualize_log_intensity(apply(step_1$X_k_both_truth,   c(1, 2), mean)[1:5, ],   time_grid_both, 'Combined Truth', step_1$mu_t_both_truth),
+      graphs[['g_12']] <- grid.arrange(visualize_log_intensity(apply(step_1$X_k_est,          c(1, 2), mean)[1:5, ],   time_grid_est,  'Estimate',     step_1$mu_t_est),
+                                       visualize_log_intensity(apply(step_1$X_k_truth,        c(1, 2), mean)[1:5, ],   time_grid,      'Truth',        step_1$mu_t_truth),
                                        textGrob("0. Average Log Intensity\n of first 5 processes", gp = gpar(fontsize = 14)),
                                        layout_matrix = arr_mat_6) 
     }
@@ -199,26 +197,46 @@ visualize_over_time <- function(graph_results_i, graph_ids, i, j, full = T){
   
   # rho_i(t) for processes 1 through 5
   if('22' %in% graph_ids){
-    g_list <- lapply(step_2, function(x){result_22_prep(x, time_grid, time_grid_est, full)})
+    
+    ymin <- min(sapply(step_2, function(x) c(x$rho_i_est, x$rho_i_truth)), na.rm = TRUE)   # global min
+    ymax <- max(sapply(step_2, function(x) c(x$rho_i_est, x$rho_i_truth)), na.rm = TRUE)   # global max
+    
+    ymin = ymin - 0.05 * (ymax - ymin)  # buffer area
+    ymax = ymax + 0.05 * (ymax - ymin)
+    
+    g_list <- lapply(step_2, function(x){result_22_prep(x, time_grid, time_grid_est, ymin, ymax, full)})
     graphs[['g_22']] <- rearrange_plots(g_list)
   }
   
   # rho_ij(s,t) for process pair 1_1
   if('24' %in% graph_ids){ 
-    g_list <- lapply(step_2b, function(x){result_20s_prep(x, i = 1, j = 1, full)})
-    graphs[['g_24']] <- rearrange_plots(g_list)
+    
+    # key <- '1_1'
+    # 
+    # zmin <- min(sapply(step_2b, function(x) c(as.numeric(x$rho_ii_est[[key]]), as.numeric(x$rho_ii_truth[[key]]))), na.rm = TRUE)   # global min
+    # zmax <- max(sapply(step_2b, function(x) c(as.numeric(x$rho_ii_est[[key]]), as.numeric(x$rho_ii_truth[[key]]))), na.rm = TRUE)   # global min
+    # 
+    # zmin = zmin - 0.01 * (zmax - zmin)  # buffer area
+    # zmax = zmax + 0.01 * (zmax - zmin)    
+    # 
+    # g_list <- lapply(step_2b, function(x){result_20s_prep(x, i = 1, j = 1, zmin, zmax, full)})
+    # graphs[['g_24']] <- rearrange_plots(g_list)
+    
+    # new way
+    
+    graphs[['g_24']] <- result_heatmap_ij_prep(step_2b, 'rho_ii', i = 1, j = 1)
   }  
   
   # rho_ij(s,t) for process pair 1_2
   if('25' %in% graph_ids){ 
-    g_list <- lapply(step_2b, function(x){result_20s_prep(x, i = 1, j = 2, full)})
-    graphs[['g_25']] <- rearrange_plots(g_list)
+    
+    graphs[['g_25']] <- result_heatmap_ij_prep(step_2b, 'rho_ii', i = 1, j = 2)
   }  
   
   # rho_ij(s,t) for process pair 3_5
   if('26' %in% graph_ids){ 
-    g_list <- lapply(step_2b, function(x){result_20s_prep(x, i = 3, j = 5, full)})
-    graphs[['g_26']] <- rearrange_plots(g_list)
+    
+    graphs[['g_26']] <- result_heatmap_ij_prep(step_2b, 'rho_ii', i = 3, j = 5)
   }   
   
   # weights, all y_c_query settings in a row
@@ -233,20 +251,21 @@ visualize_over_time <- function(graph_results_i, graph_ids, i, j, full = T){
   
   # g_ij(s,t) at 1_1
   if('31' %in% graph_ids){ 
-    g_list <- lapply(step_3, function(x){result_30s_prep(x, i = 1, j = 1, full)})
-    graphs[['g_31']] <- rearrange_plots(g_list)
+    
+    # g_list <- lapply(step_3, function(x){result_30s_prep(x, i = 1, j = 1, full)})
+    # graphs[['g_31']] <- rearrange_plots(g_list)
+    
+    graphs[['g_31']] <- result_heatmap_ij_prep(step_3, 'g_ij', i = 1, j = 1, zmid = 0)
   }  
   
   # g_ij(s,t) at 1_2
   if('32' %in% graph_ids){ 
-    g_list <- lapply(step_3, function(x){result_30s_prep(x, i = 1, j = 2, full)})
-    graphs[['g_32']] <- rearrange_plots(g_list)
+    graphs[['g_32']] <- result_heatmap_ij_prep(step_3, 'g_ij', i = 1, j = 2, zmid = 0)
   }  
   
   # g_ij(s,t) at 3_5
   if('33' %in% graph_ids){ 
-    g_list <- lapply(step_3, function(x){result_30s_prep(x, i = 3, j = 5, full)})
-    graphs[['g_33']] <- rearrange_plots(g_list)
+    graphs[['g_33']] <- result_heatmap_ij_prep(step_3, 'g_ij', i = 3, j = 5, zmid = 0)
   }    
   
   # eigenfunctions

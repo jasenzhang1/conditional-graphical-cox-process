@@ -57,11 +57,11 @@ result_11_prep <- function(step_1, time_grid, time_grid_est){
   return(g_list)
 }
 
-result_22_prep <- function(step_2, time_grid, time_grid_est, full = T){
+result_22_prep <- function(step_2, time_grid, time_grid_est, ymin = NULL, ymax = NULL, full = T){
   
   if(! full){
-    g_list <- list(visualize_log_intensity(step_2$rho_i_est[1:5,],     time_grid_est, 'Estimate'),
-                   visualize_log_intensity(step_2$rho_i_truth[1:5,],   time_grid,     'Truth'))
+    g_list <- list(visualize_log_intensity(step_2$rho_i_est[1:5,],     time_grid_est, 'Estimate', ymin = ymin, ymax = ymax),
+                   visualize_log_intensity(step_2$rho_i_truth[1:5,],   time_grid,     'Truth', ymin = ymin, ymax = ymax))
     return(g_list)
   }
   
@@ -81,7 +81,7 @@ result_22_prep <- function(step_2, time_grid, time_grid_est, full = T){
   return(g_list)
 }
 
-result_20s_prep <- function(step_2b, i, j, full = T){
+result_20s_prep <- function(step_2b, i, j, zmin = NULL, zmax = NULL, full = T){
   #   - rho_ii_truth               (list of m x m matrices)
   #   - rho_ii_coarse_truth        (list of m_est x m_est matrices)
   #   - rho_ii_X_truth             (list of m x m matrices)
@@ -91,18 +91,86 @@ result_20s_prep <- function(step_2b, i, j, full = T){
   key <- paste0(i, '_', j)
   
   if(! full){
-    g_list <- list(visualize_matrix_heatmap(step_2b$rho_ii_truth[[key]],   'Truth Theory',        40000, NULL, 200000),
-                   visualize_matrix_heatmap(step_2b$rho_ii_est[[key]],     'Estimate',            40000, NULL, 200000))
+    g_list <- list(visualize_matrix_heatmap(step_2b$rho_ii_truth[[key]],   'Truth Theory',        zmin, NULL, zmax),
+                   visualize_matrix_heatmap(step_2b$rho_ii_est[[key]],     'Estimate',            zmin, NULL, zmax))
     return(g_list)
   }
   
-  g_list <- list(visualize_matrix_heatmap(step_2b[[1]][[key]],   'Truth Theory',        40000, NULL, 200000),
-                 visualize_matrix_heatmap(step_2b[[2]][[key]],   'Coarse Truth Theory', 40000, NULL, 200000),
-                 visualize_matrix_heatmap(step_2b[[3]][[key]],   'Truth X',             40000, NULL, 200000),
-                 visualize_matrix_heatmap(step_2b[[4]][[key]],   'Coarse Truth X',      40000, NULL, 200000),
-                 visualize_matrix_heatmap(step_2b[[5]][[key]],   'Estimate',            40000, NULL, 200000))
+  g_list <- list(visualize_matrix_heatmap(step_2b[[1]][[key]],   'Truth Theory',        zmin, NULL, zmax),
+                 visualize_matrix_heatmap(step_2b[[2]][[key]],   'Coarse Truth Theory', zmin, NULL, zmax),
+                 visualize_matrix_heatmap(step_2b[[3]][[key]],   'Truth X',             zmin, NULL, zmax),
+                 visualize_matrix_heatmap(step_2b[[4]][[key]],   'Coarse Truth X',      zmin, NULL, zmax),
+                 visualize_matrix_heatmap(step_2b[[5]][[key]],   'Estimate',            zmin, NULL, zmax))
   
   return(g_list)
+}
+
+result_heatmap_ij_prep <- function(my_list, entry_name, i, j, palette_ID = 'Blue-Red 2', zmin = NULL, zmid = NULL, zmax = NULL){
+  
+  # key and entry name
+  
+  key <- paste0(i, '_', j)
+  est_name <- paste0(entry_name, '_est')
+  truth_name <- paste0(entry_name, '_truth')
+  
+  # colors
+  new_palette <- hcl.colors(3, palette = palette_ID)
+  c_low <- new_palette[1]
+  c_mid <- new_palette[2]
+  c_high <- new_palette[3]  
+  
+  # Suppose your list is called `my_list` with length m
+  m <- length(my_list)
+  
+  # Combine all matrices into one long dataframe
+  df_all <- bind_rows(lapply(seq_len(m), function(i) {
+    est <- reshape2::melt(my_list[[i]][[est_name]][[key]])
+    truth <- reshape2::melt(my_list[[i]][[truth_name]][[key]])
+    
+    est$Type <- "Estimate"
+    truth$Type <- "Truth"
+    
+    est$Matrix <- i
+    truth$Matrix <- i
+    
+    rbind(est, truth)
+  }), .id = NULL)
+  
+  colnames(df_all)[1:3] <- c("Row", "Col", "Value")
+  
+  # Convert to factors for proper ordering
+  df_all$Type <- factor(df_all$Type, levels = c("Truth", "Estimate"))
+  df_all$Matrix <- factor(df_all$Matrix)
+  
+  if(is.null(zmin)){
+    zmin <- min(df_all$Value)
+  }
+  if(is.null(zmax)){
+    zmax <- max(df_all$Value)
+  }
+  if(is.null(zmid)){
+    zmid <- (zmin + zmax) / 2       
+  }
+  
+
+  
+  # Plot with facets
+  ggplot(df_all, aes(x = Col, y = Row, fill = Value)) +
+    geom_tile() +
+    scale_y_reverse() + # matrix y-axis 
+    scale_fill_gradient2(low = c_low, mid = c_mid, high = c_high,
+                         midpoint = zmid,
+                         limits = c(zmin, zmax)) +
+    coord_fixed() +
+    theme_minimal() +
+    facet_grid(Type ~ Matrix, scales = "fixed") +
+    labs(x = "Column", y = "Row", fill = "Value") +
+    theme(
+      strip.background = element_rect(fill = "gray90"),
+      strip.text = element_text(face = "bold"),
+      axis.text.x = element_text(angle = 90),
+      axis.text.y = element_text()
+    )
 }
 
 result_29 <- function(step_2, y_c_id){
