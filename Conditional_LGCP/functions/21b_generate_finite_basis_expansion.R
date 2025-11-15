@@ -113,6 +113,7 @@ trig_basis_cov_mat <- function(d, p, y_c_k, adj_type, adj_params){
       J_2_const <- c_min + (c_max - c_min) * (y_c_k - y_c_min) / (y_c_max - y_c_min)
     } else{
       J_2_const <- adj_params[3]
+      beta_var  <- adj_params[4] 
     }
     
     J_2 <- J_2_const * (-1)^(1 + 1:d)
