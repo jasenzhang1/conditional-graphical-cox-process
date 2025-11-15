@@ -9,7 +9,7 @@ library(dplyr)
 source('functions/00a_matrix_massaging.R')
 source('functions/24_log_intensity_generation.R')
 
-visualize_matrix_heatmap <- function(mat, g_title = NULL, zmin = NULL, zmid = NULL, zmax = NULL) {
+visualize_matrix_heatmap <- function(mat, g_title = NULL, zmin = NULL, zmid = NULL, zmax = NULL, palette_ID = 'Blue-Red 2') {
   
   
   # ----------------------------------------------------------------------------
@@ -35,6 +35,12 @@ visualize_matrix_heatmap <- function(mat, g_title = NULL, zmin = NULL, zmid = NU
   #
   # ----------------------------------------------------------------------------
   
+  # colors
+  new_palette <- hcl.colors(3, palette = palette_ID)
+  c_low <- new_palette[1]
+  c_mid <- new_palette[2]
+  c_high <- new_palette[3]
+  
   # Convert matrix to data frame for ggplot
   df <- reshape2::melt(mat)
   colnames(df) <- c("x", "y", "value")
@@ -51,18 +57,13 @@ visualize_matrix_heatmap <- function(mat, g_title = NULL, zmin = NULL, zmid = NU
   ggplot(df, aes(x = x, y = y, fill = value)) +
     geom_tile() +
     scale_fill_gradient2(
-      low = "blue",     # negative values
-      mid = "white",    # zero
-      high = "red",     # positive values
+      low = c_low, #"blue",     # negative values
+      mid = c_mid, #"white",    # zero
+      high = c_high, #"red",     # positive values
       midpoint = zmid,     
       limits = c(zmin, zmax),
       oob = scales::squish
     ) +    
-    # scale_fill_gradientn(
-    #   colours = c("blue", "white", "red"),
-    #   limits = c(zmin, zmax),
-    #   oob = scales::squish
-    # ) +
     coord_fixed() +
     theme_minimal() +
     scale_y_reverse() +  # So origin is at top-left like a matrix
@@ -177,7 +178,7 @@ visualize_error_histogram <- function(mat_est, mat_reconstruct, g_title, bin_cou
   return(g)
 }
 
-visualize_log_intensity <- function(X_k, time_grid, g_title = 'Title', mu_t = NULL, legend_title = 'Process'){
+visualize_log_intensity <- function(X_k, time_grid,  g_title = 'Title', palette_ID = 'Dark 2', mu_t = NULL, legend_title = 'Process', ymin = NULL, ymax = NULL){
   
   # ----------------------------------------------------------------------------
   #
@@ -199,8 +200,11 @@ visualize_log_intensity <- function(X_k, time_grid, g_title = 'Title', mu_t = NU
   # 
   # ----------------------------------------------------------------------------
   
+  
   p <- dim(X_k)[1]
   m <- dim(X_k)[2]
+  
+  new_palette <- hcl.colors(p, palette = palette_ID)
   
   rownames(X_k) <- paste0(seq_len(p))
   
@@ -212,6 +216,7 @@ visualize_log_intensity <- function(X_k, time_grid, g_title = 'Title', mu_t = NU
   df$Process <- factor(df$Process)
   g <- ggplot() +
     geom_line(data = df, aes(x = Time, y = Value, color = Process)) +
+    scale_color_manual(values = new_palette) + 
     theme_minimal() +
     labs(title = g_title, x = "Time", y = "Value", color = legend_title) +
     theme(legend.position = "right")  
@@ -224,10 +229,75 @@ visualize_log_intensity <- function(X_k, time_grid, g_title = 'Title', mu_t = NU
     g <- g + geom_line(data = mu_df, aes(x = time_grid, y = mu_t), linetype = "dashed", size = 1, alpha = 0.7)
   }
   
+  # ymin and ymax if offered
+  if (!is.null(ymin) || !is.null(ymax)) {
+    g <- g + coord_cartesian(ylim = c(ymin, ymax))
+  }
+  
   return(g)
   
 }
 
+visualize_intensity_with_points <- function(intensity, time_grid, event_times){
+  
+  # ----------------------------------------------------------------------------
+  #
+  # inputs:
+  # 
+  # - intensity    (m-dim vector)   y-values of the intensity
+  # - time_grid    (m-dim vector)   x-values of the intensity
+  # - event_times  (n-dim vector)   vector of timestamps of the events
+  #
+  #
+  # outputs:
+  #
+  # - g            (ggplot object)  graph overlaying the intensity with step function of events, along with dots on the y = 0 line to represent realizations
+  #
+  # ----------------------------------------------------------------------------
+  
+  # ----------------------------------------------------------------------------
+  # Prepare data frames
+  # ----------------------------------------------------------------------------
+  df_intensity <- data.frame(
+    time = time_grid,
+    intensity = intensity
+  )
+  
+  df_step <- data.frame(
+    time = sort(event_times),
+    count = seq_along(event_times)
+  )
+  
+  # Scale factor to map cumulative count to intensity range
+  scale_factor <- max(intensity) / max(df_step$count)
+  df_step$scaled_count <- df_step$count * scale_factor
+  
+  # ----------------------------------------------------------------------------
+  # Plot
+  # ----------------------------------------------------------------------------
+  g <- ggplot() +
+    # intensity curve on left y-axis
+    geom_line(data = df_intensity, aes(x = time, y = intensity), color = "blue", size = 1) +
+    
+    # step function scaled to match left y-axis (will show right axis)
+    geom_step(data = df_step, aes(x = time, y = scaled_count), color = "darkgreen", linetype = "dashed") +
+    
+    # event points at y=0
+    geom_point(data = data.frame(time = event_times, y = rep(0, length(event_times))),
+               aes(x = time, y = y), color = "red", size = 2) +
+    
+    # labels
+    scale_y_continuous(
+      name = "Intensity",
+      sec.axis = sec_axis(~ . / scale_factor, name = "Cumulative Events")
+    ) +
+    
+    labs(x = "Time", title = "Intensity Function with Event Points and Step Function") +
+    theme_minimal()
+  
+  return(g)
+  
+}
 
 ground_truth_rho_ij <- function(my_list){
   
