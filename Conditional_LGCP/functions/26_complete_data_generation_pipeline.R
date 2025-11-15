@@ -382,10 +382,20 @@ simulate_finite_basis_cox_data <- function(n, d, p, adj_type, adj_params, beta_0
   beta_coeffs <- result_both$beta_coefficients %>% simplify2array() # (p x d x n)
 
   # 4) Generate point process events
+  max_events = Inf
+  min_events = 0
+  while(min_events < 5 | max_events > 10000){
   
-  print('at subject generation')
-  events <- lapply(1:n, function(i){generate_cox_process_events(log_intensities[, , i], time_grid, T_max, max_intensity = Inf)})
-  
+    print('at event time generation')
+    events <- lapply(1:n, function(i){generate_cox_process_events(log_intensities[, , i], time_grid, T_max, max_intensity = Inf)})
+    
+    print('finished event time generation')
+    max_events <- max(sapply(events, function(i) max(i$event_counts)))
+    min_events <- min(sapply(events, function(i) min(i$event_counts)))
+    
+    print(paste0('most events on a process: ', max_events))
+    print(paste0('least events on a process: ', min_events))
+  }
   
   
   
@@ -426,7 +436,7 @@ simulate_finite_basis_cox_data <- function(n, d, p, adj_type, adj_params, beta_0
   print('at rho truth recovery')
   rho_truths <- lapply(1:nrow(y_c_query), function(i) trig_basis_rho_truth(basis_list, mean_vec, time_grid, mu_t, y_c_query[i,], adj_type, adj_params))
   
-  g_ij_truth_v2 <- lapply(1:length(cov_mat_query), function(i) trig_basis_cross_covariance_truth(basis_list, cov_mat_query[[i]], time_grid))
+  # g_ij_truth_v2 <- lapply(1:length(cov_mat_query), function(i) trig_basis_cross_covariance_truth(basis_list, cov_mat_query[[i]], time_grid))
   
   print('at eigen truth recovery')
   G <- trig_basis_gram_matrix(basis_list, 0, T_max)
@@ -455,8 +465,7 @@ simulate_finite_basis_cox_data <- function(n, d, p, adj_type, adj_params, beta_0
   })
   
   step_3 <- lapply(1:length(rho_truths), function(x) {
-    list(g_ij_truth = rho_truths[[x]]$g_ij_truth,
-         g_ij_truth_v2 = g_ij_truth_v2[[x]])
+    list(g_ij_truth = rho_truths[[x]]$g_ij_truth)
   })
   
   step_4 <- lapply(eigen_truths, function(x) {
