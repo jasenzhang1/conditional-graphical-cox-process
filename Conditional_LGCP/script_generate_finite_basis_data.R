@@ -16,7 +16,7 @@ source('functions/00_function_wrapper.R')
 
 # n <- 100
 # adj_type <- 'block_banded_v2'
-# adj_params <- c(0, 1, 0, 1, 3)
+# adj_params <- c(0, 1, 0.4, 0.8, 2)
 d <- 2
 p <- 12
 m <- 50
@@ -33,7 +33,7 @@ time_grid_both <- sort(union(time_grid, time_grid_est))
 time_grid_est_2 <- make_time_grid(m_est_2)
 time_grid_both_2 <- sort(union(time_grid, time_grid_est_2))
 
-seed <- NULL
+
 
 y_c_query <- matrix(0:2/2, nrow = 3)
 

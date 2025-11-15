@@ -14,11 +14,11 @@ adj_type_params=(
   #"banded_c2 0 1 0.5"
   #"banded_trig2 0 1 0.3"
   #"sparse_v2 0 1 2 0.3 -1 2 0.01"
-  "block_banded_v2 0 1 0 1 3"
+  "block_banded_v2 0 1 0.4 0.8 2"
 )
 
-n_large=1000
-ns=(100 200 500 750 1000)
+n_large=1024
+ns=(128 256 512 1024)
 method="CPGM"
 max_jobs=30
 
