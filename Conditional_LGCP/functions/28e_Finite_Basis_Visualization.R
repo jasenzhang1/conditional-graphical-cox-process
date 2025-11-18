@@ -3,7 +3,7 @@ source('functions/28y_Visualization_Blocks.R')
 source('functions/28_Simulation_Visualization.R')
 source('functions/28c_Grand_Visualizations.R')
 
-visualize_finite_basis <- function(truth_file_name, estimates_file_name, graph_ids, i, j){
+visualize_finite_basis <- function(truth_file_name, estimates_file_name, graph_ids){
   
   # ----------------------------------------------------------------------------
   #
@@ -63,7 +63,7 @@ visualize_finite_basis <- function(truth_file_name, estimates_file_name, graph_i
   # ----------------------------------------------------------------------------
   
   
-  g_comparisons <- visualize_over_time(merged, graph_ids, i, j, full)
+  g_comparisons <- visualize_over_time(merged, graph_ids, full)
   
   return(g_comparisons)
   
