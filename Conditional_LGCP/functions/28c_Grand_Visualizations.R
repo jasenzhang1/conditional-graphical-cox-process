@@ -94,7 +94,7 @@ rearrange_plots <- function(g_list){
 
 # everything over all query_id
 
-visualize_over_time <- function(graph_results_i, graph_ids, i, j, full = T){
+visualize_over_time <- function(graph_results_i, graph_ids, full = T){
   
   
   # ----------------------------------------------------------------------------
@@ -197,15 +197,7 @@ visualize_over_time <- function(graph_results_i, graph_ids, i, j, full = T){
   
   # rho_i(t) for processes 1 through 5
   if('22' %in% graph_ids){
-    
-    ymin <- min(sapply(step_2, function(x) c(x$rho_i_est, x$rho_i_truth)), na.rm = TRUE)   # global min
-    ymax <- max(sapply(step_2, function(x) c(x$rho_i_est, x$rho_i_truth)), na.rm = TRUE)   # global max
-    
-    ymin = ymin - 0.05 * (ymax - ymin)  # buffer area
-    ymax = ymax + 0.05 * (ymax - ymin)
-    
-    g_list <- lapply(step_2, function(x){result_22_prep(x, time_grid, time_grid_est, ymin, ymax, full)})
-    graphs[['g_22']] <- rearrange_plots(g_list)
+    graphs[['g_22']] <- result_line_graph_prep(step_2, 'rho_i', time_grid_est, num_processes = 5)
   }
   
   # rho_ij(s,t) for process pair 1_1
@@ -270,8 +262,19 @@ visualize_over_time <- function(graph_results_i, graph_ids, i, j, full = T){
   
   # eigenfunctions
   if('41' %in% graph_ids){ 
-    g_list <- lapply(step_4, function(x){result_41_prep(x, time_grid, time_grid_est, full)})
-    graphs[['g_41']] <- rearrange_plots(g_list)
+    # g_list <- lapply(step_4, function(x){result_41_prep(x, time_grid, time_grid_est, full)})
+    # graphs[['g_41']] <- rearrange_plots(g_list)
+    
+    # only keep eigenfunctions from first process
+    
+    step_4_v2 <- lapply(step_4, function(x) {
+      list(
+        eigen_decomp_est   = x$eigen_decomp_est$eigenfunctions[[1]] %>% t(),
+        eigen_decomp_truth = x$eigen_decomp_truth$eigenfunctions[[1]] %>% t()
+      )
+    })   
+    
+    graphs[['g_41']] <- result_line_graph_prep(step_4_v2, 'eigen_decomp', time_grid_est)
   }  
   
   # reconstructing g_ij from eigenfunctions
@@ -310,16 +313,30 @@ visualize_over_time <- function(graph_results_i, graph_ids, i, j, full = T){
   }
   
   if('81' %in% graph_ids & 'step_8' %in% names(graph_results_i)){
-    est_graphs <- lapply(graph_results_i$step_8, function(x) extract_block_structure_ij(x$step_8$V_cond_est_full, m_est, i, j))
+    est_graphs <- lapply(graph_results_i$step_8, function(x) extract_block_structure_ij(x$step_8$V_cond_est_full, m_est, i = 1, j = 2))
   }
   
+  # C_Xi_Xj for block (1, 1)
+  
+  if('90' %in% graph_ids){
+    graphs[['g_90']] <- result_heatmap_ij_prep(step_9, 'C_cond', time_grid_est, is_full, i = 1, j = 1, zmid = 0)
+  }  
   # C_Xi_Xj for block (1, 2)
   
   if('91' %in% graph_ids){
-    g_list <- lapply(graph_results_i$step_9, function(x){ result_90s_prep_ij(x, m, m_est, i = 1, j = 2, full) })
-    
-    graphs[['g_91']] <- rearrange_plots(g_list) 
-    
+    # g_list <- lapply(graph_results_i$step_9, function(x){ result_90s_prep_ij(x, m, m_est, i = 1, j = 2, full) })
+    # 
+    # graphs[['g_91']] <- rearrange_plots(g_list) 
+    # 
+    # graphs[['g_91']] <- result_heatmap_ij_prep(step_9, 'C_cond', T, i = 1, j = 1)
+    graphs[['g_91']] <- result_heatmap_ij_prep(step_9, 'C_cond', time_grid_est, is_full, i = 1, j = 2, zmid = 0)
+  }
+  
+  # C_Xi_Xj for block (3, 5)
+  
+  if('92' %in% graph_ids){
+    # graph_list <- lapply(graph_results_i$step_9, function(x){ result_90s_prep_ij(x, m, m_est, i = 3, j = 5, full) })
+    # 
     # n_y_c_query <- length(graph_list)
     # n_settings <- length(graph_list[[1]])
     # 
@@ -334,32 +351,9 @@ visualize_over_time <- function(graph_results_i, graph_ids, i, j, full = T){
     # flat_graphs_colwise <- flat_graphs[idx]
     # 
     # # Arrange in n_settings rows x n_y_c_query columns
-    # graphs[['g_91']] <- do.call(grid.arrange, c(flat_graphs_colwise, nrow = n_settings, ncol = n_y_c_query))
+    # graphs[['g_92']] <- do.call(grid.arrange, c(flat_graphs_colwise, nrow = n_settings, ncol = n_y_c_query))
     
-    
-  }
-  
-  # C_Xi_Xj for block (3, 5)
-  
-  if('92' %in% graph_ids){
-    graph_list <- lapply(graph_results_i$step_9, function(x){ result_90s_prep_ij(x, m, m_est, i = 3, j = 5, full) })
-    
-    n_y_c_query <- length(graph_list)
-    n_settings <- length(graph_list[[1]])
-    
-    # Flatten the nested list: row-wise
-    flat_graphs <- unlist(graph_list, recursive = FALSE)
-    
-    # Create column-major index mapping
-    # R's matrix() fills column-wise by default, so we transpose to reorder properly
-    idx <- as.vector(t(matrix(seq_along(flat_graphs), nrow = n_settings, ncol = n_y_c_query)))
-    
-    # Reorder the flat list
-    flat_graphs_colwise <- flat_graphs[idx]
-    
-    # Arrange in n_settings rows x n_y_c_query columns
-    graphs[['g_92']] <- do.call(grid.arrange, c(flat_graphs_colwise, nrow = n_settings, ncol = n_y_c_query))
-    
+    graphs[['g_92']] <- result_heatmap_ij_prep(step_9, 'C_cond', time_grid_est, is_full, i = 3, j = 5, zmid = 0)
     
   }  
   
