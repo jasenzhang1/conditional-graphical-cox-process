@@ -13,20 +13,20 @@ args <- commandArgs(trailingOnly = TRUE)
 base_folder <- args[1]    # base_folder <- 'simu_results'
 adj_type <- args[2]       # adj_type <- 'block_banded_v2'
 method <- args[3]         # method <- 'CPGM'
-i <- as.numeric(args[4])  # i <- 1
-j <- as.numeric(args[5])  # j <- 2
 
 data_folder <- 'simu_data'
-n <- 1000
+n_large <- 1024
+n <- 512
 
 # heatmaps of certain metrics 
 
 graph_ids <- c('22', '25', '31', '91')
 
-truth_file_name <- paste0(data_folder, '/', adj_type, '_n_', n, '_truths.RData')
+truth_file_name <- paste0(data_folder, '/', adj_type, '_n_', n_large, '_truths.RData')
 estimates_file_name <- paste0(base_folder, '/', adj_type, '/', method, '/', method, '_n_', n, '.RData')
+estimates_file_name <- paste0(base_folder, '/', adj_type, '/', method, '/', method, '_n_', n, '_finer.RData')
 
-g_heatmaps <- visualize_finite_basis(truth_file_name, estimates_file_name, graph_ids, i, j)
+g_heatmaps <- visualize_finite_basis(truth_file_name, estimates_file_name, graph_ids)
 
 # convergence of intermediate estimators
 
