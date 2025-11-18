@@ -105,13 +105,33 @@ result_20s_prep <- function(step_2b, i, j, zmin = NULL, zmax = NULL, full = T){
   return(g_list)
 }
 
-result_heatmap_ij_prep <- function(my_list, entry_name, i, j, palette_ID = 'Blue-Red 2', zmin = NULL, zmid = NULL, zmax = NULL){
+result_heatmap_ij_prep <- function(my_list, entry_name, time_grid_est, is_full, i, j, palette_ID = 'Blue-Red 2', zmin = NULL, zmid = NULL, zmax = NULL){
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: using facet_grid to plot all heatmaps together with one legend, one x-axis, one y-axis, etc...
+  #
+  #
+  # inputs:
+  #
+  # - my_list     (list)     step_x; list of y_c_queries --> g_ij_est etc items
+  # - entry_name  (string)   estimate prefix (e.g. rho_ii, g_ij)
+  # - i 
+  # - j
+  #
+  # ----------------------------------------------------------------------------
   
   # key and entry name
   
   key <- paste0(i, '_', j)
-  est_name <- paste0(entry_name, '_est')
-  truth_name <- paste0(entry_name, '_truth')
+  if(is_full){
+    est_name <- paste0(entry_name, '_est_full')
+    truth_name <- paste0(entry_name, '_truth_full')   
+  } else{
+    est_name <- paste0(entry_name, '_est')
+    truth_name <- paste0(entry_name, '_truth')    
+  }
+
   
   # colors
   new_palette <- hcl.colors(3, palette = palette_ID)
@@ -123,15 +143,21 @@ result_heatmap_ij_prep <- function(my_list, entry_name, i, j, palette_ID = 'Blue
   m <- length(my_list)
   
   # Combine all matrices into one long dataframe
-  df_all <- bind_rows(lapply(seq_len(m), function(i) {
-    est <- reshape2::melt(my_list[[i]][[est_name]][[key]])
-    truth <- reshape2::melt(my_list[[i]][[truth_name]][[key]])
+  df_all <- bind_rows(lapply(seq_len(m), function(k) {
+    
+    if(is_full){
+      est <- reshape2::melt(extract_block_structure_ij(my_list[[k]][[est_name]], length(time_grid_est), i, j))
+      truth <- reshape2::melt(extract_block_structure_ij(my_list[[k]][[truth_name]], length(time_grid_est), i, j))
+    } else{
+      est <- reshape2::melt(my_list[[k]][[est_name]][[key]])
+      truth <- reshape2::melt(my_list[[k]][[truth_name]][[key]])      
+    }
     
     est$Type <- "Estimate"
     truth$Type <- "Truth"
     
-    est$Matrix <- i
-    truth$Matrix <- i
+    est$Matrix <- k
+    truth$Matrix <- k
     
     rbind(est, truth)
   }), .id = NULL)
@@ -152,10 +178,15 @@ result_heatmap_ij_prep <- function(my_list, entry_name, i, j, palette_ID = 'Blue
     zmid <- (zmin + zmax) / 2       
   }
   
+  zmax <- zmax + 0.1 * (zmax - zmin)
+  zmin <- zmin - 0.1 * (zmax - zmin)
+  
 
+  df_all$Col_val <- time_grid_est[df_all$Col]
+  df_all$Row_val <- time_grid_est[df_all$Row]
   
   # Plot with facets
-  ggplot(df_all, aes(x = Col, y = Row, fill = Value)) +
+  ggplot(df_all, aes(x = Col_val, y = Row_val, fill = Value)) +
     geom_tile() +
     scale_y_reverse() + # matrix y-axis 
     scale_fill_gradient2(low = c_low, mid = c_mid, high = c_high,
@@ -164,12 +195,87 @@ result_heatmap_ij_prep <- function(my_list, entry_name, i, j, palette_ID = 'Blue
     coord_fixed() +
     theme_minimal() +
     facet_grid(Type ~ Matrix, scales = "fixed") +
-    labs(x = "Column", y = "Row", fill = "Value") +
+    labs(x = "t", y = "s", fill = "f(s,t)") +
     theme(
       strip.background = element_rect(fill = "gray90"),
       strip.text = element_text(face = "bold"),
       axis.text.x = element_text(angle = 90),
       axis.text.y = element_text()
+    )
+}
+
+result_line_graph_prep <- function(my_list, entry_name, time_grid, palette_ID = 'Dark 2', num_processes = NULL){
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: using facet_grid to plot all line graphs together with one legend, one x-axis, one y-axis, etc...
+  #
+  #
+  # inputs:
+  #
+  # - my_list     (list)     step_x; list of y_c_queries --> g_ij_est etc items
+  # - entry_name  (string)   estimate prefix (e.g. rho_i)
+  #
+  # ----------------------------------------------------------------------------  
+  
+  # entry name
+  est_name <- paste0(entry_name, '_est')
+  truth_name <- paste0(entry_name, '_truth')
+  
+  # Suppose your list is called `my_list` with length m
+  m <- length(my_list)
+  
+
+  
+  # Combine all matrices into one long dataframe
+  df_all <- bind_rows(lapply(seq_len(m), function(i) {
+    
+    if(is.null(num_processes)){
+      est <- reshape2::melt(my_list[[i]][[est_name]])
+      truth <- reshape2::melt(my_list[[i]][[truth_name]])       
+    } else{
+      est <- reshape2::melt(my_list[[i]][[est_name]][1:num_processes,])
+      truth <- reshape2::melt(my_list[[i]][[truth_name]][1:num_processes,])
+    }
+
+    
+    est$Var2 <- time_grid[est$Var2]
+    truth$Var2 <- time_grid[truth$Var2]
+    
+    est$Type <- "Estimate"
+    truth$Type <- "Truth"
+    
+    est$Matrix <- i
+    truth$Matrix <- i
+    
+    rbind(est, truth)
+  }), .id = NULL)
+  
+  colnames(df_all)[1:3] <- c("process", "time", "Value")
+  
+  
+  # Convert to factors for proper ordering
+  df_all$Type <- factor(df_all$Type, levels = c("Truth", "Estimate"))
+  df_all$process <- as.factor(df_all$process)
+  
+  # plot with facets
+  ggplot(df_all, aes(x = time, y = Value, color = process, group = process)) +
+    geom_line(alpha = 0.5, size = 1) +
+    facet_grid(
+      rows = vars(Type),
+      cols = vars(Matrix)
+    ) +
+    scale_color_brewer(palette = "Dark2") +
+    theme_bw() +
+    labs(
+      x = "Time",
+      y = "Intensity",
+      color = "Process"
+    ) +
+    theme(
+      strip.background = element_rect(fill = "gray90"),
+      strip.text = element_text(face = "bold"),
+      strip.placement = "outside"  # optional, puts labels outside the panel
     )
 }
 
