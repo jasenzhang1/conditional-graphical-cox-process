@@ -22,6 +22,40 @@ step_6_kernel <- function(y1, y2, gamma_c) {
   return(exp(-gamma_c * sum(diff^2)))  # scalar
 }
 
+KDE_weights <- function(Y_c_k, y_c_query){
+  
+  # ----------------------------------------------------------------------------
+  #
+  #
+  # GOAL: get KDE weights for each Y_c_k value wrt y_c_query
+  #
+  # inputs:
+  # 
+  # - Y_c_k (n x q_c dim matrix)
+  # - y_c_query (q_c-dim vector)
+  #
+  #
+  # outputs:
+  #
+  # - weights2 (n-dim vector)
+  #
+  #
+  # ----------------------------------------------------------------------------
+  
+  # 1) get gamma 
+  
+  gamma_c <- select_gamma_c_bandwidth_v2(Y_c_k)
+  
+  weights <- apply(Y_c_k, 1, function(row) {
+    step_6_kernel(as.numeric(row), y_c_query, gamma_c) 
+  })    
+  weights2 <- weights / sum(weights) # normalize  
+  
+  return(weights2)
+}
+
+
+
 construct_kernel_matrix_step_6 <- function(Y_continuous_stratum, y_query, gamma_c) {
   
   # ----------------------------------------------------------------------------
