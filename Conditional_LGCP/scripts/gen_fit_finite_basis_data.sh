@@ -14,11 +14,12 @@ adj_type_params=(
   #"banded_c2 0 1 0.5"
   #"banded_trig2 0 1 0.3"
   #"sparse_v2 0 1 2 0.3 -1 2 0.01"
-  "block_banded_v2 0 1 0.4 0.8 2"
+  #"block_banded_v2 0 1 0.4 0.8 2"
+  "block_banded_c0 0.5 0.5 2"
 )
 
-n_large=1024
-ns=(128 256 512 1024)
+n_large=150
+ns=(150)
 method="CPGM"
 max_jobs=30
 
@@ -63,34 +64,23 @@ for entry in "${adj_type_params[@]}"; do
   step2_very_beginning=$(date +%s)
   
   for n in "${ns[@]}"; do
-      # Wait if max_jobs reached
-      while (( $(jobs -r | wc -l) >= max_jobs )); do
-          sleep 1
+      for finer in TRUE FALSE; do
+          # Wait if max_jobs reached
+          while (( $(jobs -r | wc -l) >= max_jobs )); do
+              sleep 1
+          done
+  
+          (
+              step_start=$(date +%s)
+              {
+                  echo "[STEP 2] Fitting for n=$n, method=$method, finer=$finer"
+                  Rscript script_fit_generated_finite_basis_data.R \
+                      "$n_large" "$n" "$adj_type" "$method" "$finer"
+                  step_end=$(date +%s)
+                  echo "[DONE] Fit for n=$n, finer=$finer complete. Elapsed: $((step_end - step_start))s"
+              } >> "$outfile" 2>&1
+          ) &
       done
-  
-      # Coarse fit
-      (
-          step_start=$(date +%s)
-          {
-              echo "[STEP 2-coarse] Fitting for n=$n, method=$method"
-              Rscript script_fit_generated_finite_basis_data.R \
-                  "$n_large" "$n" "$adj_type" "$method"
-              step_end=$(date +%s)
-              echo "[DONE] Coarse fit for n=$n complete. Elapsed: $((step_end - step_start))s"
-          } >> "$outfile" 2>&1
-      ) &
-  
-      # Fine fit
-      (
-          step_start=$(date +%s)
-          {
-              echo "[STEP 2-fine] Fitting for n=$n, method=$method"
-              Rscript script_fit_generated_finite_basis_data_finer.R \
-                  "$n_large" "$n" "$adj_type" "$method"
-              step_end=$(date +%s)
-              echo "[DONE] Fine fit for n=$n complete. Elapsed: $((step_end - step_start))s"
-          } >> "$outfile" 2>&1
-      ) &
   done
   
   wait
@@ -99,6 +89,7 @@ for entry in "${adj_type_params[@]}"; do
   echo "[DONE] STEP 2 End" | tee -a "$outfile"
   step2_total_elapsed=$(( step2_very_end - step2_very_beginning ))
   echo "[DONE] Fitting for all n. Elapsed: ${step2_total_elapsed}s" | tee -a "$outfile"
+
 
 
 
