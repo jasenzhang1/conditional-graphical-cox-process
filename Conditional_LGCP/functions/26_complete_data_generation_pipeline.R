@@ -381,6 +381,8 @@ simulate_finite_basis_cox_data <- function(n, d, p, adj_type, adj_params, beta_0
   
   beta_coeffs <- result_both$beta_coefficients %>% simplify2array() # (p x d x n)
 
+
+  
   # 4) Generate point process events
   max_events = Inf
   min_events = 0
@@ -412,7 +414,7 @@ simulate_finite_basis_cox_data <- function(n, d, p, adj_type, adj_params, beta_0
   
 
   
-  # query points
+  # 6) query points
   print('at query point generation')
 
   cov_mat_query <- lapply(1:nrow(y_c_query), function(i) { 
@@ -421,6 +423,9 @@ simulate_finite_basis_cox_data <- function(n, d, p, adj_type, adj_params, beta_0
   
   cor_mat_query <- lapply(cov_mat_query, function(x) assemble_blockwise_correlation(x, p, d))
   prec_mat_query <- lapply(cor_mat_query, function(x) sym(solve(x)))
+  
+
+
   
   # Store complete subject information
   result <- package_simulation_results(event_times_list, n, p, T_max, y_c_query,
@@ -441,6 +446,69 @@ simulate_finite_basis_cox_data <- function(n, d, p, adj_type, adj_params, beta_0
   print('at eigen truth recovery')
   G <- trig_basis_gram_matrix(basis_list, 0, T_max)
   eigen_truths <- lapply(1:length(cov_mat_query), function(i) trig_basis_eigendecomposition(G, cov_mat_query[[i]], cor_mat_query[[i]], prec_mat_query[[i]], basis_list, time_grid))
+  
+  # ----------------------------------------------------------------------------
+  # find eigentruths with realized beta values and ground truth eigenfunctions
+  # ----------------------------------------------------------------------------
+  
+  KL_X_truth <- lapply(1:nrow(y_c_query), function(i) { 
+    weights_i <- KDE_weights(Y_c, y_c_query[i, ])
+    
+    X <- aperm(beta_coeffs, c(2, 1, 3)) %>% 
+      matrix(nrow = p*d, ncol = n) %>% # reshape to p*d × n
+      t()  # (n x pd)
+    
+    # weighted mean (length p*d)
+    mu <- colSums(weights_i * X)
+    
+    # centered data
+    XC <- sweep(X, 2, mu)
+    
+    # weighted covariance: sum_i w_i (x_i - mu)(x_i - mu)^T
+    cov_w <- t(XC * weights_i) %*% XC
+    
+    kappa <- 1 - sum(weights_i^2)
+    cov_w_unbiased <- cov_w / kappa 
+    
+    # convert to correlation using blockwise function
+    corr_w_unbiased <- assemble_blockwise_correlation(cov_w_unbiased, p, d)
+    prec_w_unbiased <- sym(solve(corr_w_unbiased))
+    
+    list(KL_cov = cov_w_unbiased,
+         KL_corr = corr_w_unbiased,
+         KL_prec = prec_w_unbiased)
+    
+  })
+  
+  # 6c) compute C_cond_X_truth 
+  
+  
+  step_9_10_11_X_truth <- lapply(1:length(eigen_truths), function(i){
+    
+    eigen_decomp_truth    <- eigen_truths[[i]]$eigen_decomp
+    KL_cor_X_truth        <- KL_X_truth[[i]]$KL_corr %>% extract_block_structure_v2(p, d)
+    KL_prec_X_truth       <- KL_X_truth[[i]]$KL_prec %>% extract_block_structure_v2(p, d)
+    C_cond_list_X_truth   <- correlation_estimation_KL_cor(eigen_decomp_truth, KL_cor_X_truth) 
+    P_cond_list_X_truth   <- correlation_estimation_KL_cor(eigen_decomp_truth, KL_prec_X_truth) 
+    
+    C_cond_X_truth_full          <- C_cond_list_X_truth$C_cond %>% assemble_block_matrix_v2(p, m)
+    C_cond_X_truth_unnorm_full   <- C_cond_list_X_truth$C_cond_unnorm %>% assemble_block_matrix_v2(p, m)
+    
+    # step 10
+    P_cond_X_truth_full          <- P_cond_list_X_truth$C_cond %>% assemble_block_matrix_v2(p, m)
+    P_cond_X_truth_unnorm_full   <- P_cond_list_X_truth$C_cond_unnorm %>% assemble_block_matrix_v2(p, m)
+    
+    # step 11
+    C_HS_X_truth <- hilbert_schmidt_norm_pm(KL_X_truth[[i]]$KL_corr, p, d)
+    P_HS_X_truth <- hilbert_schmidt_norm_pm(KL_X_truth[[i]]$KL_prec, p, d)
+    
+    list(C_cond_X_truth_full = C_cond_X_truth_full,
+         C_cond_X_truth_unnorm_full = C_cond_X_truth_unnorm_full,
+         P_cond_X_truth_full = P_cond_X_truth_full,
+         P_cond_X_truth_unnorm_full = P_cond_X_truth_unnorm_full,
+         C_HS_X_truth = C_HS_X_truth,
+         P_HS_X_truth = P_HS_X_truth)
+  })  
   
   # ----------------------------------------------------------------------------
   # merge truths - layer 1 = item - layer 2 = y_c_query
@@ -472,20 +540,25 @@ simulate_finite_basis_cox_data <- function(n, d, p, adj_type, adj_params, beta_0
     list(eigen_decomp_truth = x$eigen_decomp)
   })
   
-  step_5 <- lapply(eigen_truths, function(x) {
-    list(KL_coeffs_truth = beta_coeffs,          # (p x d x n)
-         KL_cov_truth = x$KL_cov)                # (pc2 list of dxd matrices)
+  step_5 <- lapply(1:length(eigen_truths), function(i) {
+    list(KL_coeffs_truth = beta_coeffs,                          # (p x d x n)
+         KL_cov_truth = eigen_truths[[i]]$KL_cov,
+         KL_cov_X_truth = KL_X_truth[[i]]$KL_cov %>% extract_block_structure_v2(p, d))    # (pc2 list of dxd matrices)
   })  
   
-  step_5b <- lapply(eigen_truths, function(x) {
-    list(KL_cor_truth  = x$KL_cor,               # (pc2 list of dxd matrices)
-         KL_prec_truth = x$KL_prec)              # (pc2 list of dxd matrices)
+  step_5b <- lapply(1:length(eigen_truths), function(i) {
+    list(KL_cor_truth    = eigen_truths[[i]]$KL_cor,               # (pc2 list of dxd matrices)
+         KL_cor_X_truth  = KL_X_truth[[i]]$KL_corr %>% extract_block_structure_v2(p, d),
+         KL_prec_truth   = eigen_truths[[i]]$KL_prec,
+         KL_prec_X_truth = KL_X_truth[[i]]$KL_prec %>% extract_block_structure_v2(p, d))              # (pc2 list of dxd matrices)
     
   })  
   
-  step_9 <- lapply(eigen_truths, function(x) {
-    list(C_cond_truth_full = x$C_cond_full,
-         C_cond_truth_unnorm_full = x$C_cond_full_unnorm)          # (pm x pm matrix)
+  step_9 <- lapply(1:length(eigen_truths), function(i) {
+    list(C_cond_truth_full          = eigen_truths[[i]]$C_cond_full,
+         C_cond_truth_unnorm_full   = eigen_truths[[i]]$C_cond_full_unnorm,
+         C_cond_X_truth_full        = step_9_10_11_X_truth[[i]]$C_cond_X_truth_full,
+         C_cond_X_truth_unnorm_full = step_9_10_11_X_truth[[i]]$C_cond_X_truth_unnorm_full)          # (pm x pm matrix)
   }) 
   
   step_9b <- lapply(eigen_truths, function(x) {
@@ -493,16 +566,20 @@ simulate_finite_basis_cox_data <- function(n, d, p, adj_type, adj_params, beta_0
          efunc_outer_unnorm_truth = x$efunc_outer_unnorm)          # (pc2 list of mxm matrices)
   }) 
   
-  step_10 <- lapply(eigen_truths, function(x) {
-    list(P_cond_truth_full = x$P_cond_full,
-         P_cond_truth_unnorm_full = x$P_cond_full_unnorm)          # (pm x pm matrix)
+  step_10 <- lapply(1:length(eigen_truths), function(i) {
+    list(P_cond_truth_full           = eigen_truths[[i]]$P_cond_full,
+         P_cond_truth_unnorm_full    = eigen_truths[[i]]$P_cond_full_unnorm,
+         P_cond_X_truth_full         = step_9_10_11_X_truth[[i]]$P_cond_X_truth_full,
+         P_cond_X_truth_unnorm_full  = step_9_10_11_X_truth[[i]]$P_cond_X_truth_unnorm_full)          # (pm x pm matrix)
   }) 
 
-  step_11 <- lapply(eigen_truths, function(x) {
-    list(w_mat_truth = x$P_HS,
-         C_HS_truth = x$C_HS,
-         w_mat_truth_unnorm = x$P_HS_unnorm,
-         C_HS_truth_unnorm = x$C_HS_unnorm)                       # (pxp matrix)
+  step_11 <- lapply(1:length(eigen_truths), function(i) {
+    list(w_mat_truth         = eigen_truths[[i]]$P_HS,
+         C_HS_truth          = eigen_truths[[i]]$C_HS,
+         w_mat_truth_unnorm  = eigen_truths[[i]]$P_HS_unnorm,
+         C_HS_truth_unnorm   = eigen_truths[[i]]$C_HS_unnorm,
+         w_mat_X_truth       = step_9_10_11_X_truth[[i]]$P_HS_X_truth,
+         C_HS_X_truth        = step_9_10_11_X_truth[[i]]$C_HS_X_truth)                       # (pxp matrix)
   }) 
   
   
