@@ -90,14 +90,15 @@ trig_basis_cov_mat <- function(d, p, y_c_k, adj_type, adj_params){
   #
   # ----------------------------------------------------------------------------
   
-  if(! adj_type %in% c('block_banded_v2', 'block_banded_c2')){
+  if(! adj_type %in% c('block_banded_v2', 'block_banded_c2', 'block_banded_c0')){
     stop('Error 21b: adj_type not available')
   }
   if(! length(y_c_k) == 1){
     stop('Error 21b: y_c_k should be a scalar')
   }
   
-  if(adj_type %in% c('block_banded_v2', 'block_banded_c2')){
+  
+  if(adj_type %in% c('block_banded_v2', 'block_banded_c2', 'block_banded_c0')){
     
     # Theta_{i,i}   = beta_var * I_d 
     # Theta_{i,i+1} = J_2_const * [1 0; 0 -1]
@@ -111,9 +112,13 @@ trig_basis_cov_mat <- function(d, p, y_c_k, adj_type, adj_params){
       beta_var <- adj_params[5] 
       
       J_2_const <- c_min + (c_max - c_min) * (y_c_k - y_c_min) / (y_c_max - y_c_min)
-    } else{
+    } else if(adj_type == 'block_banded_c2'){
       J_2_const <- adj_params[3]
       beta_var  <- adj_params[4] 
+    } else{
+      # block_banded_c0
+      J_2_const <- adj_params[2]
+      beta_var  <- adj_params[3] 
     }
     
     J_2 <- J_2_const * (-1)^(1 + 1:d)
