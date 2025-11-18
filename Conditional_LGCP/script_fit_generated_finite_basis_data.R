@@ -17,7 +17,7 @@ n_large <- as.numeric(args[1])  # n_large <- 100
 n <- as.numeric(args[2])        # n <- 100
 adj_type <- args[3]             # adj_type <- 'block_banded_v2'
 method <- args[4]               # method <- 'CPGM'
-
+finer <- args[5]                # finer <- TRUE
 
 # ncores <- parallel::detectCores() - 1
 ncores <- 1
@@ -36,6 +36,7 @@ print(paste0("n_large: ", n_large))
 print(paste0("n: ", n))
 print(paste0("adj_type: ", adj_type))
 print(paste0("method: ", method))
+print(paste0("finer: ", finer))
 
 # load `dataset`
 load(paste0('simu_data/', adj_type, '_n_', n_large, '.RData'))
@@ -58,13 +59,22 @@ dataset_i$X_k_both_truth <- dataset$X_k_both_truth[,,idx]
 dataset_i$Y_continuous <- matrix(dataset$Y_continuous[idx,], nrow = length(idx))
 dataset_i$simulation_params$n <- length(idx)
 
+if(finer){
+  # make everything the same gridsize
+  dataset_i$simulation_params$time_grid_est <- dataset_i$simulation_params$time_grid
+  dataset_i$simulation_params$time_grid_both <- dataset_i$simulation_params$time_grid
+}
 
 # estimate
 graph_results_i <- full_conditional_estimation_with_no_truth(dataset_i, method, ncores, results_folder_name)
 
 print('obtained estimate')
 
-file_dir <- paste0(results_folder_name, '/', method, '_', 'n_', n, '.RData')
+if(finer){
+  file_dir <- paste0(results_folder_name, '/', method, '_', 'n_', n, '_finer.RData')
+} else{
+  file_dir <- paste0(results_folder_name, '/', method, '_', 'n_', n, '.RData')
+}
 save(graph_results_i, file = file_dir)
 
 print('saved estimate')
