@@ -186,7 +186,7 @@ generate_y_c_adj_type <- function(n, adj_type, params, seed = NULL){
     set.seed(seed)
   }
   
-  # extract last two letters
+  # extract last character
   
   y_c_type <- substring(adj_type, nchar(adj_type))
   
@@ -205,6 +205,8 @@ generate_y_c_adj_type <- function(n, adj_type, params, seed = NULL){
     
     # params[1] = min
     # params[2] = max
+    # y_c ~ uniform[min, max]
+    
     # the premise is that regardless of the value of Y, the underlying graph is the same
     # randomly sample between min and max
     
