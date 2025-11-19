@@ -11,7 +11,7 @@ source('functions/00_function_wrapper.R')
 # args 
 args <- commandArgs(trailingOnly = TRUE)
 
-cont_ind <- args[1]
+cont_ind <- as.numeric(args[1])
 
 temp_file_dir <- 'temp_data'
 
