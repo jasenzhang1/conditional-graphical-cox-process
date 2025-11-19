@@ -63,7 +63,6 @@ get_gamma_adaptive <- function(event_times, gamma_max = 100){
   gamma <- 1 / (2 * bw^2)
   
   if(gamma > gamma_max){
-    warning('KDE gamma is very high')
     gamma <- gamma_max
   }
   
