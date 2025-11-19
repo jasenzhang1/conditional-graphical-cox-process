@@ -38,6 +38,7 @@ print(paste0("mouse: ", ID))
 print(paste0("y_c_structure: ", y_c_structure))
 print(paste0("time_scale: ", time_scale))
 print(paste0("estimation method: ", method))
+print(paste0("num timepoints: ", m))
 
 # load `dataset`
 load(paste0('data/with_ts/', ID, '_t', time_scale, '_data.rda'))
