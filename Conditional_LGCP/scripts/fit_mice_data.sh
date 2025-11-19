@@ -17,7 +17,7 @@ time_scale=10
 m=20
 movement=(0 0 1 1)
 VR=(0 1 0 1)
-
+max_processes=30
 
 mkdir -p script_outputs
 mkdir -p script_outputs/mice
@@ -42,7 +42,7 @@ for i in "${!movement[@]}"; do
   done
   
   # Launch in background
-  Rscript script_preprocess_mice_data.R "$ID" "$y_c_structure" "$time_scale" "$method" "$m" "$mov" "$vr" > "$outfile" 2>&1 &
+  Rscript script_preprocess_mice_data.R "$ID" "$y_c_structure" "$time_scale" "$method" "$m" "$mov" "$vr" "$max_processes" > "$outfile" 2>&1 &
 done
 
 # Wait for all background jobs to finish

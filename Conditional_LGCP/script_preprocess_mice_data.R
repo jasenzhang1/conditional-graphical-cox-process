@@ -16,8 +16,9 @@ y_c_structure <- args[2]            # y_c_structure <- "week_only" or "time_and_
 time_scale <- as.numeric(args[3])   # time_scale <- 10   (each replicate is 5 seconds)
 method <- args[4]                   # method <- 'CPGM'
 m <- as.numeric(args[5])            # m <- 20
-movement <- args[6]
-VR <- args[7]
+movement <- as.numeric(args[6])
+VR <- as.numeric(args[7])
+max_processes <- as.numeric(args[8])
 
 ncores <- 1
 
@@ -49,19 +50,11 @@ load(paste0('data/with_ts/', ID, '_t', time_scale, '_data.rda'))
 
 
 time_grid_est <- make_time_grid(m)
-discrete_covariates <- c('movement', 'VR')
-discrete_covariate_options <- expand.grid('movement' = c(0,1), 'VR' = c(0,1))
 
-
-  
-#m0vr0
-discrete_levels = discrete_covariate_options[k,]
-discrete_name <- paste0('m', movement, 'vr', VR)
-
-dataset_k <- convert_data_for_storage(LGCP_data, y_c_structure, discrete_levels, time_grid_est, min_events = 5, max_processes = 20, seed = NULL) # 00e
+dataset_k <- convert_data_for_storage(LGCP_data, y_c_structure, movement, VR, time_grid_est, min_events = 5, max_processes = max_processes, seed = NULL) # 00e
 
 # store
-
+discrete_name <- paste0('m', movement, 'vr', VR)
 file_dir <- paste0('mice_data', '/', ID, '_', discrete_name, '_t', time_scale, '.RData')
 save(dataset_k, file = file_dir)
 
