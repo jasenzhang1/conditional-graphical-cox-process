@@ -90,10 +90,13 @@ for i in "${!movement[@]}"; do
     
     # Extract n_queries from output
     n_queries=$(echo "$output" | grep "n_queries" | awk -F= '{print $2}')
-    
-    echo "We now have $n_queries queries" >> "$sh_outfile"
     n_queries=$(echo "$n_queries" | xargs)
-    echo "We now have $n_queries queries" >> "$sh_outfile"
+
+    n_i=$(echo "$output" | grep "n_i" | awk -F= '{print $2}')
+    n_i=$(echo "$n_i" | xargs)
+    
+    n_ij=$(echo "$output" | grep "n_ij" | awk -F= '{print $2}')
+    n_ij=$(echo "$n_ij" | xargs)
     
     # ----------------
     # Part 2 - parallelize each y_c_query
@@ -101,14 +104,57 @@ for i in "${!movement[@]}"; do
     
     echo "Part 2 of Strata $i Starting" >> "$sh_outfile"
     for j in $(seq 1 "$n_queries"); do
+      (
         echo "Query $j out of $n_queries" >> "$sh_outfile"
         
         while (( $(jobs -r | wc -l) >= max_jobs )); do
           sleep 1
         done
-        Rscript script_fit_mice_data_part2.R "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" >> "$outfile" 2>&1 &
+        
+        # ----------------
+        # Part 2a - within each fitting procedure, do rho_i and rho_ij estimation all together, and then collect
+        # ----------------       
+        
+        Rscript script_step2_part0.R "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" >> "$outfile" 2>&1
+        
+        for k in $(seq 1 "$n_i"); do
+        
+            while (( $(jobs -r | wc -l) >= max_jobs )); do
+              sleep 1
+            done
+            
+            Rscript script_step2_part1.R "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$k" >> "$outfile" 2>&1 &
+        done
+        
+        echo "Query $j out of $n_queries done with rho_i" >> "$sh_outfile"
+        
+        for kl in $(seq 1 "$n_ij"); do
+        
+            while (( $(jobs -r | wc -l) >= max_jobs )); do
+              sleep 1
+            done
+            
+            Rscript script_step2_part2.R "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$kl" >> "$outfile" 2>&1 &
+        done
+        
+        echo "Query $j out of $n_queries done with rho_ij" >> "$sh_outfile"
+        
+        wait
+        
+        
+        Rscript script_step2_part3.R "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_i" "$n_ij" >> "$outfile" 2>&1 &
+        
+        # ----------------
+        # Part 2b - now continue for the rest of the estimation
+        # ---------------- 
+        
+        Rscript script_fit_mice_data_part2b.R "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" >> "$outfile" 2>&1 &
+        
+      ) & 
     done
+    
     wait
+    
     echo "=========================================" >> "$outfile"
     
     # ----------------
@@ -126,6 +172,9 @@ wait
 # ============================================================
 # END TIMER
 # ============================================================
+
+echo "===========================================" >> "$sh_outfile"
+
 end_time=$(date +%s)
 runtime=$((end_time - start_time))
 
