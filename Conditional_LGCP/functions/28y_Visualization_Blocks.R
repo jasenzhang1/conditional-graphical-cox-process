@@ -3,11 +3,6 @@ source('functions/28z_Visualization_helpers.R')
 source('functions/28_Simulation_Visualization.R')
 source('functions/00b_matrix_norms.R')
 
-library(ggplot2)
-library(gridExtra)
-library(grid)
-library(tidyr)
-
 
 # functions to compartmentalize all the g_XX graphs
 

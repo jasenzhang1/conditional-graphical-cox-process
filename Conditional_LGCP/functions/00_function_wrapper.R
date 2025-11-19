@@ -28,6 +28,22 @@ source('functions/12c_full_estimation_procedure_JASA.R')
 source('functions/12z_full_estimation_function_blocks.R')
 source('functions/13_estimation_validation.R')
 
-library(dplyr)
-library(data.table)
-library(pROC)
+# library(dplyr)
+# library(data.table)
+# library(pROC)
+# library(future.apply)
+# library(dplyr)
+# library(data.table)
+# library(pbmcapply)
+# library(Matrix)
+# library(ggplot2)
+# library(reshape2)
+# library(gridExtra)
+# library(viridis)
+
+packages <- c("dplyr", "data.table", "pROC", "grid", "abind", "future.apply", "pbmcapply",
+              "Matrix", "ggplot2", "reshape2", "gridExtra", "viridis")
+
+for (p in packages) {
+  suppressPackageStartupMessages(library(p, character.only = TRUE))
+}

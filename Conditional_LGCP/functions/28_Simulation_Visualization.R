@@ -1,8 +1,5 @@
 
-library(reshape2)
-library(ggplot2)
-library(parallel)
-library(dplyr)
+
 #library(gganimate)
 #library(magick)
 

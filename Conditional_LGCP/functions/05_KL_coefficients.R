@@ -1,4 +1,4 @@
-library(abind)
+
 
 estimate_log_intensity_function <- function(event_times, t_seq) {
   

@@ -1,5 +1,4 @@
 
-library(mvtnorm)
 
 # all functions to generate y_c
 

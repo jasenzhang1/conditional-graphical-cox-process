@@ -1,4 +1,4 @@
-library(grid)
+
 
 full_conditional_estimation <- function(data_df, y_c_strata, query_y_cs, Tseq, threshold, ncores){
   

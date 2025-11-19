@@ -2,7 +2,7 @@ source('functions/21b_generate_finite_basis_expansion.R')
 source('functions/22_generate_random_variables.R')
 source('functions/25_point_generation_process.R')
 
-library(abind)
+
 
 simulate_conditional_cox_data_v4 <- function(
   n,                     # Sample size (n)

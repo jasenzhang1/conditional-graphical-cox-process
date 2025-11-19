@@ -2,10 +2,7 @@ source('functions/28z_Visualization_helpers.R')
 source('functions/28y_Visualization_Blocks.R')
 source('functions/28_Simulation_Visualization.R')
 
-library(ggplot2)
-library(gridExtra)
-library(grid)
-library(tidyr)
+
 
 visualize_points <- function(step_0_events){
   

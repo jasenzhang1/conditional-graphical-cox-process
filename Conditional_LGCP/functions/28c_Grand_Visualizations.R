@@ -4,10 +4,7 @@ source('functions/28y_Visualization_Blocks.R')
 source('functions/28z_Visualization_helpers.R')
 source('functions/00c_block_matrix_arrange.R')
 
-library(ggplot2)
-library(patchwork)
-library(grid)
-library(gridExtra)
+
 
 # these functions open an entire dataset and search through all query_id 
 

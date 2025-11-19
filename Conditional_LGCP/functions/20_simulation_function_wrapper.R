@@ -11,6 +11,29 @@ source('functions/28b_Simulation_Visualization_2.R')
 source('functions/00a_matrix_massaging.R')
 source('functions/00b_matrix_norms.R')
 
-library(dplyr)
-library(data.table)
-library(gridExtra)
+
+# library(dplyr)
+# library(data.table)
+# library(gridExtra)
+# library(Matrix)
+# library(mvtnorm)
+# library(igraph)
+# library(MASS)
+# library(abind)
+# library(reshape2)
+# library(ggplot2)
+# library(parallel)
+# library(dplyr)
+# library(ggplot2)
+# library(grid)
+# library(tidyr)
+# library(patchwork)
+# library(purrr)
+
+packages <- c("dplyr", "tidyr", "data.table", "gridExtra", "grid", "patchwork",
+              "Matrix", "mvtnorm", "igraph", "MASS", "abind", "reshape2",
+              "ggplot2", "parallel", "purrr")
+
+for (p in packages) {
+  suppressPackageStartupMessages(library(p, character.only = TRUE))
+}

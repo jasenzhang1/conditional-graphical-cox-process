@@ -1,4 +1,4 @@
-library(MASS)
+
 
 exp_kernel <- function(x, y, gamma, variance = 1) variance * exp(- gamma * abs(x - y))
 rbf_kernel <- function(x, y, gamma, variance = 1) variance * exp(- gamma * (x - y)^2 )

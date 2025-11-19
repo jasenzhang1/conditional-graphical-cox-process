@@ -1,7 +1,4 @@
-library(future.apply)
-library(dplyr)
-library(data.table)
-library(pbmcapply)
+
 
 
 estimate_intensities_stratum_parallel_v4 <- function(data_all, patient_sel, feature_sel, 

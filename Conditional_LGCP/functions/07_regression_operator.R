@@ -1,4 +1,3 @@
-library(abind)
 
 construct_cross_covariance_matrix <- function(alpha_hat_stratum) {
   

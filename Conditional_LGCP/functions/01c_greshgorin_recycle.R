@@ -1,11 +1,6 @@
 # Gershgorin-Based Robust Precision Matrix Construction
 # Implementation with improved bounds for high-dimensional applications
 
-library(Matrix)
-library(ggplot2)
-library(reshape2)
-library(gridExtra)
-library(viridis)
 
 
 

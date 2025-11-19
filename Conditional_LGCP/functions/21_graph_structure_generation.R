@@ -1,7 +1,7 @@
-library(Matrix)
-library(mvtnorm)
-library(igraph)
-library(MASS)
+
+
+
+
 
 # these functions create the adjacency matrix ground truth
 # 0's on the diagonal

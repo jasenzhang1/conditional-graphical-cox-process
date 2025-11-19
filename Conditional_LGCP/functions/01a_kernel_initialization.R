@@ -10,7 +10,6 @@
 # - off diagonal values are in [-1, 1]
 # - abs(off diagonals) are either 0, or they are at least epsilon
 
-library(Matrix)
 
 construct_robust_precision_matrix <- function(p, y_c, alpha_functions, 
                                               rho_max = NULL, epsilon = 0.05, 

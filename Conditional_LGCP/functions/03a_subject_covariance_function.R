@@ -2,7 +2,6 @@
 # - for the new estimation procedure, we need to get G_{i, j}(s,t)^k 
 # - for each subject
 
-library(data.table)
 
 subject_specific_log_intensity <- function(data_df4, Tseq_est){
   
