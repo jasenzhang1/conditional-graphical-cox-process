@@ -14,7 +14,7 @@ cd "$(dirname "$0")/.." || exit 1   # go one level up (from /scripts to /) and e
 method="CPGM"
 
 max_jobs=100  
-ID="Tau1"
+ID="Tau3"
 y_c_structure="week_only"
 time_scale=10
 m=20
