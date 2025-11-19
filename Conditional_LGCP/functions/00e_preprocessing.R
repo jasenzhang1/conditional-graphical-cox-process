@@ -133,3 +133,114 @@ convert_data_for_estimation_event_times <- function(event_times){
   return(as.data.table(df))
   
 }
+
+
+convert_data_for_storage <- function(LGCP_data, y_c_structure, discrete_levels, time_grid_est, min_events = 0, max_processes = Inf, seed = NULL){
+  
+  # ----------------------------------------------------------------------------
+  #
+  #
+  # GOAL: convert data from the mice pipeline and wraps it in a format ready for estimation
+  #
+  #
+  # 
+  # input:
+  #
+  # - LGCP_data   (list of 3 items)
+  #
+  # 
+  #   - [[1]] (data.frame with 'feature_id', 'time', and 'subject_num')
+  #     - feature_id
+  #     - time
+  #     - subject_num
+  #
+  #   - [[2]] (nx3 data.frame with 'movement', 'VR', and 'subject_num')
+  #   - [[3]] (nx3 data.frame with 'subject_num', 'age', and 'timestamp')
+  #
+  # - y_c_structure
+  # - discrete_levels   (data.frame)  dataframe where $ can acess "movement" and "VR" indices
+  # - time_grid_est
+  # - min_events        (integer)     minimum number of spikes for a replicate-process to be included
+  # - max_processes     (integer)     how many neurons to look at 
+  # - seed              (integer) 
+  #
+  # 
+  # Output:
+  # 
+  # - output_list (list to replicate dataset)
+  #
+  #   - event_times (n*p-dim list)  each item is named 'k_i' is a vector of timestamps for the i-th process and k-th subject
+  #   - Y_continuous
+  #   - simulation_params
+  #
+  # ----------------------------------------------------------------------------
+  
+
+  # 0) subject_nums of this discrete strata
+  
+  y_d <- LGCP_data[[2]] %>% filter(movement == discrete_levels$movement) %>% 
+    filter(VR == discrete_levels$VR) %>% 
+    dplyr::pull(subject_num) %>% 
+    sort()
+  
+  
+  # 1) event_times
+  
+  # Ensure input is a data.table
+  df <- as.data.table(LGCP_data[[1]]) %>% 
+    filter(feature_id <= max_processes) %>%      # only first p-processes 
+    filter(subject_num %in% y_d) %>%             # only subjects in discrete layer
+    group_by(feature_id, subject_num) %>%        # only include items with >= min_events
+    filter(n() >= min_events) %>%
+    ungroup()
+  
+  y_d2 <- df$subject_num %>% unique() %>% sort()
+    
+  # remap the subject numbers 
+  setDT(df) 
+  df[, subject_num := match(subject_num, sort(unique(y_d2)))]
+  
+  # Split data by subject-feature combination
+  event_times <- split(df$time, paste0(df$subject_num, "_", df$feature_id))
+
+  # 2) Y_c_k and y_c_query
+  
+  if(y_c_structure == 'week_only'){
+    Y_continuous <- LGCP_data[[3]] %>% filter(subject_num %in% y_d) %>% dplyr::pull(age) %>% matrix()
+
+    
+    y_c_query <- seq(min(LGCP_data[[3]]$age), max(LGCP_data[[3]]$age), 4) %>% matrix()
+    
+  } else if(y_c_structure == 'time_and_week'){
+    Y_continuous <- as.matrix(LGCP_data[[3]] %>% filter(subject_num %in% y_d) %>% select(age, timestamp), ncol = 2)
+    
+    # y_c_query - every combination of week and time
+    y_c_query_week <- seq(min(LGCP_data[[3]]$age), max(LGCP_data[[3]]$age), 4)
+    
+    max_time <- max(LGCP_data[[3]]$timestamp)
+    last <- 120 + floor((max_time - 120) / 240) * 240
+    y_c_query_time <- seq(120, last, by = 240)
+    
+    y_c_query <- expand.grid(v1 = y_c_query_week, v2 = y_c_query_time)
+    
+  }
+  
+  
+
+  
+  
+  output_list <- list(event_times = event_times,
+                      Y_continuous = Y_continuous,
+                      simulation_params = list(n = nrow(Y_continuous),
+                                               p = max(df$feature_id),
+                                               Tmax = 1,
+                                               query_y_cs = y_c_query,
+                                               time_grid_est = time_grid_est,
+                                               seed = seed))
+  
+  return(output_list)
+  
+}
+
+
+
