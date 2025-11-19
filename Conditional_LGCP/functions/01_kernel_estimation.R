@@ -58,9 +58,16 @@ get_gamma_silverman_v2 <- function(event_times){
   return(gamma)
 }
 
-get_gamma_adaptive <- function(event_times){
+get_gamma_adaptive <- function(event_times, gamma_max = 100){
   bw <- bw.SJ(event_times)  # or use bw.ucv(event_times)
   gamma <- 1 / (2 * bw^2)
+  
+  if(gamma > gamma_max){
+    warning('KDE gamma is very high')
+    gamma <- gamma_max
+  }
+  
+  
   return(gamma)
 }
 
@@ -145,10 +152,10 @@ estimate_density <- function(t_event, t_seq){
   
   # 1) Calculate density estimate \Lambda_i^k 
   
-  gamma <- get_gamma(t_event)
-  gamma <- get_gamma_silverman(t_event)
-  gamma <- get_gamma_silverman_v2(t_event)
-  gamma <- get_gamma_adaptive(t_event)    # currently the best gamma method 
+  # gamma <- get_gamma(t_event)
+  # gamma <- get_gamma_silverman(t_event)
+  # gamma <- get_gamma_silverman_v2(t_event)
+  gamma <- get_gamma_adaptive(t_event)    # currently the best gamma method, but need a limit of 100
   
   
   kernel_evals <- gaussian_kernel(t_seq, t_event, gamma) # 19 x 3805 matrix
