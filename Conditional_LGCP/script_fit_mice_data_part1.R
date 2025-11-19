@@ -15,10 +15,18 @@ ID <- args[1]                       # ID <- 'Tau1'
 y_c_structure <- args[2]            # y_c_structure <- "week_only" or "time_and_week"
 time_scale <- as.numeric(args[3])   # time_scale <- 10   (each replicate is 5 seconds)
 method <- args[4]                   # method <- 'CPGM'
-movement <- args[5]                 # movement <- 0
-VR <- args[6]                       # VR <- 0
+movement <- as.numeric(args[5])     # movement <- 0
+VR <- as.numeric(args[6])           # VR <- 0
+
+
 
 discrete_level <- paste0('m', movement, 'vr', VR)
+
+setting_info_list <- list(ID = ID,
+                          y_c_structure = y_c_structure,
+                          time_scale = time_scale,
+                          method = method,
+                          discrete_level = discrete_level)
 
 ncores <- 1
 
@@ -43,7 +51,7 @@ load(paste0(data_folder, '/', ID, '_', discrete_level, '_t', time_scale, '.RData
   
 
 if(method == 'CPGM'){
-  full_conditional_estimation_with_no_truth_part1(dataset_k, method, ncores, temp_file_dir, mouse = T)
+  full_conditional_estimation_with_no_truth_part1(dataset_k, setting_info_list, method, ncores, temp_file_dir, mouse = T)
   
   n_queries <- nrow(dataset_k$simulation_params$query_y_cs)
   cat("n_queries=", n_queries, "\n")

@@ -102,7 +102,7 @@ for i in "${!movement[@]}"; do
       while (( $(jobs -r | wc -l) >= max_jobs )); do
         sleep 1
       done
-      Rscript script_fit_mice_data_part2.R "$j" >> "$outfile" 2>&1 &
+      Rscript script_fit_mice_data_part2.R "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" >> "$outfile" 2>&1 &
   done
   wait
   echo "=========================================" >> "$outfile"

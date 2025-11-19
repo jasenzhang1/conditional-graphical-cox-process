@@ -194,7 +194,7 @@ full_conditional_estimation_with_no_truth <- function(dataset, method, ncores, d
   
 }
 
-full_conditional_estimation_with_no_truth_part1 <- function(dataset, method, ncores, temp_file_dir, mouse = F){
+full_conditional_estimation_with_no_truth_part1 <- function(dataset, setting_info_list, method, ncores, temp_file_dir, mouse = F){
   
   if (!(method %in% c("CPGM"))) {
     stop("Error 12b: estimation method must be 'CPGM'")
@@ -268,14 +268,33 @@ full_conditional_estimation_with_no_truth_part1 <- function(dataset, method, nco
     results[['n']] <- n        
   }
   
-  saveRDS(results, file = file.path(temp_file_dir, "part1.rds"))  
+  ID <- setting_info_list[['ID']]
+  y_c_structure <- setting_info_list[['y_c_structure']]
+  time_scale <- setting_info_list[['time_scale']]
+  method <- setting_info_list[['method']]
+  discrete_level <- setting_info_list[['discrete_level']]
+  
+  
+  
+  datafile_name <- paste0("part1_", ID, '_', discrete_level, '_t', time_scale, '.rds')
+  
+  saveRDS(results, file = file.path(temp_file_dir, datafile_name))  
   
 }
 
-full_conditional_estimation_with_no_truth_part2 <- function(temp_file_dir, cont_ind){
+full_conditional_estimation_with_no_truth_part2 <- function(temp_file_dir, setting_info_list, cont_ind){
 
   # load 
-  results <- readRDS(file.path(temp_file_dir, "part1.rds"))
+  
+  ID <- setting_info_list[['ID']]
+  y_c_structure <- setting_info_list[['y_c_structure']]
+  time_scale <- setting_info_list[['time_scale']]
+  method <- setting_info_list[['method']]
+  discrete_level <- setting_info_list[['discrete_level']]
+  
+  datafile_name <- paste0("part1_", ID, '_', discrete_level, '_t', time_scale, '.rds')
+  
+  results <- readRDS(file.path(temp_file_dir, datafile_name))
   
   print(paste0('size of part 1 data: ', length(results)))
   print('names of part 1 data')
@@ -369,12 +388,12 @@ full_conditional_estimation_with_no_truth_part2 <- function(temp_file_dir, cont_
   
   
   # save as part2_1, part2_2
-  file_name <- paste0('part2_', cont_ind, '.rds')
+  file_name <- paste0('part2_', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '.rds')
   saveRDS(estimated_graphs, file = file.path(temp_file_dir, file_name))  
    
 }
 
-full_conditional_estimation_with_no_truth_part3 <- function(temp_file_dir, cont_inds){
+full_conditional_estimation_with_no_truth_part3 <- function(temp_file_dir, setting_info_list, cont_inds){
   
   #
   # cont_inds = number
@@ -385,7 +404,15 @@ full_conditional_estimation_with_no_truth_part3 <- function(temp_file_dir, cont_
   # ----------------------------------------------------------------------------  
   
   # Vector of file names
-  file_names <- paste0(temp_file_dir, "/part2_", 1:cont_inds, ".rds")
+  
+  ID <- setting_info_list[['ID']]
+  y_c_structure <- setting_info_list[['y_c_structure']]
+  time_scale <- setting_info_list[['time_scale']]
+  method <- setting_info_list[['method']]
+  discrete_level <- setting_info_list[['discrete_level']]
+  
+  file_names <- paste0(temp_file_dir, '/part2_', ID, '_', discrete_level, '_t', time_scale, '_nquery', 1:cont_inds, '.rds')
+  
   
   # Step 1: Load all files into a list
   all_loaded <- lapply(file_names, readRDS)
@@ -408,7 +435,10 @@ full_conditional_estimation_with_no_truth_part3 <- function(temp_file_dir, cont_
   
   # remove them 
   file.remove(file_names)
-  file.remove(file.path(temp_file_dir, "part1.rds")) 
+  
+  part1_file_name <- paste0("part1_", ID, '_', discrete_level, '_t', time_scale, '.rds')
+  
+  file.remove(file.path(temp_file_dir, part1_file_name)) 
   
   # ----------------------------------------------------------------------------
   # Reorganize by steps instead of by y_c_query
