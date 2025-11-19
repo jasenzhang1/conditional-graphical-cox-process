@@ -13,14 +13,24 @@ cd "$(dirname "$0")/.." || exit 1   # go one level up (from /scripts to /) and e
 
 method="CPGM"
 
-max_jobs=40
+max_jobs=10
+
+# function wait_for_slot {
+#     while (( $(jobs -rp | wc -l) >= max_jobs )); do
+#         sleep 1
+#     done
+# }
 
 function wait_for_slot {
-    while (( $(jobs -rp | wc -l) >= max_jobs )); do
-        sleep 1
+    # Wait until the number of background jobs is strictly less than max_jobs
+    while true; do
+        running=$(jobs -rp | wc -l)
+        if (( running < max_jobs )); then
+            break
+        fi
+        sleep 0.5
     done
 }
-
 
 ID="Tau3"
 y_c_structure="week_only"
@@ -113,7 +123,7 @@ for i in "${!movement[@]}"; do
     
     echo "Part 2 of Strata $i Starting" >> "$sh_outfile"
     for j in $(seq 1 "$n_queries"); do
-      (
+
         echo "Query $j out of $n_queries" >> "$sh_outfile"
         
 
@@ -151,7 +161,7 @@ for i in "${!movement[@]}"; do
         wait_for_slot
         Rscript script_fit_mice_data_part2b.R "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" >> "$outfile" 2>&1 &
         
-      ) & 
+
     done
     
     wait
