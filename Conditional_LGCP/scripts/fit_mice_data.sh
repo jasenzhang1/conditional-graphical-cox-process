@@ -20,7 +20,7 @@ time_scale=10
 m=20
 movement=(0 0 1 1)
 VR=(0 1 0 1)
-max_processes=30
+max_processes=500
 
 mkdir -p script_outputs
 mkdir -p script_outputs/mice
