@@ -15,7 +15,7 @@ ID <- args[1]                       # ID <- 'Tau1'
 y_c_structure <- args[2]            # y_c_structure <- "week_only" or "time_and_week"
 time_scale <- as.numeric(args[3])   # time_scale <- 10   (each replicate is 5 seconds)
 method <- args[4]                   # method <- 'CPGM'
-m <- args[5]                        # m <- 20
+m <- as.numeric(args[5])            # m <- 20
 movement <- args[6]
 VR <- args[7]
 
