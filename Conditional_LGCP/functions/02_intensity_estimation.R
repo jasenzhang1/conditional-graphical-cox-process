@@ -203,17 +203,17 @@ estimate_intensities_stratum_parallel_with_yc <- function(data_all, y_c_query, y
   rho_i_list <- pbmclapply(1:p, function(i) {
     data_i <- data_all[feature_id == feature_sel[i], ]
     
-    if (nrow(data_i) == 0) {
+    if (nrow(data_i) == 0) { # no events, estimate is the zero intensity
       rho_i <- rep(0, n_time)
     } else {
       Gamma_i <- data_i[, estimate_density(time, t_seq), by = "subject_num"]
       rho_mat <- matrix(Gamma_i$rho_hat, nrow = n_time)
       
-      
+      included_weights <- weights2[unique(Gamma_i$subject_num)]
 
-      rho_mat2 <- sweep(rho_mat, 2, weights2, `*`) # multiply each 19-dim vec by its normalized weight
+      rho_mat2 <- sweep(rho_mat, 2, included_weights, `*`) # multiply each 19-dim vec by its normalized weight
       
-      rho_i <- apply(rho_mat2, 1, sum) # no longer divide by NN
+      rho_i <- apply(rho_mat2, 1, sum) # since these are normalized weights, just add them
     }
     
     rho_i
@@ -221,6 +221,7 @@ estimate_intensities_stratum_parallel_with_yc <- function(data_all, y_c_query, y
   
   # step 3: bivariate case - loop over all keys 
   rho_ij_list <- pbmclapply(1:nrow(key_df), function(k){
+    
     i <- key_df[k,1]
     j <- key_df[k,2]
     
@@ -229,26 +230,32 @@ estimate_intensities_stratum_parallel_with_yc <- function(data_all, y_c_query, y
     
     
     # fitting
-    if (nrow(data_j) == 0 || nrow(data_i) == 0) {
+    if (nrow(data_j) == 0 || nrow(data_i) == 0) { # if any entry has nothing, return the flat bivariate intensity
       rho_ij_mat <- matrix(0, nrow = n_time, ncol = n_time)
     } else {
       times_i <- data_i[, .(event_times_i = list(time)), by = subject_num]  # dataframe where first col = subject, 2nd col = vector of observations 
       times_j <- data_j[, .(event_times_j = list(time)), by = subject_num]  # all of which are for process i
-      times_ij <- merge(times_i, times_j, by = "subject_num", all = TRUE)   # now make it 3 columns: subject, process i, and process j
+      times_ij <- merge(times_i, times_j, by = "subject_num", all = FALSE)   # now make it 3 columns: subject, process i, and process j
       
-      Gamma_ij <- times_ij[, estimate_bivariate_density(
-        event_times_i[[1]], event_times_j[[1]],
-        t_seq, t_seq, 'i'), by = 'subject_num']
-      
-      bivariate_intensity <- matrix(Gamma_ij$V1, nrow = n_time^2)
-      
-    
-      bivariate_intensity2 <- sweep(bivariate_intensity, 2, weights2, `*`) # multiply each 19-dim vec by its normalized weight      
-      
-      rho_ij <- apply(bivariate_intensity2, 1, sum) # no longer divide by NN
-      rho_ij_mat <- matrix(rho_ij, nrow = n_time)
+      if(nrow(times_ij) == 0){      # if they don't occur during the same replicates, return the flat bivariate intensity
+        rho_ij_mat <- matrix(0, nrow = n_time, ncol = n_time)
+      } else{
+        Gamma_ij <- times_ij[, estimate_bivariate_density(
+          event_times_i[[1]], event_times_j[[1]],
+          t_seq, t_seq, 'i'), by = 'subject_num']
+        
+        bivariate_intensity <- matrix(Gamma_ij$V1, nrow = n_time^2)
+        
+        included_weights <- weights2[unique(Gamma_ij$subject_num)]
+        
+        bivariate_intensity2 <- sweep(bivariate_intensity, 2, included_weights, `*`) # multiply each 19-dim vec by its normalized weight      
+        
+        rho_ij <- apply(bivariate_intensity2, 1, sum) # since these are normalized weights, just add them
+        rho_ij_mat <- matrix(rho_ij, nrow = n_time)
+      }
     }
     rho_ij_mat # return this
+    
   }, mc.cores = ncores)
   
   names(rho_i_list) <- 1:p
