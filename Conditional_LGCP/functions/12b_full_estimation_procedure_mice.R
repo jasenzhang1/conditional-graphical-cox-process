@@ -194,7 +194,9 @@ full_conditional_estimation_with_no_truth <- function(dataset, method, ncores, d
   
 }
 
-full_conditional_estimation_with_no_truth_part1 <- function(dataset, setting_info_list, method, ncores, temp_file_dir, mouse = F){
+full_conditional_estimation_with_no_truth_part1 <- function(dataset, setting_info_list, ncores, temp_file_dir, mouse = F){
+  
+  list2env(setting_info_list, envir = environment())  
   
   if (!(method %in% c("CPGM"))) {
     stop("Error 12b: estimation method must be 'CPGM'")
@@ -232,12 +234,28 @@ full_conditional_estimation_with_no_truth_part1 <- function(dataset, setting_inf
   
   p <- length(feature_sel)
   full <- F
-  
+
   # ----------------------------------------------------------------------------
   # Step 1 - Log intensities
   # ----------------------------------------------------------------------------
   
   step_1 <- step_1_log_intensities(dataset, data_df4, time_grid_est, NA, NA, full) 
+  
+  # more things to store:
+  # - weights2
+  # - keys
+  
+  gamma_c <- select_gamma_c_bandwidth_v2(y_c_strata)
+  
+  # get the keys 
+  keys <- expand.grid(i = 1:p, j = 1:p) %>%
+    subset(i <= j) %>%
+    with(paste0(i, "_", j))
+
+  
+  cat("n_ij=", length(keys), "\n")
+  cat("n_i=", p, "\n")
+  cat("n_queries=", nrow(query_y_cs), "\n")
   
   # Save results for Stage 2
   
@@ -251,6 +269,8 @@ full_conditional_estimation_with_no_truth_part1 <- function(dataset, setting_inf
     patient_sel = patient_sel,
     feature_sel = feature_sel,
     p = p,
+    gamma_c = gamma_c,
+    keys = keys,
     mouse = mouse,
     ncores = ncores,
     method = method
@@ -268,13 +288,6 @@ full_conditional_estimation_with_no_truth_part1 <- function(dataset, setting_inf
     results[['n']] <- n        
   }
   
-  ID <- setting_info_list[['ID']]
-  y_c_structure <- setting_info_list[['y_c_structure']]
-  time_scale <- setting_info_list[['time_scale']]
-  method <- setting_info_list[['method']]
-  discrete_level <- setting_info_list[['discrete_level']]
-  
-  
   
   datafile_name <- paste0("part1_", ID, '_', discrete_level, '_t', time_scale, '.rds')
   
@@ -287,14 +300,16 @@ full_conditional_estimation_with_no_truth_part2 <- function(temp_file_dir, setti
   # load 
   
   
-  ID <- setting_info_list[['ID']]
-  y_c_structure <- setting_info_list[['y_c_structure']]
-  time_scale <- setting_info_list[['time_scale']]
-  method <- setting_info_list[['method']]
-  discrete_level <- setting_info_list[['discrete_level']]
+  # ID <- setting_info_list[['ID']]
+  # y_c_structure <- setting_info_list[['y_c_structure']]
+  # time_scale <- setting_info_list[['time_scale']]
+  # method <- setting_info_list[['method']]
+  # discrete_level <- setting_info_list[['discrete_level']]
+  
+  list2env(setting_info_list, envir = environment())
   
   datafile_name <- paste0("part1_", ID, '_', discrete_level, '_t', time_scale, '.rds')
-
+  datafile_error_name <- paste0("dataset_part2_", ID, '_', discrete_level, '_t', time_scale, '.RData')  # in case we need to quit and troubleshoot
 
   results <- readRDS(file.path(temp_file_dir, datafile_name))
   
@@ -347,7 +362,7 @@ full_conditional_estimation_with_no_truth_part2 <- function(temp_file_dir, setti
     step_4_eigendecomp(step_3, p, time_grid, time_grid_est, full)
   }, error = function(e) {
     cat("Error in step_4, saving dataset...\n")
-    save(dataset, file = file.path(dir, "dataset.RData"))
+    save(dataset, file = file.path(temp_file_dir, datafile_error_name))
     stop(e)
   })
   
@@ -374,7 +389,7 @@ full_conditional_estimation_with_no_truth_part2 <- function(temp_file_dir, setti
     step_10_P_cond(step_9, kernel_params_i, p, block, MP, full)
   }, error = function(e) {
     cat("Error occurred in step_10, saving dataset...\n")
-    save(dataset, file = paste0(dir, "/dataset.RData"))
+    save(dataset, file = file.path(temp_file_dir, datafile_error_name))
     cat("Dataset saved to dataset.RData\n")
     stop(e)  # Re-throw the error
   })
@@ -394,6 +409,289 @@ full_conditional_estimation_with_no_truth_part2 <- function(temp_file_dir, setti
    
 }
 
+estimate_intensities_stratum_parallel_with_yc_part0 <- function(temp_file_dir, setting_info_list, n_query){
+  
+  # for this strata, calculate weights 
+  
+  list2env(setting_info_list, envir = environment())
+  
+  step_1_info_list <- paste0("part1_", ID, '_', discrete_level, '_t', time_scale, '.rds')
+  
+  results <- readRDS(file.path(temp_file_dir, step_1_info_list))
+  list2env(results, envir = environment())
+  
+  # get the query and get the weights
+  y_c_query <- query_y_cs[n_query,]
+  
+  weights <- apply(y_c_strata, 1, function(row) {
+    step_6_kernel(as.numeric(row), y_c_query, gamma_c) 
+  })    
+  weights2 <- weights / sum(weights) # normalize
+  
+  results[['weights2']] <- weights2
+  
+  # save
+  
+  datafile_name <- paste0("part2_", ID, '_', discrete_level, '_t', time_scale, '_nquery', n_query, '.rds')
+  saveRDS(out_list, file = file.path(temp_file_dir, datafile_name))  
+  
+
+}
+
+# rho_i
+estimate_intensities_stratum_parallel_with_yc_part1 <- function(temp_file_dir, setting_info_list, i) {
+  
+  # we first calculate rho_i_list
+  # i = process_id
+  
+  list2env(setting_info_list, envir = environment())
+  
+  step_1_info_list <- paste0("part2_", ID, '_', discrete_level, '_t', time_scale, '_nquery', n_query, '.rds')
+  
+  results <- readRDS(file.path(temp_file_dir, step_1_info_list))
+  list2env(results, envir = environment())
+  
+  
+  n_time <- length(time_grid_est)  # 19
+  
+  # step 2: univariate case 
+  
+  data_i <- data_df4[feature_id == feature_sel[i], ]
+  
+  if (nrow(data_i) == 0) { # no events, estimate is the zero intensity
+    rho_i <- rep(0, n_time)
+  } else {
+    Gamma_i <- data_i[, estimate_density(time, time_grid_est), by = "subject_num"]
+    rho_mat <- matrix(Gamma_i$rho_hat, nrow = n_time)
+    
+    included_weights <- weights2[unique(Gamma_i$subject_num)]
+    
+    rho_mat2 <- sweep(rho_mat, 2, included_weights, `*`) # multiply each 19-dim vec by its normalized weight
+    
+    rho_i <- apply(rho_mat2, 1, sum) # since these are normalized weights, just add them
+  }
+  
+  # store rho_i
+  
+  out_list <- list()
+  out_list[[i]] <- rho_i
+  
+  rho_i_file_name <- paste0('step_2_rho_i', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '_', i, '.rds')
+  saveRDS(out_list, file = file.path(temp_file_dir, rho_i_file_name))  
+  
+}
+# key_k
+estimate_intensities_stratum_parallel_with_yc_part2 <- function(temp_file_dir, setting_info_list, k) {
+  
+  
+  # bivariate estimation
+  
+  
+  
+  # 1) retrieve data
+  
+  # ID <- setting_info_list[['ID']]
+  # y_c_structure <- setting_info_list[['y_c_structure']]
+  # time_scale <- setting_info_list[['time_scale']]
+  # method <- setting_info_list[['method']]
+  # discrete_level <- setting_info_list[['discrete_level']]
+  
+  list2env(setting_info_list, envir = environment())
+  
+  step_1_info_list <- paste0("part2_", ID, '_', discrete_level, '_t', time_scale, '_nquery', n_query, '.rds')
+  
+  results <- readRDS(file.path(temp_file_dir, datafile_name))
+  list2env(results, envir = environment())
+  
+  
+  key_ij <- keys[k]
+  key_split <- strsplit(key_ij, "_")[[1]]
+  
+  i <- as.numeric(key_split[1])
+  j <- as.numeric(key_split[2])
+  
+  # 2) prep
+  
+  t_seq <- time_grid_est
+  
+  p <- length(feature_sel) # 249
+  n_time <- length(t_seq)  # 19
+  
+  
+  
+  
+  # step 3: bivariate case - for just the k-th case
+  
+  
+  
+  
+  data_i <- data_all[feature_id == feature_sel[i], ]
+  data_j <- data_all[feature_id == feature_sel[j], ]
+  
+  
+  # fitting
+  if (nrow(data_j) == 0 || nrow(data_i) == 0) { # if any entry has nothing, return the flat bivariate intensity
+    rho_ij_mat <- matrix(0, nrow = n_time, ncol = n_time)
+  } else {
+    times_i <- data_i[, .(event_times_i = list(time)), by = subject_num]  # dataframe where first col = subject, 2nd col = vector of observations 
+    times_j <- data_j[, .(event_times_j = list(time)), by = subject_num]  # all of which are for process i
+    times_ij <- merge(times_i, times_j, by = "subject_num", all = FALSE)   # now make it 3 columns: subject, process i, and process j
+    
+    if(nrow(times_ij) == 0){      # if they don't occur during the same replicates, return the flat bivariate intensity
+      rho_ij_mat <- matrix(0, nrow = n_time, ncol = n_time)
+    } else{
+      Gamma_ij <- times_ij[, estimate_bivariate_density(
+        event_times_i[[1]], event_times_j[[1]],
+        t_seq, t_seq, 'i'), by = 'subject_num']
+      
+      bivariate_intensity <- matrix(Gamma_ij$V1, nrow = n_time^2)
+      
+      included_weights <- weights2[unique(Gamma_ij$subject_num)]
+      
+      bivariate_intensity2 <- sweep(bivariate_intensity, 2, included_weights, `*`) # multiply each 19-dim vec by its normalized weight      
+      
+      rho_ij <- apply(bivariate_intensity2, 1, sum) # since these are normalized weights, just add them
+      rho_ij_mat <- matrix(rho_ij, nrow = n_time)
+    }
+  }
+  
+  # store rho_ij_mat
+  
+  out_list <- list()
+  out_list[[key_ij]] <- rho_ij_mat
+  
+  rho_ij_file_name <- paste0('step_2_rho_ij', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '_', key_ij, '.rds')
+  saveRDS(out_list, file = file.path(temp_file_dir, rho_ij_file_name))  
+  
+}
+
+estimate_intensities_stratum_parallel_with_yc_part3 <- function(temp_file_dir, setting_info_list, n_keys_univariate, n_keys_bivariate) {
+  
+  
+  # putting the results together
+  
+  
+  
+  # 1) retrieve data
+  
+  # ID <- setting_info_list[['ID']]
+  # y_c_structure <- setting_info_list[['y_c_structure']]
+  # time_scale <- setting_info_list[['time_scale']]
+  # method <- setting_info_list[['method']]
+  # discrete_level <- setting_info_list[['discrete_level']]
+  list2env(setting_info_list, envir = environment())
+  
+  # keys_univariate = vector of c(1, 2, 3, ..., p)
+  # keys_bivariate = vector of c('1_1', '1_2', ..., 'p_p')
+  rho_i_file_names  <- paste0('step_2_rho_i',  ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '_', 1:n_keys_univariate, '.rds')
+  rho_ij_file_names <- paste0('step_2_rho_ij', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '_', 1:n_keys_bivariate, '.rds')
+  
+  # Step 1: Load all files into a list
+  rho_i_list <- lapply(rho_i_file_names, readRDS)
+  rho_ij_list <- lapply(rho_ij_file_names, readRDS)
+  
+  # delete files
+  
+  file.remove(rho_i_file_names)
+  file.remove(rho_ij_file_names)
+  
+  
+  
+  # store rho_list
+  rho_list = list(rho_i_list, rho_ij_list)
+  
+  rho_list_name <- paste0('step_2_rho_list', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '.rds')
+  saveRDS(rho_list, file = file.path(temp_file_dir, rho_list_name))  
+  
+  
+}
+
+full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, setting_info_list, cont_ind){
+  
+  # all the estimation after step_2
+  
+  # load 
+  
+  
+  # ID <- setting_info_list[['ID']]
+  # y_c_structure <- setting_info_list[['y_c_structure']]
+  # time_scale <- setting_info_list[['time_scale']]
+  # method <- setting_info_list[['method']]
+  # discrete_level <- setting_info_list[['discrete_level']]
+  
+  list2env(setting_info_list, envir = environment())
+  
+  # load everything from step_1
+  step_1_info_list <- paste0("part2_", ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '.rds')
+  results <- readRDS(file.path(temp_file_dir, datafile_name))
+  list2env(results, envir = environment())
+  
+  # load step_2
+  rho_list_name <- paste0('step_2_rho_list', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '.rds')
+  datafile_error_name <- paste0("dataset_part2_", ID, '_', discrete_level, '_t', time_scale, '.RData')  # in case we need to quit and troubleshoot
+  step_2 <- readRDS(file.path(temp_file_dir, rho_list_name))
+  
+  
+  # ------------------
+  # Step 2b onward
+  # ------------------
+  
+  step_2b <- step_2_rho_ij(step_1, step_2, kernel_params_i, i_neq_j, full)
+  step_3  <- step_3_g_ij(step_2, step_2b, kernel_params_i, i_neq_j, full)
+  
+  
+  
+  step_4 <- tryCatch({
+    step_4_eigendecomp(step_3, p, time_grid, time_grid_est, full)
+  }, error = function(e) {
+    cat("Error in step_4, saving dataset...\n")
+    save(dataset, file = file.path(temp_file_dir, datafile_error_name))
+    stop(e)
+  })
+  
+  # step 5 to 9 split:
+  
+  if(method %in% c('OG', 'JASA')){
+    step_5 <- step_5_KL_expansion(step_1, step_4, kernel_params_i, time_grid, time_grid_est, ncores)
+    step_8 <- steps_78(step_4, step_5, kernel_params_i, y_c_strata, query_y_c, method, ncores)
+    step_9 <- step_9_C_cond_from_V_cond(step_8, kernel_params_i)
+  } else{
+    step_5 <- step_5_KL_covariance(step_3, step_4, full)
+    step_5b <- step_5b_KL_correlation(step_5, p, full)
+    step_9 <- step_9_C_cond_from_KL_cor(step_4, step_5b, kernel_params_i, full)
+    step_9b <- step_9b_eigenfunction_outers(step_4, full)
+  }
+  
+  # reunite at step 10 onwards
+  
+  block <- F
+  MP <- F
+  
+  # step_10 <- step_10_P_cond(step_9, kernel_params_i, p, block, MP)
+  step_10 <- tryCatch({
+    step_10_P_cond(step_9, kernel_params_i, p, block, MP, full)
+  }, error = function(e) {
+    cat("Error occurred in step_10, saving dataset...\n")
+    save(dataset, file = file.path(temp_file_dir, datafile_error_name))
+    cat("Dataset saved to dataset.RData\n")
+    stop(e)  # Re-throw the error
+  })
+  
+  
+  step_11 <- step_11_HS_norms(step_9, step_10, adj_mat_i, p, full)
+  
+  
+  estimated_graphs <- list(step_2 = step_2, step_2b = step_2b, step_3 = step_3,
+                           step_4 = step_4, step_5 = step_5, step_5b = step_5b, step_9 = step_9, step_9b = step_9b,
+                           step_10 = step_10, step_11 = step_11)
+  
+  
+  # save as part2_1, part2_2
+  file_name <- paste0('part2_', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '.rds')
+  saveRDS(estimated_graphs, file = file.path(temp_file_dir, file_name))  
+  
+}
+
 full_conditional_estimation_with_no_truth_part3 <- function(temp_file_dir, setting_info_list, cont_inds){
   
   #
@@ -406,11 +704,12 @@ full_conditional_estimation_with_no_truth_part3 <- function(temp_file_dir, setti
   
   # Vector of file names
   
-  ID <- setting_info_list[['ID']]
-  y_c_structure <- setting_info_list[['y_c_structure']]
-  time_scale <- setting_info_list[['time_scale']]
-  method <- setting_info_list[['method']]
-  discrete_level <- setting_info_list[['discrete_level']]
+  # ID <- setting_info_list[['ID']]
+  # y_c_structure <- setting_info_list[['y_c_structure']]
+  # time_scale <- setting_info_list[['time_scale']]
+  # method <- setting_info_list[['method']]
+  # discrete_level <- setting_info_list[['discrete_level']]
+  list2env(setting_info_list, envir = environment())
   
   file_names <- paste0(temp_file_dir, '/part2_', ID, '_', discrete_level, '_t', time_scale, '_nquery', 1:cont_inds, '.rds')
   
