@@ -286,7 +286,6 @@ full_conditional_estimation_with_no_truth_part2 <- function(temp_file_dir, setti
 
   # load 
   
-  print('I am in part 2 code')
   
   ID <- setting_info_list[['ID']]
   y_c_structure <- setting_info_list[['y_c_structure']]
@@ -295,18 +294,8 @@ full_conditional_estimation_with_no_truth_part2 <- function(temp_file_dir, setti
   discrete_level <- setting_info_list[['discrete_level']]
   
   datafile_name <- paste0("part1_", ID, '_', discrete_level, '_t', time_scale, '.rds')
-  print(paste0('the datafile is', datafile_name))
-  
-  full_path <- file.path(temp_file_dir, datafile_name)
-  print(paste0('the full path for the datafile is', full_path))
-  
-  # Check if it exists
-  if (file.exists(full_path)) {
-    print("File exists, safe to read")
-  } else {
-    print("File does NOT exist in temp_file_dir!")
-  }
-  
+
+
   results <- readRDS(file.path(temp_file_dir, datafile_name))
   
   print(paste0('size of part 1 data: ', length(results)))
@@ -323,6 +312,8 @@ full_conditional_estimation_with_no_truth_part2 <- function(temp_file_dir, setti
 
   cont_inds <- 1:nrow(query_y_cs)
 
+  full <- F
+  
   # Step 0: prep 
   
   print(paste0(cont_ind, ' out of ', length(cont_inds)))
