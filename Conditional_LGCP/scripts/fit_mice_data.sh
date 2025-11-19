@@ -13,7 +13,15 @@ cd "$(dirname "$0")/.." || exit 1   # go one level up (from /scripts to /) and e
 
 method="CPGM"
 
-max_jobs=40  
+max_jobs=40
+
+function wait_for_slot {
+    while (( $(jobs -rp | wc -l) >= max_jobs )); do
+        sleep 1
+    done
+}
+
+
 ID="Tau3"
 y_c_structure="week_only"
 time_scale=10
@@ -67,24 +75,25 @@ echo "===========================================" >> "$sh_outfile"
 
 # Loop over all combinations of movement and VR
 for i in "${!movement[@]}"; do
-  (
+
     mov=${movement[i]}
     vr=${VR[i]}
     
     outfile="script_outputs/mice/fit_m${mov}vr${vr}.txt"
     echo "Part 1 of Strata $i Starting" >> "$sh_outfile"
     
-    # Wait if max_jobs are running
-    while (( $(jobs -r | wc -l) >= max_jobs )); do
-      sleep 1
-    done
+
+    
     
     # ----------------
     # Part 1
     # ----------------
+    
+    wait_for_slot
     output=$(Rscript script_fit_mice_data_part1.R \
               "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" \
               2>&1 | tee "$outfile")
+    wait
     
     echo "=========================================" >> "$outfile"
     
@@ -107,33 +116,24 @@ for i in "${!movement[@]}"; do
       (
         echo "Query $j out of $n_queries" >> "$sh_outfile"
         
-        while (( $(jobs -r | wc -l) >= max_jobs )); do
-          sleep 1
-        done
+
         
         # ----------------
         # Part 2a - within each fitting procedure, do rho_i and rho_ij estimation all together, and then collect
         # ----------------       
         
+        wait_for_slot
         Rscript script_step2_part0.R "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" >> "$outfile" 2>&1
         
         for k in $(seq 1 "$n_i"); do
-        
-            while (( $(jobs -r | wc -l) >= max_jobs )); do
-              sleep 1
-            done
-            
+            wait_for_slot
             Rscript script_step2_part1.R "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$k" >> "$outfile" 2>&1 &
         done
         
         echo "Query $j out of $n_queries done with rho_i" >> "$sh_outfile"
         
         for kl in $(seq 1 "$n_ij"); do
-        
-            while (( $(jobs -r | wc -l) >= max_jobs )); do
-              sleep 1
-            done
-            
+            wait_for_slot
             Rscript script_step2_part2.R "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$kl" >> "$outfile" 2>&1 &
         done
         
@@ -141,13 +141,14 @@ for i in "${!movement[@]}"; do
         
         wait
         
-        
+        wait_for_slot
         Rscript script_step2_part3.R "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_i" "$n_ij" >> "$outfile" 2>&1 &
         
         # ----------------
         # Part 2b - now continue for the rest of the estimation
         # ---------------- 
         
+        wait_for_slot
         Rscript script_fit_mice_data_part2b.R "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" >> "$outfile" 2>&1 &
         
       ) & 
@@ -163,8 +164,9 @@ for i in "${!movement[@]}"; do
     
     echo "Part 3 of Strata $i Starting" >> "$sh_outfile"
     
+    wait_for_slot
     Rscript script_fit_mice_data_part3.R "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_queries" >> "$outfile" 2>&1 &
-  ) & 
+
 done
 
 wait
