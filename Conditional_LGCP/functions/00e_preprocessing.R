@@ -135,7 +135,7 @@ convert_data_for_estimation_event_times <- function(event_times){
 }
 
 
-convert_data_for_storage <- function(LGCP_data, y_c_structure, discrete_levels, time_grid_est, min_events = 0, max_processes = Inf, seed = NULL){
+convert_data_for_storage <- function(LGCP_data, y_c_structure, movement_num, vr_num, time_grid_est, min_events = 0, max_processes = Inf, seed = NULL){
   
   # ----------------------------------------------------------------------------
   #
@@ -158,7 +158,8 @@ convert_data_for_storage <- function(LGCP_data, y_c_structure, discrete_levels, 
   #   - [[3]] (nx3 data.frame with 'subject_num', 'age', and 'timestamp')
   #
   # - y_c_structure
-  # - discrete_levels   (data.frame)  dataframe where $ can acess "movement" and "VR" indices
+  # - movement_num      (0 or 1)
+  # - vr_num            (0 or 1)
   # - time_grid_est
   # - min_events        (integer)     minimum number of spikes for a replicate-process to be included
   # - max_processes     (integer)     how many neurons to look at 
@@ -178,8 +179,8 @@ convert_data_for_storage <- function(LGCP_data, y_c_structure, discrete_levels, 
 
   # 0) subject_nums of this discrete strata
   
-  y_d <- LGCP_data[[2]] %>% filter(movement == discrete_levels$movement) %>% 
-    filter(VR == discrete_levels$VR) %>% 
+  y_d <- LGCP_data[[2]] %>% filter(movement == movement_num) %>% 
+    filter(VR == vr_num) %>% 
     dplyr::pull(subject_num) %>% 
     sort()
   
