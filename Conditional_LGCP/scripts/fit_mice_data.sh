@@ -84,6 +84,8 @@ for i in "${!movement[@]}"; do
             "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" \
             2>&1 | tee "$outfile")
   
+  echo "=========================================" >> "$outfile"
+  
   # Extract n_queries from output
   n_queries=$(echo "$output" | grep "n_queries" | awk -F= '{print $2}')
   
@@ -102,6 +104,7 @@ for i in "${!movement[@]}"; do
       Rscript script_fit_mice_data_part2.R "$j" >> "$outfile" 2>&1 &
   done
   wait
+  echo "=========================================" >> "$outfile"
   
   # ----------------
   # Part 3- when all part 2's are done, do part 3
