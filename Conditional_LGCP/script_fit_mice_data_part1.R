@@ -46,7 +46,7 @@ if(method == 'CPGM'){
   full_conditional_estimation_with_no_truth_part1(dataset_k, method, ncores, temp_file_dir, mouse = T)
   
   n_queries <- nrow(dataset_k$simulation_params$query_y_cs)
-  cat(n_queries, "\n")
+  cat("n_queries=", n_queries, "\n")
   
 } else{
   stop('Invalid method. Must be CPGM')
