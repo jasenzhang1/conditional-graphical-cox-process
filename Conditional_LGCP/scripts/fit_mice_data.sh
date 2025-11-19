@@ -6,7 +6,8 @@
 sh_outfile="script_outputs/mice/fit_mice.txt"
 
 start_time=$(date +%s)
-echo "Pipeline started at: $(date)" > "$sh_outfile"
+: > "$sh_outfile"   # This truncates the file to zero length safely
+echo "Pipeline started at: $(date)" >> "$sh_outfile"
 
 cd "$(dirname "$0")/.." || exit 1   # go one level up (from /scripts to /) and exit if fails
 
