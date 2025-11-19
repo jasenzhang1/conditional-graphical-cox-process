@@ -67,57 +67,58 @@ echo "===========================================" >> "$sh_outfile"
 
 # Loop over all combinations of movement and VR
 for i in "${!movement[@]}"; do
-  mov=${movement[i]}
-  vr=${VR[i]}
-  
-  outfile="script_outputs/mice/fit_m${mov}vr${vr}.txt"
-  echo "Part 1 of Strata $i Starting" >> "$sh_outfile"
-  
-  # Wait if max_jobs are running
-  while (( $(jobs -r | wc -l) >= max_jobs )); do
-    sleep 1
-  done
-  
-  # ----------------
-  # Part 1
-  # ----------------
-  output=$(Rscript script_fit_mice_data_part1.R \
-            "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" \
-            2>&1 | tee "$outfile")
-  
-  echo "=========================================" >> "$outfile"
-  
-  # Extract n_queries from output
-  n_queries=$(echo "$output" | grep "n_queries" | awk -F= '{print $2}')
-  
-  echo "We now have $n_queries queries" >> "$sh_outfile"
-  n_queries=$(echo "$n_queries" | xargs)
-  echo "We now have $n_queries queries" >> "$sh_outfile"
-  
-  # ----------------
-  # Part 2 - parallelize each y_c_query
-  # ----------------
-  
-  echo "Part 2 of Strata $i Starting" >> "$sh_outfile"
-  for j in $(seq 1 "$n_queries"); do
-      echo "Query $j out of $n_queries" >> "$sh_outfile"
-      
-      while (( $(jobs -r | wc -l) >= max_jobs )); do
-        sleep 1
-      done
-      Rscript script_fit_mice_data_part2.R "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" >> "$outfile" 2>&1 &
-  done
-  wait
-  echo "=========================================" >> "$outfile"
-  
-  # ----------------
-  # Part 3- when all part 2's are done, do part 3
-  # ----------------
-  
-  echo "Part 3 of Strata $i Starting" >> "$sh_outfile"
-  
-  Rscript script_fit_mice_data_part3.R "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_queries" >> "$outfile" 2>&1 &
-
+  (
+    mov=${movement[i]}
+    vr=${VR[i]}
+    
+    outfile="script_outputs/mice/fit_m${mov}vr${vr}.txt"
+    echo "Part 1 of Strata $i Starting" >> "$sh_outfile"
+    
+    # Wait if max_jobs are running
+    while (( $(jobs -r | wc -l) >= max_jobs )); do
+      sleep 1
+    done
+    
+    # ----------------
+    # Part 1
+    # ----------------
+    output=$(Rscript script_fit_mice_data_part1.R \
+              "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" \
+              2>&1 | tee "$outfile")
+    
+    echo "=========================================" >> "$outfile"
+    
+    # Extract n_queries from output
+    n_queries=$(echo "$output" | grep "n_queries" | awk -F= '{print $2}')
+    
+    echo "We now have $n_queries queries" >> "$sh_outfile"
+    n_queries=$(echo "$n_queries" | xargs)
+    echo "We now have $n_queries queries" >> "$sh_outfile"
+    
+    # ----------------
+    # Part 2 - parallelize each y_c_query
+    # ----------------
+    
+    echo "Part 2 of Strata $i Starting" >> "$sh_outfile"
+    for j in $(seq 1 "$n_queries"); do
+        echo "Query $j out of $n_queries" >> "$sh_outfile"
+        
+        while (( $(jobs -r | wc -l) >= max_jobs )); do
+          sleep 1
+        done
+        Rscript script_fit_mice_data_part2.R "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" >> "$outfile" 2>&1 &
+    done
+    wait
+    echo "=========================================" >> "$outfile"
+    
+    # ----------------
+    # Part 3- when all part 2's are done, do part 3
+    # ----------------
+    
+    echo "Part 3 of Strata $i Starting" >> "$sh_outfile"
+    
+    Rscript script_fit_mice_data_part3.R "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_queries" >> "$outfile" 2>&1 &
+  ) & 
 done
 
 wait
