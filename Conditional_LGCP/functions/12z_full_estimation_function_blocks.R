@@ -292,10 +292,10 @@ step_2_rho_i <- function(dataset, data_df4, kernel_params, rho_kernel, patient_s
 
     
     
-    # i_neq_j is true because we want G_ij
+    # i_neq_j is false because we want G_ij
     rho_list <- estimate_intensities_stratum_parallel_with_yc(data_df4, query_y_c, y_c_strata, 
                                                               patient_sel, feature_sel, 
-                                                              time_grid_est, T, ncores)
+                                                              time_grid_est, i_neq_j = T, ncores)
     
   } else{
     
@@ -1368,14 +1368,10 @@ step_10_P_cond <- function(step_9, kernel_params, p, block, MP, full = T){
     C_cond_est_full          <- step_9$C_cond_est_full
     C_cond_est_unnorm_full   <- step_9$C_cond_est_unnorm_full
     
-    print(C_cond_est_full[1:5, 1:5])
-    print(C_cond_est_unnorm_full[1:5, 1:5])
     
     P_cond_est_full           <- estimate_precision_operator_v3(C_cond_est_full, p, block, MP)
     P_cond_est_unnorm_full    <- estimate_precision_operator_v3(C_cond_est_unnorm_full, p, block, MP)
     
-    print(P_cond_est_full[1:5, 1:5])
-    print(P_cond_est_unnorm_full[1:5, 1:5])
     
     return(list(P_cond_est_full = P_cond_est_full,
                 P_cond_est_unnorm_full = P_cond_est_unnorm_full))
