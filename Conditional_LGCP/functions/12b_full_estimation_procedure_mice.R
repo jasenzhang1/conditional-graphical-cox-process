@@ -276,7 +276,10 @@ full_conditional_estimation_with_no_truth_part2 <- function(temp_file_dir, cont_
 
   # load 
   results <- readRDS(file.path(temp_file_dir, "part1.rds"))
-
+  
+  print(paste0('size of part 1 data: ', length(results)))
+  print('names of part 1 data')
+  print(names(results))
   
   # load all variabels
   list2env(results, envir = .GlobalEnv)
