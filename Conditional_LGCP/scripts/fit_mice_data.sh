@@ -3,8 +3,10 @@
 # ============================================================
 # START TIMER
 # ============================================================
+sh_outfile="script_outputs/mice/fit_mice.txt"
+
 start_time=$(date +%s)
-echo "Pipeline started at: $(date)"
+echo "Pipeline started at: $(date)" > "$sh_outfile"
 
 cd "$(dirname "$0")/.." || exit 1   # go one level up (from /scripts to /) and exit if fails
 
@@ -33,8 +35,8 @@ for i in "${!movement[@]}"; do
   vr=${VR[i]}
   
   outfile="script_outputs/mice/preprocess_m${mov}vr${vr}.txt"
-  echo "Preprocessing for movement=$mov, VR=$vr"
-  echo "Logging to: $outfile"
+  echo "Preprocessing for movement=$mov, VR=$vr" >> "$sh_outfile"
+  echo "Logging to: $outfile" >> "$sh_outfile"
   
   # Wait if max_jobs are running
   while (( $(jobs -r | wc -l) >= max_jobs )); do
@@ -48,8 +50,15 @@ done
 # Wait for all background jobs to finish
 wait
 
-echo "All preprocessing jobs finished."
 
+
+echo "All preprocessing jobs finished." >> "$sh_outfile"
+
+end_time=$(date +%s)
+runtime=$((end_time - start_time))
+
+echo "Total elapsed time: ${runtime} seconds (~$((runtime/60)) minutes)." >> "$sh_outfile"
+echo "===========================================" >> "$sh_outfile"
 
 # ----------
 # fit
@@ -61,7 +70,7 @@ for i in "${!movement[@]}"; do
   vr=${VR[i]}
   
   outfile="script_outputs/mice/fit_m${mov}vr${vr}.txt"
-  echo "Part 1 of Strata $i Starting"
+  echo "Part 1 of Strata $i Starting" >> "$sh_outfile"
   
   # Wait if max_jobs are running
   while (( $(jobs -r | wc -l) >= max_jobs )); do
@@ -78,14 +87,14 @@ for i in "${!movement[@]}"; do
   # Extract n_queries from output
   n_queries=$(echo "$output" | grep "n_queries" | awk -F= '{print $2}')
   
-  
+  echo "We now have $n_queries queries" >> "$sh_outfile"
   # ----------------
   # Part 2 - parallelize each y_c_query
   # ----------------
   
-  echo "Part 2 of Strata $i Starting"
+  echo "Part 2 of Strata $i Starting" >> "$sh_outfile"
   for j in $(seq 1 "$n_queries"); do
-      echo "Query $j out of $n_queries"
+      echo "Query $j out of $n_queries" >> "$sh_outfile"
       
       while (( $(jobs -r | wc -l) >= max_jobs )); do
         sleep 1
@@ -98,7 +107,7 @@ for i in "${!movement[@]}"; do
   # Part 3- when all part 2's are done, do part 3
   # ----------------
   
-  echo "Part 3 of Strata $i Starting"
+  echo "Part 3 of Strata $i Starting" >> "$sh_outfile"
   
   Rscript script_fit_mice_data_part3.R "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_queries" >> "$outfile" 2>&1 &
 
@@ -112,5 +121,5 @@ wait
 end_time=$(date +%s)
 runtime=$((end_time - start_time))
 
-echo "Pipeline finished at: $(date)"
-echo "Total runtime: ${runtime} seconds (~$((runtime/60)) minutes)."
+echo "Pipeline finished at: $(date)" >> "$sh_outfile"
+echo "Total runtime: ${runtime} seconds (~$((runtime/60)) minutes)." >> "$sh_outfile"

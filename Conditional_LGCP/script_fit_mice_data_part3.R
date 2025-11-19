@@ -18,7 +18,7 @@ time_scale <- as.numeric(args[3])   # time_scale <- 10   (each replicate is 5 se
 method <- args[4]                   # method <- 'CPGM'
 movement <- args[5]                 # movement <- 0
 VR <- args[6]                       # VR <- 0
-cont_inds <- args[7]                # all of the cont_inds
+cont_inds <- args[7]                # n_query
 
 discrete_level <- paste0('m', movement, 'vr', VR)
 

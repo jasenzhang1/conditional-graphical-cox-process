@@ -373,6 +373,10 @@ full_conditional_estimation_with_no_truth_part2 <- function(temp_file_dir, cont_
 
 full_conditional_estimation_with_no_truth_part3 <- function(temp_file_dir, cont_inds){
   
+  #
+  # cont_inds = number
+  # 
+  
   # ----------------------------------------------------------------------------
   # read from steps 1 and 2 and then remove everything
   # ----------------------------------------------------------------------------  
