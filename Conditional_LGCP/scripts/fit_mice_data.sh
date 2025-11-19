@@ -91,6 +91,9 @@ for i in "${!movement[@]}"; do
   n_queries=$(echo "$output" | grep "n_queries" | awk -F= '{print $2}')
   
   echo "We now have $n_queries queries" >> "$sh_outfile"
+  n_queries=$(echo "$n_queries" | xargs)
+  echo "We now have $n_queries queries" >> "$sh_outfile"
+  
   # ----------------
   # Part 2 - parallelize each y_c_query
   # ----------------
