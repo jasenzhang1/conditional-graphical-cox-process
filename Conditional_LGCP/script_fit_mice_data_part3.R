@@ -22,6 +22,11 @@ cont_inds <- args[7]                # n_query
 
 discrete_level <- paste0('m', movement, 'vr', VR)
 
+setting_info_list <- list(ID = ID,
+                          y_c_structure = y_c_structure,
+                          time_scale = time_scale,
+                          method = method,
+                          discrete_level = discrete_level)
 
 temp_file_dir <- 'temp_data'
 
@@ -39,7 +44,7 @@ if (!dir.exists(results_folder_name)) dir.create(results_folder_name)  # /mice_r
 # ---------------------------
 
 if(method == 'CPGM'){
-  graph_results_i <- full_conditional_estimation_with_no_truth_part3(temp_file_dir, cont_inds)
+  graph_results_i <- full_conditional_estimation_with_no_truth_part3(temp_file_dir, setting_info_list, cont_inds)
 } else{
   stop('Invalid method. Must be CPGM')
 }
