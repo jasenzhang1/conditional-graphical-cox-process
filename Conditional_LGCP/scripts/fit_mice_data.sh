@@ -153,7 +153,7 @@ for i in "${!movement[@]}"; do
         wait
         
         wait_for_slot
-        Rscript script_step2_part3.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_i" "$n_ij" >> "$outfile" 2>&1 &
+        Rscript script_step2_part3.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" "$n_i" "$n_ij" >> "$outfile" 2>&1 &
         
         # ----------------
         # Part 2b - now continue for the rest of the estimation
