@@ -29,6 +29,7 @@ ns=(1000 3000 10000)
 method="CPGM"
 model_type="simu"  # simu or mice
 max_jobs=50
+need_data=false    # do I need new data?
 
 function wait_for_slot {
     # Wait until the number of background jobs is strictly less than max_jobs
@@ -64,18 +65,20 @@ for entry in "${adj_type_params[@]}"; do
 
   start_time=$(date +%s)
 
-  # -------------------
-  # Step 1: Generate
-  # -------------------
-  echo "[STEP 1] Generating dataset..." | tee -a "$outfile"
-  step1_start=$(date +%s)
-
-  Rscript script_generate_finite_basis_data.R $n_large $entry >> "$outfile" 2>&1
-
-  step1_end=$(date +%s)
-  step1_elapsed=$(( step1_end - step1_start ))
-  echo "[DONE] Generation complete. Elapsed: ${step1_elapsed}s" | tee -a "$outfile"
-  echo "" | tee -a "$outfile"
+  if [[ "$need_data" == true ]]; then
+      # -------------------
+      # Step 1: Generate
+      # -------------------
+      echo "[STEP 1] Generating dataset..." | tee -a "$outfile"
+      step1_start=$(date +%s)
+    
+      Rscript script_generate_finite_basis_data.R $n_large $entry >> "$outfile" 2>&1
+    
+      step1_end=$(date +%s)
+      step1_elapsed=$(( step1_end - step1_start ))
+      echo "[DONE] Generation complete. Elapsed: ${step1_elapsed}s" | tee -a "$outfile"
+      echo "" | tee -a "$outfile"
+  fi
 
   # ----------
   # Step 2: Fit

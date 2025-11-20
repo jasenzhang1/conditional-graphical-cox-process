@@ -93,7 +93,7 @@ if(mouse){
   
 
 if(method == 'CPGM'){
-  full_conditional_estimation_with_no_truth_part1(dataset_k, setting_info_list, ncores, temp_file_dir, mouse = T)
+  full_conditional_estimation_with_no_truth_part1(dataset_k, setting_info_list, ncores, temp_file_dir, mouse)
 } else{
   stop('Invalid method. Must be CPGM')
 }
