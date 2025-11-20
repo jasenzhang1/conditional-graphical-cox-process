@@ -25,7 +25,8 @@ p <- 12
 m <- 30
 m_est <- 30
 T_max <- 1
-
+min_limit <- 0
+max_limit <- Inf
 
 beta_0 <- 5
 time_grid <- make_time_grid(m)
@@ -59,7 +60,7 @@ ncores = 1
 
 result <- simulate_finite_basis_cox_data(n, d, p, adj_type, adj_params, beta_0, 
                                          time_grid, time_grid_est, time_grid_both,
-                                         T_max, y_c_query, seed)
+                                         T_max, y_c_query, min_limit, max_limit, seed)
                                           
 dataset <- result$dataset                                           
 truths <- result$all_truths
