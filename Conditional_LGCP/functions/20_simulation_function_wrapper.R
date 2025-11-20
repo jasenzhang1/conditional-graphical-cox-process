@@ -2,7 +2,7 @@
 
 packages <- c("dplyr", "tidyr", "data.table", "gridExtra", "grid", "patchwork",
               "Matrix", "mvtnorm", "igraph", "MASS", "abind", "reshape2",
-              "ggplot2", "parallel", "purrr")
+              "ggplot2", "parallel", "purrr", "pracma")
 
 for (p in packages) {
   suppressPackageStartupMessages(library(p, character.only = TRUE))

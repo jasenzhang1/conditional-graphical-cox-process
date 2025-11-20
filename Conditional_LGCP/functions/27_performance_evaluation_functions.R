@@ -100,8 +100,6 @@ compute_operator_error <- function(estimated_precision, true_precision) {
   ))
 }
 
-library(pracma)
-
 compute_operator_error_v2 <- function(A_on_grid1, A_hat_on_grid2, grid1, grid2){
   
   # A_on_grid1: matrix on grid1
