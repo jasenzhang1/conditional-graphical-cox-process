@@ -310,7 +310,7 @@ package_simulation_results <- function(event_times_list, n, p, T_max, query_y_cs
 
 simulate_finite_basis_cox_data <- function(n, d, p, adj_type, adj_params, beta_0, 
                                            time_grid, time_grid_est, time_grid_both,
-                                           T_max, y_c_query, seed){
+                                           T_max, y_c_query, min_limit, max_limit, seed){
   
   
   # ----------------------------------------------------------------------------
@@ -386,7 +386,7 @@ simulate_finite_basis_cox_data <- function(n, d, p, adj_type, adj_params, beta_0
   # 4) Generate point process events
   max_events = Inf
   min_events = 0
-  while(min_events < 5 | max_events > 10000){
+  while(min_events < min_limit | max_events > max_limit){
   
     print('at event time generation')
     events <- lapply(1:n, function(i){generate_cox_process_events(log_intensities[, , i], time_grid, T_max, max_intensity = Inf)})
@@ -603,7 +603,94 @@ simulate_finite_basis_cox_data <- function(n, d, p, adj_type, adj_params, beta_0
               all_truths = all_truths)) 
 }
 
+simulate_finite_basis_cox_data_part0 <- function(setting_info_list, n, d, p, adj_type, adj_params, beta_0, 
+                                                 time_grid, time_grid_est, time_grid_both,
+                                                 T_max, y_c_query, seed){
+  
+  
+  # get events for a subset of n replicates 
+  
+  # Y_c
+  # basis_list
+  # group_num
+  # n_sub
+  # adj_type
+  # adj_params
+  # d
+  # p
+  # time_grid
+  # beta_0
+  
+  cov_mat_list <- lapply(1:n_sub, function(i) {
+    trig_basis_cov_mat(d, p, Y_c[i, ], adj_type, adj_params)
+  })
+  
+  # 2) set up for generating X_i(t)
+  
+
+  m <- length(time_grid)
+  mu_t        <- rep(beta_0, m)    # mu(t) = beta_0 (constant)
 
 
+  
+
+  
+  # 3) for each subject, obtain realizations of log intensities and beta coefficients that got them there
+  
+  result <- trig_basis_log_intensity(cov_mat_list, basis_list, mu_t, time_grid)
+  
+  log_intensities <- result$log_intensities %>% simplify2array()           # (p x m x n)
+
+  
+
+  result_info_list <- list(min_events = 5,
+                           max_events = 10000,
+                           log_intensities = log_intensities,
+                           time_grid = time_grid,
+                           T_max = T_max)
+  
+  
+  # 4) save
+                            
+  datafile_name <- paste0("log_intensities_", adj_type, '_n_', n, '_group', group_num, '.rds')
+  saveRDS(result_info_list, file = file.path(temp_file_dir, datafile_name))  
+
+} 
+
+simulate_finite_basis_cox_data_part1 <- function(temp_file_dir, setting_info_list){
+  
+  # carry on with the data generation
+  
+  list2env(setting_info_list, envir = environment())
+  
+
+  part1_info_list <- paste0("log_intensities_", adj_type, '_n_', n, '_group', group_num, '.rds')
+  results <- readRDS(file.path(temp_file_dir, part1_info_list))
+  list2env(results, envir = environment())
+  
+
+  
+  # 4) Generate point process events
+  max_events_obs = Inf
+  min_events_obs = 0
+  while(min_events_obs < min_events | max_events_obs > min_events){
+    
+    print('at event time generation')
+    events <- lapply(1:n, function(i){generate_cox_process_events(log_intensities[, , i], time_grid, T_max, max_intensity = Inf)})
+    
+    print('finished event time generation')
+    max_events_obs <- max(sapply(events, function(i) max(i$event_counts)))
+    min_events_obs <- min(sapply(events, function(i) min(i$event_counts)))
+    
+    print(paste0('most events on a process: ', max_events_obs))
+    print(paste0('least events on a process: ', min_events_obs))
+  }
+  
+  # save 
+  
+  file_name <- paste0('events_', adj_type, '_n_', n, '_group', group_num, '.rds')
+  saveRDS(events, file = file.path(temp_file_dir, file_name))  
+  
+}
 
 
