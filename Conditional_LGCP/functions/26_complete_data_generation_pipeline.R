@@ -657,7 +657,7 @@ simulate_finite_basis_cox_data_part1 <- function(temp_file_dir, setting_info_lis
     beta_coeffs = beta_coeffs
   )
   
-  part_1_info_list <- paste0("part1", adj_type, '_n_', n, '_group', group_idx, '.rds')
+  part_1_info_list <- paste0("part1_", adj_type, '_n_', n, '_group', group_idx, '.rds')
   
   
   saveRDS(out_list, file = file.path(temp_file_dir, part_1_info_list))    
@@ -684,7 +684,7 @@ simulate_finite_basis_cox_data_part2 <- function(temp_file_dir, setting_info_lis
   # - log_intensities_est
   # - log_intensities
   # - beta_coeffs
-  part_1_info_list <- paste0("part1", adj_type, '_n_', n, '_group', group_idx, '.rds')
+  part_1_info_list <- paste0("part1_", adj_type, '_n_', n, '_group', group_idx, '.rds')
   results <- readRDS(file.path(temp_file_dir, part_1_info_list))
   list2env(results, envir = environment())
   
@@ -693,17 +693,13 @@ simulate_finite_basis_cox_data_part2 <- function(temp_file_dir, setting_info_lis
   # 4) Generate point process events
   max_events_obs = Inf
   min_events_obs = -1
-  while(min_events_obs < min_events | max_events_obs > min_events){
+  while(min_events_obs < min_events | max_events_obs > max_events){
     
-    print('at event time generation')
     events <- lapply(1:n_group, function(i){generate_cox_process_events(log_intensities[, , i], time_grid, T_max, max_intensity = Inf)})
     
-    print('finished event time generation')
     max_events_obs <- max(sapply(events, function(i) max(i$event_counts)))
     min_events_obs <- min(sapply(events, function(i) min(i$event_counts)))
     
-    print(paste0('most events on a process: ', max_events_obs))
-    print(paste0('least events on a process: ', min_events_obs))
   }
   
   # save 
