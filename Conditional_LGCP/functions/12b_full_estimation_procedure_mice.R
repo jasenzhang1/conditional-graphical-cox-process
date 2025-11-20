@@ -526,8 +526,8 @@ estimate_intensities_stratum_parallel_with_yc_part2 <- function(temp_file_dir, s
   
   
   
-  data_i <- data_all[feature_id == feature_sel[i], ]
-  data_j <- data_all[feature_id == feature_sel[j], ]
+  data_i <- data_df4[feature_id == feature_sel[i], ]
+  data_j <- data_df4[feature_id == feature_sel[j], ]
   
   
   # fitting
