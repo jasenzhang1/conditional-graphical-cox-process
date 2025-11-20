@@ -42,7 +42,7 @@ function wait_for_slot {
 }
 
 mkdir -p script_outputs
-mkdir -p script_outputs/simu_v2
+mkdir -p script_outputs/simu
 
 
 
@@ -52,7 +52,7 @@ mkdir -p script_outputs/simu_v2
 
 for entry in "${adj_type_params[@]}"; do
   adj_type=$(echo "$entry" | awk '{print $1}')
-  outfile="script_outputs/simu_v2/${adj_type}_n_${n_large}.log"
+  outfile="script_outputs/simu/${adj_type}_n_${n_large}.log"
   rm -f "$outfile"   # delete old log if it exists
 
   echo "===================================================" | tee -a "$outfile"
@@ -98,7 +98,7 @@ for entry in "${adj_type_params[@]}"; do
       wait_for_slot
       output=$(Rscript script_fit_mice_data_part1.R \
                 "$model_type" "$n_large" "$n" "$adj_type" "$method" \
-                2>&1 | tee "$outfile")
+                2>&1 | tee -a "$outfile")
       wait
       
       echo "=========================================" >> "$outfile"
