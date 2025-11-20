@@ -1,3 +1,13 @@
+
+
+packages <- c("dplyr", "tidyr", "data.table", "gridExtra", "grid", "patchwork",
+              "Matrix", "mvtnorm", "igraph", "MASS", "abind", "reshape2",
+              "ggplot2", "parallel", "purrr")
+
+for (p in packages) {
+  suppressPackageStartupMessages(library(p, character.only = TRUE))
+}
+
 source('functions/21_graph_structure_generation.R')
 source('functions/22_generate_random_variables.R')
 source('functions/23_conditional_dependence_functions.R')
@@ -12,28 +22,4 @@ source('functions/00a_matrix_massaging.R')
 source('functions/00b_matrix_norms.R')
 
 
-# library(dplyr)
-# library(data.table)
-# library(gridExtra)
-# library(Matrix)
-# library(mvtnorm)
-# library(igraph)
-# library(MASS)
-# library(abind)
-# library(reshape2)
-# library(ggplot2)
-# library(parallel)
-# library(dplyr)
-# library(ggplot2)
-# library(grid)
-# library(tidyr)
-# library(patchwork)
-# library(purrr)
 
-packages <- c("dplyr", "tidyr", "data.table", "gridExtra", "grid", "patchwork",
-              "Matrix", "mvtnorm", "igraph", "MASS", "abind", "reshape2",
-              "ggplot2", "parallel", "purrr")
-
-for (p in packages) {
-  suppressPackageStartupMessages(library(p, character.only = TRUE))
-}

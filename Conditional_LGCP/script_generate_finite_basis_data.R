@@ -11,8 +11,9 @@ n <- as.numeric(args[1])
 adj_type <- args[2]
 adj_params <- as.numeric(args[3:length(args)])
 
-source('functions/20_simulation_function_wrapper.R')
 source('functions/00_function_wrapper.R')
+source('functions/20_simulation_function_wrapper.R')
+
 
 # n <- 100
 # adj_type <- 'block_banded_v2'
