@@ -675,7 +675,7 @@ simulate_finite_basis_cox_data_part2 <- function(temp_file_dir, setting_info_lis
   # - T_max
 
   part_0_info_list <- paste0("part0_", adj_type, '_n_', n, '.rds')
-  results <- readRDS(file.path(temp_file_dir, part_1_info_list))
+  results <- readRDS(file.path(temp_file_dir, part_0_info_list))
   list2env(results, envir = environment())
   
   # load items from part 1
