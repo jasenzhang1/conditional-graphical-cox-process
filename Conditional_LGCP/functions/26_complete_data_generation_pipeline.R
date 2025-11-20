@@ -671,7 +671,19 @@ simulate_finite_basis_cox_data_part2 <- function(temp_file_dir, setting_info_lis
   
   list2env(setting_info_list, envir = environment())
   
+  # load items from part 0
+  # - T_max
+
+  part_0_info_list <- paste0("part0_", adj_type, '_n_', n, '.rds')
+  results <- readRDS(file.path(temp_file_dir, part_1_info_list))
+  list2env(results, envir = environment())
   
+  # load items from part 1
+  # - cov_mat_list
+  # - log_intensities_both
+  # - log_intensities_est
+  # - log_intensities
+  # - beta_coeffs
   part_1_info_list <- paste0("part1", adj_type, '_n_', n, '_group', group_idx, '.rds')
   results <- readRDS(file.path(temp_file_dir, part_1_info_list))
   list2env(results, envir = environment())
@@ -777,6 +789,8 @@ simulate_finite_basis_cox_data_part4 <- function(temp_file_dir, setting_info_lis
   
   # 0) load 
   list2env(setting_info_list, envir = environment())
+  
+  # 0a) load part0 
 
   cov_mat_query <- trig_basis_cov_mat(d, p, y_c_query[cont_ind, ], adj_type, adj_params)
   cor_mat_query <- assemble_blockwise_correlation(cov_mat_query, p, d)

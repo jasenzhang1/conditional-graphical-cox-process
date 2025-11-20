@@ -10,6 +10,11 @@ args <- commandArgs(trailingOnly = TRUE)
 n <- as.numeric(args[1])
 adj_type <- args[2]
 cont_ind <- as.numeric(args[3])
+adj_params <- as.numeric(args[4:length(args)])
+
+setting_info_list <- list(n = n,
+                          adj_type = adj_type,
+                          adj_params = adj_params)
 
 source('functions/00_function_wrapper.R')
 source('functions/20_simulation_function_wrapper.R')

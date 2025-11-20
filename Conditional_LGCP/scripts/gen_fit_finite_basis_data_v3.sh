@@ -57,7 +57,12 @@ mkdir -p script_outputs/simu
 # ---------------------------------------------------------------------------
 
 for entry in "${adj_type_params[@]}"; do
-  adj_type=$(echo "$entry" | awk '{print $1}')
+
+  read -r -a fields <<< "$entry"
+
+  adj_type="${fields[0]}"         # first field
+  adj_params=("${fields[@]:1}")   # all fields after the first
+  
   outfile="script_outputs/simu/${adj_type}_n_${n_large}.log"
   rm -f "$outfile"   # delete old log if it exists
 
@@ -76,7 +81,7 @@ for entry in "${adj_type_params[@]}"; do
   echo "[STEP 1] Generating dataset..." | tee -a "$outfile"
   step1_start=$(date +%s)
 
-  Rscript script_generate_finite_basis_data_part0.R $n_large $n_query $entry >> "$outfile" 2>&1
+  Rscript script_generate_finite_basis_data_part0.R $n_large $n_query $adj_type $adj_params >> "$outfile" 2>&1
   
   for group_idx in $(seq 1 "$groups"); do
       wait_for_slot
@@ -93,7 +98,7 @@ for entry in "${adj_type_params[@]}"; do
   for cont_ind in $(seq 1 "$n_query"); do
       wait_for_slot
       (
-          Rscript script_generate_finite_basis_data_part4.R "$n_large" "$adj_type" "$cont_ind" >> "$outfile" 2>&1
+          Rscript script_generate_finite_basis_data_part4.R "$n_large" "$adj_type" "$cont_ind" "$adj_params" >> "$outfile" 2>&1
       ) & 
   done  
   wait
