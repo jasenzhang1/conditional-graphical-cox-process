@@ -385,7 +385,7 @@ simulate_finite_basis_cox_data <- function(n, d, p, adj_type, adj_params, beta_0
   
   # 4) Generate point process events
   max_events = Inf
-  min_events = 0
+  min_events = -1
   while(min_events < min_limit | max_events > max_limit){
   
     print('at event time generation')
