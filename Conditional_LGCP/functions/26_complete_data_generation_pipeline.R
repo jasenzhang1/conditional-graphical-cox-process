@@ -660,7 +660,7 @@ simulate_finite_basis_cox_data_part1 <- function(temp_file_dir, setting_info_lis
   part_1_info_list <- paste0("part1", adj_type, '_n_', n, '_group', group_idx, '.rds')
   
   
-  saveRDS(out_list, file = file.path(temp_file_dir, rho_i_file_name))    
+  saveRDS(out_list, file = file.path(temp_file_dir, part_1_info_list))    
   
 }
 

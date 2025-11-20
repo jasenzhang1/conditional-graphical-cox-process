@@ -76,29 +76,29 @@ for entry in "${adj_type_params[@]}"; do
   echo "[STEP 1] Generating dataset..." | tee -a "$outfile"
   step1_start=$(date +%s)
 
-  Rscript script_generate_finite_basis_data_part0.R $n_large $n_query $entry >> "$outfile" 2>&1
+  Rscript script_generate_finite_basis_data_part0.R $n_large $n_query $entry
   
   for group_idx in $(seq 1 "$groups"); do
       wait_for_slot
       (
-          Rscript script_generate_finite_basis_data_part1.R "$n_large" "$adj_type" "$group_idx" "$n_group" >> "$outfile" 2>&1 
-          Rscript script_generate_finite_basis_data_part2.R "$n_large" "$adj_type" "$group_idx" "$n_group" "$min_events" "$max_events" >> "$outfile" 2>&1 
+          Rscript script_generate_finite_basis_data_part1.R "$n_large" "$adj_type" "$group_idx" "$n_group"
+          Rscript script_generate_finite_basis_data_part2.R "$n_large" "$adj_type" "$group_idx" "$n_group" "$min_events" "$max_events"
       ) &
       
   done  
   wait
   
-  Rscript script_generate_finite_basis_data_part3.R "$n_large" "$adj_type" "$groups" >> "$outfile" 2>&1 
+  Rscript script_generate_finite_basis_data_part3.R "$n_large" "$adj_type" "$groups"
   
   for cont_ind in $(seq 1 "$n_query"); do
       wait_for_slot
       (
-          Rscript script_generate_finite_basis_data_part4.R "$n_large" "$adj_type" "$cont_ind" >> "$outfile" 2>&1 
+          Rscript script_generate_finite_basis_data_part4.R "$n_large" "$adj_type" "$cont_ind"
       ) & 
   done  
   wait
   
-  Rscript script_generate_finite_basis_data_part5.R "$n_large" "$adj_type" "$n_query" >> "$outfile" 2>&1 
+  Rscript script_generate_finite_basis_data_part5.R "$n_large" "$adj_type" "$n_query"
   
   step1_end=$(date +%s)
   step1_elapsed=$(( step1_end - step1_start ))
