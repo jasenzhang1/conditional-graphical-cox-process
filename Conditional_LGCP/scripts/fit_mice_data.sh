@@ -13,7 +13,7 @@ cd "$(dirname "$0")/.." || exit 1   # go one level up (from /scripts to /) and e
 
 method="CPGM"
 
-max_jobs=30
+max_jobs=50
 
 # function wait_for_slot {
 #     while (( $(jobs -rp | wc -l) >= max_jobs )); do
