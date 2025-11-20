@@ -20,6 +20,10 @@ generate_cox_process_events <- function(X_functions, time_grid, T_max,
   #
   # - list with event_times and event_counts
   #
+  #   - [[1]]
+  #     - event_times (unnamed list of p vectors)
+  #     - event_counts (unnamed p-dim vector)
+  #
   # 
   # ----------------------------------------------------------------------------
   
