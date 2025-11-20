@@ -137,14 +137,14 @@ for i in "${!movement[@]}"; do
         
         for k in $(seq 1 "$n_i"); do
             wait_for_slot
-            Rscript script_step2_part1.R "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$k" >> "$outfile" 2>&1 &
+            Rscript script_step2_part1.R "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" "$k" >> "$outfile" 2>&1 &
         done
         
         echo "Query $j out of $n_queries done with rho_i" >> "$sh_outfile"
         
         for kl in $(seq 1 "$n_ij"); do
             wait_for_slot
-            Rscript script_step2_part2.R "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$kl" >> "$outfile" 2>&1 &
+            Rscript script_step2_part2.R "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" "$kl" >> "$outfile" 2>&1 &
         done
         
         echo "Query $j out of $n_queries done with rho_ij" >> "$sh_outfile"

@@ -16,7 +16,8 @@ time_scale <- as.numeric(args[3])   # time_scale <- 10   (each replicate is 5 se
 method <- args[4]                   # method <- 'CPGM'
 movement <- as.numeric(args[5])     # movement <- 0
 VR <- as.numeric(args[6])           # VR <- 0
-ij <- as.numeric(args[7])           # ij <- 1
+cont_ind <- as.numeric(args[7])     # cont_ind <- 1
+ij <- as.numeric(args[8])           # ij <- 1
 
 
 discrete_level <- paste0('m', movement, 'vr', VR)
@@ -38,7 +39,7 @@ if (!dir.exists(temp_file_dir)) dir.create(temp_file_dir)  # /temp_data
 # ---------------------------
 
 if(method == 'CPGM'){
-  estimate_intensities_stratum_parallel_with_yc_part2(temp_file_dir, setting_info_list, ij)
+  estimate_intensities_stratum_parallel_with_yc_part2(temp_file_dir, setting_info_list, cont_ind, ij)
 } else{
   stop('Invalid method. Must be CPGM')
 }
