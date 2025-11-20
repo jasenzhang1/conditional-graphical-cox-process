@@ -1,0 +1,221 @@
+#!/bin/bash
+
+# ---------------------------------------------------------------------------
+# Generate AND fit finite basis data — single unified log per dataset
+# 
+# 11/19/2025 - v2: parallelize bivariate estimation
+#            - v3: parallelize data generation
+# ---------------------------------------------------------------------------
+
+
+
+
+
+cd "$(dirname "$0")/.."  # go one level up (from /scripts to /)
+
+adj_type_params=(
+  #"indep_c2 0 1"
+  #"single_c2 0 1 0.5"
+  #"single_v2 0 1 0.7"
+  #"single_j2 0 1 0.5 0.3 0.7"
+  #"banded_c2 0 1 0.5"
+  #"banded_trig2 0 1 0.3"
+  #"sparse_v2 0 1 2 0.3 -1 2 0.01"
+  "block_banded_v2 0 1 0.4 0.8 2"
+  "block_banded_c0 0.5 0.5 2"
+)
+
+n_large=10000
+ns=(1000 3000 10000)
+n_group=10
+groups=$(( n_large / n_group ))
+method="CPGM"
+model_type="simu"  # simu or mice
+max_jobs=50
+min_events=5
+max_events=10000
+n_query=3
+
+function wait_for_slot {
+    # Wait until the number of background jobs is strictly less than max_jobs
+    while true; do
+        running=$(jobs -rp | wc -l)
+        if (( running < max_jobs )); then
+            break
+        fi
+        sleep 0.5
+    done
+}
+
+mkdir -p script_outputs
+mkdir -p script_outputs/simu
+
+
+
+# ---------------------------------------------------------------------------
+# Generate data + Fit model (single unified log file per adj_type)
+# ---------------------------------------------------------------------------
+
+for entry in "${adj_type_params[@]}"; do
+  adj_type=$(echo "$entry" | awk '{print $1}')
+  outfile="script_outputs/simu/${adj_type}_n_${n_large}.log"
+  rm -f "$outfile"   # delete old log if it exists
+
+  echo "===================================================" | tee -a "$outfile"
+  echo "Starting full pipeline for adj_type=$adj_type, n=$n_large" | tee -a "$outfile"
+  echo "Logging to: $outfile" | tee -a "$outfile"
+  echo "Start time: $(date)" | tee -a "$outfile"
+  echo "===================================================" | tee -a "$outfile"
+  echo "" | tee -a "$outfile"
+
+  start_time=$(date +%s)
+
+  # -------------------
+  # Step 1: Generate
+  # -------------------
+  echo "[STEP 1] Generating dataset..." | tee -a "$outfile"
+  step1_start=$(date +%s)
+
+  Rscript script_generate_finite_basis_data_part0.R $n_large $n_query $entry >> "$outfile" 2>&1
+  
+  for group_idx in $(seq 1 "$groups"); do
+      wait_for_slot
+      (
+          Rscript script_generate_finite_basis_data_part1.R "$n_large" "$adj_type" "$group_idx" "$n_group" >> "$outfile" 2>&1 
+          Rscript script_generate_finite_basis_data_part2.R "$n_large" "$adj_type" "$group_idx" "$n_group" "$min_events" "$max_events" >> "$outfile" 2>&1 
+      ) &
+      
+  done  
+  wait
+  
+  Rscript script_generate_finite_basis_data_part3.R "$n_large" "$adj_type" "$groups" >> "$outfile" 2>&1 
+  
+  for cont_ind in $(seq 1 "$n_query"); do
+      wait_for_slot
+      (
+          Rscript script_generate_finite_basis_data_part4.R "$n_large" "$adj_type" "$cont_ind" >> "$outfile" 2>&1 
+      ) & 
+  done  
+  wait
+  
+  Rscript script_generate_finite_basis_data_part5.R "$n_large" "$adj_type" "$n_query" >> "$outfile" 2>&1 
+  
+  step1_end=$(date +%s)
+  step1_elapsed=$(( step1_end - step1_start ))
+  echo "[DONE] Generation complete. Elapsed: ${step1_elapsed}s" | tee -a "$outfile"
+  echo "" | tee -a "$outfile"
+
+  # ----------
+  # Step 2: Fit
+  # ----------
+  
+  # Loop over all combinations of movement and VR
+  for n in "${ns[@]}"; do
+  
+
+      
+      echo "Part 1 of Strata $i Starting" >> "$outfile"
+      
+  
+      
+      # ----------------
+      # Part 1
+      # ----------------
+
+  
+      wait_for_slot
+      output=$(Rscript script_fit_mice_data_part1.R \
+                "$model_type" "$n_large" "$n" "$adj_type" "$method" \
+                2>&1 | tee -a "$outfile")
+      wait
+      
+      echo "=========================================" >> "$outfile"
+      
+      # Extract n_queries from output
+      n_queries=$(echo "$output" | grep "n_queries" | awk -F= '{print $2}')
+      n_queries=$(echo "$n_queries" | xargs)
+  
+      n_i=$(echo "$output" | grep "n_i" | awk -F= '{print $2}')
+      n_i=$(echo "$n_i" | xargs)
+      
+      n_ij=$(echo "$output" | grep "n_ij" | awk -F= '{print $2}')
+      n_ij=$(echo "$n_ij" | xargs)
+      
+      # ----------------
+      # Part 2 - parallelize each y_c_query
+      # ----------------
+      
+      echo "Part 2 of Strata $i Starting" >> "$outfile"
+      for j in $(seq 1 "$n_queries"); do
+  
+          echo "Query $j out of $n_queries" >> "$outfile"
+          
+  
+          
+          # ----------------
+          # Part 2a - within each fitting procedure, do rho_i and rho_ij estimation all together, and then collect
+          # ----------------       
+          
+          wait_for_slot
+          Rscript script_step2_part0.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$j" >> "$outfile" 2>&1
+          
+          for k in $(seq 1 "$n_i"); do
+              wait_for_slot
+              Rscript script_step2_part1.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$j" "$k" >> "$outfile" 2>&1 &
+          done
+          
+          echo "Query $j out of $n_queries done with rho_i" >> "$outfile"
+          
+          for kl in $(seq 1 "$n_ij"); do
+              wait_for_slot
+              Rscript script_step2_part2.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$j" "$kl" >> "$outfile" 2>&1 &
+          done
+          
+          echo "Query $j out of $n_queries done with rho_ij" >> "$outfile"
+          
+          wait
+          
+          wait_for_slot
+          Rscript script_step2_part3.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$j" "$n_i" "$n_ij" >> "$outfile" 2>&1 &
+          
+          # ----------------
+          # Part 2b - now continue for the rest of the estimation
+          # ---------------- 
+          
+          wait_for_slot
+          Rscript script_fit_mice_data_part2b.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$j" >> "$outfile" 2>&1 &
+          
+  
+      done
+      
+      wait
+      
+      echo "=========================================" >> "$outfile"
+      
+      # ----------------
+      # Part 3- when all part 2's are done, do part 3
+      # ----------------
+      
+      echo "Part 3 of Strata $i Starting" >> "$outfile"
+      
+      wait_for_slot
+      Rscript script_fit_mice_data_part3.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$n_queries" >> "$outfile" 2>&1 &
+  
+  done
+  
+  wait
+  
+  # ============================================================
+  # END TIMER
+  # ============================================================
+  
+  echo "===========================================" >> "$outfile"
+  
+  end_time=$(date +%s)
+  runtime=$((end_time - start_time))
+  
+  echo "Pipeline finished at: $(date)" >> "$outfile"
+  echo "Total runtime: ${runtime} seconds (~$((runtime/60)) minutes)." >> "$outfile"
+done
+
+

@@ -63,7 +63,7 @@ simulate_conditional_cox_data_v4 <- function(
   
   
   # 1) generate y_c
-
+  
   Y_continuous <- generate_y_c_adj_type(n, adj_type, adj_params)
   
   
@@ -74,7 +74,7 @@ simulate_conditional_cox_data_v4 <- function(
   subject_data <- simulate_subject_data(n, p, Y_continuous, adj_type, adj_params,
                                         time_grid, time_grid_est,
                                         base_kernel_params, ncores, parallel)
-
+  
   # 3) for each query point, generate parameters
   print('at query point generation')
   
@@ -138,7 +138,7 @@ simulate_conditional_cox_data_v4 <- function(
   result <- package_simulation_results(event_times_list, n, p, T_max, query_y_cs,
                                        adj_type, adj_params, time_grid, time_grid_est, time_grid_both, seed,
                                        X_k_truth, X_k_coarse_truth, X_k_both_truth, Y_continuous)
-
+  
   
   return(result)  
 }
@@ -227,8 +227,7 @@ simulate_subject_data <- function(n, p, Y_continuous, adj_type, adj_params,
 
 package_simulation_results <- function(event_times_list, n, p, T_max, query_y_cs,
                                        adj_type, adj_params, time_grid, time_grid_est, time_grid_both, seed,
-                                       X_k_truth, X_k_coarse_truth, X_k_both_truth, Y_continuous,
-                                       query_data){
+                                       X_k_truth, X_k_coarse_truth, X_k_both_truth, Y_continuous){
   
   # ----------------------------------------------------------------------------
   #
@@ -294,9 +293,6 @@ package_simulation_results <- function(event_times_list, n, p, T_max, query_y_cs
       seed = seed
     ),
     
-    # ground truths - adj_mat, prec_mat for all queries
-    true_graphs = query_data,             
-    
     summary_stats = list(
       total_events = total_events,
       avg_events_per_process = avg_events_per_process
@@ -344,7 +340,7 @@ simulate_finite_basis_cox_data <- function(n, d, p, adj_type, adj_params, beta_0
   #
   # ----------------------------------------------------------------------------
   
-
+  
   
   # 0) get y_c_k
   
@@ -354,7 +350,7 @@ simulate_finite_basis_cox_data <- function(n, d, p, adj_type, adj_params, beta_0
   
   basis_list <- trig_basis(d)
   basis_mat <- trig_basis_realization(basis_list, time_grid)
-    
+  
   cov_mat_list <- lapply(1:n, function(i) {
     trig_basis_cov_mat(d, p, Y_c[i, ], adj_type, adj_params)
   })
@@ -364,7 +360,7 @@ simulate_finite_basis_cox_data <- function(n, d, p, adj_type, adj_params, beta_0
   m <- length(time_grid)
   m_est <- length(time_grid_est)
   m_both <- length(time_grid_both)
- 
+  
   mu_t        <- rep(beta_0, m)    # mu(t) = beta_0 (constant)
   mu_t_both   <- rep(beta_0, m_both)
   mu_t_coarse <- rep(beta_0, m_est)
@@ -380,14 +376,14 @@ simulate_finite_basis_cox_data <- function(n, d, p, adj_type, adj_params, beta_0
   log_intensities <- log_intensities_both[, time_grid_both %in% time_grid ,]         # (p x m x n)
   
   beta_coeffs <- result_both$beta_coefficients %>% simplify2array() # (p x d x n)
-
-
+  
+  
   
   # 4) Generate point process events
   max_events = Inf
   min_events = -1
   while(min_events < min_limit | max_events > max_limit){
-  
+    
     print('at event time generation')
     events <- lapply(1:n, function(i){generate_cox_process_events(log_intensities[, , i], time_grid, T_max, max_intensity = Inf)})
     
@@ -412,11 +408,11 @@ simulate_finite_basis_cox_data <- function(n, d, p, adj_type, adj_params, beta_0
     }
   }  
   
-
+  
   
   # 6) query points
   print('at query point generation')
-
+  
   cov_mat_query <- lapply(1:nrow(y_c_query), function(i) { 
     trig_basis_cov_mat(d, p, y_c_query[i, ], adj_type, adj_params)
   })
@@ -424,8 +420,8 @@ simulate_finite_basis_cox_data <- function(n, d, p, adj_type, adj_params, beta_0
   cor_mat_query <- lapply(cov_mat_query, function(x) assemble_blockwise_correlation(x, p, d))
   prec_mat_query <- lapply(cor_mat_query, function(x) sym(solve(x)))
   
-
-
+  
+  
   
   # Store complete subject information
   result <- package_simulation_results(event_times_list, n, p, T_max, y_c_query,
@@ -572,7 +568,7 @@ simulate_finite_basis_cox_data <- function(n, d, p, adj_type, adj_params, beta_0
          P_cond_X_truth_full         = step_9_10_11_X_truth[[i]]$P_cond_X_truth_full,
          P_cond_X_truth_unnorm_full  = step_9_10_11_X_truth[[i]]$P_cond_X_truth_unnorm_full)          # (pm x pm matrix)
   }) 
-
+  
   step_11 <- lapply(1:length(eigen_truths), function(i) {
     list(w_mat_truth         = eigen_truths[[i]]$P_HS,
          C_HS_truth          = eigen_truths[[i]]$C_HS,
@@ -603,80 +599,92 @@ simulate_finite_basis_cox_data <- function(n, d, p, adj_type, adj_params, beta_0
               all_truths = all_truths)) 
 }
 
-simulate_finite_basis_cox_data_part0 <- function(setting_info_list, n, d, p, adj_type, adj_params, beta_0, 
-                                                 time_grid, time_grid_est, time_grid_both,
-                                                 T_max, y_c_query, seed){
+
+# simulate log-intensities
+simulate_finite_basis_cox_data_part1 <- function(temp_file_dir, setting_info_list, group_idx, n_group){
   
+  # generate log-intensities for each batch
   
-  # get events for a subset of n replicates 
+  # 0) load
   
-  # Y_c
-  # basis_list
-  # group_num
-  # n_sub
-  # adj_type
-  # adj_params
-  # d
-  # p
-  # time_grid
-  # beta_0
+  list2env(setting_info_list, envir = environment())
   
-  cov_mat_list <- lapply(1:n_sub, function(i) {
+  part_0_info_list <- paste0("part0_", adj_type, '_n_', n, '.rds')
+  results <- readRDS(file.path(temp_file_dir, part_0_info_list))
+  list2env(results, envir = environment())
+  
+  # 1) with y_c, n_group, group_idx, find the specific n's that we care about
+  
+  n_start <- n_group * (group_idx - 1) + 1
+  n_end <- n_group * (group_idx) 
+  
+  n_batch <- n_start:n_end
+  
+  cov_mat_list <- lapply(n_batch, function(i) {
     trig_basis_cov_mat(d, p, Y_c[i, ], adj_type, adj_params)
   })
   
   # 2) set up for generating X_i(t)
   
-
   m <- length(time_grid)
-  mu_t        <- rep(beta_0, m)    # mu(t) = beta_0 (constant)
-
-
+  m_est <- length(time_grid_est)
+  m_both <- length(time_grid_both)
   
-
+  mu_t        <- rep(beta_0, m)    # mu(t) = beta_0 (constant)
+  mu_t_both   <- rep(beta_0, m_both)
+  mu_t_coarse <- rep(beta_0, m_est)
+  
+  mean_vec <- rep(0, p*d)   # m(t)  = all 0's, where beta ~ N(mean_vec, cov_mat) = pd-dim vec
   
   # 3) for each subject, obtain realizations of log intensities and beta coefficients that got them there
   
-  result <- trig_basis_log_intensity(cov_mat_list, basis_list, mu_t, time_grid)
+  result_both <- trig_basis_log_intensity(cov_mat_list, basis_list, mu_t_both, time_grid_both)
   
-  log_intensities <- result$log_intensities %>% simplify2array()           # (p x m x n)
+  log_intensities_both <- result_both$log_intensities %>% simplify2array()           # (p x m_both x n)
+  log_intensities_est <- log_intensities_both[, time_grid_both %in% time_grid_est ,] # (p x m_est x n)
+  log_intensities <- log_intensities_both[, time_grid_both %in% time_grid ,]         # (p x m x n)
+  
+  beta_coeffs <- result_both$beta_coefficients %>% simplify2array() # (p x d x n)
+  
+  
+  # save 
+  
+  out_list <- list(
+    cov_mat_list = cov_mat_list,
+    log_intensities_both = log_intensities_both,
+    log_intensities_est = log_intensities_est,
+    log_intensities = log_intensities,
+    beta_coeffs = beta_coeffs
+  )
+  
+  part_1_info_list <- paste0("part1", adj_type, '_n_', n, '_group', group_idx, '.rds')
+  
+  
+  saveRDS(out_list, file = file.path(temp_file_dir, rho_i_file_name))    
+  
+}
 
+# simulate events
+simulate_finite_basis_cox_data_part2 <- function(temp_file_dir, setting_info_list, group_idx, n_group, min_events, max_events){
   
-
-  result_info_list <- list(min_events = 5,
-                           max_events = 10000,
-                           log_intensities = log_intensities,
-                           time_grid = time_grid,
-                           T_max = T_max)
-  
-  
-  # 4) save
-                            
-  datafile_name <- paste0("log_intensities_", adj_type, '_n_', n, '_group', group_num, '.rds')
-  saveRDS(result_info_list, file = file.path(temp_file_dir, datafile_name))  
-
-} 
-
-simulate_finite_basis_cox_data_part1 <- function(temp_file_dir, setting_info_list){
-  
-  # carry on with the data generation
+  # generate events for n_group 
   
   list2env(setting_info_list, envir = environment())
   
-
-  part1_info_list <- paste0("log_intensities_", adj_type, '_n_', n, '_group', group_num, '.rds')
-  results <- readRDS(file.path(temp_file_dir, part1_info_list))
+  
+  part_1_info_list <- paste0("part1", adj_type, '_n_', n, '_group', group_idx, '.rds')
+  results <- readRDS(file.path(temp_file_dir, part_1_info_list))
   list2env(results, envir = environment())
   
-
+  
   
   # 4) Generate point process events
   max_events_obs = Inf
-  min_events_obs = 0
+  min_events_obs = -1
   while(min_events_obs < min_events | max_events_obs > min_events){
     
     print('at event time generation')
-    events <- lapply(1:n, function(i){generate_cox_process_events(log_intensities[, , i], time_grid, T_max, max_intensity = Inf)})
+    events <- lapply(1:n_group, function(i){generate_cox_process_events(log_intensities[, , i], time_grid, T_max, max_intensity = Inf)})
     
     print('finished event time generation')
     max_events_obs <- max(sapply(events, function(i) max(i$event_counts)))
@@ -688,9 +696,274 @@ simulate_finite_basis_cox_data_part1 <- function(temp_file_dir, setting_info_lis
   
   # save 
   
-  file_name <- paste0('events_', adj_type, '_n_', n, '_group', group_num, '.rds')
-  saveRDS(events, file = file.path(temp_file_dir, file_name))  
+  part_2_info_list <- paste0('events_', adj_type, '_n_', n, '_group', group_idx, '.rds')
+  saveRDS(events, file = file.path(temp_file_dir, part_2_info_list))  
   
 }
 
+# merge data
+simulate_finite_basis_cox_data_part3 <- function(temp_file_dir, setting_info_list, group_nums){
+  
+  # merge all the events and store in results
+  
+  # 0) load 
+  
+  # 0a) load the setting values
+  list2env(setting_info_list, envir = environment())
+  
+  # 0b) load part 0's stuff
+  part_0_info_list <- paste0("part0_", adj_type, '_n_', n, '.rds')
+  results <- readRDS(file.path(temp_file_dir, part_0_info_list))
+  list2env(results, envir = environment())
+  
+  # 0b) load all of the log-intensities and group them
+  part_1_info_lists <- paste0("part1", adj_type, '_n_', n, '_group', 1:group_nums, '.rds')
+  all_part_1_loaded <- lapply(file_names, part_1_info_lists)
+  
+  cov_mat_list <- do.call(c, lapply(all_loaded, `[[`, "cov_mat_list"))
+  log_intensities_both <- abind(lapply(all_loaded, `[[`, "log_intensities_both"), along = 3)
+  log_intensities_est  <- abind(lapply(all_loaded, `[[`, "log_intensities_est"), along = 3)
+  log_intensities      <- abind(lapply(all_loaded, `[[`, "log_intensities"), along = 3)
+  beta_coeffs          <- abind(lapply(all_loaded, `[[`, "beta_coeffs"), along = 3)  
+  
 
+  # 0c) load all of the events and group them
+  part_2_info_lists <- paste0('events_', adj_type, '_n_', n, '_group', 1:group_nums, '.rds')
+  all_part_2_loaded <- lapply(file_names, readRDS)
+  events <- do.call(c, all_part_2_loaded)
+  
+  # ------------------------
+  # resume regular function
+  # ------------------------
+  
+  event_times_list <- list()
+  
+  for (i in seq_len(n)) {
+    for (j in seq_len(p)) {
+      key <- paste(i, j, sep = "_")
+      event_times_list[[key]] <- events[[i]]$event_times[[j]]
+    }
+  }  
+  
+  
+  
+  # 6) query points
+  print('at query point generation')
+  
+  cov_mat_query <- lapply(1:nrow(y_c_query), function(i) { 
+    trig_basis_cov_mat(d, p, y_c_query[i, ], adj_type, adj_params)
+  })
+  
+  cor_mat_query <- lapply(cov_mat_query, function(x) assemble_blockwise_correlation(x, p, d))
+  prec_mat_query <- lapply(cor_mat_query, function(x) sym(solve(x)))
+  
+  
+  
+  
+  # Store complete subject information
+  dataset <- package_simulation_results(event_times_list, n, p, T_max, y_c_query,
+                                        adj_type, adj_params, time_grid, time_grid_est, time_grid_both, seed,
+                                        log_intensities, log_intensities_est, log_intensities_both, Y_c)
+                                       
+  part_3_info_list <- paste0('dataset_', adj_type, '_n_', n, '.rds')
+  saveRDS(dataset, file = file.path(temp_file_dir, part_3_info_list))    
+
+}
+
+# get truths
+simulate_finite_basis_cox_data_part4 <- function(temp_file_dir, setting_info_list, cont_ind){
+  
+  # obtain truths for y_c_query_k
+  
+  # 0) load 
+  list2env(setting_info_list, envir = environment())
+
+  cov_mat_query <- trig_basis_cov_mat(d, p, y_c_query[cont_ind, ], adj_type, adj_params)
+  cor_mat_query <- assemble_blockwise_correlation(cov_mat_query, p, d)
+  prec_mat_query <- sym(solve(cor_mat_query))
+  
+  
+  rho_truths <- trig_basis_rho_truth(basis_list, mean_vec, time_grid, mu_t, y_c_query[cont_ind,], adj_type, adj_params)
+  
+
+  G <- trig_basis_gram_matrix(basis_list, 0, T_max)
+  eigen_truths <- trig_basis_eigendecomposition(G, cov_mat_query, cor_mat_query, prec_mat_query, basis_list, time_grid)
+  
+  # ----------------------------------------------------------------------------
+  # find eigentruths with realized beta values and ground truth eigenfunctions
+  # ----------------------------------------------------------------------------
+  
+
+  weights_k <- KDE_weights(Y_c, y_c_query[cont_ind, ])
+  
+  X <- aperm(beta_coeffs, c(2, 1, 3)) %>% 
+    matrix(nrow = p*d, ncol = n) %>% # reshape to p*d × n
+    t()  # (n x pd)
+  
+  # weighted mean (length p*d)
+  mu <- colSums(weights_k * X)
+  
+  # centered data
+  XC <- sweep(X, 2, mu)
+  
+  # weighted covariance: sum_i w_i (x_i - mu)(x_i - mu)^T
+  cov_w <- t(XC * weights_k) %*% XC
+  
+  kappa <- 1 - sum(weights_k^2)
+  cov_w_unbiased <- cov_w / kappa 
+  
+  # convert to correlation using blockwise function
+  corr_w_unbiased <- assemble_blockwise_correlation(cov_w_unbiased, p, d)
+  prec_w_unbiased <- sym(solve(corr_w_unbiased))
+  
+  KL_X_truth <- list(KL_cov = cov_w_unbiased,
+                     KL_corr = corr_w_unbiased,
+                     KL_prec = prec_w_unbiased)
+         
+    
+
+  
+  # 6c) compute C_cond_X_truth 
+  
+  
+
+    
+  eigen_decomp_truth    <- eigen_truths$eigen_decomp
+  KL_cor_X_truth        <- KL_X_truth$KL_corr %>% extract_block_structure_v2(p, d)
+  KL_prec_X_truth       <- KL_X_truth$KL_prec %>% extract_block_structure_v2(p, d)
+  C_cond_list_X_truth   <- correlation_estimation_KL_cor(eigen_decomp_truth, KL_cor_X_truth) 
+  P_cond_list_X_truth   <- correlation_estimation_KL_cor(eigen_decomp_truth, KL_prec_X_truth) 
+  
+  C_cond_X_truth_full          <- C_cond_list_X_truth$C_cond %>% assemble_block_matrix_v2(p, m)
+  C_cond_X_truth_unnorm_full   <- C_cond_list_X_truth$C_cond_unnorm %>% assemble_block_matrix_v2(p, m)
+  
+  # step 10
+  P_cond_X_truth_full          <- P_cond_list_X_truth$C_cond %>% assemble_block_matrix_v2(p, m)
+  P_cond_X_truth_unnorm_full   <- P_cond_list_X_truth$C_cond_unnorm %>% assemble_block_matrix_v2(p, m)
+  
+  # step 11
+  C_HS_X_truth <- hilbert_schmidt_norm_pm(KL_X_truth$KL_corr, p, d)
+  P_HS_X_truth <- hilbert_schmidt_norm_pm(KL_X_truth$KL_prec, p, d)
+  
+  step_9_10_11_X_truth <- list(C_cond_X_truth_full = C_cond_X_truth_full,
+                               C_cond_X_truth_unnorm_full = C_cond_X_truth_unnorm_full,
+                               P_cond_X_truth_full = P_cond_X_truth_full,
+                               P_cond_X_truth_unnorm_full = P_cond_X_truth_unnorm_full,
+                               C_HS_X_truth = C_HS_X_truth,
+                               P_HS_X_truth = P_HS_X_truth)
+         
+ 
+  
+  # ----------------------------------------------------------------------------
+  # merge truths - layer 1 = item - layer 2 = y_c_query
+  # ----------------------------------------------------------------------------
+  
+  step_1 <- list(X_k_truth = log_intensities,
+                 X_k_coarse_truth = log_intensities_est,
+                 X_k_both_truth = log_intensities_both,
+                 Lambda_k_truth = exp(log_intensities),
+                 Lambda_k_coarse_truth = exp(log_intensities_est),
+                 Lambda_k_both_truth = exp(log_intensities_both),
+                 mu_t_truth = mu_t,
+                 mu_t_both_truth = mu_t_both,
+                 mu_t_coarse_truth = mu_t_coarse)
+  
+  step_2 <- list(rho_i_truth = rho_i_truth)
+
+  
+  step_2b <- list(rho_ii_truth = rho_ij_truth)
+
+  
+  step_3 <- list(g_ij_truth = rho_truths$g_ij_truth)
+  
+  step_4 <- list(eigen_decomp_truth = eigen_decomp)
+  
+  step_5 <- list(KL_coeffs_truth = beta_coeffs,                          # (p x d x n)
+                 KL_cov_truth = eigen_truths$KL_cov,
+                 KL_cov_X_truth = KL_X_truth$KL_cov %>% extract_block_structure_v2(p, d))    # (pc2 list of dxd matrices)
+
+  
+  step_5b <- list(KL_cor_truth    = eigen_truths$KL_cor,               # (pc2 list of dxd matrices)
+                  KL_cor_X_truth  = KL_X_truth$KL_corr %>% extract_block_structure_v2(p, d),
+                  KL_prec_truth   = eigen_truths$KL_prec,
+                  KL_prec_X_truth = KL_X_truth$KL_prec %>% extract_block_structure_v2(p, d))              # (pc2 list of dxd matrices)
+    
+    
+
+  
+  step_9 <- list(C_cond_truth_full          = eigen_truths$C_cond_full,
+                 C_cond_truth_unnorm_full   = eigen_truths$C_cond_full_unnorm,
+                 C_cond_X_truth_full        = step_9_10_11_X_truth$C_cond_X_truth_full,
+                 C_cond_X_truth_unnorm_full = step_9_10_11_X_truth$C_cond_X_truth_unnorm_full)          # (pm x pm matrix)
+  
+  step_9b <- list(efunc_outer_truth = efunc_outer,
+                  efunc_outer_unnorm_truth = efunc_outer_unnorm)          # (pc2 list of mxm matrices)
+  
+  step_10 <- list(P_cond_truth_full           = eigen_truths$P_cond_full,
+                  P_cond_truth_unnorm_full    = eigen_truths$P_cond_full_unnorm,
+                  P_cond_X_truth_full         = step_9_10_11_X_truth$P_cond_X_truth_full,
+                  P_cond_X_truth_unnorm_full  = step_9_10_11_X_truth$P_cond_X_truth_unnorm_full)          # (pm x pm matrix)
+  
+  step_11 <- list(w_mat_truth         = eigen_truths$P_HS,
+                  C_HS_truth          = eigen_truths$C_HS,
+                  w_mat_truth_unnorm  = eigen_truths$P_HS_unnorm,
+                  C_HS_truth_unnorm   = eigen_truths$C_HS_unnorm,
+                  w_mat_X_truth       = step_9_10_11_X_truth$P_HS_X_truth,
+                  C_HS_X_truth        = step_9_10_11_X_truth$C_HS_X_truth)                       # (pxp matrix)
+  
+  
+  all_truths <- list(step_1 = step_1,
+                     step_2 = step_2,
+                     step_2b = step_2b,
+                     step_3 = step_3,
+                     step_4 = step_4,
+                     step_5 = step_5,
+                     step_5b = step_5b,
+                     step_9 = step_9,
+                     step_9b = step_9b,
+                     step_10 = step_10,
+                     step_11 = step_11)
+  
+  # store 
+  
+  part_4_info_list <- paste0('truths_', adj_type, '_n_', n, '_nquery', cont_ind, '.rds')
+  saveRDS(events, file = file.path(temp_file_dir, part_4_info_list))  
+}
+
+# merge truths and data
+simulate_finite_basis_cox_data_part5 <- function(temp_file_dir, setting_info_list, cont_inds){
+  
+  # merge all truths together, and merge this with all the results
+  
+  # 0) load 
+  
+  # 0a) load the setting values
+  list2env(setting_info_list, envir = environment())
+  
+  # 0b) load the dataset
+  
+  part_3_info_list <- paste0('dataset_', adj_type, '_n_', n, '.rds') 
+  dataset <- readRDS(file.path(temp_file_dir, part_3_info_list)) 
+  
+  # 0c) load the truths
+  part_4_info_lists <- paste0('truths_', adj_type, '_n_', n, '_nquery', 1:cont_inds, '.rds')
+  all_part_4_loaded <- lapply(part_4_info_lists, readRDS)
+  
+  # Get all element names (step_1, step_2, ..., step_11)
+  step_names <- names(all_part_4_loaded[[1]])
+  
+  # Build nested structure
+  all_truths <- lapply(step_names, function(step) {
+    lapply(all_part_4_loaded, `[[`, step)
+  })
+  
+  names(all_truths) <- step_names
+  
+  # -------------
+  # return so it can be saved
+  # -------------
+  
+  return(list(dataset = dataset,
+              all_truths = all_truths)) 
+  
+}

@@ -1,0 +1,35 @@
+
+library(RhpcBLASctl)
+
+# limit threads in BLAS/LAPACK
+blas_set_num_threads(1)   # limit BLAS
+omp_set_num_threads(1)    # limit OpenMP
+
+args <- commandArgs(trailingOnly = TRUE)
+
+n <- as.numeric(args[1])
+adj_type <- args[2]
+cont_inds <- as.numeric(args[3])
+
+source('functions/00_function_wrapper.R')
+source('functions/20_simulation_function_wrapper.R')
+
+
+# 1) generate dataset ----------------------------------------------------------
+
+temp_file_dir <- 'temp_data/simu_data'
+
+result <- simulate_finite_basis_cox_data_part5(temp_file_dir, setting_info_list, cont_inds)
+                                          
+
+dataset <- result$dataset                                           
+truths <- result$all_truths
+rm(result)
+
+if (!dir.exists('simu_data')) dir.create('simu_data')
+
+save(dataset, file = paste0('simu_data/', adj_type, '_n_', n, '.RData'))
+save(truths, file = paste0('simu_data/', adj_type, '_n_', n, '_truths.RData'))
+
+
+
