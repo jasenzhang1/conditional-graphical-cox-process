@@ -38,6 +38,7 @@ time_scale=10
 m=20
 movement=(0 0 1 1)
 VR=(0 1 0 1)
+model_type="mice"  # simu or mice
 max_processes=500
 
 mkdir -p script_outputs
@@ -101,7 +102,7 @@ for i in "${!movement[@]}"; do
     
     wait_for_slot
     output=$(Rscript script_fit_mice_data_part1.R \
-              "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" \
+              "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" \
               2>&1 | tee "$outfile")
     wait
     
@@ -133,18 +134,18 @@ for i in "${!movement[@]}"; do
         # ----------------       
         
         wait_for_slot
-        Rscript script_step2_part0.R "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" >> "$outfile" 2>&1
+        Rscript script_step2_part0.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" >> "$outfile" 2>&1
         
         for k in $(seq 1 "$n_i"); do
             wait_for_slot
-            Rscript script_step2_part1.R "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" "$k" >> "$outfile" 2>&1 &
+            Rscript script_step2_part1.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" "$k" >> "$outfile" 2>&1 &
         done
         
         echo "Query $j out of $n_queries done with rho_i" >> "$sh_outfile"
         
         for kl in $(seq 1 "$n_ij"); do
             wait_for_slot
-            Rscript script_step2_part2.R "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" "$kl" >> "$outfile" 2>&1 &
+            Rscript script_step2_part2.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" "$kl" >> "$outfile" 2>&1 &
         done
         
         echo "Query $j out of $n_queries done with rho_ij" >> "$sh_outfile"
@@ -152,14 +153,14 @@ for i in "${!movement[@]}"; do
         wait
         
         wait_for_slot
-        Rscript script_step2_part3.R "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_i" "$n_ij" >> "$outfile" 2>&1 &
+        Rscript script_step2_part3.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_i" "$n_ij" >> "$outfile" 2>&1 &
         
         # ----------------
         # Part 2b - now continue for the rest of the estimation
         # ---------------- 
         
         wait_for_slot
-        Rscript script_fit_mice_data_part2b.R "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" >> "$outfile" 2>&1 &
+        Rscript script_fit_mice_data_part2b.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" >> "$outfile" 2>&1 &
         
 
     done
@@ -175,7 +176,7 @@ for i in "${!movement[@]}"; do
     echo "Part 3 of Strata $i Starting" >> "$sh_outfile"
     
     wait_for_slot
-    Rscript script_fit_mice_data_part3.R "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_queries" >> "$outfile" 2>&1 &
+    Rscript script_fit_mice_data_part3.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_queries" >> "$outfile" 2>&1 &
 
 done
 
