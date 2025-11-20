@@ -1,4 +1,4 @@
-t0 <- Sys.time()
+
 library(RhpcBLASctl)
 
 # limit threads in BLAS/LAPACK
@@ -21,8 +21,8 @@ source('functions/00_function_wrapper.R')
 # adj_params <- c(0.5, 0.5, 2)
 d <- 2
 p <- 12
-m <- 40
-m_est <- 20
+m <- 30
+m_est <- 30
 T_max <- 1
 
 
@@ -70,13 +70,5 @@ save(dataset, file = paste0('simu_data/', adj_type, '_n_', n, '.RData'))
 save(truths, file = paste0('simu_data/', adj_type, '_n_', n, '_truths.RData'))
 
 
-# time taken
-t1 <- Sys.time()
-elapsed_time <- as.numeric(difftime(t1, t0, units = "mins"))
-
-
-
-
-cat('Time to generate ', n, ' subjects: ', elapsed_time, ' mins\n')
 
 

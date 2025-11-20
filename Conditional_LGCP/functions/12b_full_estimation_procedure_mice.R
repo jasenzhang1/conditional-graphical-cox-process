@@ -194,9 +194,12 @@ full_conditional_estimation_with_no_truth <- function(dataset, method, ncores, d
   
 }
 
-full_conditional_estimation_with_no_truth_part1 <- function(dataset, setting_info_list, ncores, temp_file_dir, mouse = F){
+full_conditional_estimation_with_no_truth_part1 <- function(dataset, setting_info_list, ncores, temp_file_dir, mouse){
   
+
   list2env(setting_info_list, envir = environment())  
+
+  
   
   if (!(method %in% c("CPGM"))) {
     stop("Error 12b: estimation method must be 'CPGM'")
@@ -288,13 +291,18 @@ full_conditional_estimation_with_no_truth_part1 <- function(dataset, setting_inf
     results[['n']] <- n        
   }
   
+  if(mouse){
+    datafile_name <- paste0("part1_", ID, '_', discrete_level, '_t', time_scale, '.rds')
+  } else{
+    datafile_name <- paste0("part1_", adj_type, '_n_', n, '.rds')
+  }
   
-  datafile_name <- paste0("part1_", ID, '_', discrete_level, '_t', time_scale, '.rds')
   
   saveRDS(results, file = file.path(temp_file_dir, datafile_name))  
   
 }
 
+# NOT USED 
 full_conditional_estimation_with_no_truth_part2 <- function(temp_file_dir, setting_info_list, cont_ind){
 
   # load 
@@ -409,19 +417,25 @@ full_conditional_estimation_with_no_truth_part2 <- function(temp_file_dir, setti
    
 }
 
-estimate_intensities_stratum_parallel_with_yc_part0 <- function(temp_file_dir, setting_info_list, n_query){
+estimate_intensities_stratum_parallel_with_yc_part0 <- function(temp_file_dir, setting_info_list, cont_ind, mouse){
   
   # for this strata, calculate weights 
   
   list2env(setting_info_list, envir = environment())
   
-  step_1_info_list <- paste0("part1_", ID, '_', discrete_level, '_t', time_scale, '.rds')
+  
+  if(mouse){
+    step_1_info_list <- paste0("part1_", ID, '_', discrete_level, '_t', time_scale, '.rds')
+  } else{
+    step_1_info_list <- paste0("part1_", adj_type, '_n_', n, '.rds')
+  }
+  
   
   results <- readRDS(file.path(temp_file_dir, step_1_info_list))
   list2env(results, envir = environment())
   
   # get the query and get the weights
-  y_c_query <- query_y_cs[n_query,]
+  y_c_query <- query_y_cs[cont_ind,]
   
   weights <- apply(y_c_strata, 1, function(row) {
     step_6_kernel(as.numeric(row), y_c_query, gamma_c) 
@@ -432,14 +446,19 @@ estimate_intensities_stratum_parallel_with_yc_part0 <- function(temp_file_dir, s
   
   # save
   
-  datafile_name <- paste0("part2_", ID, '_', discrete_level, '_t', time_scale, '_nquery', n_query, '.rds')
+  if(mouse){
+    datafile_name <- paste0("part2_", ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '.rds')
+  } else{
+    datafile_name <- paste0("part2_", adj_type, '_n_', n, '_nquery', cont_ind, '.rds')
+  }
+  
   saveRDS(results, file = file.path(temp_file_dir, datafile_name))  
   
 
 }
 
 # rho_i
-estimate_intensities_stratum_parallel_with_yc_part1 <- function(temp_file_dir, setting_info_list, cont_ind, i) {
+estimate_intensities_stratum_parallel_with_yc_part1 <- function(temp_file_dir, setting_info_list, cont_ind, i, mouse) {
   
   # we first calculate rho_i_list
   # cont_ind = which continuous covariate
@@ -447,7 +466,13 @@ estimate_intensities_stratum_parallel_with_yc_part1 <- function(temp_file_dir, s
   
   list2env(setting_info_list, envir = environment())
   
-  step_2_info_list <- paste0("part2_", ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '.rds')
+  
+  if(mouse){
+    step_2_info_list <- paste0("part2_", ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '.rds')
+  } else{
+    step_2_info_list <- paste0("part2_", adj_type, '_n_', n, '_nquery', cont_ind, '.rds')
+  }
+
   
   results <- readRDS(file.path(temp_file_dir, step_2_info_list))
   list2env(results, envir = environment())
@@ -477,12 +502,18 @@ estimate_intensities_stratum_parallel_with_yc_part1 <- function(temp_file_dir, s
   out_list <- list()
   out_list[[i]] <- rho_i
   
-  rho_i_file_name <- paste0('step_2_rho_i_', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '_', i, '.rds')
+  
+  if(mouse){
+    rho_i_file_name <- paste0('step_2_rho_i_', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '_', i, '.rds')
+  } else{
+    rho_i_file_name <- paste0("step_2_rho_i_", adj_type, '_n_', n, '_nquery', cont_ind, '_', i, '.rds')
+  }
+  
   saveRDS(out_list, file = file.path(temp_file_dir, rho_i_file_name))  
   
 }
 # key_k
-estimate_intensities_stratum_parallel_with_yc_part2 <- function(temp_file_dir, setting_info_list, cont_ind, k) {
+estimate_intensities_stratum_parallel_with_yc_part2 <- function(temp_file_dir, setting_info_list, cont_ind, k, mouse) {
   
   
   # bivariate estimation
@@ -491,15 +522,16 @@ estimate_intensities_stratum_parallel_with_yc_part2 <- function(temp_file_dir, s
   
   # 1) retrieve data
   
-  # ID <- setting_info_list[['ID']]
-  # y_c_structure <- setting_info_list[['y_c_structure']]
-  # time_scale <- setting_info_list[['time_scale']]
-  # method <- setting_info_list[['method']]
-  # discrete_level <- setting_info_list[['discrete_level']]
   
   list2env(setting_info_list, envir = environment())
   
-  step_2_info_list <- paste0("part2_", ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '.rds')
+  
+  if(mouse){
+    step_2_info_list <- paste0("part2_", ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '.rds')
+  } else{
+    step_2_info_list <- paste0("part2_", adj_type, '_n_', n, '_nquery', cont_ind, '.rds')
+  }
+  
   
   results <- readRDS(file.path(temp_file_dir, step_2_info_list))
   list2env(results, envir = environment())
@@ -561,12 +593,17 @@ estimate_intensities_stratum_parallel_with_yc_part2 <- function(temp_file_dir, s
   out_list <- list()
   out_list[[key_ij]] <- rho_ij_mat
   
-  rho_ij_file_name <- paste0('step_2_rho_ij_', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '_', k, '.rds')
+  if(mouse){
+    rho_ij_file_name <- paste0('step_2_rho_ij_', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '_', k, '.rds')
+  } else{
+    rho_ij_file_name <- paste0("step_2_rho_ij_", adj_type, '_n_', n, '_nquery', cont_ind, '_', k, '.rds')
+  }
+  
   saveRDS(out_list, file = file.path(temp_file_dir, rho_ij_file_name))  
   
 }
 
-estimate_intensities_stratum_parallel_with_yc_part3 <- function(temp_file_dir, setting_info_list, n_keys_univariate, n_keys_bivariate) {
+estimate_intensities_stratum_parallel_with_yc_part3 <- function(temp_file_dir, setting_info_list, cont_ind, n_keys_univariate, n_keys_bivariate, mouse) {
   
   
   # putting the results together
@@ -575,17 +612,18 @@ estimate_intensities_stratum_parallel_with_yc_part3 <- function(temp_file_dir, s
   
   # 1) retrieve data
   
-  # ID <- setting_info_list[['ID']]
-  # y_c_structure <- setting_info_list[['y_c_structure']]
-  # time_scale <- setting_info_list[['time_scale']]
-  # method <- setting_info_list[['method']]
-  # discrete_level <- setting_info_list[['discrete_level']]
   list2env(setting_info_list, envir = environment())
   
-  # keys_univariate = vector of c(1, 2, 3, ..., p)
-  # keys_bivariate = vector of c('1_1', '1_2', ..., 'p_p')
-  rho_i_file_names  <- paste0('step_2_rho_i_',  ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '_', 1:n_keys_univariate, '.rds')
-  rho_ij_file_names <- paste0('step_2_rho_ij_', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '_', 1:n_keys_bivariate, '.rds')
+  if(mouse){
+    # keys_univariate = vector of c(1, 2, 3, ..., p)
+    # keys_bivariate = vector of c('1_1', '1_2', ..., 'p_p')
+    rho_i_file_names  <- paste0('step_2_rho_i_',  ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '_', 1:n_keys_univariate, '.rds')
+    rho_ij_file_names <- paste0('step_2_rho_ij_', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '_', 1:n_keys_bivariate, '.rds')    
+  } else{
+    rho_i_file_name  <- paste0("step_2_rho_i_",  adj_type, '_n_', n, '_nquery', cont_ind, '_', 1:n_keys_univariate, '.rds')
+    rho_ij_file_name <- paste0("step_2_rho_ij_", adj_type, '_n_', n, '_nquery', cont_ind, '_', 1:n_keys_bivariate, '.rds')
+  }
+
   
   # Step 1: Load all files into a list
   rho_i_list <- lapply(rho_i_file_names, readRDS)
@@ -601,39 +639,41 @@ estimate_intensities_stratum_parallel_with_yc_part3 <- function(temp_file_dir, s
   # store rho_list
   rho_list = list(rho_i_list, rho_ij_list)
   
-  rho_list_name <- paste0('step_2_rho_list_', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '.rds')
+  if(mouse){
+    rho_list_name <- paste0('step_2_rho_list_', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '.rds')
+  } else{
+    rho_list_name <- paste0("step_2_rho_list_", adj_type, '_n_', n, '_nquery', cont_ind, '.rds')
+  }
+  
   saveRDS(rho_list, file = file.path(temp_file_dir, rho_list_name))  
   
   
 }
 
-full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, setting_info_list, cont_ind){
+full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, setting_info_list, cont_ind, mouse){
   
   # all the estimation after step_2
   
   # load 
   
   
-  # ID <- setting_info_list[['ID']]
-  # y_c_structure <- setting_info_list[['y_c_structure']]
-  # time_scale <- setting_info_list[['time_scale']]
-  # method <- setting_info_list[['method']]
-  # discrete_level <- setting_info_list[['discrete_level']]
-  
   list2env(setting_info_list, envir = environment())
   
   # load everything from step_1
-  step_2_info_list <- paste0("part2_", ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '.rds')
+  if(mouse){
+    step_2_info_list <- paste0("part2_", ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '.rds')
+    rho_list_name <- paste0('step_2_rho_list_', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '.rds')
+    datafile_error_name <- paste0("dataset_part2_", ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '.RData')  # in case we need to quit and troubleshoot
+  } else{
+    step_2_info_list <- paste0("part2_", adj_type, '_n_', n, '_nquery', cont_ind, '.rds')
+    rho_list_name <- paste0("step_2_rho_list_", adj_type, '_n_', n, '_nquery', cont_ind, '.rds')
+    datafile_error_name <- paste0("dataset_part2_", adj_type, '_n_', n, '_nquery', cont_ind, '.RData')  # in case we need to quit and troubleshoot
+
+  }
+  
   results <- readRDS(file.path(temp_file_dir, step_2_info_list))
   list2env(results, envir = environment())
-  
-  # load step_2
-  rho_list_name <- paste0('step_2_rho_list_', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '.rds')
   step_2 <- readRDS(file.path(temp_file_dir, rho_list_name))
-  
-  datafile_error_name <- paste0("dataset_part2_", ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '.RData')  # in case we need to quit and troubleshoot
-  
-  
   
   # ------------------
   # Step 2b onward
@@ -690,12 +730,17 @@ full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, sett
   
   
 
-  file_name <- paste0('part3_', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '.rds')
+  if(mouse){
+    file_name <- paste0('part3_', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '.rds')
+  } else{
+    file_name <- paste0("part3_", adj_type, '_n_', n, '_nquery', cont_ind, '.rds')
+  }
+  
   saveRDS(estimated_graphs, file = file.path(temp_file_dir, file_name))  
   
 }
 
-full_conditional_estimation_with_no_truth_part3 <- function(temp_file_dir, setting_info_list, cont_inds){
+full_conditional_estimation_with_no_truth_part3 <- function(temp_file_dir, setting_info_list, cont_inds, mouse){
   
   #
   # cont_inds = number
@@ -707,14 +752,14 @@ full_conditional_estimation_with_no_truth_part3 <- function(temp_file_dir, setti
   
   # Vector of file names
   
-  # ID <- setting_info_list[['ID']]
-  # y_c_structure <- setting_info_list[['y_c_structure']]
-  # time_scale <- setting_info_list[['time_scale']]
-  # method <- setting_info_list[['method']]
-  # discrete_level <- setting_info_list[['discrete_level']]
   list2env(setting_info_list, envir = environment())
   
-  file_names <- paste0(temp_file_dir, '/part3_', ID, '_', discrete_level, '_t', time_scale, '_nquery', 1:cont_inds, '.rds')
+  if(mouse){
+    file_names <- paste0(temp_file_dir, '/part3_', ID, '_', discrete_level, '_t', time_scale, '_nquery', 1:cont_inds, '.rds')
+  } else{
+    file_names <- paste0(temp_file_dir, '/part3_', adj_type, '_n_', n, '_nquery', 1:cont_inds, '.rds')
+  }
+  
   
   
   # Step 1: Load all files into a list
@@ -770,15 +815,23 @@ full_conditional_estimation_with_no_truth_part3 <- function(temp_file_dir, setti
   # REMOVE ALL FILES HERE 
   # ------------------------
   
-  cont_inds <- nrow(query_y_cs)
+  if(mouse){
+    part1_file_name          <- paste0('part1_', ID, '_', discrete_level, '_t', time_scale, '.rds')
+    part2_file_name          <- paste0('part2_', ID, '_', discrete_level, '_t', time_scale, '_nquery', 1:cont_inds, '.rds')
+    part2_rho_i_file_name    <- paste0('step_2_rho_i_', ID, '_', discrete_level, '_t', time_scale, '_nquery', 1:cont_inds, '_', 1:p, '.rds')
+    part2_rho_ij_file_name   <- paste0('step_2_rho_ij_', ID, '_', discrete_level, '_t', time_scale, '_nquery', 1:cont_inds, '_', 1:length(keys), '.rds')
+    part2_rho_list_file_name <- paste0('step_2_rho_list_', ID, '_', discrete_level, '_t', time_scale, '_nquery', 1:cont_inds, '.rds')
+    part3_file_name          <- paste0('part3_', ID, '_', discrete_level, '_t', time_scale, '_nquery', 1:cont_inds, '.rds')
+  } else{
+    part1_file_name          <- paste0("part1_", adj_type, '_n_', n, '.rds')
+    part2_file_name          <- paste0("part2_", adj_type, '_n_', n, '_nquery', 1:cont_inds, '.rds')
+    part2_rho_i_file_name    <- paste0("step_2_rho_i_", adj_type, '_n_', n, '_nquery', 1:cont_inds, '_', 1:p, '.rds')
+    part2_rho_ij_file_name   <- paste0("step_2_rho_ij_", adj_type, '_n_', n, '_nquery', 1:cont_inds, '_', 1:length(keys), '.rds')
+    part2_rho_list_file_name <- paste0("step_2_rho_list_", adj_type, '_n_', n, '_nquery', 1:cont_inds, '.rds')
+    part3_file_name          <- paste0("part3_", adj_type, '_n_', n, '_nquery', 1:cont_inds, '.rds')
+  }
   
-  part1_file_name          <- paste0('part1_', ID, '_', discrete_level, '_t', time_scale, '.rds')
-  part2_file_name          <- paste0('part2_', ID, '_', discrete_level, '_t', time_scale, '_nquery', 1:cont_inds, '.rds')
-  part2_rho_i_file_name    <- paste0('step_2_rho_i_', ID, '_', discrete_level, '_t', time_scale, '_nquery', 1:cont_inds, '_', 1:p, '.rds')
-  part2_rho_ij_file_name   <- paste0('step_2_rho_ij_', ID, '_', discrete_level, '_t', time_scale, '_nquery', 1:cont_inds, '_', 1:length(keys), '.rds')
-  part2_rho_list_file_name <- paste0('step_2_rho_list_', ID, '_', discrete_level, '_t', time_scale, '_nquery', 1:cont_inds, '.rds')
-  part3_file_name          <- paste0('part3_', ID, '_', discrete_level, '_t', time_scale, '_nquery', 1:cont_inds, '.rds')
-  
+
   file.remove(file.path(temp_file_dir, part1_file_name)) 
   file.remove(file.path(temp_file_dir, part2_file_name)) 
   file.remove(file.path(temp_file_dir, part2_rho_i_file_name)) 
