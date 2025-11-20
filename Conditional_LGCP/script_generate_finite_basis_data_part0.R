@@ -50,6 +50,7 @@ ncores = 1
 
 Y_c <- generate_y_c_adj_type(n, adj_type, adj_params, seed = NULL)
 basis_list <- trig_basis(d)
+mean_vec <- rep(0, p*d)
 
 # 1) generate dataset ----------------------------------------------------------
 
@@ -67,7 +68,8 @@ param_list <- list(
   time_grid_both = time_grid_both,
   T_max = T_max, 
   y_c_query = y_c_query,
-  seed = seed
+  seed = seed,
+  mean_vec = mean_vec
 )
 
 temp_file_dir <- 'temp_data'

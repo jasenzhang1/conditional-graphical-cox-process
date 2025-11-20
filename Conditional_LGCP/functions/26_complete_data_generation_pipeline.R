@@ -725,7 +725,7 @@ simulate_finite_basis_cox_data_part3 <- function(temp_file_dir, setting_info_lis
   list2env(results, envir = environment())
   
   # 0b) load all of the log-intensities and group them
-  part_1_info_lists <- paste0("part1", adj_type, '_n_', n, '_group', 1:group_nums, '.rds')
+  part_1_info_lists <- paste0("part1_", adj_type, '_n_', n, '_group', 1:group_nums, '.rds')
   all_part_1_loaded <- lapply(part_1_info_lists, readRDS)
   
   cov_mat_list <- do.call(c, lapply(all_loaded, `[[`, "cov_mat_list"))
