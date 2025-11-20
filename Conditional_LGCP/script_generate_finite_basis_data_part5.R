@@ -11,6 +11,9 @@ n <- as.numeric(args[1])
 adj_type <- args[2]
 cont_inds <- as.numeric(args[3])
 
+setting_info_list <- list(n = n,
+                          adj_type = adj_type)
+
 source('functions/00_function_wrapper.R')
 source('functions/20_simulation_function_wrapper.R')
 

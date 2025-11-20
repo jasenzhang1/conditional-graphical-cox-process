@@ -726,7 +726,7 @@ simulate_finite_basis_cox_data_part3 <- function(temp_file_dir, setting_info_lis
   
   # 0b) load all of the log-intensities and group them
   part_1_info_lists <- paste0("part1", adj_type, '_n_', n, '_group', 1:group_nums, '.rds')
-  all_part_1_loaded <- lapply(file_names, part_1_info_lists)
+  all_part_1_loaded <- lapply(part_1_info_lists, readRDS)
   
   cov_mat_list <- do.call(c, lapply(all_loaded, `[[`, "cov_mat_list"))
   log_intensities_both <- abind(lapply(all_loaded, `[[`, "log_intensities_both"), along = 3)
@@ -737,7 +737,7 @@ simulate_finite_basis_cox_data_part3 <- function(temp_file_dir, setting_info_lis
 
   # 0c) load all of the events and group them
   part_2_info_lists <- paste0('events_', adj_type, '_n_', n, '_group', 1:group_nums, '.rds')
-  all_part_2_loaded <- lapply(file_names, readRDS)
+  all_part_2_loaded <- lapply(part_2_info_lists, readRDS)
   events <- do.call(c, all_part_2_loaded)
   
   # ------------------------
@@ -754,20 +754,7 @@ simulate_finite_basis_cox_data_part3 <- function(temp_file_dir, setting_info_lis
   }  
   
   
-  
-  # 6) query points
-  print('at query point generation')
-  
-  cov_mat_query <- lapply(1:nrow(y_c_query), function(i) { 
-    trig_basis_cov_mat(d, p, y_c_query[i, ], adj_type, adj_params)
-  })
-  
-  cor_mat_query <- lapply(cov_mat_query, function(x) assemble_blockwise_correlation(x, p, d))
-  prec_mat_query <- lapply(cor_mat_query, function(x) sym(solve(x)))
-  
-  
-  
-  
+
   # Store complete subject information
   dataset <- package_simulation_results(event_times_list, n, p, T_max, y_c_query,
                                         adj_type, adj_params, time_grid, time_grid_est, time_grid_both, seed,
@@ -786,8 +773,15 @@ simulate_finite_basis_cox_data_part4 <- function(temp_file_dir, setting_info_lis
   # 0) load 
   list2env(setting_info_list, envir = environment())
   
+  
   # 0a) load part0 
 
+  part_0_info_list <- paste0("part0_", adj_type, '_n_', n, '.rds')
+  results <- readRDS(file.path(temp_file_dir, part_0_info_list))
+  list2env(results, envir = environment())
+  
+  # 1) estimation
+  
   cov_mat_query <- trig_basis_cov_mat(d, p, y_c_query[cont_ind, ], adj_type, adj_params)
   cor_mat_query <- assemble_blockwise_correlation(cov_mat_query, p, d)
   prec_mat_query <- sym(solve(cor_mat_query))
