@@ -725,7 +725,7 @@ simulate_finite_basis_cox_data_part3 <- function(temp_file_dir, setting_info_lis
   list2env(results, envir = environment())
   
   # 0b) load all of the log-intensities and group them
-  part_1_info_lists <- paste0("part1_", adj_type, '_n_', n, '_group', 1:group_nums, '.rds')
+  part_1_info_lists <- paste0(temp_file_dir, "/part1_", adj_type, '_n_', n, '_group', 1:group_nums, '.rds')
   all_part_1_loaded <- lapply(part_1_info_lists, readRDS)
   
   cov_mat_list <- do.call(c, lapply(all_loaded, `[[`, "cov_mat_list"))
@@ -736,7 +736,7 @@ simulate_finite_basis_cox_data_part3 <- function(temp_file_dir, setting_info_lis
   
 
   # 0c) load all of the events and group them
-  part_2_info_lists <- paste0('events_', adj_type, '_n_', n, '_group', 1:group_nums, '.rds')
+  part_2_info_lists <- paste0(temp_file_dir, '/events_', adj_type, '_n_', n, '_group', 1:group_nums, '.rds')
   all_part_2_loaded <- lapply(part_2_info_lists, readRDS)
   events <- do.call(c, all_part_2_loaded)
   
@@ -950,7 +950,7 @@ simulate_finite_basis_cox_data_part5 <- function(temp_file_dir, setting_info_lis
   dataset <- readRDS(file.path(temp_file_dir, part_3_info_list)) 
   
   # 0c) load the truths
-  part_4_info_lists <- paste0('truths_', adj_type, '_n_', n, '_nquery', 1:cont_inds, '.rds')
+  part_4_info_lists <- paste0(temp_file_dir, '/truths_', adj_type, '_n_', n, '_nquery', 1:cont_inds, '.rds')
   all_part_4_loaded <- lapply(part_4_info_lists, readRDS)
   
   # Get all element names (step_1, step_2, ..., step_11)
