@@ -51,7 +51,14 @@ ncores = 1
 Y_c <- generate_y_c_adj_type(n, adj_type, adj_params, seed = NULL)
 basis_list <- trig_basis(d)
 mean_vec <- rep(0, p*d)
-mu_t  <- rep(beta_0, m)
+
+m <- length(time_grid)
+m_est <- length(time_grid_est)
+m_both <- length(time_grid_both)
+
+mu_t        <- rep(beta_0, m)    # mu(t) = beta_0 (constant)
+mu_t_both   <- rep(beta_0, m_both)
+mu_t_coarse <- rep(beta_0, m_est)
 
 # 1) generate dataset ----------------------------------------------------------
 
@@ -62,6 +69,8 @@ param_list <- list(
   d = d,
   p = p, 
   m = m,
+  m_est = m_est,
+  m_both = m_both,
   adj_type = adj_type,
   adj_params = adj_params, 
   beta_0 = beta_0, 
@@ -72,7 +81,9 @@ param_list <- list(
   y_c_query = y_c_query,
   seed = seed,
   mean_vec = mean_vec,
-  mu_t = mu_t
+  mu_t = mu_t,
+  mu_t_both = mu_t_both,
+  mu_t_coarse = mu_t_coarse
 )
 
 temp_file_dir <- 'temp_data'

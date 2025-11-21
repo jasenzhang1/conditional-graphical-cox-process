@@ -530,8 +530,8 @@ simulate_finite_basis_cox_data <- function(n, d, p, adj_type, adj_params, beta_0
     list(rho_ii_truth = x$rho_ij_truth)
   })
   
-  step_3 <- lapply(1:length(rho_truths), function(x) {
-    list(g_ij_truth = rho_truths[[x]]$g_ij_truth)
+  step_3 <- lapply(rho_truths, function(x) {
+    list(g_ij_truth = x$g_ij_truth)
   })
   
   step_4 <- lapply(eigen_truths, function(x) {
@@ -787,6 +787,12 @@ simulate_finite_basis_cox_data_part4 <- function(temp_file_dir, setting_info_lis
   part_3_info_list <- paste0('dataset_', adj_type, '_n_', n, '.rds')
   dataset <- readRDS(file.path(temp_file_dir, part_3_info_list))   
   beta_coeffs <- dataset$beta_coeffs
+  
+  log_intensities <- dataset$X_k_truth
+  log_intensities_est <- dataset$X_k_coarse_truth
+  log_intensities_both <- dataset$X_k_both_truth
+  
+
   rm(dataset)
   
   # 1) estimation
@@ -881,10 +887,10 @@ simulate_finite_basis_cox_data_part4 <- function(temp_file_dir, setting_info_lis
                  mu_t_both_truth = mu_t_both,
                  mu_t_coarse_truth = mu_t_coarse)
   
-  step_2 <- list(rho_i_truth = rho_i_truth)
+  step_2 <- list(rho_i_truth = rho_truths$rho_i_truth)
 
   
-  step_2b <- list(rho_ii_truth = rho_ij_truth)
+  step_2b <- list(rho_ii_truth = rho_truths$rho_ij_truth)
 
   
   step_3 <- list(g_ij_truth = rho_truths$g_ij_truth)
@@ -909,8 +915,8 @@ simulate_finite_basis_cox_data_part4 <- function(temp_file_dir, setting_info_lis
                  C_cond_X_truth_full        = step_9_10_11_X_truth$C_cond_X_truth_full,
                  C_cond_X_truth_unnorm_full = step_9_10_11_X_truth$C_cond_X_truth_unnorm_full)          # (pm x pm matrix)
   
-  step_9b <- list(efunc_outer_truth = efunc_outer,
-                  efunc_outer_unnorm_truth = efunc_outer_unnorm)          # (pc2 list of mxm matrices)
+  step_9b <- list(efunc_outer_truth = eigen_truths$efunc_outer,
+                  efunc_outer_unnorm_truth = eigen_truths$efunc_outer_unnorm)          # (pc2 list of mxm matrices)
   
   step_10 <- list(P_cond_truth_full           = eigen_truths$P_cond_full,
                   P_cond_truth_unnorm_full    = eigen_truths$P_cond_full_unnorm,
