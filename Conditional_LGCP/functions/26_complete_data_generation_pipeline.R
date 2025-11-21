@@ -227,7 +227,7 @@ simulate_subject_data <- function(n, p, Y_continuous, adj_type, adj_params,
 
 package_simulation_results <- function(event_times_list, n, p, T_max, query_y_cs,
                                        adj_type, adj_params, time_grid, time_grid_est, time_grid_both, seed,
-                                       X_k_truth, X_k_coarse_truth, X_k_both_truth, Y_continuous){
+                                       X_k_truth, X_k_coarse_truth, X_k_both_truth, Y_continuous, beta_coeffs){
   
   # ----------------------------------------------------------------------------
   #
@@ -292,6 +292,8 @@ package_simulation_results <- function(event_times_list, n, p, T_max, query_y_cs
       time_grid_both = time_grid_both,      
       seed = seed
     ),
+    
+    beta_coeffs = beta_coeffs,
     
     summary_stats = list(
       total_events = total_events,
@@ -728,11 +730,11 @@ simulate_finite_basis_cox_data_part3 <- function(temp_file_dir, setting_info_lis
   part_1_info_lists <- paste0(temp_file_dir, "/part1_", adj_type, '_n_', n, '_group', 1:group_nums, '.rds')
   all_part_1_loaded <- lapply(part_1_info_lists, readRDS)
   
-  cov_mat_list <- do.call(c, lapply(all_loaded, `[[`, "cov_mat_list"))
-  log_intensities_both <- abind(lapply(all_loaded, `[[`, "log_intensities_both"), along = 3)
-  log_intensities_est  <- abind(lapply(all_loaded, `[[`, "log_intensities_est"), along = 3)
-  log_intensities      <- abind(lapply(all_loaded, `[[`, "log_intensities"), along = 3)
-  beta_coeffs          <- abind(lapply(all_loaded, `[[`, "beta_coeffs"), along = 3)  
+  cov_mat_list <- do.call(c, lapply(all_part_1_loaded, `[[`, "cov_mat_list"))
+  log_intensities_both <- abind(lapply(all_part_1_loaded, `[[`, "log_intensities_both"), along = 3)
+  log_intensities_est  <- abind(lapply(all_part_1_loaded, `[[`, "log_intensities_est"), along = 3)
+  log_intensities      <- abind(lapply(all_part_1_loaded, `[[`, "log_intensities"), along = 3)
+  beta_coeffs          <- abind(lapply(all_part_1_loaded, `[[`, "beta_coeffs"), along = 3)  
   
 
   # 0c) load all of the events and group them
@@ -758,7 +760,7 @@ simulate_finite_basis_cox_data_part3 <- function(temp_file_dir, setting_info_lis
   # Store complete subject information
   dataset <- package_simulation_results(event_times_list, n, p, T_max, y_c_query,
                                         adj_type, adj_params, time_grid, time_grid_est, time_grid_both, seed,
-                                        log_intensities, log_intensities_est, log_intensities_both, Y_c)
+                                        log_intensities, log_intensities_est, log_intensities_both, Y_c, beta_coeffs)
                                        
   part_3_info_list <- paste0('dataset_', adj_type, '_n_', n, '.rds')
   saveRDS(dataset, file = file.path(temp_file_dir, part_3_info_list))    
@@ -779,6 +781,13 @@ simulate_finite_basis_cox_data_part4 <- function(temp_file_dir, setting_info_lis
   part_0_info_list <- paste0("part0_", adj_type, '_n_', n, '.rds')
   results <- readRDS(file.path(temp_file_dir, part_0_info_list))
   list2env(results, envir = environment())
+  
+  # 0b) load things from `dataset`
+  
+  part_3_info_list <- paste0('dataset_', adj_type, '_n_', n, '.rds')
+  dataset <- readRDS(file.path(temp_file_dir, part_3_info_list))   
+  beta_coeffs <- dataset$beta_coeffs
+  rm(dataset)
   
   # 1) estimation
   
