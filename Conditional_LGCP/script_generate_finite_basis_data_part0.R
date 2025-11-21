@@ -61,6 +61,7 @@ param_list <- list(
   n = n,
   d = d,
   p = p, 
+  m = m,
   adj_type = adj_type,
   adj_params = adj_params, 
   beta_0 = beta_0, 

@@ -227,7 +227,7 @@ simulate_subject_data <- function(n, p, Y_continuous, adj_type, adj_params,
 
 package_simulation_results <- function(event_times_list, n, p, T_max, query_y_cs,
                                        adj_type, adj_params, time_grid, time_grid_est, time_grid_both, seed,
-                                       X_k_truth, X_k_coarse_truth, X_k_both_truth, Y_continuous, beta_coeffs){
+                                       X_k_truth, X_k_coarse_truth, X_k_both_truth, Y_continuous, beta_coeffs = NULL){
   
   # ----------------------------------------------------------------------------
   #
