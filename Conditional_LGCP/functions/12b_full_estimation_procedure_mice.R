@@ -666,6 +666,10 @@ estimate_intensities_stratum_parallel_with_yc_part3 <- function(temp_file_dir, s
   
   saveRDS(step_2, file = file.path(temp_file_dir, rho_list_name))  
   
+  print("Checking existence (after saving) of:")
+  print(rho_list_name)
+  print(file.exists(print0(temp_file_dir, '/', rho_list_name)))
+  
   
 }
 
