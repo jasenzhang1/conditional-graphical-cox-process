@@ -109,18 +109,24 @@ for entry in "${adj_type_params[@]}"; do
   step1_elapsed=$(( step1_end - step1_start ))
   echo "[DONE] Generation complete. Elapsed: ${step1_elapsed}s" | tee -a "$outfile"
   echo "" | tee -a "$outfile"
-  echo "=========================================" >> "$outfile"
-
+  echo "===================================================" >> "$outfile"
+  echo "" | tee -a "$outfile"
+  
   # ----------
   # Step 2: Fit
   # ----------
+  
+  echo "[STEP 2] Fitting dataset..." | tee -a "$outfile"
+  echo "" | tee -a "$outfile"
+  echo "Estimating the following sample sizes: ${ns[@]}"
+  echo "" | tee -a "$outfile"
   
   # Loop over all combinations of movement and VR
   for n in "${ns[@]}"; do
   
 
       
-      echo "Part 1 of Strata $i Starting" >> "$outfile"
+      echo "Part 1 of Estimating n=$n Starting" >> "$outfile"
       
   
       
@@ -135,7 +141,9 @@ for entry in "${adj_type_params[@]}"; do
                 2>&1 | tee -a "$outfile")
       wait
       
-      echo "=========================================" >> "$outfile"
+      echo "" | tee -a "$outfile"
+      echo "===================================================" >> "$outfile"
+      
       
       # Extract n_queries from output
       n_queries=$(echo "$output" | grep "n_queries" | awk -F= '{print $2}')
@@ -147,11 +155,18 @@ for entry in "${adj_type_params[@]}"; do
       n_ij=$(echo "$output" | grep "n_ij" | awk -F= '{print $2}')
       n_ij=$(echo "$n_ij" | xargs)
       
+
+      echo "num queries=$n_queries" >> "$outfile"
+      echo "num processes=$n_i" >> "$outfile"
+      echo "num pairwise processes=$n_ij" >> "$outfile"
+      echo "" | tee -a "$outfile"
+      echo "===================================================" >> "$outfile"
+      
       # ----------------
       # Part 2 - parallelize each y_c_query
       # ----------------
       
-      echo "Part 2 of Strata $i Starting" >> "$outfile"
+      echo "Part 2 of Estimating n=$n Starting" >> "$outfile"
       for j in $(seq 1 "$n_queries"); do
   
           echo "Query $j out of $n_queries" >> "$outfile"
@@ -181,6 +196,7 @@ for entry in "${adj_type_params[@]}"; do
           
           wait
           
+
           wait_for_slot
           Rscript script_step2_part3.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$j" "$n_i" "$n_ij" >> "$outfile" 2>&1 &
           
@@ -191,21 +207,25 @@ for entry in "${adj_type_params[@]}"; do
           wait_for_slot
           Rscript script_fit_mice_data_part2b.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$j" >> "$outfile" 2>&1 &
           
-  
+          echo "Query $j out of $n_queries finished" >> "$outfile"
       done
       
       wait
       
-      echo "=========================================" >> "$outfile"
+      echo "" | tee -a "$outfile"
+      echo "===================================================" >> "$outfile"
+      
       
       # ----------------
       # Part 3- when all part 2's are done, do part 3
       # ----------------
       
-      echo "Part 3 of Strata $i Starting" >> "$outfile"
+      echo "Part 3 of Strata $n Starting" >> "$outfile"
       
       wait_for_slot
       Rscript script_fit_mice_data_part3.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$n_queries" >> "$outfile" 2>&1 &
+      
+      echo "[DONE] Strata $n" >> "$outfile"
   
   done
   
@@ -215,7 +235,9 @@ for entry in "${adj_type_params[@]}"; do
   # END TIMER
   # ============================================================
   
-  echo "===========================================" >> "$outfile"
+  echo "" | tee -a "$outfile"
+  echo "===================================================" >> "$outfile"
+  
   
   end_time=$(date +%s)
   runtime=$((end_time - start_time))
