@@ -678,7 +678,7 @@ full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, sett
   # ------------------
   # Step 2b onward
   # ------------------
-  
+  full <- F
   step_2b <- step_2_rho_ij(step_1, step_2, kernel_params_i, i_neq_j, full)
   step_3  <- step_3_g_ij(step_2, step_2b, kernel_params_i, i_neq_j, full)
   

@@ -106,17 +106,24 @@ for i in "${!movement[@]}"; do
               2>&1 | tee "$outfile")
     wait
     
-    echo "=========================================" >> "$outfile"
+    echo "" | tee -a "$outfile"
+    echo "===================================================" >> "$outfile"
     
     # Extract n_queries from output
     n_queries=$(echo "$output" | grep "n_queries" | awk -F= '{print $2}')
     n_queries=$(echo "$n_queries" | xargs)
 
-    n_i=$(echo "$output" | grep "n_i" | awk -F= '{print $2}')
+    n_i=$(echo "$output" | grep "n_processes" | awk -F= '{print $2}')
     n_i=$(echo "$n_i" | xargs)
     
-    n_ij=$(echo "$output" | grep "n_ij" | awk -F= '{print $2}')
+    n_ij=$(echo "$output" | grep "n_bivariate_processes" | awk -F= '{print $2}')
     n_ij=$(echo "$n_ij" | xargs)
+    
+    echo "num queries=$n_queries" >> "$outfile"
+    echo "num processes=$n_i" >> "$outfile"
+    echo "num pairwise processes=$n_ij" >> "$outfile"
+    echo "" | tee -a "$outfile"
+    echo "===================================================" >> "$outfile"
     
     # ----------------
     # Part 2 - parallelize each y_c_query

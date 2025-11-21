@@ -192,10 +192,9 @@ for entry in "${adj_type_params[@]}"; do
               Rscript script_step2_part2.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$j" "$kl" >> "$outfile" 2>&1 &
           done
           
-          echo "Query $j out of $n_queries [2/4] done with rho_ij" >> "$outfile"
-          
           wait
           
+          echo "Query $j out of $n_queries [2/4] done with rho_ij" >> "$outfile"
 
           wait_for_slot
           Rscript script_step2_part3.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$j" "$n_i" "$n_ij" >> "$outfile" 2>&1 &
