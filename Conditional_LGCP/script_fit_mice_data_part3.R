@@ -32,7 +32,7 @@ if(model_type == 'mice'){
   
   
   mouse <- T
-  temp_file_dir <- 'temp_data'
+  temp_file_dir <- 'temp_data/mice'
   
   folder_1_name <- 'mice_results'
   if (!dir.exists(folder_1_name)) dir.create(folder_1_name)  # /mice_results

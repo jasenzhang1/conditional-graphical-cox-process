@@ -31,7 +31,7 @@ if(model_type == 'mice'){
                             method = method,
                             discrete_level = discrete_level)
   
-  temp_file_dir <- 'temp_data'
+  temp_file_dir <- 'temp_data/mice'
   mouse <- T
   
 } else if(model_type == 'simu'){
