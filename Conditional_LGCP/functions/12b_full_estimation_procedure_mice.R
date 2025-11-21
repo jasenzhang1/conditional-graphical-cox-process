@@ -256,8 +256,8 @@ full_conditional_estimation_with_no_truth_part1 <- function(dataset, setting_inf
     with(paste0(i, "_", j))
 
   
-  cat("n_ij=", length(keys), "\n")
-  cat("n_i=", p, "\n")
+  cat("n_bivariate_processes=", length(keys), "\n")
+  cat("n_processes=", p, "\n")
   cat("n_queries=", nrow(query_y_cs), "\n")
   
   # Save results for Stage 2

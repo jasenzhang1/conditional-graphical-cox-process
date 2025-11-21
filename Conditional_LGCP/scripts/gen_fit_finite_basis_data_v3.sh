@@ -149,10 +149,10 @@ for entry in "${adj_type_params[@]}"; do
       n_queries=$(echo "$output" | grep "n_queries" | awk -F= '{print $2}')
       n_queries=$(echo "$n_queries" | xargs)
   
-      n_i=$(echo "$output" | grep "n_i" | awk -F= '{print $2}')
+      n_i=$(echo "$output" | grep "n_processes" | awk -F= '{print $2}')
       n_i=$(echo "$n_i" | xargs)
       
-      n_ij=$(echo "$output" | grep "n_ij" | awk -F= '{print $2}')
+      n_ij=$(echo "$output" | grep "n_bivariate_processes" | awk -F= '{print $2}')
       n_ij=$(echo "$n_ij" | xargs)
       
 
