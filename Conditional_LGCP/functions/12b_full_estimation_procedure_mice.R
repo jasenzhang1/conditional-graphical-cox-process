@@ -668,7 +668,7 @@ estimate_intensities_stratum_parallel_with_yc_part3 <- function(temp_file_dir, s
   
   print("Checking existence (after saving) of:")
   print(rho_list_name)
-  print(file.exists(print0(temp_file_dir, '/', rho_list_name)))
+  print(file.exists(paste0(temp_file_dir, '/', rho_list_name)))
   
   
 }
@@ -679,6 +679,7 @@ full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, sett
   
   # load 
   
+  print(paste0('starting part 2b, cont_ind = ', cont_ind))
   
   list2env(setting_info_list, envir = environment())
   
