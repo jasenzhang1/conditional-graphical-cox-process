@@ -946,7 +946,7 @@ simulate_finite_basis_cox_data_part4 <- function(temp_file_dir, setting_info_lis
   # store 
   
   part_4_info_list <- paste0('truths_', adj_type, '_n_', n, '_nquery', cont_ind, '.rds')
-  saveRDS(events, file = file.path(temp_file_dir, part_4_info_list))  
+  saveRDS(all_truths, file = file.path(temp_file_dir, part_4_info_list))  
 }
 
 # merge truths and data
