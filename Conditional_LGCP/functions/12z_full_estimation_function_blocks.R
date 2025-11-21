@@ -509,6 +509,14 @@ step_3_g_ij <- function(step_2, step_2b, kernel_params, i_neq_j, full = T){
     rho_i_est <- step_2[[1]]
     rho_ii_est <- step_2b[[1]]
     
+    print('====TROUBLESHOOT 1====')
+    print('currently in step_3_g_ij')
+    print(paste0('step_2 should be a list: ', class(step_2)))
+    print(paste0('step_2 should have its first item called rho_i_est: ', names(step_2)))
+    print(paste0('class of rho_i_est should be a matrix: ', class(rho_i_est)))
+    print(paste0('dim of rho_i_est should be (p x m): ', class(rho_i_est)))
+    print('======================')
+    
     if(i_neq_j){
       g_ij_est <- estimate_covariance_functions_ij(rho_i_est, rho_ii_est)
     } else{

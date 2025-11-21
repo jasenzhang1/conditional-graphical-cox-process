@@ -668,8 +668,13 @@ full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, sett
     step_2_info_list <- paste0("part2_", adj_type, '_n_', n, '_nquery', cont_ind, '.rds')
     rho_list_name <- paste0("step_2_rho_list_", adj_type, '_n_', n, '_nquery', cont_ind, '.rds')
     datafile_error_name <- paste0("dataset_part2_", adj_type, '_n_', n, '_nquery', cont_ind, '.RData')  # in case we need to quit and troubleshoot
-
   }
+  
+  print('====TROUBLESHOOT 2====')
+  print(paste0('currently in full_conditional_estimation_with_no_truth_part2b with cont_ind = ', cont_ind))
+  print(paste0('is the part2_ dataset present?: ', file.exists(file.path(temp_file_dir, step_2_info_list))))
+  print(paste0('is the step_2_rho_list_ dataset present?: ', file.exists(file.path(temp_file_dir, rho_list_name))))
+  print('======================')
   
   results <- readRDS(file.path(temp_file_dir, step_2_info_list))
   list2env(results, envir = environment())
