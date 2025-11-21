@@ -625,9 +625,22 @@ estimate_intensities_stratum_parallel_with_yc_part3 <- function(temp_file_dir, s
   }
 
   
-  # Step 1: Load all files into a list
-  rho_i_list <- lapply(rho_i_file_names, readRDS)
-  rho_ij_list <- lapply(rho_ij_file_names, readRDS)
+  # Step 1: Load all files into a list - but there are some serious wrangling issues
+  # - rho_i_list
+  # - rho_ij_list
+
+  rho_i_list_raw <- lapply(rho_i_file_names, readRDS) # it's a list of lists, only rho_i_list[[2]][[2]] is relevant
+  
+  rho_i_list <- mapply(function(x, idx) x[[idx]], 
+                       rho_i_list_raw, 
+                       seq_along(rho_i_list_raw),
+                       SIMPLIFY = FALSE)
+  names(rho_i_list) <- 1:length(rho_i_list)
+  
+  
+  rho_ij_list_raw <- lapply(rho_ij_file_names, readRDS)
+  rho_ij_list <- lapply(rho_ij_list_raw, `[[`, 1)
+  names(rho_ij_list) <- sapply(rho_ij_list_raw, function(x) names(x)[1])
   
   # delete files
   
@@ -636,8 +649,14 @@ estimate_intensities_stratum_parallel_with_yc_part3 <- function(temp_file_dir, s
   
   
   
-  # store rho_list
+  # store rho_list and rho_i_est
+  
+  rho_i_est <- do.call(rbind, rho_i_list)
+  
   rho_list = list(rho_i_list, rho_ij_list)
+  
+  step_2 <- list(rho_i_est = rho_i_est,
+                 rho_list = rho_list)
   
   if(mouse){
     rho_list_name <- paste0('step_2_rho_list_', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '.rds')
@@ -645,7 +664,7 @@ estimate_intensities_stratum_parallel_with_yc_part3 <- function(temp_file_dir, s
     rho_list_name <- paste0("step_2_rho_list_", adj_type, '_n_', n, '_nquery', cont_ind, '.rds')
   }
   
-  saveRDS(rho_list, file = file.path(temp_file_dir, rho_list_name))  
+  saveRDS(step_2, file = file.path(temp_file_dir, rho_list_name))  
   
   
 }

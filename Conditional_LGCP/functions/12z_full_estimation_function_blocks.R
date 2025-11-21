@@ -381,8 +381,7 @@ step_2_rho_ij <- function(step_1, step_2, kernel_params, i_neq_j, full = T){
   
 
   if(! full){
-    # skip all this
-    rho_list  <- step_2[[2]]
+    rho_list  <- step_2$rho_list
     rho_ii_est <- rho_list[[2]]
     
     return(list(rho_ii_est = rho_ii_est))
@@ -506,15 +505,17 @@ step_3_g_ij <- function(step_2, step_2b, kernel_params, i_neq_j, full = T){
   # ----------------------------------------------------------------------------
   
   if(! full){ # just estimation
-    rho_i_est <- step_2[[1]]
-    rho_ii_est <- step_2b[[1]]
+    rho_i_est <- step_2$rho_i_est
+    rho_ii_est <- step_2b$rho_ii_est
     
     print('====TROUBLESHOOT 1====')
     print('currently in step_3_g_ij')
+    print('inspecting step_2:')
+    print(step_2)
     print(paste0('step_2 should be a list: ', class(step_2)))
     print(paste0('step_2 should have its first item called rho_i_est: ', names(step_2)))
     print(paste0('class of rho_i_est should be a matrix: ', class(rho_i_est)))
-    print(paste0('dim of rho_i_est should be (p x m): ', class(rho_i_est)))
+    print(paste0('dim of rho_i_est should be (p x m): ', dim(rho_i_est)))
     print('======================')
     
     if(i_neq_j){
@@ -621,7 +622,7 @@ step_4_eigendecomp <- function(step_3, p, time_grid, time_grid_est, full = T){
   # ----------------------------------------------------------------------------
   
   if(! full){
-    g_ij_est <- step_3[[1]]
+    g_ij_est <- step_3$g_ij_est
     g_ii_est <- prep_eigendecomposition_ii(g_ij_est, p)
     
     # perform eigendecomposition
