@@ -620,8 +620,8 @@ estimate_intensities_stratum_parallel_with_yc_part3 <- function(temp_file_dir, s
     rho_i_file_names  <- paste0('step_2_rho_i_',  ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '_', 1:n_keys_univariate, '.rds')
     rho_ij_file_names <- paste0('step_2_rho_ij_', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '_', 1:n_keys_bivariate, '.rds')    
   } else{
-    rho_i_file_name  <- paste0("step_2_rho_i_",  adj_type, '_n_', n, '_nquery', cont_ind, '_', 1:n_keys_univariate, '.rds')
-    rho_ij_file_name <- paste0("step_2_rho_ij_", adj_type, '_n_', n, '_nquery', cont_ind, '_', 1:n_keys_bivariate, '.rds')
+    rho_i_file_names  <- paste0("step_2_rho_i_",  adj_type, '_n_', n, '_nquery', cont_ind, '_', 1:n_keys_univariate, '.rds')
+    rho_ij_file_names <- paste0("step_2_rho_ij_", adj_type, '_n_', n, '_nquery', cont_ind, '_', 1:n_keys_bivariate, '.rds')
   }
 
   
