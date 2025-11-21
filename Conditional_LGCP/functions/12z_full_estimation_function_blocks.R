@@ -510,8 +510,6 @@ step_3_g_ij <- function(step_2, step_2b, kernel_params, i_neq_j, full = T){
     
     print('====TROUBLESHOOT 1====')
     print('currently in step_3_g_ij')
-    print('inspecting step_2:')
-    print(step_2)
     print(paste0('step_2 should be a list: ', class(step_2)))
     print(paste0('step_2 should have its first item called rho_i_est: ', names(step_2)))
     print(paste0('class of rho_i_est should be a matrix: ', class(rho_i_est)))

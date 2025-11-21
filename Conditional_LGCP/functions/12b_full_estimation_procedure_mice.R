@@ -691,7 +691,9 @@ full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, sett
   
   print('====TROUBLESHOOT 2====')
   print(paste0('currently in full_conditional_estimation_with_no_truth_part2b with cont_ind = ', cont_ind))
+  print(paste0('named dataset: ', step_2_info_list))
   print(paste0('is the part2_ dataset present?: ', file.exists(file.path(temp_file_dir, step_2_info_list))))
+  print(paste0('named dataset: ', rho_list_name))
   print(paste0('is the step_2_rho_list_ dataset present?: ', file.exists(file.path(temp_file_dir, rho_list_name))))
   print('======================')
   
