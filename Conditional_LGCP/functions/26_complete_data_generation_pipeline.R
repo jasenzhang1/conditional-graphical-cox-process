@@ -895,7 +895,7 @@ simulate_finite_basis_cox_data_part4 <- function(temp_file_dir, setting_info_lis
   
   step_3 <- list(g_ij_truth = rho_truths$g_ij_truth)
   
-  step_4 <- list(eigen_decomp_truth = eigen_decomp)
+  step_4 <- list(eigen_decomp_truth = eigen_truths$eigen_decomp)
   
   step_5 <- list(KL_coeffs_truth = beta_coeffs,                          # (p x d x n)
                  KL_cov_truth = eigen_truths$KL_cov,
