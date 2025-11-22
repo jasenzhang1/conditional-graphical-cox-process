@@ -693,16 +693,17 @@ simulate_finite_basis_cox_data_part2 <- function(temp_file_dir, setting_info_lis
   
   
   # 4) Generate point process events
-  max_events_obs = Inf
-  min_events_obs = -1
-  while(min_events_obs < min_events | max_events_obs > max_events){
+  # max_events_obs = Inf
+  # min_events_obs = -1
+  # while(min_events_obs < min_events | max_events_obs > max_events){
     
-    events <- lapply(1:n_group, function(i){generate_cox_process_events(log_intensities[, , i], time_grid, T_max, max_intensity = Inf)})
-    
-    max_events_obs <- max(sapply(events, function(i) max(i$event_counts)))
-    min_events_obs <- min(sapply(events, function(i) min(i$event_counts)))
-    
-  }
+  events <- lapply(1:n_group, function(i){generate_cox_process_events(log_intensities[, , i], time_grid, T_max, max_intensity = Inf)})
+  
+  max_events_obs <- max(sapply(events, function(i) max(i$event_counts)))
+  min_events_obs <- min(sapply(events, function(i) min(i$event_counts)))
+  #   print(max_events_obs)
+  #   print(min_events_obs)
+  # }
   
   # save 
   

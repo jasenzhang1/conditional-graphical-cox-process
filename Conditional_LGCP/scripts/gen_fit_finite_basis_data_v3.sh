@@ -47,6 +47,16 @@ function wait_for_slot {
     done
 }
 
+print_bar() {
+    local current=$1 total=$2 width=40
+    local filled=$(( current * width / total ))
+    local empty=$(( width - filled ))
+    printf "\r["
+    printf "%${filled}s" | tr ' ' '#'
+    printf "%${empty}s" | tr ' ' '-'
+    printf "] %3d / %3d" "$current" "$total"
+}
+
 mkdir -p script_outputs
 mkdir -p script_outputs/simu
 
@@ -84,14 +94,19 @@ for entry in "${adj_type_params[@]}"; do
   Rscript script_generate_finite_basis_data_part0.R "$n_large" "$n_query" "$adj_type" "${adj_params[@]}" >> "$outfile" 2>&1
   
   for group_idx in $(seq 1 "$groups"); do
+      print_bar "$group_idx" "$groups"   # ← live bar on screen
+      echo "[ $(date '+%F %T') ] Starting group $group_idx / $groups" >> "$outfile"
       wait_for_slot
       (
           Rscript script_generate_finite_basis_data_part1.R "$n_large" "$adj_type" "$group_idx" "$n_group" >> "$outfile" 2>&1
           Rscript script_generate_finite_basis_data_part2.R "$n_large" "$adj_type" "$group_idx" "$n_group" "$min_events" "$max_events" >> "$outfile" 2>&1
+          echo "[ $(date '+%F %T') ] Finished group $group_idx" >> "$outfile"
       ) &
       
   done  
   wait
+  
+  echo "[STEP 1] Finished generating events" | tee -a "$outfile"
   
   Rscript script_generate_finite_basis_data_part3.R "$n_large" "$adj_type" "$groups" >> "$outfile" 2>&1
   
