@@ -109,11 +109,15 @@ for entry in "${adj_type_params[@]}"; do
   echo "[STEP 1] Finished generating events" | tee -a "$outfile"
   
   Rscript script_generate_finite_basis_data_part3.R "$n_large" "$adj_type" "$groups" >> "$outfile" 2>&1
+  echo "[STEP 1] Finished merging events" | tee -a "$outfile"
   
   for cont_ind in $(seq 1 "$n_query"); do
+      print_bar "$cont_ind" "$n_query"   # ← live bar on screen
+      echo "[ $(date '+%F %T') ] Starting query $cont_ind / $n_query" >> "$outfile"
       wait_for_slot
       (
           Rscript script_generate_finite_basis_data_part4.R "$n_large" "$adj_type" "$cont_ind" "${adj_params[@]}" >> "$outfile" 2>&1
+          echo "[ $(date '+%F %T') ] Finished query $cont_ind" >> "$outfile"
       ) & 
   done  
   wait
@@ -199,27 +203,25 @@ for entry in "${adj_type_params[@]}"; do
               wait_for_slot
               Rscript script_step2_part1.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$j" "$k" >> "$outfile" 2>&1 &
           done
-          
           echo "Query $j out of $n_queries [1/4] done with rho_i" >> "$outfile"
           
           for kl in $(seq 1 "$n_ij"); do
               wait_for_slot
               Rscript script_step2_part2.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$j" "$kl" >> "$outfile" 2>&1 &
           done
-          
           wait
-          
           echo "Query $j out of $n_queries [2/4] done with rho_ij" >> "$outfile"
 
           wait_for_slot
-          Rscript script_step2_part3.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$j" "$n_i" "$n_ij" >> "$outfile" 2>&1 &
+          Rscript script_step2_part3.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$j" "$n_i" "$n_ij" >> "$outfile" 2>&1
           echo "Query $j out of $n_queries [3/4] done with merger" >> "$outfile"
+          
           # ----------------
           # Part 2b - now continue for the rest of the estimation
           # ---------------- 
           
           wait_for_slot
-          Rscript script_fit_mice_data_part2b.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$j" >> "$outfile" 2>&1 &
+          Rscript script_fit_mice_data_part2b.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$j" >> "$outfile" 2>&1
           echo "Query $j out of $n_queries [4/4] finished" >> "$outfile"
       done
       

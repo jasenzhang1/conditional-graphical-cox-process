@@ -604,7 +604,7 @@ estimate_intensities_stratum_parallel_with_yc_part2 <- function(temp_file_dir, s
 }
 
 estimate_intensities_stratum_parallel_with_yc_part3 <- function(temp_file_dir, setting_info_list, cont_ind, n_keys_univariate, n_keys_bivariate, mouse) {
-  
+  # used in script_step2_part3
   
   # putting the results together
   
@@ -674,6 +674,7 @@ estimate_intensities_stratum_parallel_with_yc_part3 <- function(temp_file_dir, s
 }
 
 full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, setting_info_list, cont_ind, mouse){
+  # used in script_fit_mice_data_part2b
   
   # all the estimation after step_2
   
