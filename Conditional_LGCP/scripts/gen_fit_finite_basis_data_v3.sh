@@ -22,18 +22,18 @@ adj_type_params=(
   #"banded_trig2 0 1 0.3"
   #"sparse_v2 0 1 2 0.3 -1 2 0.01"
   "block_banded_v2 0 1 0.4 0.8 2"
-  #"block_banded_c0 0.5 0.5 2"
+  "block_banded_c0 0.5 0.5 2"
 )
 
-n_large=110
-ns=(110)
+n_large=500
+ns=(500)
 n_group=10
 groups=$(( n_large / n_group ))
 method="CPGM"
 model_type="simu"  # simu or mice
 max_jobs=30
 min_events=5
-max_events=1000000
+max_events=10000
 n_query=3
 
 function wait_for_slot {
@@ -122,7 +122,7 @@ for entry in "${adj_type_params[@]}"; do
   done  
   wait
   
-  Rscript script_generate_finite_basis_data_part5.R "$n_large" "$adj_type" "$n_query" >> "$outfile" 2>&1
+  Rscript script_generate_finite_basis_data_part5.R "$n_large" "$adj_type" "$n_query" "$groups" >> "$outfile" 2>&1
   
   step1_end=$(date +%s)
   step1_elapsed=$(( step1_end - step1_start ))
