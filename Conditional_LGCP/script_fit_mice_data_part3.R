@@ -84,9 +84,13 @@ if(method == 'CPGM'){
   stop('Invalid method. Must be CPGM')
 }
 
+if(mouse){
+  file_dir <- paste0(results_folder_name, '/', ID, '_', discrete_level, '_t', time_scale, '.RData')
+} else{
+  file_dir <- paste0(results_folder_name, '/', adj_type, '_n_', n, '.RData')
+}
 
 
-file_dir <- paste0(results_folder_name, '/', ID, '_', discrete_level, '_t', time_scale, '.RData')
 save(graph_results_i, file = file_dir)
 
 

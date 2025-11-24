@@ -140,7 +140,7 @@ for entry in "${adj_type_params[@]}"; do
   echo "Estimating the following sample sizes: ${ns[@]}"
   echo "" | tee -a "$outfile"
   
-  # Loop over all combinations of movement and VR
+  # Loop over all subsets of n
   for n in "${ns[@]}"; do
   
 
@@ -235,12 +235,12 @@ for entry in "${adj_type_params[@]}"; do
       # Part 3- when all part 2's are done, do part 3
       # ----------------
       
-      echo "Part 3 of Strata $n Starting" >> "$outfile"
+      echo "Part 3 of Estimating n=$n Starting" >> "$outfile"
       
       wait_for_slot
-      Rscript script_fit_mice_data_part3.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$n_queries" >> "$outfile" 2>&1 &
+      Rscript script_fit_mice_data_part3.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$n_queries" >> "$outfile" 2>&1
       
-      echo "[DONE] Strata $n" >> "$outfile"
+      echo "[DONE] Estimating n=$n" >> "$outfile"
   
   done
   
