@@ -22,18 +22,18 @@ adj_type_params=(
   #"banded_trig2 0 1 0.3"
   #"sparse_v2 0 1 2 0.3 -1 2 0.01"
   "block_banded_v2 0 1 0.4 0.8 2"
-  "block_banded_c0 0.5 0.5 2"
+  #"block_banded_c0 0.5 0.5 2"
 )
 
-n_large=5000
-ns=(1000 3000 5000)
+n_large=110
+ns=(110)
 n_group=10
 groups=$(( n_large / n_group ))
 method="CPGM"
 model_type="simu"  # simu or mice
 max_jobs=30
 min_events=5
-max_events=10000
+max_events=1000000
 n_query=3
 
 function wait_for_slot {
