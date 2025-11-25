@@ -988,7 +988,7 @@ simulate_finite_basis_cox_data_part5 <- function(temp_file_dir, setting_info_lis
   part1_file_name          <- paste0('part1_', adj_type, '_n_', n, '_group', 1:group_nums, '.rds')
   events_file_name         <- paste0('events_', adj_type, '_n_', n, '_group', 1:group_nums, '.rds')
   truths_file_name         <- paste0('truths_', adj_type, '_n_', n, '_nquery', 1:cont_inds, '.rds')
-  dataset_file_name        <- paste0('dataset', adj_type, '_n_', n, '.rds')
+  dataset_file_name        <- paste0('dataset_', adj_type, '_n_', n, '.rds')
   
   file.remove(file.path(temp_file_dir, part0_file_name)) 
   file.remove(file.path(temp_file_dir, part1_file_name)) 
