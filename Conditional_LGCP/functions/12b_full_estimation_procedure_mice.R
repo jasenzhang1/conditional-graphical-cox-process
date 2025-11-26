@@ -306,11 +306,6 @@ full_conditional_estimation_with_no_truth_part1 <- function(dataset, setting_inf
   
   saveRDS(results, file = file.path(temp_file_dir, datafile_name))  
   
-  print('======TROUBLESHOOT 4======')
-  print('Currently in part 1')
-  print(paste0('Did we save ', datafile_name, '? ', file.exists(file.path(temp_file_dir, datafile_name))))
-  print('==========================')
-  
 }
 
 # NOT USED 
@@ -444,11 +439,6 @@ estimate_intensities_stratum_parallel_with_yc_part0 <- function(temp_file_dir, s
     step_1_info_list <- paste0('part1_', adj_type, '_n_', n, '.rds')
   }
   
-  print('======TROUBLESHOOT 4b=====')
-  print('Currently in step_2 part 0')
-  print(paste0('Did we save ', step_1_info_list, '? ', file.exists(file.path(temp_file_dir, step_1_info_list))))
-  print('==========================')
-  
   results <- readRDS(file.path(temp_file_dir, step_1_info_list))
   list2env(results, envir = environment())
   
@@ -511,10 +501,6 @@ estimate_intensities_stratum_parallel_with_yc_part1 <- function(temp_file_dir, s
     included_weights <- weights2[unique(Gamma_i$subject_num)]  # assume weights2 contains everyone so we have to filter here
     
     normalized_weights = included_weights / sum(included_weights)
-    
-    print('======TROUBLESHOOT 3=========')
-    print(paste0('The current sum of weights is: ', sum(included_weights)))
-    print(paste0('After normalizing, the sum of the weights is: ', sum(normalized_weights)))
     
     rho_mat2 <- sweep(rho_mat, 2, normalized_weights, `*`) # multiply each 19-dim vec by its normalized weight
     
@@ -604,8 +590,9 @@ estimate_intensities_stratum_parallel_with_yc_part2 <- function(temp_file_dir, s
       bivariate_intensity <- matrix(Gamma_ij$V1, nrow = n_time^2)
       
       included_weights <- weights2[unique(Gamma_ij$subject_num)]
+      normalized_weights = included_weights / sum(included_weights)
       
-      bivariate_intensity2 <- sweep(bivariate_intensity, 2, included_weights, `*`) # multiply each 19-dim vec by its normalized weight      
+      bivariate_intensity2 <- sweep(bivariate_intensity, 2, normalized_weights, `*`) # multiply each 19-dim vec by its normalized weight      
       
       rho_ij <- apply(bivariate_intensity2, 1, sum) # since these are normalized weights, just add them
       rho_ij_mat <- matrix(rho_ij, nrow = n_time)
@@ -718,14 +705,6 @@ full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, sett
     rho_list_name <- paste0("step_2_rho_list_", adj_type, '_n_', n, '_nquery', cont_ind, '.rds')
     datafile_error_name <- paste0("dataset_part2_", adj_type, '_n_', n, '_nquery', cont_ind, '.RData')  # in case we need to quit and troubleshoot
   }
-  
-  print('====TROUBLESHOOT 2====')
-  print(paste0('currently in full_conditional_estimation_with_no_truth_part2b with cont_ind = ', cont_ind))
-  print(paste0('named dataset: ', step_2_info_list))
-  print(paste0('is the part2_ dataset present?: ', file.exists(file.path(temp_file_dir, step_2_info_list))))
-  print(paste0('named dataset: ', rho_list_name))
-  print(paste0('is the step_2_rho_list_ dataset present?: ', file.exists(file.path(temp_file_dir, rho_list_name))))
-  print('======================')
   
   results <- readRDS(file.path(temp_file_dir, step_2_info_list))
   list2env(results, envir = environment())
