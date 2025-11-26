@@ -677,11 +677,6 @@ estimate_intensities_stratum_parallel_with_yc_part3 <- function(temp_file_dir, s
   
   saveRDS(step_2, file = file.path(temp_file_dir, rho_list_name))  
   
-  print("Checking existence (after saving) of:")
-  print(rho_list_name)
-  print(file.exists(paste0(temp_file_dir, '/', rho_list_name)))
-  
-  
 }
 
 full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, setting_info_list, cont_ind, mouse){
@@ -833,6 +828,11 @@ full_conditional_estimation_with_no_truth_part3 <- function(temp_file_dir, setti
     sapply(estimated_graphs, `[[`, step, simplify = FALSE)
   }), steps)
   
+  print('===TROUBLESHOOT 6===')
+  print('Names of reorganized:')
+  print(names(reorganized))
+  print('====================')
+  
   # Return step_0, step_1 (shared) + reorganized per-subject steps
   estimated_graphs_part_1 <- list(step_0_events = step_0_events,
                                   step_1 = step_1)
@@ -849,6 +849,11 @@ full_conditional_estimation_with_no_truth_part3 <- function(temp_file_dir, setti
   }
 
   all_results$p <- p
+  
+  print('===TROUBLESHOOT 6b==')
+  print('Names of all_results:')
+  print(names(all_results))
+  print('====================')
   
   # ------------------------
   # REMOVE ALL FILES HERE 
@@ -871,12 +876,12 @@ full_conditional_estimation_with_no_truth_part3 <- function(temp_file_dir, setti
   }
   
 
-  file.remove(file.path(temp_file_dir, part1_file_name)) 
-  file.remove(file.path(temp_file_dir, part2_file_name)) 
-  file.remove(file.path(temp_file_dir, part2_rho_i_file_name)) 
-  file.remove(file.path(temp_file_dir, part2_rho_ij_file_name)) 
-  file.remove(file.path(temp_file_dir, part2_rho_list_file_name)) 
-  file.remove(file.path(temp_file_dir, part3_file_name)) 
+  # file.remove(file.path(temp_file_dir, part1_file_name)) 
+  # file.remove(file.path(temp_file_dir, part2_file_name)) 
+  # file.remove(file.path(temp_file_dir, part2_rho_i_file_name)) 
+  # file.remove(file.path(temp_file_dir, part2_rho_ij_file_name)) 
+  # file.remove(file.path(temp_file_dir, part2_rho_list_file_name)) 
+  # file.remove(file.path(temp_file_dir, part3_file_name)) 
   
   
   return(all_results)     
