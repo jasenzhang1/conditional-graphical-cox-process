@@ -209,12 +209,10 @@ full_conditional_estimation_with_no_truth_part1 <- function(dataset, setting_inf
   if(mouse){
     time_grid_est <- dataset$simulation_params$time_grid_est
     m_est <- length(time_grid_est) 
-    n <- dim(dataset$Y_continuous)[1]
   } else{
     time_grid_est <- dataset$simulation_params$time_grid_est
     time_grid <- dataset$simulation_params$time_grid
     time_grid_both <- dataset$simulation_params$time_grid_both
-    n <- dim(dataset$Y_continuous)[1]
     m_est <- length(time_grid_est) 
   }
   
@@ -250,12 +248,7 @@ full_conditional_estimation_with_no_truth_part1 <- function(dataset, setting_inf
   # - weights2
   # - keys
   
-  print('====TROUBLESHOOT 5====')
-  print(paste0('Class of y_c_strata_sel should be matrix array: ', class(y_c_strata_sel)))
-  print(paste0('Dimension of y_c_strata_sel should be n x 1: ', dim(y_c_strata_sel)))
-  print(paste0('Class of y_c_strata should be matrix array: ', class(y_c_strata)))
-  print(paste0('Dimension of y_c_strata should be n_large x 1: ', dim(y_c_strata)))
-  print('======================')
+
   
   gamma_c <- select_gamma_c_bandwidth_v2(y_c_strata_sel)
   
