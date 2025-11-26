@@ -196,8 +196,8 @@ for entry in "${adj_type_params[@]}"; do
           # Part 2a - within each fitting procedure, do rho_i and rho_ij estimation all together, and then collect
           # ----------------       
           
-          #wait_for_slot
-          #Rscript script_step2_part0.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$j" >> "$outfile" 2>&1
+          wait_for_slot
+          Rscript script_step2_part0.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$j" >> "$outfile" 2>&1
           
           for k in $(seq 1 "$n_i"); do
               wait_for_slot
