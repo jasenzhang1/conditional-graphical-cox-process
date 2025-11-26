@@ -127,7 +127,8 @@ step_0_preprocess <- function(dataset){
   data_df4 <- convert_data_for_estimation_event_times(dataset$event_times) 
 
   y_c_strata <- dataset$Y_continuous
-
+  y_c_strata_sel <- dataset$Y_continuous_k
+  
   query_y_cs <- dataset$simulation_params$query_y_cs  
   
 
@@ -148,7 +149,7 @@ step_0_preprocess <- function(dataset){
               query_y_cs = query_y_cs,
               patient_sel = patient_sel,
               feature_sel = feature_sel,
-              y_c_strata_sel = y_c_strata[patient_sel,]
+              y_c_strata_sel = y_c_strata_sel
               ))
   
   
