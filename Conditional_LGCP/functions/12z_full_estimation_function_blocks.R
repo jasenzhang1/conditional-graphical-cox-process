@@ -148,7 +148,7 @@ step_0_preprocess <- function(dataset){
               query_y_cs = query_y_cs,
               patient_sel = patient_sel,
               feature_sel = feature_sel,
-              y_c_strata_sel = y_c_strata[patient_sel]
+              y_c_strata_sel = y_c_strata[patient_sel,]
               ))
   
   
