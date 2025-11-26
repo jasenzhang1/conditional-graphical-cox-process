@@ -254,8 +254,18 @@ full_conditional_estimation_with_no_truth_part1 <- function(dataset, setting_inf
   keys <- expand.grid(i = 1:p, j = 1:p) %>%
     subset(i <= j) %>%
     with(paste0(i, "_", j))
+  
+  # get the weights
+  
+  weights <- apply(y_c_strata, 1, function(row) {
+    step_6_kernel(as.numeric(row), query_y_cs, gamma_c) 
+  })    
+  weights2 <- weights / sum(weights) # normalize
+  
+  
 
   
+  # print
   cat("n_bivariate_processes=", length(keys), "\n")
   cat("n_processes=", p, "\n")
   cat("n_queries=", nrow(query_y_cs), "\n")
@@ -268,6 +278,7 @@ full_conditional_estimation_with_no_truth_part1 <- function(dataset, setting_inf
     step_1 = step_1,
     data_df4 = data_df4,
     y_c_strata = y_c_strata,
+    weights2 = weights2,
     query_y_cs = query_y_cs,
     patient_sel = patient_sel,
     feature_sel = feature_sel,
@@ -417,6 +428,7 @@ full_conditional_estimation_with_no_truth_part2 <- function(temp_file_dir, setti
    
 }
 
+# no longer used
 estimate_intensities_stratum_parallel_with_yc_part0 <- function(temp_file_dir, setting_info_list, cont_ind, mouse){
   
   # for this strata, calculate weights 
@@ -425,9 +437,9 @@ estimate_intensities_stratum_parallel_with_yc_part0 <- function(temp_file_dir, s
   
   
   if(mouse){
-    step_1_info_list <- paste0("part1_", ID, '_', discrete_level, '_t', time_scale, '.rds')
+    step_1_info_list <- paste0('part1_', ID, '_', discrete_level, '_t', time_scale, '.rds')
   } else{
-    step_1_info_list <- paste0("part1_", adj_type, '_n_', n, '.rds')
+    step_1_info_list <- paste0('part1_', adj_type, '_n_', n, '.rds')
   }
   
   
@@ -447,9 +459,9 @@ estimate_intensities_stratum_parallel_with_yc_part0 <- function(temp_file_dir, s
   # save
   
   if(mouse){
-    datafile_name <- paste0("part2_", ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '.rds')
+    datafile_name <- paste0('part2_', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '.rds')
   } else{
-    datafile_name <- paste0("part2_", adj_type, '_n_', n, '_nquery', cont_ind, '.rds')
+    datafile_name <- paste0('part2_', adj_type, '_n_', n, '_nquery', cont_ind, '.rds')
   }
   
   saveRDS(results, file = file.path(temp_file_dir, datafile_name))  
@@ -468,9 +480,9 @@ estimate_intensities_stratum_parallel_with_yc_part1 <- function(temp_file_dir, s
   
   
   if(mouse){
-    step_2_info_list <- paste0('part2_', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '.rds')
+    step_2_info_list <- paste0('part1_', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '.rds')
   } else{
-    step_2_info_list <- paste0('part2_', adj_type, '_n_', n, '_nquery', cont_ind, '.rds')
+    step_2_info_list <- paste0('part1_', adj_type, '_n_', n, '_nquery', cont_ind, '.rds')
   }
 
   
@@ -490,7 +502,7 @@ estimate_intensities_stratum_parallel_with_yc_part1 <- function(temp_file_dir, s
     Gamma_i <- data_i[, estimate_density(time, time_grid_est), by = "subject_num"]
     rho_mat <- matrix(Gamma_i$rho_hat, nrow = n_time)
     
-    included_weights <- weights2[unique(Gamma_i$subject_num)]
+    included_weights <- weights2[unique(Gamma_i$subject_num)]  # assume weights2 contains everyone so we have to filter here
     
     rho_mat2 <- sweep(rho_mat, 2, included_weights, `*`) # multiply each 19-dim vec by its normalized weight
     

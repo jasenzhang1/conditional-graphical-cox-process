@@ -25,8 +25,8 @@ adj_type_params=(
   "block_banded_c0 0.5 0.5 2"
 )
 
-n_large=5000
-ns=(1000 3000 5000)
+n_large=200
+ns=(100 200)
 n_group=10
 groups=$(( n_large / n_group ))
 method="CPGM"
@@ -196,8 +196,8 @@ for entry in "${adj_type_params[@]}"; do
           # Part 2a - within each fitting procedure, do rho_i and rho_ij estimation all together, and then collect
           # ----------------       
           
-          wait_for_slot
-          Rscript script_step2_part0.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$j" >> "$outfile" 2>&1
+          #wait_for_slot
+          #Rscript script_step2_part0.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$j" >> "$outfile" 2>&1
           
           for k in $(seq 1 "$n_i"); do
               wait_for_slot
