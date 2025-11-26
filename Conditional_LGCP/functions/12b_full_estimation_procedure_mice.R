@@ -229,10 +229,12 @@ full_conditional_estimation_with_no_truth_part1 <- function(dataset, setting_inf
   
   processed_data <- step_0_preprocess(dataset)
   data_df4     <- processed_data[[1]]
-  y_c_strata   <- processed_data[[2]]
+  y_c_strata   <- processed_data[[2]]  # full 
   query_y_cs   <- processed_data[[3]]
   patient_sel  <- processed_data[[4]]
   feature_sel  <- processed_data[[5]]
+  y_c_strata_sel <- processed_data$y_c_strata_sel
+  
   rm(processed_data)
   
   p <- length(feature_sel)
@@ -248,7 +250,7 @@ full_conditional_estimation_with_no_truth_part1 <- function(dataset, setting_inf
   # - weights2
   # - keys
   
-  gamma_c <- select_gamma_c_bandwidth_v2(y_c_strata)
+  gamma_c <- select_gamma_c_bandwidth_v2(y_c_strata_sel)
   
   # get the keys 
   keys <- expand.grid(i = 1:p, j = 1:p) %>%
@@ -270,6 +272,7 @@ full_conditional_estimation_with_no_truth_part1 <- function(dataset, setting_inf
     step_1 = step_1,
     data_df4 = data_df4,
     y_c_strata = y_c_strata,
+    y_c_strata_sel = y_c_strata_sel,
     query_y_cs = query_y_cs,
     patient_sel = patient_sel,
     feature_sel = feature_sel,
@@ -299,8 +302,14 @@ full_conditional_estimation_with_no_truth_part1 <- function(dataset, setting_inf
     datafile_name <- paste0('part1_', adj_type, '_n_', n, '.rds')
   }
   
+
   
   saveRDS(results, file = file.path(temp_file_dir, datafile_name))  
+  
+  print('======TROUBLESHOOT 4======')
+  print('Currently in part 1')
+  print(paste0('Did we save ', datafile_name, '? ', file.exists(file.path(temp_file_dir, datafile_name))))
+  print('==========================')
   
 }
 
@@ -427,12 +436,18 @@ estimate_intensities_stratum_parallel_with_yc_part0 <- function(temp_file_dir, s
   list2env(setting_info_list, envir = environment())
   
   
+
+  
   if(mouse){
     step_1_info_list <- paste0('part1_', ID, '_', discrete_level, '_t', time_scale, '.rds')
   } else{
     step_1_info_list <- paste0('part1_', adj_type, '_n_', n, '.rds')
   }
   
+  print('======TROUBLESHOOT 4b=====')
+  print('Currently in step_2 part 0')
+  print(paste0('Did we save ', step_1_info_list, '? ', file.exists(file.path(temp_file_dir, step_1_info_list))))
+  print('==========================')
   
   results <- readRDS(file.path(temp_file_dir, step_1_info_list))
   list2env(results, envir = environment())
@@ -495,7 +510,13 @@ estimate_intensities_stratum_parallel_with_yc_part1 <- function(temp_file_dir, s
     
     included_weights <- weights2[unique(Gamma_i$subject_num)]  # assume weights2 contains everyone so we have to filter here
     
-    rho_mat2 <- sweep(rho_mat, 2, included_weights, `*`) # multiply each 19-dim vec by its normalized weight
+    normalized_weights = included_weights / sum(included_weights)
+    
+    print('======TROUBLESHOOT 3=========')
+    print(paste0('The current sum of weights is: ', sum(included_weights)))
+    print(paste0('After normalizing, the sum of the weights is: ', sum(normalized_weights)))
+    
+    rho_mat2 <- sweep(rho_mat, 2, normalized_weights, `*`) # multiply each 19-dim vec by its normalized weight
     
     rho_i <- apply(rho_mat2, 1, sum) # since these are normalized weights, just add them
   }

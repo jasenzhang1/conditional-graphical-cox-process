@@ -112,10 +112,11 @@ step_0_preprocess <- function(dataset){
   # - processed_data (list)
   #
   #   - [[1]] data_df4
-  #   - [[2]] y_c_strata
+  #   - [[2]] y_c_strata        all n y_c_strata
   #   - [[3]] query_y_cs
   #   - [[4]] patient_sel
   #   - [[5]] feature_sel
+  #   - [[6]] y_c_strata_sel    subset of stratas in case some subjects are discarded
   #
   # ----------------------------------------------------------------------------
   
@@ -146,7 +147,8 @@ step_0_preprocess <- function(dataset){
               y_c_strata = y_c_strata,
               query_y_cs = query_y_cs,
               patient_sel = patient_sel,
-              feature_sel = feature_sel
+              feature_sel = feature_sel,
+              y_c_strata_sel = y_c_strata[patient_sel]
               ))
   
   

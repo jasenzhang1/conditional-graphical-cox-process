@@ -89,7 +89,8 @@ if(mouse){
   dataset_k$X_k_truth <- dataset$X_k_truth[,,idx]
   dataset_k$X_k_coarse_truth <- dataset$X_k_coarse_truth[,,idx]
   dataset_k$X_k_both_truth <- dataset$X_k_both_truth[,,idx]
-  #dataset_k$Y_continuous <- matrix(dataset$Y_continuous[idx,], nrow = length(idx))  # filtering y's as well
+  dataset_k$Y_continuous_k <- dataset_k$Y_continuous  
+  dataset_k$Y_continuous_k <- matrix(dataset$Y_continuous_k[idx,], nrow = length(idx))  # creating filtered Y_c and unfiltered Y_c
   dataset_k$simulation_params$n <- length(idx)  
 }
 
