@@ -807,7 +807,7 @@ full_conditional_estimation_with_no_truth_part3 <- function(temp_file_dir, setti
 
  
   
-  # load step 1
+  # load step 1 and keep important items in `estimated_graphs`
   if(mouse){
     step_1_list_name <- paste0('part1_', ID, '_', discrete_level, '_t', time_scale, '.rds')
   } else{
@@ -815,44 +815,41 @@ full_conditional_estimation_with_no_truth_part3 <- function(temp_file_dir, setti
   }
   
   results <- readRDS(file.path(temp_file_dir, step_1_list_name))
-  # load all variables
-  list2env(results, envir = .GlobalEnv)
+  list2env(results, envir = environment())
+
+  estimated_graphs[['step_0_events']] <- step_0_events
+  estimated_graphs[['step_1']] <- step_1
+  estimated_graphs$y_c_query <- query_y_cs
+  estimated_graphs$p <- p
   
-  
-  # ----------------------------------------------------------------------------
-  # Reorganize by steps instead of by y_c_query
-  # ----------------------------------------------------------------------------
-  
-  steps <- unique(unlist(lapply(estimated_graphs, names)))
-  reorganized <- setNames(lapply(steps, function(step) {
-    sapply(estimated_graphs, `[[`, step, simplify = FALSE)
-  }), steps)
-  
-  print('===TROUBLESHOOT 6===')
-  print('Names of reorganized:')
-  print(names(reorganized))
-  print('====================')
-  
-  # Return step_0, step_1 (shared) + reorganized per-subject steps
-  estimated_graphs_part_1 <- list(step_0_events = step_0_events,
-                                  step_1 = step_1)
-  
-  all_results <- c(estimated_graphs_part_1, reorganized)
-  all_results$y_c_query <- query_y_cs
+  # load step 2 and keep weights in step_2
   
   if(mouse){
-    all_results$time_grid_est <- time_grid_est
+    step_2_list_names <- paste0(temp_file_dir, '/part2_', ID, '_', discrete_level, '_t', time_scale, '_nquery', 1:cont_inds, '.rds')
   } else{
-    all_results$time_grid <- time_grid
-    all_results$time_grid_est <- time_grid_est
-    all_results$time_grid_both <- time_grid_both    
+    step_2_list_names <- paste0(temp_file_dir, '/part2_', adj_type, '_n_', n, '_nquery', 1:cont_inds, '.rds')
+  }
+  weights <- lapply(step_2_list_names, readRDS) %>% lapply(function(x) x$weights2)
+
+  estimated_graphs$step_2 <- Map(
+    function(x, w) { x$weights <- w; x },
+    estimated_graphs$step_2,
+    weights
+  )
+  
+  if(mouse){
+    estimated_graphs$time_grid_est <- time_grid_est
+  } else{
+    estimated_graphs$time_grid <- time_grid
+    estimated_graphs$time_grid_est <- time_grid_est
+    estimated_graphs$time_grid_both <- time_grid_both    
   }
 
-  all_results$p <- p
+  
   
   print('===TROUBLESHOOT 6b==')
   print('Names of all_results:')
-  print(names(all_results))
+  print(names(estimated_graphs))
   print('====================')
   
   # ------------------------
@@ -884,7 +881,7 @@ full_conditional_estimation_with_no_truth_part3 <- function(temp_file_dir, setti
   # file.remove(file.path(temp_file_dir, part3_file_name)) 
   
   
-  return(all_results)     
+  return(estimated_graphs)     
 }
 
 full_conditional_estimation_CPGM <- function(processed_data, time_grid_est, method, terse, ncores, dir){
