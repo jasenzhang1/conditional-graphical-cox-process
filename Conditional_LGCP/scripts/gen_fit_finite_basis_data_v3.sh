@@ -25,13 +25,13 @@ adj_type_params=(
   "block_banded_c0 0.5 0.5 2"
 )
 
-n_large=100
-ns=(50 100)
+n_large=5000
+ns=(1000 3000 5000)
 n_group=10
 groups=$(( n_large / n_group ))
 method="CPGM"
 model_type="simu"  # simu or mice
-max_jobs=50
+max_jobs=60
 min_events=5
 max_events=10000
 n_query=3

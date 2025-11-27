@@ -829,7 +829,7 @@ full_conditional_estimation_with_no_truth_part3 <- function(temp_file_dir, setti
   } else{
     step_2_list_names <- paste0(temp_file_dir, '/part2_', adj_type, '_n_', n, '_nquery', 1:cont_inds, '.rds')
   }
-  weights <- lapply(step_2_list_names, readRDS) %>% lapply(function(x) x$weights2)
+  weights <- lapply(step_2_list_names, readRDS) %>% lapply(function(x) x$weights2[patient_sel])
 
   estimated_graphs$step_2 <- Map(
     function(x, w) { x$weights <- w; x },
