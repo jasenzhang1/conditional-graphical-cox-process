@@ -16,12 +16,12 @@ adj_type    <- args[3]    # adj_type <- 'block_banded_v2'
 method      <- args[4]    # method <- 'CPGM'
 
 
-n_large <- 100
-n <- 50
+n_large <- 300
+n <- 300
 
 # heatmaps of certain metrics 
 
-graph_ids <- c('22', '25', '31', '91')
+graph_ids <- c('22')
 
 truth_file_name <- paste0(data_folder, '/', adj_type, '_n_', n_large, '_truths.RData')
 estimates_file_name <- paste0(base_folder, '/', adj_type, '/', method, '/', adj_type, '_n_', n, '.RData')

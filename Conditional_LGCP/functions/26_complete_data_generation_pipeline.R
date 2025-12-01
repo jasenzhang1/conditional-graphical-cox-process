@@ -983,15 +983,15 @@ simulate_finite_basis_cox_data_part4 <- function(temp_file_dir, setting_info_lis
   # merge truths - layer 1 = item - layer 2 = y_c_query
   # ----------------------------------------------------------------------------
   
-  step_1 <- list(X_k_truth = log_intensities,
-                 X_k_coarse_truth = log_intensities_est,
-                 X_k_both_truth = log_intensities_both,
-                 Lambda_k_truth = exp(log_intensities),
-                 Lambda_k_coarse_truth = exp(log_intensities_est),
-                 Lambda_k_both_truth = exp(log_intensities_both),
-                 mu_t_truth = mu_t,
-                 mu_t_both_truth = mu_t_both,
-                 mu_t_coarse_truth = mu_t_coarse)
+  # step_1 <- list(X_k_truth = log_intensities,
+  #                X_k_coarse_truth = log_intensities_est,
+  #                X_k_both_truth = log_intensities_both,
+  #                Lambda_k_truth = exp(log_intensities),
+  #                Lambda_k_coarse_truth = exp(log_intensities_est),
+  #                Lambda_k_both_truth = exp(log_intensities_both),
+  #                mu_t_truth = mu_t,
+  #                mu_t_both_truth = mu_t_both,
+  #                mu_t_coarse_truth = mu_t_coarse)
   
   step_2 <- list(rho_i_truth = rho_truths$rho_i_truth)
 
@@ -1037,8 +1037,7 @@ simulate_finite_basis_cox_data_part4 <- function(temp_file_dir, setting_info_lis
                   C_HS_X_truth        = step_9_10_11_X_truth$C_HS_X_truth)                       # (pxp matrix)
   
   
-  all_truths <- list(step_1 = step_1,
-                     step_2 = step_2,
+  all_truths <- list(step_2 = step_2,
                      step_2b = step_2b,
                      step_3 = step_3,
                      step_4 = step_4,
@@ -1083,6 +1082,25 @@ simulate_finite_basis_cox_data_part5 <- function(temp_file_dir, setting_info_lis
   })
   
   names(all_truths) <- step_names
+  
+  # retrieve and insert step_1 (which doesn't vary based on y_c)
+  
+  
+  log_intensities <- dataset$X_k_truth
+  log_intensities_est <- dataset$X_k_coarse_truth
+  log_intensities_both <- dataset$X_k_both_truth
+  
+  step_1 <- list(X_k_truth = log_intensities,
+                 X_k_coarse_truth = log_intensities_est,
+                 X_k_both_truth = log_intensities_both,
+                 Lambda_k_truth = exp(log_intensities),
+                 Lambda_k_coarse_truth = exp(log_intensities_est),
+                 Lambda_k_both_truth = exp(log_intensities_both),
+                 mu_t_truth = mu_t,
+                 mu_t_both_truth = mu_t_both,
+                 mu_t_coarse_truth = mu_t_coarse)
+  
+  all_truths[['step_1']] <- step_1
   
   # ------------------------
   # REMOVE ALL FILES HERE 
