@@ -605,7 +605,13 @@ simulate_finite_basis_cox_data <- function(n, d, p, adj_type, adj_params, beta_0
 # simulate log-intensities
 simulate_finite_basis_cox_data_part1 <- function(temp_file_dir, setting_info_list, group_idx, n_group){
   
-  # generate log-intensities for each batch
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: generate log-intensities for each batch
+  #
+  # ----------------------------------------------------------------------------
+  
+  
   
   # 0) load
   
@@ -701,6 +707,9 @@ simulate_finite_basis_cox_data_part2 <- function(temp_file_dir, setting_info_lis
     
     max_events_obs <- max(sapply(events, function(i) max(i$event_counts)))
     min_events_obs <- min(sapply(events, function(i) min(i$event_counts)))
+    
+    print(max_events_obs)
+    print(min_events_obs)
 
   }
   
@@ -708,6 +717,91 @@ simulate_finite_basis_cox_data_part2 <- function(temp_file_dir, setting_info_lis
   
   part_2_info_list <- paste0('events_', adj_type, '_n_', n, '_group', group_idx, '.rds')
   saveRDS(events, file = file.path(temp_file_dir, part_2_info_list))  
+  
+}
+
+# simulate log-intensities AND events
+simulate_finite_basis_cox_data_parts1_and_2 <- function(temp_file_dir, setting_info_list, group_idx, n_group){
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: generate log-intensities for each batch
+  #
+  # ----------------------------------------------------------------------------
+  
+  
+  # 0) load
+  
+  list2env(setting_info_list, envir = environment())
+  
+  part_0_info_list <- paste0("part0_", adj_type, '_n_', n, '.rds')
+  results <- readRDS(file.path(temp_file_dir, part_0_info_list))
+  list2env(results, envir = environment())
+  
+  # 1) with y_c, n_group, group_idx, find the specific n's that we care about
+  
+  n_start <- n_group * (group_idx - 1) + 1
+  n_end <- n_group * (group_idx) 
+  
+  n_batch <- n_start:n_end
+  
+  cov_mat_list <- lapply(n_batch, function(i) {
+    trig_basis_cov_mat(d, p, Y_c[i, ], adj_type, adj_params)
+  })
+  
+  # 2) set up for generating X_i(t)
+  
+  m <- length(time_grid)
+  m_est <- length(time_grid_est)
+  m_both <- length(time_grid_both)
+  
+  mu_t        <- rep(beta_0, m)    # mu(t) = beta_0 (constant)
+  mu_t_both   <- rep(beta_0, m_both)
+  mu_t_coarse <- rep(beta_0, m_est)
+  
+  mean_vec <- rep(0, p*d)   # m(t)  = all 0's, where beta ~ N(mean_vec, cov_mat) = pd-dim vec
+  
+  # 3) for each subject, obtain realizations of log intensities and beta coefficients that got them there
+  # 3b) then, generate point process events
+  
+  max_events_obs = Inf
+  min_events_obs = -1
+  counter = 0
+  while(min_events_obs < min_events | max_events_obs > max_events){
+    
+    result_both <- trig_basis_log_intensity(cov_mat_list, basis_list, mu_t_both, time_grid_both)
+    
+    log_intensities_both <- result_both$log_intensities %>% simplify2array()           # (p x m_both x n)
+    log_intensities_est <- log_intensities_both[, time_grid_both %in% time_grid_est ,] # (p x m_est x n)
+    log_intensities <- log_intensities_both[, time_grid_both %in% time_grid ,]         # (p x m x n)
+    
+    beta_coeffs <- result_both$beta_coefficients %>% simplify2array() # (p x d x n)
+  
+    # 3b) Generate point process events
+
+    events <- lapply(1:n_group, function(i){generate_cox_process_events(log_intensities[, , i], time_grid, T_max, max_intensity = Inf)})
+    
+    max_events_obs <- max(sapply(events, function(i) max(i$event_counts)))
+    min_events_obs <- min(sapply(events, function(i) min(i$event_counts)))
+    
+    counter <- counter + 1
+    print(paste0('group: ', group_idx, ',\tattempt number: ', counter))
+  }
+  
+  # package
+  
+  results <- list(events = events,
+                  cov_mat_list = cov_mat_list,
+                  log_intensities_both = log_intensities_both,
+                  log_intensities_est = log_intensities_est,
+                  log_intensities = log_intensities,
+                  beta_coeffs = beta_coeffs
+                  )
+  
+  # save 
+  
+  parts_1_and_2_info_list <- paste0('parts1_and_2_', adj_type, '_n_', n, '_group', group_idx, '.rds')
+  saveRDS(results, file = file.path(temp_file_dir, parts_1_and_2_info_list))  
   
 }
 
@@ -726,21 +820,33 @@ simulate_finite_basis_cox_data_part3 <- function(temp_file_dir, setting_info_lis
   results <- readRDS(file.path(temp_file_dir, part_0_info_list))
   list2env(results, envir = environment())
   
-  # 0b) load all of the log-intensities and group them
-  part_1_info_lists <- paste0(temp_file_dir, "/part1_", adj_type, '_n_', n, '_group', 1:group_nums, '.rds')
-  all_part_1_loaded <- lapply(part_1_info_lists, readRDS)
+  # # 0b) load all of the log-intensities and group them
+  # part_1_info_lists <- paste0(temp_file_dir, "/part1_", adj_type, '_n_', n, '_group', 1:group_nums, '.rds')
+  # all_part_1_loaded <- lapply(part_1_info_lists, readRDS)
+  # 
+  # cov_mat_list <- do.call(c, lapply(all_part_1_loaded, `[[`, "cov_mat_list"))
+  # log_intensities_both <- abind(lapply(all_part_1_loaded, `[[`, "log_intensities_both"), along = 3)
+  # log_intensities_est  <- abind(lapply(all_part_1_loaded, `[[`, "log_intensities_est"), along = 3)
+  # log_intensities      <- abind(lapply(all_part_1_loaded, `[[`, "log_intensities"), along = 3)
+  # beta_coeffs          <- abind(lapply(all_part_1_loaded, `[[`, "beta_coeffs"), along = 3)  
+  # 
+  # 
+  # # 0c) load all of the events and group them
+  # part_2_info_lists <- paste0(temp_file_dir, '/events_', adj_type, '_n_', n, '_group', 1:group_nums, '.rds')
+  # all_part_2_loaded <- lapply(part_2_info_lists, readRDS)
+  # events <- do.call(c, all_part_2_loaded)
   
-  cov_mat_list <- do.call(c, lapply(all_part_1_loaded, `[[`, "cov_mat_list"))
-  log_intensities_both <- abind(lapply(all_part_1_loaded, `[[`, "log_intensities_both"), along = 3)
-  log_intensities_est  <- abind(lapply(all_part_1_loaded, `[[`, "log_intensities_est"), along = 3)
-  log_intensities      <- abind(lapply(all_part_1_loaded, `[[`, "log_intensities"), along = 3)
-  beta_coeffs          <- abind(lapply(all_part_1_loaded, `[[`, "beta_coeffs"), along = 3)  
+  # 0bc) load parts 1 and 2 together
+  part_1_and_2_info_lists <- paste0(temp_file_dir, '/parts1_and_2_', adj_type, '_n_', n, '_group', 1:group_nums, '.rds')
+  all_parts_1_and_2_loaded <- lapply(part_1_and_2_info_lists, readRDS)
   
-
-  # 0c) load all of the events and group them
-  part_2_info_lists <- paste0(temp_file_dir, '/events_', adj_type, '_n_', n, '_group', 1:group_nums, '.rds')
-  all_part_2_loaded <- lapply(part_2_info_lists, readRDS)
-  events <- do.call(c, all_part_2_loaded)
+  events               <- do.call(c, lapply(all_parts_1_and_2_loaded, `[[`, "events"))
+  cov_mat_list         <- do.call(c, lapply(all_parts_1_and_2_loaded, `[[`, "cov_mat_list"))
+  log_intensities_both <- abind(lapply(all_parts_1_and_2_loaded, `[[`, "log_intensities_both"), along = 3)
+  log_intensities_est  <- abind(lapply(all_parts_1_and_2_loaded, `[[`, "log_intensities_est"), along = 3)
+  log_intensities      <- abind(lapply(all_parts_1_and_2_loaded, `[[`, "log_intensities"), along = 3)
+  beta_coeffs          <- abind(lapply(all_parts_1_and_2_loaded, `[[`, "beta_coeffs"), along = 3)  
+  
   
   # ------------------------
   # resume regular function
@@ -983,15 +1089,17 @@ simulate_finite_basis_cox_data_part5 <- function(temp_file_dir, setting_info_lis
   # ------------------------
   
 
-  part0_file_name          <- paste0('part0_', adj_type, '_n_', n, '.rds')
-  part1_file_name          <- paste0('part1_', adj_type, '_n_', n, '_group', 1:group_nums, '.rds')
-  events_file_name         <- paste0('events_', adj_type, '_n_', n, '_group', 1:group_nums, '.rds')
-  truths_file_name         <- paste0('truths_', adj_type, '_n_', n, '_nquery', 1:cont_inds, '.rds')
-  dataset_file_name        <- paste0('dataset_', adj_type, '_n_', n, '.rds')
+  part0_file_name           <- paste0('part0_', adj_type, '_n_', n, '.rds')
+  # part1_file_name           <- paste0('part1_', adj_type, '_n_', n, '_group', 1:group_nums, '.rds')
+  # events_file_name          <- paste0('events_', adj_type, '_n_', n, '_group', 1:group_nums, '.rds')
+  parts_1_and_2_file_name   <- paste0('parts1_and_2_', adj_type, '_n_', n, '_group', 1:group_nums, '.rds')
+  truths_file_name          <- paste0('truths_', adj_type, '_n_', n, '_nquery', 1:cont_inds, '.rds')
+  dataset_file_name         <- paste0('dataset_', adj_type, '_n_', n, '.rds')
   
   file.remove(file.path(temp_file_dir, part0_file_name)) 
-  file.remove(file.path(temp_file_dir, part1_file_name)) 
-  file.remove(file.path(temp_file_dir, events_file_name)) 
+  # file.remove(file.path(temp_file_dir, part1_file_name)) 
+  # file.remove(file.path(temp_file_dir, events_file_name)) 
+  file.remove(file.path(temp_file_dir, parts_1_and_2_file_name)) 
   file.remove(file.path(temp_file_dir, truths_file_name)) 
   file.remove(file.path(temp_file_dir, dataset_file_name)) 
   

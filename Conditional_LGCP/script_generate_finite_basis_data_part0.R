@@ -39,7 +39,7 @@ time_grid_both <- sort(union(time_grid, time_grid_est))
 
 y_c_query <- make_time_grid(n_query) %>% matrix(nrow = n_query)
 
- 
+
 
 # 1) system parameters
 seed = NULL
