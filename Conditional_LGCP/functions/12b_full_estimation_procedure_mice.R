@@ -293,7 +293,8 @@ full_conditional_estimation_with_no_truth_part1 <- function(dataset, setting_inf
     results[['time_grid']] <- time_grid
     results[['time_grid_both']] <- time_grid_both
     results[['m_est']] <- m_est
-    results[['n']] <- n        
+    results[['n']] <- n      
+    results[['d']] <- dim(dataset$beta_coeffs)[2]
   }
   
   if(mouse){
@@ -426,7 +427,7 @@ full_conditional_estimation_with_no_truth_part2 <- function(temp_file_dir, setti
 
 estimate_intensities_stratum_parallel_with_yc_part0 <- function(temp_file_dir, setting_info_list, cont_ind, mouse){
   
-  # for this strata, calculate weights 
+  # for this strata, calculate weights, adj_mat, other intermediate values
   
   list2env(setting_info_list, envir = environment())
   
@@ -442,7 +443,7 @@ estimate_intensities_stratum_parallel_with_yc_part0 <- function(temp_file_dir, s
   results <- readRDS(file.path(temp_file_dir, step_1_info_list))
   list2env(results, envir = environment())
   
-  # get the query and get the weights
+  # 1) get the query and get the weights
   y_c_query <- query_y_cs[cont_ind,]
   
   weights <- apply(y_c_strata, 1, function(row) {
@@ -451,6 +452,13 @@ estimate_intensities_stratum_parallel_with_yc_part0 <- function(temp_file_dir, s
   weights2 <- weights / sum(weights) # normalize
   
   results[['weights2']] <- weights2
+  
+  # 2) get the ground truth adj_mat
+  if(! mouse){
+    adj_mat_i <- trig_basis_adj_mat(d, p, y_c_query, adj_type, adj_params, thresh = 1e-3)
+    results[['adj_mat_i']] <- adj_mat_i
+  }
+  
   
   # save
   
@@ -615,9 +623,32 @@ estimate_intensities_stratum_parallel_with_yc_part2 <- function(temp_file_dir, s
 }
 
 estimate_intensities_stratum_parallel_with_yc_part3 <- function(temp_file_dir, setting_info_list, cont_ind, n_keys_univariate, n_keys_bivariate, mouse) {
-  # used in script_step2_part3
   
-  # putting the results together
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: putting the rho_i, rho_ii, and rho_list results together
+  #       used in script_step2_part3
+  #
+  # 
+  # inputs
+  #
+  # - temp_file_dir
+  # - setting_info_list
+  # - cont_ind              (integer)   n_query id
+  # - n_keys_univariate     (integer)   p = 12
+  # - n_keys_bivariate      (integer)   pc2 + p = 78
+  # - mouse                 (boolean)   is it a mouse?
+  #
+  # 
+  # outputs:
+  #
+  # - step_2  --> 'step_2_rho_list_block_banded_v2_n_1000_nquery1.rds'
+  # 
+  #  step_2 <- list(rho_i_est = rho_i_est,
+  #                 rho_list = rho_list)
+  # 
+  # ----------------------------------------------------------------------------
   
   
   
@@ -672,7 +703,7 @@ estimate_intensities_stratum_parallel_with_yc_part3 <- function(temp_file_dir, s
   if(mouse){
     rho_list_name <- paste0('step_2_rho_list_', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '.rds')
   } else{
-    rho_list_name <- paste0("step_2_rho_list_", adj_type, '_n_', n, '_nquery', cont_ind, '.rds')
+    rho_list_name <- paste0('step_2_rho_list_', adj_type, '_n_', n, '_nquery', cont_ind, '.rds')
   }
   
   saveRDS(step_2, file = file.path(temp_file_dir, rho_list_name))  
@@ -680,11 +711,39 @@ estimate_intensities_stratum_parallel_with_yc_part3 <- function(temp_file_dir, s
 }
 
 full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, setting_info_list, cont_ind, mouse){
-  # used in script_fit_mice_data_part2b
   
-  # all the estimation after step_2
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: estimation of everything else after step 2 in series
+  #       used in script_fit_mice_data_part2b
+  #
+  # 
+  # inputs
+  #
+  # - temp_file_dir
+  # - setting_info_list
+  # - cont_ind              (integer)   n_query id
+  # - mouse                 (boolean)   is it a mouse?
+  #
+  # 
+  # loading
+  #
+  # - part2_
+  # - step_2_rho_list_
+  # 
+  # outputs:
+  #
+  # - estimated_graphs  (list of steps 2 and later, each of these differs based on y_c_query)
+  # 
+  # estimated_graphs <- list(step_2 = step_2, step_2b = step_2b, step_3 = step_3,
+  #                          step_4 = step_4, step_5 = step_5, step_5b = step_5b, step_9 = step_9, step_9b = step_9b,
+  #                          step_10 = step_10, step_11 = step_11)
+  # 
+  # ----------------------------------------------------------------------------
   
-  # load 
+
+  
+  # 0) load 
   
   print(paste0('starting part 2b, cont_ind = ', cont_ind))
   
@@ -752,8 +811,11 @@ full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, sett
   })
   
   
-  step_11 <- step_11_HS_norms(step_9, step_10, adj_mat_i, p, full)
+  step_11 <- step_11_HS_norms(step_9, step_10, p, full)
   
+  if(! mouse){
+    step_12 <- step_12_ROC(step_11, adj_mat_i, full)
+  }
   
   estimated_graphs <- list(step_2 = step_2, step_2b = step_2b, step_3 = step_3,
                            step_4 = step_4, step_5 = step_5, step_5b = step_5b, step_9 = step_9, step_9b = step_9b,
@@ -764,6 +826,7 @@ full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, sett
   if(mouse){
     file_name <- paste0('part3_', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '.rds')
   } else{
+    estimated_graphs[['step_12']] <- step_12
     file_name <- paste0("part3_", adj_type, '_n_', n, '_nquery', cont_ind, '.rds')
   }
   
@@ -773,9 +836,42 @@ full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, sett
 
 full_conditional_estimation_with_no_truth_part3 <- function(temp_file_dir, setting_info_list, cont_inds, mouse){
   
+  
+  # ----------------------------------------------------------------------------
   #
-  # cont_inds = number
+  # GOAL: merge all the estimates from each y_c_query
+  #
+  #
+  # inputs:
   # 
+  # - temp_file_dir
+  # - setting_info_list
+  # - cont_inds           (scalar)  number of y_c_queries
+  # - mouse               (boolean) are we working with mice data
+  #
+  # outputs:
+  #
+  # - estimated_graphs   (list of the following)
+  #
+  #   - step_0_events     (list of i_j entries --> each entry is a vector of timestamps)
+  #   - step_1            X_k_est
+  #   - step_2            (list for each y_c_query --> rho_i_est, rho_list, weights)
+  #   - step_3            (list for each y_c_query --> rho_ii_est)
+  #   - step_4            (list for each y_c_query --> eigen_decomp_est)
+  #   - step_5            (list for each y_c_query --> KL_cov_est)
+  #   - step_5b           (list for each y_c_query --> KL_cor_est)
+  #   - step_9            (list for each y_c_query --> C_cond_est_full, C_cond_est_unnorm_full)
+  #   - step_9b
+  #   - step_10           (list for each y_c_query --> P_cond_est_full, P_cond_est_unnorm_full)
+  #   - step_11           (list for each y_c_query --> w_mat_est, w_mat_est_unnorm, C_HS_est, C_HS_est_unnorm)
+  #   - step_12           (optional, not used for mice)
+  #   - y_c_query
+  #   - p
+  #   - time_grid
+  #   - time_grid_est
+  #   - time_grid_both
+  #
+  # ----------------------------------------------------------------------------
   
   # ----------------------------------------------------------------------------
   # read from steps 1 and 2 and then remove everything
@@ -816,6 +912,13 @@ full_conditional_estimation_with_no_truth_part3 <- function(temp_file_dir, setti
   
   results <- readRDS(file.path(temp_file_dir, step_1_list_name))
   list2env(results, envir = environment())
+  
+  # label the sublists with their respective query_y_cs
+  
+  estimated_graphs <- lapply(estimated_graphs, function(x) {
+    names(x) <- round(query_y_cs[,1], 3)
+    x
+  })
 
   estimated_graphs[['step_0_events']] <- step_0_events
   estimated_graphs[['step_1']] <- step_1
