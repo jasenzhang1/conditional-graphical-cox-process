@@ -1030,10 +1030,8 @@ simulate_finite_basis_cox_data_part4 <- function(temp_file_dir, setting_info_lis
   cor_mat_query <- assemble_blockwise_correlation(cov_mat_query, p, d)                    # pd x pd matrix of correlations
   prec_mat_query <- sym(solve(cor_mat_query))                                             # pd x pd matrix of precisions
   
-  thresh <- 10^(-6)
-  adj_mat_truth <- matrix(0, p, p)
-  adj_mat_truth[hilbert_schmidt_norm_pm(prec_mat_query, p, d) > thresh] <- 1
-  diag(adj_mat_truth) <- 0
+  adj_mat_truth <- trig_basis_adj_mat(d, p, y_c_query[cont_ind, ], adj_type, adj_params, thresh = 1e-3)
+
   
   # 2) estimation
   
@@ -1173,6 +1171,12 @@ simulate_finite_basis_cox_data_part4 <- function(temp_file_dir, setting_info_lis
   step_12 <- list(roc_truth = roc_with_threshold(w_mat_truth, adj_mat_truth, 'Truth'),
                   roc_X_truth = roc_with_threshold(w_mat_X_truth, adj_mat_truth, 'X Truth'))
   
+  # true_graphs
+  
+  true_graphs <- list(adj_mat_truth = adj_mat_truth,
+                      cov_mat_truth = cov_mat_query,
+                      cor_mat_truth = cor_mat_query,
+                      prec_mat_truth = prec_mat_query)
   
   all_truths <- list(step_2 = step_2,
                      step_2b = step_2b,
@@ -1185,7 +1189,8 @@ simulate_finite_basis_cox_data_part4 <- function(temp_file_dir, setting_info_lis
                      step_10 = step_10,
                      step_11 = step_11,
                      step_12 = step_12,
-                     adj_mat_truth = adj_mat_truth)
+                     true_graphs = true_graphs
+                     )
   
   # store 
   
