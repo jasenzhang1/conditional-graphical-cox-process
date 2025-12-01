@@ -721,7 +721,7 @@ simulate_finite_basis_cox_data_part2 <- function(temp_file_dir, setting_info_lis
 }
 
 # simulate log-intensities AND events
-simulate_finite_basis_cox_data_parts1_and_2 <- function(temp_file_dir, setting_info_list, group_idx, n_group){
+simulate_finite_basis_cox_data_parts1_and_2 <- function(temp_file_dir, setting_info_list, group_idx, n_group, min_events, max_events){
   
   # ----------------------------------------------------------------------------
   #
