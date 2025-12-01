@@ -66,14 +66,13 @@ trig_basis_realization <- function(basis_list, time_grid){
   return(B_mat)
 }
 
-
-trig_basis_cov_mat <- function(d, p, y_c_k, adj_type, adj_params){
+trig_basis_prec_mat <- function(d, p, y_c_k, adj_type, adj_params){
   
   
   # ----------------------------------------------------------------------------
   #
   #
-  # GOAL: define the covariance matrix to generate beta's 
+  # GOAL: define the precision matrix to generate beta's 
   #
   # inputs:
   #
@@ -134,7 +133,7 @@ trig_basis_cov_mat <- function(d, p, y_c_k, adj_type, adj_params){
         row_idx <- ((i - 1) * d + 1):(i * d)
         col_idx <- ((j - 1) * d + 1):(j * d)
         
-
+        
         if(i == j){
           theta_pd[row_idx, col_idx] <- on_block
         }
@@ -145,11 +144,73 @@ trig_basis_cov_mat <- function(d, p, y_c_k, adj_type, adj_params){
       }
     }
     
-    cov_mat <- sym(solve(theta_pd))
-    
-    
-    return(cov_mat)
+    return(theta_pd)
   }
+}
+
+trig_basis_cov_mat <- function(d, p, y_c_k, adj_type, adj_params){
+  
+  
+  # ----------------------------------------------------------------------------
+  #
+  #
+  # GOAL: define the covariance matrix to generate beta's 
+  #
+  # inputs:
+  #
+  # - d                 (integer)
+  # - p                 (integer)
+  # - y_c_k             (q_c-dim vector)
+  # - adj_type          (string)
+  # - adj_params        (vector)
+  #
+  #
+  # outputs:
+  #
+  # cov_mat   (pd x pd matrix)
+  #
+  # ----------------------------------------------------------------------------
+  
+  theta_pd <- trig_basis_prec_mat(d, p, y_c_k, adj_type, adj_params)
+    
+  cov_mat <- sym(solve(theta_pd))
+    
+  return(cov_mat)
+
+}
+
+trig_basis_adj_mat <- function(d, p, y_c_k, adj_type, adj_params, thresh = 1e-3){
+  
+  # ----------------------------------------------------------------------------
+  #
+  #
+  # GOAL: define the adjacency matrix behind a covariance matrix 
+  #
+  # inputs:
+  #
+  # - d                 (integer)
+  # - p                 (integer)
+  # - y_c_k             (q_c-dim vector)
+  # - adj_type          (string)
+  # - adj_params        (vector)
+  #
+  #
+  # outputs:
+  #
+  # adj_mat   (p x p matrix)  0's on the diagonal
+  #
+  # ----------------------------------------------------------------------------
+
+  theta_pd <- trig_basis_prec_mat(d, p, y_c_k, adj_type, adj_params)
+  
+  HS_mat <- hilbert_schmidt_norm_pm(theta_pd, p, d)
+  
+  adj_mat <- matrix(0, p, p)
+  adj_mat[HS_mat > thresh] <- 1
+  diag(adj_mat) <- 0
+  
+  return(adj_mat)
+
 }
 
 trig_basis_log_intensity <- function(cov_mat_list, basis_list, mu_t, time_grid){
