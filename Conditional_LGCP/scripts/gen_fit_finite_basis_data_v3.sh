@@ -98,8 +98,10 @@ for entry in "${adj_type_params[@]}"; do
       echo "[ $(date '+%F %T') ] Starting group $group_idx / $groups" >> "$outfile"
       wait_for_slot
       (
-          Rscript script_generate_finite_basis_data_part1.R "$n_large" "$adj_type" "$group_idx" "$n_group" >> "$outfile" 2>&1
-          Rscript script_generate_finite_basis_data_part2.R "$n_large" "$adj_type" "$group_idx" "$n_group" "$min_events" "$max_events" >> "$outfile" 2>&1
+          # Rscript script_generate_finite_basis_data_part1.R "$n_large" "$adj_type" "$group_idx" "$n_group" >> "$outfile" 2>&1
+          # Rscript script_generate_finite_basis_data_part2.R "$n_large" "$adj_type" "$group_idx" "$n_group" "$min_events" "$max_events" >> "$outfile" 2>&1
+          Rscript simulate_finite_basis_cox_data_parts1_and_2.R "$n_large" "$adj_type" "$group_idx" "$n_group" "$min_events" "$max_events" >> "$outfile" 2>&1
+          
           echo "[ $(date '+%F %T') ] Finished group $group_idx" >> "$outfile"
       ) &
       
