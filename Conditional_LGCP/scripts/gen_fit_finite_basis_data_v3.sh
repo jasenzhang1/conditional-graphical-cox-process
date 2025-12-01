@@ -22,7 +22,7 @@ adj_type_params=(
   #"banded_trig2 0 1 0.3"
   #"sparse_v2 0 1 2 0.3 -1 2 0.01"
   "block_banded_v2 0 1 0.4 0.8 2"
-  "block_banded_c0 0.5 0.5 2"
+  #"block_banded_c0 0.5 0.5 2"
 )
 
 n_large=140
