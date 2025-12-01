@@ -63,27 +63,27 @@ mu_t_coarse <- rep(beta_0, m_est)
 # 1) generate dataset ----------------------------------------------------------
 
 param_list <- list(
-  Y_c = Y_c,
-  basis_list = basis_list,
-  n = n,
-  d = d,
-  p = p, 
-  m = m,
-  m_est = m_est,
-  m_both = m_both,
-  adj_type = adj_type,
-  adj_params = adj_params, 
-  beta_0 = beta_0, 
-  time_grid = time_grid, 
-  time_grid_est = time_grid_est,
-  time_grid_both = time_grid_both,
-  T_max = T_max, 
-  y_c_query = y_c_query,
-  seed = seed,
-  mean_vec = mean_vec,
-  mu_t = mu_t,
-  mu_t_both = mu_t_both,
-  mu_t_coarse = mu_t_coarse
+  Y_c = Y_c,                     # (n x q_c matrix)
+  basis_list = basis_list,       # (d-dim list)
+  n = n,                         # integer
+  d = d,                         # integer
+  p = p,                         # integer
+  m = m,                         # integer
+  m_est = m_est,                 # integer
+  m_both = m_both,               # integer
+  adj_type = adj_type,           # string
+  adj_params = adj_params,       # vector of parameters
+  beta_0 = beta_0,               # scalar
+  time_grid = time_grid,           # (m-dim vector)
+  time_grid_est = time_grid_est,   # (m_est dim vector)
+  time_grid_both = time_grid_both,  # (m_both-dim vector)
+  T_max = T_max,                    # integer
+  y_c_query = y_c_query,            # (n_query x q_c matrix)
+  seed = seed,                      # integer
+  mean_vec = mean_vec,              # (pd-dim vector)
+  mu_t = mu_t,                      # (m-dim vector)
+  mu_t_both = mu_t_both,            # (m_both-dim vector)
+  mu_t_coarse = mu_t_coarse         # (m_est-dim vector)
 )
 
 temp_file_dir <- 'temp_data'
