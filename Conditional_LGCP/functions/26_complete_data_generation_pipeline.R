@@ -727,6 +727,22 @@ simulate_finite_basis_cox_data_parts1_and_2 <- function(temp_file_dir, setting_i
   #
   # GOAL: generate log-intensities for each batch
   #
+  #
+  #
+  # outputs:
+  #
+  # - 'parts1_and_2_block_banded_v2_n_1000_group1.rds'
+  # 
+  # - results   (list of the following)
+  #
+  #   - events
+  #   - cov_mat_list
+  #   - log_intensities_both
+  #   - log_intensities_est
+  #   - log_intensities
+  #   - beta_coeffs
+  #
+  #
   # ----------------------------------------------------------------------------
   
   
@@ -1120,12 +1136,12 @@ simulate_finite_basis_cox_data_part5 <- function(temp_file_dir, setting_info_lis
   truths_file_name          <- paste0('truths_', adj_type, '_n_', n, '_nquery', 1:cont_inds, '.rds')
   dataset_file_name         <- paste0('dataset_', adj_type, '_n_', n, '.rds')
   
-  file.remove(file.path(temp_file_dir, part0_file_name)) 
-  # file.remove(file.path(temp_file_dir, part1_file_name)) 
-  # file.remove(file.path(temp_file_dir, events_file_name)) 
-  file.remove(file.path(temp_file_dir, parts_1_and_2_file_name)) 
-  file.remove(file.path(temp_file_dir, truths_file_name)) 
-  file.remove(file.path(temp_file_dir, dataset_file_name)) 
+  # file.remove(file.path(temp_file_dir, part0_file_name)) 
+  # # file.remove(file.path(temp_file_dir, part1_file_name)) 
+  # # file.remove(file.path(temp_file_dir, events_file_name)) 
+  # file.remove(file.path(temp_file_dir, parts_1_and_2_file_name)) 
+  # file.remove(file.path(temp_file_dir, truths_file_name)) 
+  # file.remove(file.path(temp_file_dir, dataset_file_name)) 
   
   # -------------
   # return so it can be saved
