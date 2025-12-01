@@ -602,7 +602,7 @@ simulate_finite_basis_cox_data <- function(n, d, p, adj_type, adj_params, beta_0
 }
 
 
-# simulate log-intensities
+# simulate log-intensities - deprecated
 simulate_finite_basis_cox_data_part1 <- function(temp_file_dir, setting_info_list, group_idx, n_group){
   
   # ----------------------------------------------------------------------------
@@ -672,7 +672,7 @@ simulate_finite_basis_cox_data_part1 <- function(temp_file_dir, setting_info_lis
   
 }
 
-# simulate events
+# simulate events - deprecated
 simulate_finite_basis_cox_data_part2 <- function(temp_file_dir, setting_info_list, group_idx, n_group, min_events, max_events){
   
   # generate events for n_group 
@@ -735,12 +735,14 @@ simulate_finite_basis_cox_data_parts1_and_2 <- function(temp_file_dir, setting_i
   # 
   # - results   (list of the following)
   #
-  #   - events
-  #   - cov_mat_list
-  #   - log_intensities_both
-  #   - log_intensities_est
-  #   - log_intensities
-  #   - beta_coeffs
+  #   - events                    (list of n_group lists --> list of `event_times` and event_counts)
+  #     - event_times             (list of p vectors of timestamps)
+  #     - event_counts            (p-dim vector of # of events)
+  #   - cov_mat_list              (n_group-dim list of pd x pd matrices)
+  #   - log_intensities_both      (p x m_both x n_group matrix) 
+  #   - log_intensities_est       (p x m_est x n_group matrix)
+  #   - log_intensities           (p x m x n_group matrix)
+  #   - beta_coeffs               (p x d x n_group matrix)
   #
   #
   # ----------------------------------------------------------------------------
@@ -824,7 +826,45 @@ simulate_finite_basis_cox_data_parts1_and_2 <- function(temp_file_dir, setting_i
 # merge data
 simulate_finite_basis_cox_data_part3 <- function(temp_file_dir, setting_info_list, group_nums){
   
-  # merge all the events and store in results
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: merge all the events and store in results
+  #
+  # inputs:
+  #
+  # - temp_file_dir
+  # - setting_info_list
+  # - group_nums            (integer)  how many groups
+  #
+  # 
+  # outputs:
+  #
+  # - dataset    (list of the following)
+  #
+  #   - event_times (pxn length list) each entry is 'k_i', where k = 1, ..., n, and i = 1, ...  p
+  #                                   each entry is a list of timestamps of events for subject k on process i
+  #   - X_k_truth           (p x m x n matrix)
+  #   - X_k_coarse_truth    (p x m_est x n matrix)
+  #   - X_k_both_truth      (p x m_both x n matrix)
+  #   - Y_continuous        (n x q_c matrix)
+  #
+  #   - simulation_params  (list of the following)
+  #
+  #     - n                 (scalar)      number of replicates
+  #     - p                 (scalar)      number of processes
+  #     - T_max             (scalar)  
+  #     - query_y_cs        (n_query x q_c dim vec)
+  #     - adj_type          (string)      "block_banded_v2"
+  #     - adj_params        (vector)      parameters associated with the adj_type
+  #     - time_grid         (m-dim vec)
+  #     - time_grid_est     (m_est-dim vec)
+  #     - time_grid_both    (m_both-dim vcec)
+  #     - seed              (integer)
+  #
+  #   - beta_coeffs         (p x d x n matrix)
+  #
+  # ----------------------------------------------------------------------------
   
   # 0) load 
   
@@ -892,7 +932,74 @@ simulate_finite_basis_cox_data_part3 <- function(temp_file_dir, setting_info_lis
 # get truths
 simulate_finite_basis_cox_data_part4 <- function(temp_file_dir, setting_info_list, cont_ind){
   
-  # obtain truths for y_c_query_k
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: obtain truths for y_c_query_k
+  #
+  # inputs:
+  #
+  # - temp_file_dir
+  # - setting_info_list
+  # - cont_ind            (integer)   query number
+  #
+  # 
+  # outputs:
+  #
+  # - all_truths    (list of the following)
+  #
+  #   - step_2    (list of 'rho_i_truth' --> p x m matrix)
+  #   - step_2b   (list of 'rho_ii_truth' --> list of mxm matrices, one for each i_j)
+  #   - step_3    (list of 'g_ij_truth' --> list of mxm matrices, one for each i_j)
+  #   - step_4    (list of 'eigen_decomp_truth' --> three smaller lists 'eigenvalues', 'eigenfunctions', 'n_dims')
+  #
+  #     - eigenvalues  (p-dim list --> d-dim vectors)
+  #     - eigenvectors (p-dim list --> mxd matrices)
+  #     - n_dims       (p-dim list --> scalars)
+  # 
+  #   - step_5    (list of 'KL_coeffs_truth', 'KL_cov_truth', and 'KL_cov_X_truth')
+  #
+  #     - KL_coeffs_truth  (p x d x n matrix)
+  #     - KL_cov_truth     (list of dxd matrices, one for each i_j pair)
+  #     - KL_cov_X_truth   (list of dxd matrices, one for each i_j pair)
+  #
+  #   - step_5b   (list of the following)
+  #
+  #     - KL_cor_truth      (list of dxd matrices, one for each i_j pair)
+  #     - KL_cor_X_truth    (list of dxd matrices, one for each i_j pair)
+  #     - KL_prec_truth     (list of dxd matrices, one for each i_j pair)
+  #     - KL_prec_X_truth   (list of dxd matrices, one for each i_j pair)
+  #
+  #   - step_9    (list of the following)
+  #
+  #     - C_cond_truth_full          (pm x pm matrix)
+  #     - C_cond_truth_unnorm_full   (pm x pm matrix)
+  #     - C_cond_X_truth_full        (pm x pm matrix)
+  #     - C_cond_X_truth_unnorm_full (pm x pm matrix)
+  #
+  #   - step_9b  (list of the following)
+  #
+  #     - efunc_outer_truth         (list of mxm matrices, one for each i_j pair)
+  #     - efunc_outer_unnorm_truth  (list of mxm matrices, one for each i_j pair)
+  # 
+  #   - step_10  (list of the following)
+  #
+  #     - P_cond_truth_full          (pm x pm matrix)
+  #     - P_cond_truth_unnorm_full   (pm x pm matrix)
+  #     - P_cond_X_truth_full        (pm x pm matrix)
+  #     - P_cond_X_truth_unnorm_full (pm x pm matrix)
+  # 
+  #   - step_11  (list of the following)
+  #
+  #     - w_mat_truth          (p x p matrix)
+  #     - C_HS_truth           (p x p matrix)
+  #     - w_mat_truth_unnorm   (p x p matrix)
+  #     - C_HS_truth_unnorm    (p x p matrix)
+  #     - w_mat_X_truth        (p x p matrix)
+  #     - C_HS_X_truth         (p x p matrix)
+  #
+  # ----------------------------------------------------------------------------
+  
+  
   
   # 0) load 
   list2env(setting_info_list, envir = environment())
@@ -917,12 +1024,18 @@ simulate_finite_basis_cox_data_part4 <- function(temp_file_dir, setting_info_lis
 
   rm(dataset)
   
-  # 1) estimation
+  # 1) queried covariance matrix truth
   
-  cov_mat_query <- trig_basis_cov_mat(d, p, y_c_query[cont_ind, ], adj_type, adj_params)
-  cor_mat_query <- assemble_blockwise_correlation(cov_mat_query, p, d)
-  prec_mat_query <- sym(solve(cor_mat_query))
+  cov_mat_query <- trig_basis_cov_mat(d, p, y_c_query[cont_ind, ], adj_type, adj_params)  # pd x pd matrix of covariances
+  cor_mat_query <- assemble_blockwise_correlation(cov_mat_query, p, d)                    # pd x pd matrix of correlations
+  prec_mat_query <- sym(solve(cor_mat_query))                                             # pd x pd matrix of precisions
   
+  thresh <- 10^(-6)
+  adj_mat_truth <- matrix(0, p, p)
+  adj_mat_truth[hilbert_schmidt_norm_pm(prec_mat_query, p, d) > thresh] <- 1
+  diag(adj_mat_truth) <- 0
+  
+  # 2) estimation
   
   rho_truths <- trig_basis_rho_truth(basis_list, mean_vec, time_grid, mu_t, y_c_query[cont_ind,], adj_type, adj_params)
   
@@ -992,8 +1105,9 @@ simulate_finite_basis_cox_data_part4 <- function(temp_file_dir, setting_info_lis
                                P_cond_X_truth_unnorm_full = P_cond_X_truth_unnorm_full,
                                C_HS_X_truth = C_HS_X_truth,
                                P_HS_X_truth = P_HS_X_truth)
-         
- 
+  
+
+
   
   # ----------------------------------------------------------------------------
   # merge truths - layer 1 = item - layer 2 = y_c_query
@@ -1045,12 +1159,19 @@ simulate_finite_basis_cox_data_part4 <- function(temp_file_dir, setting_info_lis
                   P_cond_X_truth_full         = step_9_10_11_X_truth$P_cond_X_truth_full,
                   P_cond_X_truth_unnorm_full  = step_9_10_11_X_truth$P_cond_X_truth_unnorm_full)          # (pm x pm matrix)
   
-  step_11 <- list(w_mat_truth         = eigen_truths$P_HS,
+  step_11 <- list(adj_mat_truth       = adj_mat_truth,
+                  w_mat_truth         = eigen_truths$P_HS,
                   C_HS_truth          = eigen_truths$C_HS,
                   w_mat_truth_unnorm  = eigen_truths$P_HS_unnorm,
                   C_HS_truth_unnorm   = eigen_truths$C_HS_unnorm,
                   w_mat_X_truth       = step_9_10_11_X_truth$P_HS_X_truth,
                   C_HS_X_truth        = step_9_10_11_X_truth$C_HS_X_truth)                       # (pxp matrix)
+  
+  # step 12
+  w_mat_truth         = eigen_truths$P_HS
+  w_mat_X_truth       = step_9_10_11_X_truth$P_HS_X_truth
+  step_12 <- list(roc_truth = roc_with_threshold(w_mat_truth, adj_mat_truth, 'Truth'),
+                  roc_X_truth = roc_with_threshold(w_mat_X_truth, adj_mat_truth, 'X Truth'))
   
   
   all_truths <- list(step_2 = step_2,
@@ -1062,7 +1183,9 @@ simulate_finite_basis_cox_data_part4 <- function(temp_file_dir, setting_info_lis
                      step_9 = step_9,
                      step_9b = step_9b,
                      step_10 = step_10,
-                     step_11 = step_11)
+                     step_11 = step_11,
+                     step_12 = step_12,
+                     adj_mat_truth = adj_mat_truth)
   
   # store 
   
