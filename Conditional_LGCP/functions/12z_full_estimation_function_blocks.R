@@ -1542,7 +1542,7 @@ step_11_HS_norms <- function(step_9, step_10, adj_mat_i, p, full = T){
   
 }
 
-step_12_ROC <- function(step_11, adj_mat_i){
+step_12_ROC <- function(step_11, adj_mat_i, full = T){
   
   # ----------------------------------------------------------------------------
   #
@@ -1560,7 +1560,7 @@ step_12_ROC <- function(step_11, adj_mat_i){
   #   - w_mat_est                 (p x p)   matrix of HS norms of ...
   #
   #
-  # - adj_mat_i    (p x p matrix of 0's and 1's)   denoting ground truth adjacencies
+  # - adj_mat_i    (p x p matrix of 0's and 1's)   denoting ground truth adjacencies with 0's on the diagonal
   #
   #
   # outputs:
