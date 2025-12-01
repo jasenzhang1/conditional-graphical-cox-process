@@ -6,6 +6,7 @@ omp_set_num_threads(1)    # limit OpenMP
 
 
 source('functions/00_function_wrapper.R')
+source('functions/20_simulation_function_wrapper.R')
 
 # args 
 args <- commandArgs(trailingOnly = TRUE)
