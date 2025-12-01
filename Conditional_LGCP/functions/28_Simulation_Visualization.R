@@ -175,7 +175,7 @@ visualize_error_histogram <- function(mat_est, mat_reconstruct, g_title, bin_cou
   return(g)
 }
 
-visualize_log_intensity <- function(X_k, time_grid,  g_title = 'Title', palette_ID = 'Dark 2', mu_t = NULL, legend_title = 'Process', ymin = NULL, ymax = NULL){
+visualize_log_intensity <- function(X_k, time_grid,  g_title = 'Title', mu_t = NULL, palette_ID = 'Dark 2', legend_title = 'Process', ymin = NULL, ymax = NULL){
   
   # ----------------------------------------------------------------------------
   #

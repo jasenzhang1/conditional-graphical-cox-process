@@ -2,6 +2,8 @@
 library(grid)
 library(gridExtra)
 library(dplyr)
+library(patchwork)
+library(ggplot2)
 source('functions/28_Simulation_Visualization.R')
 source('functions/28b_Simulation_Visualization_2.R')
 source('functions/28c_Grand_Visualizations.R')
@@ -15,6 +17,10 @@ base_folder <- args[2]    # base_folder <- 'simu_results'
 adj_type    <- args[3]    # adj_type <- 'block_banded_v2'
 method      <- args[4]    # method <- 'CPGM'
 
+# data_folder <- 'simu_data'
+# base_folder <- 'simu_results'
+# adj_type <- 'block_banded_v2'
+# method <- 'CPGM'
 
 n_large <- 300
 n <- 300

@@ -5,7 +5,6 @@ source('functions/28z_Visualization_helpers.R')
 source('functions/00c_block_matrix_arrange.R')
 
 
-
 # these functions open an entire dataset and search through all query_id 
 
 
@@ -157,10 +156,11 @@ visualize_over_time <- function(graph_results_i, graph_ids, full = T){
   if('11' %in% graph_ids){
     
     if(! full){
-      graphs[['g_11']] <- grid.arrange(visualize_log_intensity(step_1$X_k_est[1:5,,1],            time_grid_est,  'Estimate',       step_1$mu_t_coarse_truth ),
-                                       visualize_log_intensity(step_1$X_k_coarse_truth[1:5,,1],   time_grid_est,  'Coarser Truth',  step_1$mu_t_coarse_truth ),
-                                       visualize_log_intensity(step_1$X_k_truth[1:5,,1],          time_grid,      'Finer Truth',    step_1$mu_t_truth),
-                                       visualize_log_intensity(step_1$X_k_both_truth[1:5,,1],     time_grid_both, 'Combined Truth', step_1$mu_t_both_truth),
+      i <- 1
+      graphs[['g_11']] <- grid.arrange(visualize_log_intensity(step_1$X_k_est[1:5,,i],            time_grid_est,  'Estimate',       step_1$mu_t_coarse_truth ),
+                                       visualize_log_intensity(step_1$X_k_coarse_truth[1:5,,i],   time_grid_est,  'Coarser Truth',  step_1$mu_t_coarse_truth ),
+                                       visualize_log_intensity(step_1$X_k_truth[1:5,,i],          time_grid,      'Finer Truth',    step_1$mu_t_truth),
+                                       visualize_log_intensity(step_1$X_k_both_truth[1:5,,i],     time_grid_both, 'Combined Truth', step_1$mu_t_both_truth),
                                        textGrob("0. Log Intensity\n of first 5 processes\nof subject 1", gp = gpar(fontsize = 14)),
                                        layout_matrix = arr_mat_6) 
     }
@@ -185,7 +185,7 @@ visualize_over_time <- function(graph_results_i, graph_ids, full = T){
       
       # p x m x n --> mean --> p x m --> choose first 5 processes --> 5 x m
       
-      graphs[['g_12']] <- grid.arrange(visualize_log_intensity(apply(step_1$X_k_est,          c(1, 2), mean)[1:5, ],   time_grid_est,  'Estimate',     step_1$mu_t_est),
+      graphs[['g_12']] <- grid.arrange(visualize_log_intensity(apply(step_1$X_k_est,          c(1, 2), mean)[1:5, ],   time_grid_est,  'Estimate',     step_1$mu_t_coarse_truth),
                                        visualize_log_intensity(apply(step_1$X_k_truth,        c(1, 2), mean)[1:5, ],   time_grid,      'Truth',        step_1$mu_t_truth),
                                        textGrob("0. Average Log Intensity\n of first 5 processes", gp = gpar(fontsize = 14)),
                                        layout_matrix = arr_mat_6) 
@@ -213,19 +213,19 @@ visualize_over_time <- function(graph_results_i, graph_ids, full = T){
     
     # new way
     
-    graphs[['g_24']] <- result_heatmap_ij_prep(step_2b, 'rho_ii', i = 1, j = 1)
+    graphs[['g_24']] <- result_heatmap_ij_prep(step_2b, 'rho_ii', time_grid_est, is_full = F, i = 1, j = 1)
   }  
   
   # rho_ij(s,t) for process pair 1_2
   if('25' %in% graph_ids){ 
     
-    graphs[['g_25']] <- result_heatmap_ij_prep(step_2b, 'rho_ii', i = 1, j = 2)
+    graphs[['g_25']] <- result_heatmap_ij_prep(step_2b, 'rho_ii', time_grid_est, is_full = F, i = 1, j = 2)
   }  
   
   # rho_ij(s,t) for process pair 3_5
   if('26' %in% graph_ids){ 
     
-    graphs[['g_26']] <- result_heatmap_ij_prep(step_2b, 'rho_ii', i = 3, j = 5)
+    graphs[['g_26']] <- result_heatmap_ij_prep(step_2b, 'rho_ii', time_grid_est, is_full = F, i = 3, j = 5)
   }   
   
   # weights, all y_c_query settings in a row
@@ -244,17 +244,17 @@ visualize_over_time <- function(graph_results_i, graph_ids, full = T){
     # g_list <- lapply(step_3, function(x){result_30s_prep(x, i = 1, j = 1, full)})
     # graphs[['g_31']] <- rearrange_plots(g_list)
     
-    graphs[['g_31']] <- result_heatmap_ij_prep(step_3, 'g_ij', i = 1, j = 1, zmid = 0)
+    graphs[['g_31']] <- result_heatmap_ij_prep(step_3, 'g_ij', time_grid_est, is_full = F, i = 1, j = 1, zmid = 0)
   }  
   
   # g_ij(s,t) at 1_2
   if('32' %in% graph_ids){ 
-    graphs[['g_32']] <- result_heatmap_ij_prep(step_3, 'g_ij', i = 1, j = 2, zmid = 0)
+    graphs[['g_32']] <- result_heatmap_ij_prep(step_3, 'g_ij', time_grid_est, is_full = F, i = 1, j = 2, zmid = 0)
   }  
   
   # g_ij(s,t) at 3_5
   if('33' %in% graph_ids){ 
-    graphs[['g_33']] <- result_heatmap_ij_prep(step_3, 'g_ij', i = 3, j = 5, zmid = 0)
+    graphs[['g_33']] <- result_heatmap_ij_prep(step_3, 'g_ij', time_grid_est, is_full = F, i = 3, j = 5, zmid = 0)
   }    
   
   # eigenfunctions
@@ -316,7 +316,7 @@ visualize_over_time <- function(graph_results_i, graph_ids, full = T){
   # C_Xi_Xj for block (1, 1)
   
   if('90' %in% graph_ids){
-    graphs[['g_90']] <- result_heatmap_ij_prep(step_9, 'C_cond', time_grid_est, is_full, i = 1, j = 1, zmid = 0)
+    graphs[['g_90']] <- result_heatmap_ij_prep(step_9, 'C_cond', time_grid_est, is_full = T, i = 1, j = 1, zmid = 0)
   }  
   # C_Xi_Xj for block (1, 2)
   
@@ -326,7 +326,7 @@ visualize_over_time <- function(graph_results_i, graph_ids, full = T){
     # graphs[['g_91']] <- rearrange_plots(g_list) 
     # 
     # graphs[['g_91']] <- result_heatmap_ij_prep(step_9, 'C_cond', T, i = 1, j = 1)
-    graphs[['g_91']] <- result_heatmap_ij_prep(step_9, 'C_cond', time_grid_est, is_full, i = 1, j = 2, zmid = 0)
+    graphs[['g_91']] <- result_heatmap_ij_prep(step_9, 'C_cond', time_grid_est, is_full = T, i = 1, j = 2, zmid = 0)
   }
   
   # C_Xi_Xj for block (3, 5)
@@ -350,7 +350,7 @@ visualize_over_time <- function(graph_results_i, graph_ids, full = T){
     # # Arrange in n_settings rows x n_y_c_query columns
     # graphs[['g_92']] <- do.call(grid.arrange, c(flat_graphs_colwise, nrow = n_settings, ncol = n_y_c_query))
     
-    graphs[['g_92']] <- result_heatmap_ij_prep(step_9, 'C_cond', time_grid_est, is_full, i = 3, j = 5, zmid = 0)
+    graphs[['g_92']] <- result_heatmap_ij_prep(step_9, 'C_cond', time_grid_est, is_full = T, i = 3, j = 5, zmid = 0)
     
   }  
   

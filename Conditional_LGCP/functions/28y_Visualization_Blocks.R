@@ -113,6 +113,7 @@ result_heatmap_ij_prep <- function(my_list, entry_name, time_grid_est, is_full, 
   # - entry_name  (string)   estimate prefix (e.g. rho_ii, g_ij)
   # - i 
   # - j
+  # - is_full     (boolean)  full = pm x pm matrix, otherwise it's in list format
   #
   # ----------------------------------------------------------------------------
   
@@ -342,7 +343,7 @@ result_42_prep <- function(step_3, step_4, p, full = T){
   source('functions/13_estimation_validation.R')
   
   if(! full){
-    g_ii_truth          <- prep_eigendecomposition_ii(step_3$g_ij_truth_v2, p)
+    g_ii_truth          <- prep_eigendecomposition_ii(step_3$g_ij_truth, p)
     g_ii_est            <- prep_eigendecomposition_ii(step_3$g_ij_est, p)
     
     g_ii_truth_decomp           <- validate_eigendecomposition_ii(g_ii_truth, step_4$eigen_decomp_truth)
@@ -414,7 +415,7 @@ result_43_prep <- function(step_4, full = T){
 result_44_prep <- function(step_3, step_4, p, full = T){
   
   if(! full){
-    g_ii_truth          <- prep_eigendecomposition_ii(step_3$g_ij_truth_v2, p)
+    g_ii_truth          <- prep_eigendecomposition_ii(step_3$g_ij_truth, p)
     g_ii_est            <- prep_eigendecomposition_ii(step_3$g_ij_est, p) 
     
     # validate
