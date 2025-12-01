@@ -34,7 +34,7 @@ model_type="simu"  # simu or mice
 max_jobs=60
 min_events=5
 max_events=10000
-n_query=3
+n_query=2
 
 function wait_for_slot {
     # Wait until the number of background jobs is strictly less than max_jobs
