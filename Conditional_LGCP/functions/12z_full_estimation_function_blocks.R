@@ -1422,7 +1422,7 @@ step_10_P_cond <- function(step_9, kernel_params, p, block, MP, full = T){
   
 }
 
-step_11_HS_norms <- function(step_9, step_10, adj_mat_i, p, full = T){
+step_11_HS_norms <- function(step_9, step_10, p, full = T){
   
   # ----------------------------------------------------------------------------
   #
@@ -1575,6 +1575,17 @@ step_12_ROC <- function(step_11, adj_mat_i, full = T){
   #   - roc_est
   #
   # ----------------------------------------------------------------------------
+  
+  if(! full){
+    w_mat_est <- step_11$w_mat_est
+    w_mat_est_unnorm <- step_11$w_mat_est_unnorm
+    
+    roc_est                 <- roc_with_threshold(w_mat_est,                 adj_mat_i, 'Estimate')
+    roc_est_unnorm          <- roc_with_threshold(w_mat_est_unnorm,          adj_mat_i, 'Estimate Unnorm')
+    
+    return(list(roc_est = roc_est,
+                roc_est_unnorm = roc_est_unnorm))
+  }
   
   # prep
   w_mat_ground_truth        <- step_11[[1]]
