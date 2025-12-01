@@ -133,19 +133,30 @@ select_threshold_by_stability <- function(P_conditional, p) {
 
 roc_with_threshold <- function(w_mat, adj_mat, g_title = NULL) {
   
-  #
+  # ----------------------------------------------------------------------------
   #
   # GOAL: identify the ideal threshold for selecting an edge using ROC curves
   #
   #
   # input:
   # 
-  # - w_mat (p x p matrix)
-  # - adj_mat (p x p matrix)
+  # - w_mat    (p x p matrix)
+  # - adj_mat  (p x p matrix) 0's on the diagonals
   #
   #
   #
+  # outputs:
   #
+  # - list of the following:
+  # 
+  #   - threshold
+  #   - sensitivity
+  #   - specificity
+  #   - auc
+  #   - accuracy
+  #   - roc_df
+  #
+  # ----------------------------------------------------------------------------
   
   # 1) rearrange w_mat an adj_mat into vectors of the upper diagonal entries  
   
