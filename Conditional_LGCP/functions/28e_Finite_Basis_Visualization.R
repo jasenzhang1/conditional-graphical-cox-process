@@ -58,6 +58,8 @@ visualize_finite_basis <- function(truth_file_name, estimates_file_name, graph_i
   
   names(merged) <- names(estimates)
   
+  merged[['true_graphs']] <- truths$true_graphs
+  
   # ----------------------------------------------------------------------------
   # now, utilize the code in 28c
   # ----------------------------------------------------------------------------

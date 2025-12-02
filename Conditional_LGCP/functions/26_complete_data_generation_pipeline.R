@@ -1213,6 +1213,13 @@ simulate_finite_basis_cox_data_part5 <- function(temp_file_dir, setting_info_lis
   part_4_info_lists <- paste0(temp_file_dir, '/truths_', adj_type, '_n_', n, '_nquery', 1:cont_inds, '.rds')
   all_part_4_loaded <- lapply(part_4_info_lists, readRDS)
   
+  # 0c) load part 0 to get query_y_cs
+  part_0_info_list <- paste0("part0_", adj_type, '_n_', n, '.rds')
+  results <- readRDS(file.path(temp_file_dir, part_0_info_list))
+  list2env(results, envir = environment())
+  
+  names(all_part_4_loaded) <- round(y_c_query[,1], 3)
+  
   # Get all element names (step_1, step_2, ..., step_11)
   step_names <- names(all_part_4_loaded[[1]])
   
@@ -1222,6 +1229,7 @@ simulate_finite_basis_cox_data_part5 <- function(temp_file_dir, setting_info_lis
   })
   
   names(all_truths) <- step_names
+  
   
   # 1) retrieve and insert step_1 (which doesn't vary based on y_c)
   
@@ -1234,10 +1242,7 @@ simulate_finite_basis_cox_data_part5 <- function(temp_file_dir, setting_info_lis
   log_intensities_est <- dataset$X_k_coarse_truth
   log_intensities_both <- dataset$X_k_both_truth
   
-  # 1b) load part 0
-  part_0_info_list <- paste0("part0_", adj_type, '_n_', n, '.rds')
-  results <- readRDS(file.path(temp_file_dir, part_0_info_list))
-  list2env(results, envir = environment())
+
   
   # 1c) aggregate results
   step_1 <- list(X_k_truth = log_intensities,
