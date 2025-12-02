@@ -46,6 +46,7 @@ if(model_type == 'mice'){
                             method = method)
   
   temp_file_dir <- 'temp_data/simu'
+  temp_file_dir2 <- 'temp_data/simu_data'
   mouse <- F
   
 } else{
@@ -61,7 +62,12 @@ if(model_type == 'mice'){
 # ---------------------------
 
 if(method == 'CPGM'){
-  estimate_intensities_stratum_parallel_with_yc_part0(temp_file_dir, setting_info_list, cont_ind, mouse)
+  if(mouse){
+    estimate_intensities_stratum_parallel_with_yc_part0(temp_file_dir, setting_info_list, cont_ind, mouse)
+  } else{
+    estimate_intensities_stratum_parallel_with_yc_part0(temp_file_dir, temp_file_dir2, setting_info_list, cont_ind, mouse)
+  }
+  
 } else{
   stop('Invalid method. Must be CPGM')
 }

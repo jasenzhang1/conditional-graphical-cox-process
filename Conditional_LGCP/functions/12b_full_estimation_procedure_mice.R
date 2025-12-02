@@ -425,8 +425,12 @@ full_conditional_estimation_with_no_truth_part2 <- function(temp_file_dir, setti
 }
 
 
-estimate_intensities_stratum_parallel_with_yc_part0 <- function(temp_file_dir, setting_info_list, cont_ind, mouse){
+estimate_intensities_stratum_parallel_with_yc_part0 <- function(temp_file_dir, temp_file_dir2, setting_info_list, cont_ind, mouse){
   
+  #
+  # temp_file_dir   (string) 'temp_data/simu'
+  # temp_file_dir2  (string) 'temp_data/simu_data'
+  #
   # for this strata, calculate weights, adj_mat, other intermediate values
   
   list2env(setting_info_list, envir = environment())
@@ -456,7 +460,7 @@ estimate_intensities_stratum_parallel_with_yc_part0 <- function(temp_file_dir, s
   # 2) get the ground truth adj_mat
   if(! mouse){
     truth_data_name <- paste0('truths_', adj_type, '_n_', n, '_nquery', cont_ind, '.rds')
-    truths <- readRDS(file.path(temp_file_dir, truth_data_name))
+    truths <- readRDS(file.path(temp_file_dir2, truth_data_name))
 
     results[['adj_mat_i']] <- truths$true_graphs$adj_mat_truth
   }
