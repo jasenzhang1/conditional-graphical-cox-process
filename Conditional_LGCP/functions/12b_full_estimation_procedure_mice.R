@@ -459,7 +459,7 @@ estimate_intensities_stratum_parallel_with_yc_part0 <- function(temp_file_dir, t
   
   # 2) get the ground truth adj_mat
   if(! mouse){
-    truth_data_name <- paste0('truths_', adj_type, '_n_', n, '_nquery', cont_ind, '.rds')
+    truth_data_name <- paste0('truths_', adj_type, '_n_', n_large, '_nquery', cont_ind, '.rds')
     truths <- readRDS(file.path(temp_file_dir2, truth_data_name))
 
     results[['adj_mat_i']] <- truths$true_graphs$adj_mat_truth
