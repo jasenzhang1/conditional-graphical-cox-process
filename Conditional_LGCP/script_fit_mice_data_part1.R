@@ -45,7 +45,7 @@ if(model_type == 'mice'){
   n <- as.numeric(args[3])
   adj_type <- args[4]
   method <- args[5]
-  X_truth <- as.boolean(args[6])
+  X_truth <- as.logical(args[6])
   
   setting_info_list <- list(n_large = n_large,
                             n = n,
