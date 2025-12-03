@@ -160,7 +160,7 @@ for entry in "${adj_type_params[@]}"; do
   
       wait_for_slot
       output=$(Rscript script_fit_mice_data_part1.R \
-                "$model_type" "$n_large" "$n" "$adj_type" "$method" \
+                "$model_type" "$n_large" "$n" "$adj_type" "$method" "$X_truth" \
                 2>&1 | tee -a "$outfile")
       wait
       

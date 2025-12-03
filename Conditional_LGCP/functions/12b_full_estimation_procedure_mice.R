@@ -194,7 +194,7 @@ full_conditional_estimation_with_no_truth <- function(dataset, method, ncores, d
   
 }
 
-full_conditional_estimation_with_no_truth_part1 <- function(dataset, setting_info_list, ncores, temp_file_dir, mouse){
+full_conditional_estimation_with_no_truth_part1 <- function(dataset, setting_info_list, ncores, temp_file_dir, mouse, X_truth = F){
   
 
   list2env(setting_info_list, envir = environment())  
@@ -289,15 +289,19 @@ full_conditional_estimation_with_no_truth_part1 <- function(dataset, setting_inf
     results[['m_est']] <- m_est
     results[['n']] <- n    
   } else{
-    results[['X_k_coarse_truth']] <- X_k_coarse_truth
-    results[['X_k_truth']] <- X_k_truth
-    results[['X_k_both_truth']] <- X_k_both_truth
     results[['time_grid_est']] <- time_grid_est
     results[['time_grid']] <- time_grid
     results[['time_grid_both']] <- time_grid_both
     results[['m_est']] <- m_est
     results[['n']] <- n      
     results[['d']] <- dim(dataset$beta_coeffs)[2]
+    
+    if(X_truth){
+      results[['X_k_coarse_truth']] <- dataset$X_k_coarse_truth
+      results[['X_k_truth']] <- dataset$X_k_truth
+      results[['X_k_both_truth']] <- dataset$X_k_both_truth
+    }    
+    
   }
   
   if(mouse){
