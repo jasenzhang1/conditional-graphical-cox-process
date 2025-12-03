@@ -23,6 +23,12 @@ hilbert_schmidt_norm <- function(A) {
   return(sqrt(sum(A^2)))  # sqrt(sum of all squared elements)
 }
 
+hilbert_schmidt_norm_rmse <- function(A){
+  
+  sqrt(sum(A^2)) / sqrt(length(A)) 
+  
+}
+
 hilbert_schmidt_norm_normalize <- function(A, delta_t) {
   
   # ------------------------------------------------------------------------
@@ -86,6 +92,32 @@ hilbert_schmidt_norm_pm <- function(A, p, m) {
   
   return(norms)
   
+}
+
+hilbert_schmidt_norm_pm_rmse <- function(A, p, m) {
+  
+  # ------------------------------------------------------------------------
+  #
+  # GOAL: Compute Hilbert-Schmidt norm of all p^2 mxm block matrices, then take RMSE
+  # 
+  #       RMSE is dividing by sqrt(# of entries) which is m
+  #
+  # - ||A||_{HS} = sqrt(sum of squares of elements)
+  # 
+  # 
+  # Input: 
+  #
+  # - A       (pm x pm matrix)
+  #
+  # 
+  # Output: 
+  #
+  # - norms (p x p matrix)
+  #
+  # ------------------------------------------------------------------------
+  
+  
+  return(hilbert_schmidt_norm_pm(A, p, m) / m)
 }
 
 hilbert_schmidt_norm_pm_normalize <- function(A, p, m) {
