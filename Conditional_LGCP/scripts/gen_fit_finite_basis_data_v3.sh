@@ -21,12 +21,12 @@ adj_type_params=(
   #"banded_c2 0 1 0.5"
   #"banded_trig2 0 1 0.3"
   #"sparse_v2 0 1 2 0.3 -1 2 0.01"
-  "block_banded_v2 0 1 0.4 0.8 2"
-  #"block_banded_c0 0.5 0.5 2"
+  #"block_banded_v2 0 1 0.4 0.8 2"
+  "block_banded_c0 0.5 0.5 2"
 )
 
-n_large=3000
-ns=(1000 2000 3000)
+n_large=500
+ns=(500)
 n_group=10
 groups=$(( n_large / n_group ))
 method="CPGM"
@@ -34,7 +34,7 @@ model_type="simu"  # simu or mice
 max_jobs=60
 min_events=5
 max_events=10000
-n_query=3
+n_query=1
 
 function wait_for_slot {
     # Wait until the number of background jobs is strictly less than max_jobs
