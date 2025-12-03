@@ -930,6 +930,7 @@ full_conditional_estimation_with_no_truth_part3 <- function(temp_file_dir, setti
   estimated_graphs[['step_1']] <- step_1
   estimated_graphs$y_c_query <- query_y_cs
   estimated_graphs$p <- p
+  estimated_graphs$Y_continuous <- y_c_strata
   
   # load step 2 and keep weights in step_2
   
@@ -954,12 +955,6 @@ full_conditional_estimation_with_no_truth_part3 <- function(temp_file_dir, setti
     estimated_graphs$time_grid_both <- time_grid_both    
   }
 
-  
-  
-  print('===TROUBLESHOOT 6b==')
-  print('Names of all_results:')
-  print(names(estimated_graphs))
-  print('====================')
   
   # ------------------------
   # REMOVE ALL FILES HERE 
