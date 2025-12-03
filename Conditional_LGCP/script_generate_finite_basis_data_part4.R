@@ -14,7 +14,7 @@ beta_truth <- as.logical(args[4])
 adj_params <- as.numeric(args[5:length(args)])
 
 setting_info_list <- list(n = n,
-                          beta_truth,
+                          beta_truth = beta_truth,
                           adj_type = adj_type,
                           adj_params = adj_params)
 
