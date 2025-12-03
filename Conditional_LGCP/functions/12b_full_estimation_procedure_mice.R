@@ -289,6 +289,9 @@ full_conditional_estimation_with_no_truth_part1 <- function(dataset, setting_inf
     results[['m_est']] <- m_est
     results[['n']] <- n    
   } else{
+    results[['X_k_coarse_truth']] <- X_k_coarse_truth
+    results[['X_k_truth']] <- X_k_truth
+    results[['X_k_both_truth']] <- X_k_both_truth
     results[['time_grid_est']] <- time_grid_est
     results[['time_grid']] <- time_grid
     results[['time_grid_both']] <- time_grid_both
@@ -427,11 +430,18 @@ full_conditional_estimation_with_no_truth_part2 <- function(temp_file_dir, setti
 
 estimate_intensities_stratum_parallel_with_yc_part0 <- function(temp_file_dir, temp_file_dir2, setting_info_list, cont_ind, mouse){
   
+  
+  # ----------------------------------------------------------------------------
   #
-  # temp_file_dir   (string) 'temp_data/simu'
-  # temp_file_dir2  (string) 'temp_data/simu_data'
+  # GOAL: for this strata, calculate weights and adj_mat (truth)
   #
-  # for this strata, calculate weights, adj_mat, other intermediate values
+  #
+  # - temp_file_dir     (string) 'temp_data/simu'
+  # - temp_file_dir2    (string) 'temp_data/simu_data'
+  #
+  #
+  #
+  # ----------------------------------------------------------------------------
   
   list2env(setting_info_list, envir = environment())
   
@@ -482,9 +492,25 @@ estimate_intensities_stratum_parallel_with_yc_part0 <- function(temp_file_dir, t
 # rho_i
 estimate_intensities_stratum_parallel_with_yc_part1 <- function(temp_file_dir, setting_info_list, cont_ind, i, mouse) {
   
-  # we first calculate rho_i_list
-  # cont_ind = which continuous covariate
-  # i = process_id from 1 to p
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: calculate rho_i for a single i and save it as 
+  #       
+  #       'step_2_rho_i_block_banded_v2_n_100_nqueryk_i.rds'
+  #
+  # 
+  # inputs:
+  # 
+  #
+  # - temp_file_dir         (string)
+  # - setting_info_list     (list)
+  # - cont_ind              (integer)   which n_query index
+  # - i                     (integer)   process_id from 1 to p
+  # - mouse                 (boolean)   mouse (T) or simulation (F)
+  #
+  #
+  # ----------------------------------------------------------------------------
   
   list2env(setting_info_list, envir = environment())
   
@@ -505,6 +531,7 @@ estimate_intensities_stratum_parallel_with_yc_part1 <- function(temp_file_dir, s
   # step 2: univariate case 
   
   data_i <- data_df4[feature_id == feature_sel[i], ]
+  
   
   if (nrow(data_i) == 0) { # no events, estimate is the zero intensity
     rho_i <- rep(0, n_time)
@@ -536,13 +563,30 @@ estimate_intensities_stratum_parallel_with_yc_part1 <- function(temp_file_dir, s
   saveRDS(out_list, file = file.path(temp_file_dir, rho_i_file_name))  
   
 }
+
 # key_k
 estimate_intensities_stratum_parallel_with_yc_part2 <- function(temp_file_dir, setting_info_list, cont_ind, k, mouse) {
   
   
-  # bivariate estimation
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: calculate rho_ij for a single i_j pair and save it as 
+  #       
+  #       'step_2_rho_ij_block_banded_v2_n_100_nqueryk_i.rds'
+  #
+  # 
+  # inputs:
+  # 
+  #
+  # - temp_file_dir         (string)
+  # - setting_info_list     (list)
+  # - cont_ind              (integer)   which n_query index
+  # - k                     (integer)   index number corresponding to a i_j pair
+  # - mouse                 (boolean)   mouse (T) or simulation (F)
+  #
+  #
+  # ----------------------------------------------------------------------------
   
-  # k = index of the `key` vector = c('1_1', '1_2', ...)
   
   # 1) retrieve data
   
@@ -628,7 +672,7 @@ estimate_intensities_stratum_parallel_with_yc_part2 <- function(temp_file_dir, s
   
 }
 
-estimate_intensities_stratum_parallel_with_yc_part3 <- function(temp_file_dir, setting_info_list, cont_ind, n_keys_univariate, n_keys_bivariate, mouse) {
+estimate_intensities_stratum_parallel_with_yc_part3 <- function(temp_file_dir, setting_info_list, cont_ind, n_keys_univariate, n_keys_bivariate, mouse, X_truth = F) {
   
   
   # ----------------------------------------------------------------------------
@@ -666,14 +710,16 @@ estimate_intensities_stratum_parallel_with_yc_part3 <- function(temp_file_dir, s
     # keys_univariate = vector of c(1, 2, 3, ..., p)
     # keys_bivariate = vector of c('1_1', '1_2', ..., 'p_p')
     rho_i_file_names  <- paste0(temp_file_dir, '/step_2_rho_i_',  ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '_', 1:n_keys_univariate, '.rds')
-    rho_ij_file_names <- paste0(temp_file_dir, '/step_2_rho_ij_', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '_', 1:n_keys_bivariate, '.rds')    
+    rho_ij_file_names <- paste0(temp_file_dir, '/step_2_rho_ij_', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '_', 1:n_keys_bivariate, '.rds') 
+    part2_file_name   <- paste0('part2_', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '.rds')
   } else{
     rho_i_file_names  <- paste0(temp_file_dir, "/step_2_rho_i_",  adj_type, '_n_', n, '_nquery', cont_ind, '_', 1:n_keys_univariate, '.rds')
     rho_ij_file_names <- paste0(temp_file_dir, "/step_2_rho_ij_", adj_type, '_n_', n, '_nquery', cont_ind, '_', 1:n_keys_bivariate, '.rds')
+    part2_file_name   <- paste0('part2_', adj_type, '_n_', n, '_nquery', cont_ind, '.rds')
   }
 
   
-  # Step 1: Load all files into a list - but there are some serious wrangling issues
+  # 2) Load all files into a list - but there are some serious wrangling issues
   # - rho_i_list
   # - rho_ij_list
 
@@ -690,20 +736,25 @@ estimate_intensities_stratum_parallel_with_yc_part3 <- function(temp_file_dir, s
   rho_ij_list <- lapply(rho_ij_list_raw, `[[`, 1)
   names(rho_ij_list) <- sapply(rho_ij_list_raw, function(x) names(x)[1])
   
-  # delete files
-  
-  file.remove(rho_i_file_names)
-  file.remove(rho_ij_file_names)
+
   
   
+  # 3) retrieve rho_i_X_truth 
   
-  # store rho_list and rho_i_est
+  results <- readRDS(file.path(temp_file_dir, part2_file_name))
+  list2env(results, envir = environment())
+  
+  
+  # 4) store rho_list and rho_i_est
   
   rho_i_est <- do.call(rbind, rho_i_list)
   
   rho_list = list(rho_i_list, rho_ij_list)
   
+  
+  
   step_2 <- list(rho_i_est = rho_i_est,
+                 rho_i_X_truth = results$dataset$X_k_truth,
                  rho_list = rho_list)
   
   if(mouse){
@@ -711,6 +762,11 @@ estimate_intensities_stratum_parallel_with_yc_part3 <- function(temp_file_dir, s
   } else{
     rho_list_name <- paste0('step_2_rho_list_', adj_type, '_n_', n, '_nquery', cont_ind, '.rds')
   }
+  
+  # delete files
+  
+  # file.remove(rho_i_file_names)
+  # file.remove(rho_ij_file_names)
   
   saveRDS(step_2, file = file.path(temp_file_dir, rho_list_name))  
   

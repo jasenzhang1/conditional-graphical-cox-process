@@ -241,11 +241,18 @@ step_2_rho_i <- function(dataset, data_df4, kernel_params, rho_kernel, patient_s
   #
   # outputs:
   # 
-  # - list of:
+  # 
+  # - if(full): list of:
   #   - rho_i_truth               (p x m)
   #   - rho_i_coarse_truth        (p x m_est)
   #   - rho_i_X_truth             (p x m)
   #   - rho_i_X_coarse_truth      (p x m_est)
+  #   - rho_i_est                 (p x m_est)
+  #   - rho_list                  (list format, [[1]] = rho_i, [[2]] = rho_ij, rho_ij may be rho_ii only)
+  #   - weights                   (n-dim vector)
+  #   - y_c_s                     (n-dim vector)
+  #
+  # - otherwise, list of:
   #   - rho_i_est                 (p x m_est)
   #   - rho_list                  (list format, [[1]] = rho_i, [[2]] = rho_ij, rho_ij may be rho_ii only)
   #   - weights                   (n-dim vector)

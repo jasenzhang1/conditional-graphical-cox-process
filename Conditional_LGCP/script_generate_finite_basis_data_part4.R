@@ -10,9 +10,11 @@ args <- commandArgs(trailingOnly = TRUE)
 n <- as.numeric(args[1])
 adj_type <- args[2]
 cont_ind <- as.numeric(args[3])
-adj_params <- as.numeric(args[4:length(args)])
+beta_truth <- as.logical(args[4])
+adj_params <- as.numeric(args[5:length(args)])
 
 setting_info_list <- list(n = n,
+                          beta_truth,
                           adj_type = adj_type,
                           adj_params = adj_params)
 

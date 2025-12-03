@@ -100,7 +100,7 @@ result_20s_prep <- function(step_2b, i, j, zmin = NULL, zmax = NULL, full = T){
   return(g_list)
 }
 
-result_heatmap_ij_prep <- function(my_list, entry_name, time_grid_est, is_full, i, j, palette_ID = 'Blue-Red 2', zmin = NULL, zmid = NULL, zmax = NULL){
+result_heatmap_ij_prep <- function(my_list, entry_name, time_grid_est, is_full, i, j, full, palette_ID = 'Blue-Red 2', zmin = NULL, zmid = NULL, zmax = NULL){
   
   # ----------------------------------------------------------------------------
   #
@@ -114,6 +114,7 @@ result_heatmap_ij_prep <- function(my_list, entry_name, time_grid_est, is_full, 
   # - i 
   # - j
   # - is_full     (boolean)  full = pm x pm matrix, otherwise it's in list format
+  # - full        (boolean)  full = include truths 
   #
   # ----------------------------------------------------------------------------
   
@@ -122,9 +123,11 @@ result_heatmap_ij_prep <- function(my_list, entry_name, time_grid_est, is_full, 
   key <- paste0(i, '_', j)
   if(is_full){
     est_name <- paste0(entry_name, '_est_full')
+    X_truth_name <- paste0(entry_name, '_X_truth_full')
     truth_name <- paste0(entry_name, '_truth_full')   
   } else{
     est_name <- paste0(entry_name, '_est')
+    X_truth_name <- paste0(entry_name, '_X_truth')
     truth_name <- paste0(entry_name, '_truth')    
   }
 
@@ -143,25 +146,29 @@ result_heatmap_ij_prep <- function(my_list, entry_name, time_grid_est, is_full, 
     
     if(is_full){
       est <- reshape2::melt(extract_block_structure_ij(my_list[[k]][[est_name]], length(time_grid_est), i, j))
+      X_truth <- reshape2::melt(extract_block_structure_ij(my_list[[k]][[X_truth_name]], length(time_grid_est), i, j))
       truth <- reshape2::melt(extract_block_structure_ij(my_list[[k]][[truth_name]], length(time_grid_est), i, j))
     } else{
       est <- reshape2::melt(my_list[[k]][[est_name]][[key]])
+      X_truth <- reshape2::melt(my_list[[k]][[X_truth_name]][[key]])      
       truth <- reshape2::melt(my_list[[k]][[truth_name]][[key]])      
     }
     
     est$Type <- "Estimate"
     truth$Type <- "Truth"
+    X_truth$Type <- "X_Truth"
     
     est$Matrix <- k
     truth$Matrix <- k
+    X_truth$Matrix <- k
     
-    rbind(est, truth)
+    rbind(est, X_truth, truth)
   }), .id = NULL)
   
   colnames(df_all)[1:3] <- c("Row", "Col", "Value")
   
   # Convert to factors for proper ordering
-  df_all$Type <- factor(df_all$Type, levels = c("Truth", "Estimate"))
+  df_all$Type <- factor(df_all$Type, levels = c("Truth", "X_Truth", "Estimate"))
   df_all$Matrix <- factor(df_all$Matrix)
   
   if(is.null(zmin)){
@@ -199,6 +206,124 @@ result_heatmap_ij_prep <- function(my_list, entry_name, time_grid_est, is_full, 
       axis.text.y = element_text()
     )
 }
+
+result_heatmap_nonblock_prep <- function(my_list, entry_name, time_grid_est, data_format, palette_ID = 'Blue-Red 2', zmin = NULL, zmid = NULL, zmax = NULL){
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: using facet_grid to plot all heatmaps together with one legend, one x-axis, one y-axis, etc...
+  #
+  #       instead of extracting the ij-th block, we look at the entire block
+  #
+  # inputs:
+  #
+  # - my_list       (list)     step_x; list of y_c_queries --> g_ij_est etc items
+  # - entry_name    (string)   estimate prefix (e.g. rho_ii, g_ij)
+  # - data_format   (string)   'full', 'regular', 'list'
+  #
+  # ----------------------------------------------------------------------------
+  
+  # 1) entry name
+  
+  if(data_format == 'full'){
+    est_name <- paste0(entry_name, '_est_full')
+    X_truth_name <- paste0(entry_name, '_X_truth_full')
+    truth_name <- paste0(entry_name, '_truth_full')   
+  } else {
+    est_name <- paste0(entry_name, '_est')
+    X_truth_name <- paste0(entry_name, '_X_truth')
+    truth_name <- paste0(entry_name, '_truth')    
+  }
+  
+  
+  # 2) colors
+  new_palette <- hcl.colors(3, palette = palette_ID)
+  c_low <- new_palette[1]
+  c_mid <- new_palette[2]
+  c_high <- new_palette[3]  
+  
+  # 3) combining entrys from `my_list`
+  
+  # Suppose your list is called `my_list` with length m
+  m <- length(my_list)
+  
+  # Combine all matrices into one long dataframe
+  df_all <- bind_rows(lapply(seq_len(m), function(k) {
+    
+    if(data_format %in% c('full', 'regular')){
+      est     <- reshape2::melt(my_list[[k]][[est_name]])
+      X_truth <- reshape2::melt(my_list[[k]][[X_truth_name]])
+      truth   <- reshape2::melt(my_list[[k]][[truth_name]])
+    } else{
+      # we only have access to i_j names, so we use this to extract p
+      i_j <- names(my_list[[k]][[est_name]])
+      j_j <- i_j[length(i_j)]
+      p <- strsplit(j_j, "_")[[1]][1] %>% as.numeric()
+      
+      est     <- reshape2::melt(assemble_block_matrix_v2(my_list[[k]][[est_name]],     p, m))
+      X_truth <- reshape2::melt(assemble_block_matrix_v2(my_list[[k]][[X_truth_name]], p, m))      
+      truth   <- reshape2::melt(assemble_block_matrix_v2(my_list[[k]][[truth_name]],   p, m))      
+    }
+    
+    est$Type <- "Estimate"
+    truth$Type <- "Truth"
+    X_truth$Type <- "X_Truth"
+    
+    est$Matrix <- k
+    truth$Matrix <- k
+    X_truth$Matrix <- k
+    
+    rbind(est, X_truth, truth)
+  }), .id = NULL)
+  
+  colnames(df_all)[1:3] <- c("Row", "Col", "Value")
+  
+  # Convert to factors for proper ordering
+  df_all$Type <- factor(df_all$Type, levels = c("Truth", "X_Truth", "Estimate"))
+  df_all$Matrix <- factor(df_all$Matrix)
+  
+  if(is.null(zmin)){
+    zmin <- min(df_all$Value)
+  }
+  if(is.null(zmax)){
+    zmax <- max(df_all$Value)
+  }
+  if(is.null(zmid)){
+    zmid <- (zmin + zmax) / 2       
+  }
+  
+  zmax <- zmax + 0.1 * (zmax - zmin)
+  zmin <- zmin - 0.1 * (zmax - zmin)
+  
+  if(length(unique(df_all$Col)) == length(time_grid_est)){
+    df_all$Col_val <- time_grid_est[df_all$Col]
+    df_all$Row_val <- time_grid_est[df_all$Row]    
+  } else{
+    df_all$Col_val <- df_all$Col
+    df_all$Row_val <- df_all$Row   
+  }
+  
+
+  
+  # Plot with facets
+  ggplot(df_all, aes(x = Col_val, y = Row_val, fill = Value)) +
+    geom_tile() +
+    scale_y_reverse() + # matrix y-axis 
+    scale_fill_gradient2(low = c_low, mid = c_mid, high = c_high,
+                         midpoint = zmid,
+                         limits = c(zmin, zmax)) +
+    coord_fixed() +
+    theme_minimal() +
+    facet_grid(Type ~ Matrix, scales = "fixed") +
+    labs(x = "t", y = "s", fill = "f(s,t)") +
+    theme(
+      strip.background = element_rect(fill = "gray90"),
+      strip.text = element_text(face = "bold"),
+      axis.text.x = element_text(angle = 90),
+      axis.text.y = element_text()
+    )
+}
+
 
 result_line_graph_prep <- function(my_list, entry_name, time_grid, palette_ID = 'Dark 2', num_processes = NULL){
   
@@ -275,14 +400,24 @@ result_line_graph_prep <- function(my_list, entry_name, time_grid, palette_ID = 
     )
 }
 
-result_29 <- function(step_2, y_c_id){
+result_29 <- function(weights, y_c_values, y_c_id){
   
-  # plot the distribution of the weights in estimating rho_i(t)
   
-  df_29 <- data.frame(x = step_2$y_c_s[,1], y = step_2$weights)
+  # ----------------------------------------------------------------------------
+  # 
+  # GOAL: plot the distribution of the weights in estimating rho_i(t)
+  #
+  # - weights    (n-dim vector)  weight vector
+  # - y_c_values (n-dim vector)  time vector
+  # - y_c_id     (value)         y_c_query
+  #
+  # ----------------------------------------------------------------------------
+
+  
+  df_29 <- data.frame(x = y_c_values, y = weights)
   g <- ggplot(data = df_29, aes(x = x, y = y)) + geom_line() + geom_point() + 
     ylab('weight') + 
-    xlab('y_c_k') + 
+    xlab('continuous covariate') + 
     ggtitle(paste0('y_c_query=', y_c_id))
   
   return(g)

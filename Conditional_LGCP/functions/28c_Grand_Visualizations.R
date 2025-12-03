@@ -148,8 +148,8 @@ visualize_over_time <- function(graph_results_i, graph_ids, full = T){
   
   y_c_names <- graph_results_i$y_c_query %>%
     as.numeric() %>%
-    round(2) %>%
-    formatC(format = "f", digits = 2)
+    round(3) %>%
+    formatC(format = "f", digits = 3)
   
   # 2) figure out which steps have unique results for y_c_query and which steps are constant
   
@@ -231,8 +231,11 @@ visualize_over_time <- function(graph_results_i, graph_ids, full = T){
   # weights, all y_c_query settings in a row
   if('29' %in% graph_ids){
     
+    # we assume step_2[[i]]$weights is a n-dim vector
+    # we assume Y_continuous is dumped from graph_results_i
+    
     graph_list <- lapply(seq_along(step_2), function(i) {
-      result_29(step_2[[i]], y_c_names[i])
+      result_29(step_2[[i]]$weights, Y_continuous, y_c_names[i])
     })
     
     graphs[['g_29']] <- do.call(grid.arrange, c(graph_list, nrow = 1))
@@ -276,7 +279,7 @@ visualize_over_time <- function(graph_results_i, graph_ids, full = T){
   
   # reconstructing g_ij from eigenfunctions
   if('42' %in% graph_ids){ 
-    g_list <- lapply(1:length(step_3), function(x){result_42_prep(step_3[[i]], step_4[[i]], p, full)})
+    g_list <- lapply(1:length(step_3), function(i){result_42_prep(step_3[[i]], step_4[[i]], p, full)})
     graphs[['g_42']] <- rearrange_plots(g_list)
   }  
   
@@ -288,7 +291,7 @@ visualize_over_time <- function(graph_results_i, graph_ids, full = T){
   
   # reconstruction error histogram 
   if('44' %in% graph_ids){ 
-    g_list <- lapply(1:length(step_3), function(x){result_44_prep(step_3[[i]], step_4[[i]], p, full)})
+    g_list <- lapply(1:length(step_3), function(i){result_44_prep(step_3[[i]], step_4[[i]], p, full)})
     graphs[['g_44']] <- rearrange_plots(g_list)
   } 
   # eigenvalue decay - check if G_ii / m makes the eigenvalues similar between coarse/fine settings
@@ -309,6 +312,7 @@ visualize_over_time <- function(graph_results_i, graph_ids, full = T){
     graphs[['g_56']] <- rearrange_plots(g_list) 
   }
   
+  # V_Xi_Xj
   if('81' %in% graph_ids & 'step_8' %in% names(graph_results_i)){
     est_graphs <- lapply(graph_results_i$step_8, function(x) extract_block_structure_ij(x$step_8$V_cond_est_full, m_est, i = 1, j = 2))
   }
@@ -318,67 +322,42 @@ visualize_over_time <- function(graph_results_i, graph_ids, full = T){
   if('90' %in% graph_ids){
     graphs[['g_90']] <- result_heatmap_ij_prep(step_9, 'C_cond', time_grid_est, is_full = T, i = 1, j = 1, zmid = 0)
   }  
-  # C_Xi_Xj for block (1, 2)
   
+  # C_Xi_Xj for block (1, 2)
   if('91' %in% graph_ids){
-    # g_list <- lapply(graph_results_i$step_9, function(x){ result_90s_prep_ij(x, m, m_est, i = 1, j = 2, full) })
-    # 
-    # graphs[['g_91']] <- rearrange_plots(g_list) 
-    # 
-    # graphs[['g_91']] <- result_heatmap_ij_prep(step_9, 'C_cond', T, i = 1, j = 1)
     graphs[['g_91']] <- result_heatmap_ij_prep(step_9, 'C_cond', time_grid_est, is_full = T, i = 1, j = 2, zmid = 0)
   }
   
   # C_Xi_Xj for block (3, 5)
-  
   if('92' %in% graph_ids){
-    # graph_list <- lapply(graph_results_i$step_9, function(x){ result_90s_prep_ij(x, m, m_est, i = 3, j = 5, full) })
-    # 
-    # n_y_c_query <- length(graph_list)
-    # n_settings <- length(graph_list[[1]])
-    # 
-    # # Flatten the nested list: row-wise
-    # flat_graphs <- unlist(graph_list, recursive = FALSE)
-    # 
-    # # Create column-major index mapping
-    # # R's matrix() fills column-wise by default, so we transpose to reorder properly
-    # idx <- as.vector(t(matrix(seq_along(flat_graphs), nrow = n_settings, ncol = n_y_c_query)))
-    # 
-    # # Reorder the flat list
-    # flat_graphs_colwise <- flat_graphs[idx]
-    # 
-    # # Arrange in n_settings rows x n_y_c_query columns
-    # graphs[['g_92']] <- do.call(grid.arrange, c(flat_graphs_colwise, nrow = n_settings, ncol = n_y_c_query))
-    
     graphs[['g_92']] <- result_heatmap_ij_prep(step_9, 'C_cond', time_grid_est, is_full = T, i = 3, j = 5, zmid = 0)
-    
   }  
   
   # C for all blocks (pm x pm)
   if('93' %in% graph_ids){
-    g_list <- lapply(graph_results_i$step_9, function(x) result_90s_prep_pm(x, m, m_est, full))
-    graphs[['g_93']] <- rearrange_plots(g_list) 
+    graphs[['g_93']] <- result_heatmap_nonblock_prep(step_9, 'C_cond', time_grid_est, data_format = 'full', zmid = 0)
   }  
   
   # C_HS for all pxp blocks
   if('95' %in% graph_ids){
-    g_list <- lapply(graph_results_i$step_11, function(x) result_95_prep(x, m, m_est, p, full))
-    graphs[['g_95']] <- rearrange_plots(g_list) 
+    graphs[['g_95']] <- result_heatmap_nonblock_prep(step_11, 'C_HS', time_grid_est, data_format = 'regular', zmid = 0)
   }
   
   # P for all blocks (pm x pm)
   if('103' %in% graph_ids){
-    g_list <- lapply(graph_results_i$step_10, function(x) result_100s_prep_pm(x, m, m_est, full))
-    graphs[['g_103']] <- rearrange_plots(g_list) 
+    graphs[['g_103']] <- result_heatmap_nonblock_prep(step_10, 'P_cond', time_grid_est, data_format = 'full', zmid = 0)
   } 
   
-  # P_HS for all pxp blocks
+  # P_HS (w_mat) for all pxp blocks
   if('112' %in% graph_ids){
-    g_list <- lapply(graph_results_i$step_11, function(x) result_112_prep(x, remove_diag = T, full))
-    graphs[['g_112']] <- rearrange_plots(g_list) 
+    graphs[['g_112']] <- result_heatmap_nonblock_prep(step_11, 'w_mat', time_grid_est, data_format = 'regular', zmid = 0)
+    graphs[['g_112b']] <- result_heatmap_nonblock_prep(step_11, 'w_mat', time_grid_est, data_format = 'regular')
   }  
   
   if('113' %in% graph_ids){
+    
+    y_names <- names(graph_results_i$step_12)
+    x_names <- names(graph_results_i$step_12[[1]])
     
     all_plots <- list()
     
@@ -396,7 +375,7 @@ visualize_over_time <- function(graph_results_i, graph_ids, full = T){
           geom_step(direction = "vh", color = "blue", size = 1) +
           geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "grey") +
           labs(
-            title = paste("ROC:", i, "-", j),
+            title = paste('y=', y_names[i], ', ', x_names[j]),
             x = "False Positive Rate", y = "True Positive Rate"
           ) +
           annotate("point", x = 1 - ideal_spec, y = ideal_sens, color = "red", size = 3) +
@@ -413,7 +392,7 @@ visualize_over_time <- function(graph_results_i, graph_ids, full = T){
     }
     
     # arrange all 70 plots in a 10x7 grid
-    graphs[['113']] <- wrap_plots(all_plots, ncol = 7, nrow = 10) 
+    graphs[['113']] <- wrap_plots(all_plots, ncol = length(y_names), nrow = length(x_names), byrow = FALSE) 
     
   }
   

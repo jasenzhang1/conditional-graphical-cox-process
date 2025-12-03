@@ -27,44 +27,13 @@ visualize_finite_basis <- function(truth_file_name, estimates_file_name, graph_i
   #
   # ----------------------------------------------------------------------------
   
-  truths <- load_file(truth_file_name)
-  estimates <- load_file(estimates_file_name)
+  # 1) merge truths and estimates
   
+  merged <- convergence_metrics_part1(truth_file_name, estimates_file_name)
   
-  full <- F
-  
-  # estimates has the hierarchy of step_X --> [[i]] --> 'est'
-  # truths    has the hierarchy of step_X --> [[i]] --> 'truth'
-  
-  # merged    has the same hierarchy and ests and truths are put together
-  
-  merged <- lapply(names(estimates), function(step_name) {
-    est_step <- estimates[[step_name]]
-    tru_step <- truths[[step_name]]
-    
-    if (!is.null(tru_step)) {
-      # If both are lists of lists (e.g., step_2), merge elementwise
-      if (is.list(est_step[[1]]) && is.list(tru_step[[1]])) {
-        mapply(function(e, t) c(e, t), est_step, tru_step, SIMPLIFY = FALSE)
-      } else {
-        # Otherwise, just combine their contents directly (e.g., step_1)
-        c(est_step, tru_step)
-      }
-    } else {
-      # No matching truth: keep as-is
-      est_step
-    }
-  })
-  
-  names(merged) <- names(estimates)
-  
-  merged[['true_graphs']] <- truths$true_graphs
-  
-  # ----------------------------------------------------------------------------
-  # now, utilize the code in 28c
-  # ----------------------------------------------------------------------------
-  
-  
+
+  # 2) now, utilize the code in 28c
+
   g_comparisons <- visualize_over_time(merged, graph_ids, full)
   
   return(g_comparisons)

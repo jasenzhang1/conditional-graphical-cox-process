@@ -418,6 +418,289 @@ visualize_metrics <- function(folder_name, metrics, i = NULL, j = NULL){
   
 }
 
+# merge data with estimates
+convergence_metrics_part1 <- function(truth_file_name, estimates_file_name){
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: create `merged`, the combination of `estimates` and `truths` for finite basis 
+  #
+  #
+  # inputs:
+  #
+  # - truth_file_name
+  # - estimates_file_name
+  #
+  # outputs:
+  #
+  # - merged
+  #
+  # ----------------------------------------------------------------------------
+  
+  truths <- load_file(truth_file_name)
+  estimates <- load_file(estimates_file_name)
+  
+  
+  full <- F
+  
+  # estimates has the hierarchy of step_X --> [[i]] --> 'est'
+  # truths    has the hierarchy of step_X --> [[i]] --> 'truth'
+  
+  # merged    has the same hierarchy and ests and truths are put together
+  
+  merged <- lapply(names(estimates), function(step_name) {
+    est_step <- estimates[[step_name]]
+    tru_step <- truths[[step_name]]
+    
+    if (!is.null(tru_step)) {
+      # If both are lists of lists (e.g., step_2), merge elementwise
+      if (is.list(est_step[[1]]) && is.list(tru_step[[1]])) {
+        mapply(function(e, t) c(e, t), est_step, tru_step, SIMPLIFY = FALSE)
+      } else {
+        # Otherwise, just combine their contents directly (e.g., step_1)
+        c(est_step, tru_step)
+      }
+    } else {
+      # No matching truth: keep as-is
+      est_step
+    }
+  })
+  
+  names(merged) <- names(estimates)
+  
+  merged[['true_graphs']] <- truths$true_graphs
+  
+  return(merged)
+  
+}
+
+convergence_metrics_part2 <- function(merged, k){
+  
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: for a y_c query, obtain its estimate metrics
+  # 
+  # input:
+  # 
+  # - merged  (list of step_2, step_2b, etc)
+  #     - within each list, we have y_c_query 
+  #     - then we have rho_i_est, rho_i_truth etc
+  #
+  # - k       (integer)  query_id
+  # - i       (integer)  process i
+  # - j       (integer)  process j
+  # 
+  #
+  # output:
+  #
+  # - metrics such as HS distance between truth and est, etc
+  #
+  # 
+  # ----------------------------------------------------------------------------
+  
+  # 0) extract parameters
+  
+  p <- dim(merged$step_2[[k]]$rho_i_est)[1]
+  m_est <- dim(merged$step_2[[k]]$rho_i_est)[2]
+  
+
+  # 1) find HS_norm of differences between pm x pm matrices
+  
+  P_HS    <- hilbert_schmidt_norm_pm_rmse(merged$step_10[[k]]$P_cond_est_full - merged$step_10[[k]]$P_cond_truth_full, p, m_est)
+  C_HS    <- hilbert_schmidt_norm_pm_rmse(merged$step_9[[k]]$C_cond_est_full - merged$step_9[[k]]$C_cond_truth_full, p, m_est)
+  
+  # 2) find distance between rho_i and rho_i_coarse_truth
+  
+  rho_i_dist <- hilbert_schmidt_norm_rmse(merged$step_2[[k]]$rho_i_est - merged$step_2[[k]]$rho_i_truth)
+  
+  # distance between rho_ij and rho_ij_coarse truth
+  rho_ij_est_mat <- assemble_block_matrix_v2(merged$step_2b[[k]]$rho_ii_est, p, m_est)
+  rho_ij_truth_mat <- assemble_block_matrix_v2(merged$step_2b[[k]]$rho_ii_truth, p, m_est)
+  rho_ij_dist <- hilbert_schmidt_norm_pm_rmse(rho_ij_est_mat - rho_ij_truth_mat, p, m_est)
+  
+  # 3) find distance between g_ij_est and g_ij_coarse_truth
+  
+  g_ij_est_mat <- assemble_block_matrix_v2(merged$step_3[[k]]$g_ij_est, p, m_est)
+  g_ij_truth_mat <- assemble_block_matrix_v2(merged$step_3[[k]]$g_ij_truth, p, m_est)
+  g_ij_dist <- hilbert_schmidt_norm_pm_rmse(g_ij_est_mat - g_ij_truth_mat, p, m_est)
+  
+  # 4) ROC results
+  
+  roc_results <- merged$step_12[[k]]$roc_est
+  
+  # 5) group metrics
+  
+  metrics <- list(rho_i_dist = rho_i_dist,
+                  rho_ij_dist = rho_ij_dist,
+                  g_ij_dist = g_ij_dist,
+                  P_HS = P_HS,
+                  C_HS = C_HS,
+                  sens = roc_results$sensitivity,
+                  spec = roc_results$specificity,
+                  auc = as.numeric(roc_results$auc),
+                  accuracy = roc_results$accuracy)
+  
+  return(metrics)
+  
+}
+
+convergence_metrics_part3 <- function(merged){
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: from `merged`, create `metrics` that obtains metrics for each y_c_query
+  #
+  #
+  # inputs:
+  #
+  # - merged  (list of step_2, step_2b, etc)
+  #     - within each list, we have y_c_query 
+  #     - then we have rho_i_est, rho_i_truth etc
+  #
+  #
+  # outputs:
+  #
+  # - metrics
+  #
+  # ----------------------------------------------------------------------------
+  
+  n_query <- nrow(merged$y_c_query)
+  
+  metrics <- lapply(1:n_query, function(k){
+    convergence_metrics_part2(merged, k)
+  })
+  
+  names(metrics) <- round(merged$y_c_query[,1], 3)
+  
+  return(metrics)
+}
+
+visualize_metrics_finite_basis <- function(truth_file_name, results_folder, metric_names, i = NULL, j = NULL){
+  
+  # ----------------------------------------------------------------------------
+  #
+  #
+  # GOAL: visualize metrics where the truths and estimates are in different folders
+  #
+  # - metrics
+  #   - rho_i_dist (scalar)
+  #   - rho_ij_dist (pxp matrix, each value is HS norm of m_est x m_est rho_ij)
+  #   - g_ij_dist   (pxp matrix)
+  #   - P_HS        (pxp matrix, each value is HS norm of difference of P_hat - P)
+  #   - C_HS        (pxp matrix)
+  #   - C_HS_v2     (pxp matrix)
+  #   - V_HS        (pxp matrix)
+  #   - sens        (scalar)
+  #   - spec        (scalar)
+  #   - auc         (scalar)
+  #   - accuracy    (scalar)
+  #
+  #
+  #
+  # input:
+  #
+  # - data_folder    (string)  'simu_data'
+  # - results_folder (string)  'simu_results/block_banded_v2/CPGM'
+  # - metric         (string)  
+  #   - 'rho_i_dist'
+  #   - 'rho_ij_dist'
+  #   - 'g_ij_dist'
+  #   - 'P_HS', 'C_HS', 'V_HS'
+  # - i and j    (integers)  indices for matrix metrics
+  #
+  # output:
+  #
+  # - table and graph of intermediate convergence metrics:
+  # 
+  #   - ||rho_i(t) - rho_i_est(t)||
+  #   - ||rho_ij(s,t) - rho_ij_est(s,t)||
+  #   - ||g_ij(s,t) - g_ij_est(s,t)||
+  #   - ||C_ij - C_ij_est||
+  #   - ||P_ij - P_ij_est||
+  #   - AUC
+  #
+  # ----------------------------------------------------------------------------
+  
+  # 0) find all results file names
+  
+  estimate_files <- list.files(results_folder, full.names = TRUE)
+  ns <- get_ns(results_folder)
+  
+  results_df <- data.frame()
+  
+  for(l in 1:length(ns)){
+    n <- ns[l]
+    estimates_file_name <- estimate_files[l]
+
+    # 1) merge truths and estimates
+    
+    merged <- convergence_metrics_part1(truth_file_name, estimates_file_name)
+    
+    # 2) getting metrics
+    
+    all_metrics <- convergence_metrics_part3(merged)
+    
+    # 3) create dataframe for graphing
+    
+    for(metric in metric_names){
+      
+      # 3a) get the name
+      if(metric %in% c('rho_ij_dist', 'g_ij_dist', 'P_HS', 'C_HS', 'V_HS')){
+        metric_name <- paste0(metric, '_', i, '_', j)
+        values <- sapply(all_metrics, function(x) x[[metric]][i,j])
+      } else{
+        metric_name <- metric  
+        values <- sapply(all_metrics, function(x) x[[metric]])
+      }
+      
+      temp_df <- data.frame(n, as.numeric(names(values)), unname(values), metric_name)
+      colnames(temp_df) <- c('n', 'y_c_query', 'values', 'metric')
+      
+      results_df <- rbind(results_df, temp_df)
+    }
+  }
+  
+  results_df$n <- factor(results_df$n)
+  
+  metric_names_graphs <- unique(results_df$metric)
+  
+  # graph
+  graphs <- list()
+  
+  for(metric_name in metric_names_graphs){
+    
+    title_name <- paste0(metric_name, ' versus n and y_c_query')
+    
+    results_df2 <- results_df %>% filter(metric == metric_name)
+    
+    g <- ggplot() + 
+      geom_line(data = results_df2, aes(x = y_c_query, y = values, group = n, color = n)) + 
+      geom_point(data = results_df2, aes(x = y_c_query, y = values, group = n, color = n)) + 
+      ylab(metric_name) + 
+      xlab('Y_c Query') + 
+      # ggtitle(title_name) + 
+      theme_bw() 
+    
+    if(metric_name %in% c('auc')){
+      g <- g + ylim(0, 1)
+    } else{
+      g <- g + scale_y_log10(limits = c(NA, NA))
+    }
+    graphs[[metric_name]] <- g
+  }
+  
+  # grid arrange
+  
+  arranged_plots <- do.call(arrangeGrob, c(graphs, ncol = 3))
+  
+  # Display it
+  return(list(metric_graph = arranged_plots,
+              metric_table = results_df))
+  
+  
+}
+
 
 visualize_truths_from_est <- function(folder_name, n, graph_ids, cl, time_grid, time_grid_est, time_grid_both, p, y_c_id = NULL){
   

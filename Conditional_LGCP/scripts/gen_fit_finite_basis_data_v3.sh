@@ -35,6 +35,8 @@ max_jobs=60
 min_events=5
 max_events=10000
 n_query=1
+beta_truth="F"
+X_truth="F"
 
 function wait_for_slot {
     # Wait until the number of background jobs is strictly less than max_jobs
@@ -118,7 +120,7 @@ for entry in "${adj_type_params[@]}"; do
       echo "[ $(date '+%F %T') ] Starting query $cont_ind / $n_query" >> "$outfile"
       wait_for_slot
       (
-          Rscript script_generate_finite_basis_data_part4.R "$n_large" "$adj_type" "$cont_ind" "${adj_params[@]}" >> "$outfile" 2>&1
+          Rscript script_generate_finite_basis_data_part4.R "$n_large" "$adj_type" "$cont_ind" "$beta_truth" "${adj_params[@]}" >> "$outfile" 2>&1
           echo "[ $(date '+%F %T') ] Finished query $cont_ind" >> "$outfile"
       ) & 
   done  

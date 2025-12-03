@@ -940,6 +940,9 @@ simulate_finite_basis_cox_data_part4 <- function(temp_file_dir, setting_info_lis
   #
   # - temp_file_dir
   # - setting_info_list
+  #
+  #   - beta_truth        (boolean)   do we use do estimation with realized beta coefficients and ground truth eigenfunctions?
+  # 
   # - cont_ind            (integer)   query number
   #
   # 
@@ -1042,71 +1045,68 @@ simulate_finite_basis_cox_data_part4 <- function(temp_file_dir, setting_info_lis
   eigen_truths <- trig_basis_eigendecomposition(G, cov_mat_query, cor_mat_query, prec_mat_query, basis_list, time_grid)
   
   # ----------------------------------------------------------------------------
-  # find eigentruths with realized beta values and ground truth eigenfunctions
+  # 3) find eigentruths with realized beta values and ground truth eigenfunctions
+  #
+  # denote this ax beta_truth
+  # 
   # ----------------------------------------------------------------------------
   
-
-  weights_k <- KDE_weights(Y_c, y_c_query[cont_ind, ])
-  
-  X <- aperm(beta_coeffs, c(2, 1, 3)) %>% 
-    matrix(nrow = p*d, ncol = n) %>% # reshape to p*d × n
-    t()  # (n x pd)
-  
-  # weighted mean (length p*d)
-  mu <- colSums(weights_k * X)
-  
-  # centered data
-  XC <- sweep(X, 2, mu)
-  
-  # weighted covariance: sum_i w_i (x_i - mu)(x_i - mu)^T
-  cov_w <- t(XC * weights_k) %*% XC
-  
-  kappa <- 1 - sum(weights_k^2)
-  cov_w_unbiased <- cov_w / kappa 
-  
-  # convert to correlation using blockwise function
-  corr_w_unbiased <- assemble_blockwise_correlation(cov_w_unbiased, p, d)
-  prec_w_unbiased <- sym(solve(corr_w_unbiased))
-  
-  KL_X_truth <- list(KL_cov = cov_w_unbiased,
-                     KL_corr = corr_w_unbiased,
-                     KL_prec = prec_w_unbiased)
+  if(beta_truth){
+    weights_k <- KDE_weights(Y_c, y_c_query[cont_ind, ])
+    
+    X <- aperm(beta_coeffs, c(2, 1, 3)) %>% 
+      matrix(nrow = p*d, ncol = n) %>% # reshape to p*d × n
+      t()  # (n x pd)
+    
+    # weighted mean (length p*d)
+    mu <- colSums(weights_k * X)
+    
+    # centered data
+    XC <- sweep(X, 2, mu)
+    
+    # weighted covariance: sum_i w_i (x_i - mu)(x_i - mu)^T
+    cov_w <- t(XC * weights_k) %*% XC
+    
+    kappa <- 1 - sum(weights_k^2)
+    cov_w_unbiased <- cov_w / kappa 
+    
+    # convert to correlation using blockwise function
+    corr_w_unbiased <- assemble_blockwise_correlation(cov_w_unbiased, p, d)
+    prec_w_unbiased <- sym(solve(corr_w_unbiased))
+    
+    KL_X_truth <- list(KL_cov = cov_w_unbiased,
+                       KL_corr = corr_w_unbiased,
+                       KL_prec = prec_w_unbiased)
+    
+    # 3c) compute C_cond_X_truth 
+    
+    eigen_decomp_truth    <- eigen_truths$eigen_decomp
+    KL_cor_X_truth        <- KL_X_truth$KL_corr %>% extract_block_structure_v2(p, d)
+    KL_prec_X_truth       <- KL_X_truth$KL_prec %>% extract_block_structure_v2(p, d)
+    C_cond_list_X_truth   <- correlation_estimation_KL_cor(eigen_decomp_truth, KL_cor_X_truth) 
+    P_cond_list_X_truth   <- correlation_estimation_KL_cor(eigen_decomp_truth, KL_prec_X_truth) 
+    
+    C_cond_X_truth_full          <- C_cond_list_X_truth$C_cond %>% assemble_block_matrix_v2(p, m)
+    C_cond_X_truth_unnorm_full   <- C_cond_list_X_truth$C_cond_unnorm %>% assemble_block_matrix_v2(p, m)
+    
+    # step 10
+    P_cond_X_truth_full          <- P_cond_list_X_truth$C_cond %>% assemble_block_matrix_v2(p, m)
+    P_cond_X_truth_unnorm_full   <- P_cond_list_X_truth$C_cond_unnorm %>% assemble_block_matrix_v2(p, m)
+    
+    # step 11
+    C_HS_X_truth <- hilbert_schmidt_norm_pm(KL_X_truth$KL_corr, p, d)
+    P_HS_X_truth <- hilbert_schmidt_norm_pm(KL_X_truth$KL_prec, p, d)
+    
+    step_9_10_11_X_truth <- list(C_cond_X_truth_full = C_cond_X_truth_full,
+                                 C_cond_X_truth_unnorm_full = C_cond_X_truth_unnorm_full,
+                                 P_cond_X_truth_full = P_cond_X_truth_full,
+                                 P_cond_X_truth_unnorm_full = P_cond_X_truth_unnorm_full,
+                                 C_HS_X_truth = C_HS_X_truth,
+                                 P_HS_X_truth = P_HS_X_truth)
+  }
          
     
 
-  
-  # 6c) compute C_cond_X_truth 
-  
-  
-
-    
-  eigen_decomp_truth    <- eigen_truths$eigen_decomp
-  KL_cor_X_truth        <- KL_X_truth$KL_corr %>% extract_block_structure_v2(p, d)
-  KL_prec_X_truth       <- KL_X_truth$KL_prec %>% extract_block_structure_v2(p, d)
-  C_cond_list_X_truth   <- correlation_estimation_KL_cor(eigen_decomp_truth, KL_cor_X_truth) 
-  P_cond_list_X_truth   <- correlation_estimation_KL_cor(eigen_decomp_truth, KL_prec_X_truth) 
-  
-  C_cond_X_truth_full          <- C_cond_list_X_truth$C_cond %>% assemble_block_matrix_v2(p, m)
-  C_cond_X_truth_unnorm_full   <- C_cond_list_X_truth$C_cond_unnorm %>% assemble_block_matrix_v2(p, m)
-  
-  # step 10
-  P_cond_X_truth_full          <- P_cond_list_X_truth$C_cond %>% assemble_block_matrix_v2(p, m)
-  P_cond_X_truth_unnorm_full   <- P_cond_list_X_truth$C_cond_unnorm %>% assemble_block_matrix_v2(p, m)
-  
-  # step 11
-  C_HS_X_truth <- hilbert_schmidt_norm_pm(KL_X_truth$KL_corr, p, d)
-  P_HS_X_truth <- hilbert_schmidt_norm_pm(KL_X_truth$KL_prec, p, d)
-  
-  step_9_10_11_X_truth <- list(C_cond_X_truth_full = C_cond_X_truth_full,
-                               C_cond_X_truth_unnorm_full = C_cond_X_truth_unnorm_full,
-                               P_cond_X_truth_full = P_cond_X_truth_full,
-                               P_cond_X_truth_unnorm_full = P_cond_X_truth_unnorm_full,
-                               C_HS_X_truth = C_HS_X_truth,
-                               P_HS_X_truth = P_HS_X_truth)
-  
-
-
-  
   # ----------------------------------------------------------------------------
   # merge truths - layer 1 = item - layer 2 = y_c_query
   # ----------------------------------------------------------------------------
@@ -1122,54 +1122,41 @@ simulate_finite_basis_cox_data_part4 <- function(temp_file_dir, setting_info_lis
   #                mu_t_coarse_truth = mu_t_coarse)
   
   step_2 <- list(rho_i_truth = rho_truths$rho_i_truth)
-
   
   step_2b <- list(rho_ii_truth = rho_truths$rho_ij_truth)
 
-  
   step_3 <- list(g_ij_truth = rho_truths$g_ij_truth)
   
   step_4 <- list(eigen_decomp_truth = eigen_truths$eigen_decomp)
   
   step_5 <- list(KL_coeffs_truth = beta_coeffs,                          # (p x d x n)
-                 KL_cov_truth = eigen_truths$KL_cov,
-                 KL_cov_X_truth = KL_X_truth$KL_cov %>% extract_block_structure_v2(p, d))    # (pc2 list of dxd matrices)
+                 KL_cov_truth = eigen_truths$KL_cov)    # (pc2 list of dxd matrices)
 
   
   step_5b <- list(KL_cor_truth    = eigen_truths$KL_cor,               # (pc2 list of dxd matrices)
-                  KL_cor_X_truth  = KL_X_truth$KL_corr %>% extract_block_structure_v2(p, d),
-                  KL_prec_truth   = eigen_truths$KL_prec,
-                  KL_prec_X_truth = KL_X_truth$KL_prec %>% extract_block_structure_v2(p, d))              # (pc2 list of dxd matrices)
+                  KL_prec_truth   = eigen_truths$KL_prec)              # (pc2 list of dxd matrices)
     
     
 
   
   step_9 <- list(C_cond_truth_full          = eigen_truths$C_cond_full,
-                 C_cond_truth_unnorm_full   = eigen_truths$C_cond_full_unnorm,
-                 C_cond_X_truth_full        = step_9_10_11_X_truth$C_cond_X_truth_full,
-                 C_cond_X_truth_unnorm_full = step_9_10_11_X_truth$C_cond_X_truth_unnorm_full)          # (pm x pm matrix)
+                 C_cond_truth_unnorm_full   = eigen_truths$C_cond_full_unnorm)          # (pm x pm matrix)
   
   step_9b <- list(efunc_outer_truth = eigen_truths$efunc_outer,
                   efunc_outer_unnorm_truth = eigen_truths$efunc_outer_unnorm)          # (pc2 list of mxm matrices)
   
   step_10 <- list(P_cond_truth_full           = eigen_truths$P_cond_full,
-                  P_cond_truth_unnorm_full    = eigen_truths$P_cond_full_unnorm,
-                  P_cond_X_truth_full         = step_9_10_11_X_truth$P_cond_X_truth_full,
-                  P_cond_X_truth_unnorm_full  = step_9_10_11_X_truth$P_cond_X_truth_unnorm_full)          # (pm x pm matrix)
+                  P_cond_truth_unnorm_full    = eigen_truths$P_cond_full_unnorm)          # (pm x pm matrix)
   
   step_11 <- list(adj_mat_truth       = adj_mat_truth,
                   w_mat_truth         = eigen_truths$P_HS,
                   C_HS_truth          = eigen_truths$C_HS,
                   w_mat_truth_unnorm  = eigen_truths$P_HS_unnorm,
-                  C_HS_truth_unnorm   = eigen_truths$C_HS_unnorm,
-                  w_mat_X_truth       = step_9_10_11_X_truth$P_HS_X_truth,
-                  C_HS_X_truth        = step_9_10_11_X_truth$C_HS_X_truth)                       # (pxp matrix)
+                  C_HS_truth_unnorm   = eigen_truths$C_HS_unnorm)                       # (pxp matrix)
   
   # step 12
   w_mat_truth         = eigen_truths$P_HS
-  w_mat_X_truth       = step_9_10_11_X_truth$P_HS_X_truth
-  step_12 <- list(roc_truth = roc_with_threshold(w_mat_truth, adj_mat_truth, 'Truth'),
-                  roc_X_truth = roc_with_threshold(w_mat_X_truth, adj_mat_truth, 'X Truth'))
+  step_12 <- list(roc_truth = roc_with_threshold(w_mat_truth, adj_mat_truth, 'Truth'))
   
   # true_graphs
   
@@ -1177,6 +1164,29 @@ simulate_finite_basis_cox_data_part4 <- function(temp_file_dir, setting_info_lis
                       cov_mat_truth = cov_mat_query,
                       cor_mat_truth = cor_mat_query,
                       prec_mat_truth = prec_mat_query)
+  
+  if(beta_truth){
+    step_5[['KL_cov_beta_truth']] <- KL_X_truth$KL_cov %>% extract_block_structure_v2(p, d)    # (pc2 list of dxd matrices)
+    
+    step_5b[['KL_cor_beta_truth']] <- KL_X_truth$KL_corr %>% extract_block_structure_v2(p, d)
+    step_5b[['KL_prec_beta_truth']] <- KL_X_truth$KL_prec %>% extract_block_structure_v2(p, d)
+    
+    step_9[['C_cond_beta_truth_full']] <- step_9_10_11_X_truth$C_cond_X_truth_full
+    step_9[['C_cond_beta_truth_unnorm_full']] <- step_9_10_11_X_truth$C_cond_X_truth_unnorm_full
+    
+    step_10[['P_cond_beta_truth_full']] <- step_9_10_11_X_truth$P_cond_X_truth_full
+    step_10[['P_cond_beta_truth_unnorm_full']] <- step_9_10_11_X_truth$P_cond_X_truth_unnorm_full
+    
+
+    step_11[['w_mat_beta_truth']] <- step_9_10_11_X_truth$P_HS_X_truth
+    step_11[['C_HS_beta_truth']] <- step_9_10_11_X_truth$C_HS_X_truth
+    
+
+    
+    w_mat_X_truth            <- step_9_10_11_X_truth$P_HS_X_truth
+    step_12[['roc_beta_truth']] <- roc_with_threshold(w_mat_X_truth, adj_mat_truth, 'Beta Truth')
+  }
+  
   
   all_truths <- list(step_2 = step_2,
                      step_2b = step_2b,
@@ -1201,7 +1211,20 @@ simulate_finite_basis_cox_data_part4 <- function(temp_file_dir, setting_info_lis
 # merge truths and data
 simulate_finite_basis_cox_data_part5 <- function(temp_file_dir, setting_info_list, cont_inds, group_nums){
   
-  # merge all truths together, and merge this with all the results
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: merge all truths together, and merge this with all the results
+  #
+  # inputs:
+  # 
+  # - temp_file_dir
+  # - setting_info_list
+  # - cont_inds            (integer)  how many n_querys
+  # - group_nums           (integer)  how many groups
+  #
+  # 
+  # ----------------------------------------------------------------------------
   
   # 0) load 
   
