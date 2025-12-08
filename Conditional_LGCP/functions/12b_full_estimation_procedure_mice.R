@@ -196,6 +196,31 @@ full_conditional_estimation_with_no_truth <- function(dataset, method, ncores, d
 
 full_conditional_estimation_with_no_truth_part1 <- function(dataset, setting_info_list, ncores, temp_file_dir, mouse, X_truth = F){
   
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: bundle all relevant parameters into a list called:
+  #
+  #       part1_block_banded_c0_n_100.rds
+  #
+  #
+  # inputs:
+  #
+  # - dataset 
+  # - setting_info_list    (list)
+  # - ncores               (integer)
+  # - temp_file_dir        (string)   'temp_data/simu'
+  # - mouse                (boolean)  are we working with mice data?
+  # - X_truth              (boolean)  do we want to get estimates starting from true log intensities?
+  #
+  # 
+  # outputs:
+  # 
+  # - save a list of items that are relevant when we select n out of n_large subjects, including:
+  #
+  #   - gamma_c (varies with n)
+  #   - 
+  # 
+  # ----------------------------------------------------------------------------
 
   list2env(setting_info_list, envir = environment())  
 
@@ -225,15 +250,11 @@ full_conditional_estimation_with_no_truth_part1 <- function(dataset, setting_inf
   
   step_0_events <- step_0_keep_events(dataset, k = 1, i_vec = 1:5)
   
+  # load `data_df4`, `y_c_strata_full`, `y_c_strata`, `query_y_cs`, `patient_sel`, `feature_sel`
   processed_data <- step_0_preprocess(dataset)
-  data_df4     <- processed_data[[1]]
-  y_c_strata   <- processed_data[[2]]  # full 
-  query_y_cs   <- processed_data[[3]]
-  patient_sel  <- processed_data[[4]]
-  feature_sel  <- processed_data[[5]]
-  y_c_strata_sel <- processed_data$y_c_strata_sel
-  
+  list2env(processed_data, envir = environment()) 
   rm(processed_data)
+  
   
   p <- length(feature_sel)
   full <- F
@@ -244,25 +265,20 @@ full_conditional_estimation_with_no_truth_part1 <- function(dataset, setting_inf
   
   step_1 <- step_1_log_intensities(dataset, data_df4, time_grid_est, NA, NA, full) 
   
-  # more things to store:
-  # - weights2
-  # - keys
   
-
+  # 2) load gamma_c and i_j keys
   
-  gamma_c <- select_gamma_c_bandwidth_v2(y_c_strata_sel)
+  gamma_c <- select_gamma_c_bandwidth_v2(y_c_strata)
   
-  # get the keys 
   keys <- expand.grid(i = 1:p, j = 1:p) %>%
     subset(i <= j) %>%
     with(paste0(i, "_", j))
   
-
-
   # print
   cat("n_bivariate_processes=", length(keys), "\n")
   cat("n_processes=", p, "\n")
   cat("n_queries=", nrow(query_y_cs), "\n")
+  
   
   # Save results for Stage 2
   
@@ -271,8 +287,8 @@ full_conditional_estimation_with_no_truth_part1 <- function(dataset, setting_inf
     step_0_events = step_0_events,
     step_1 = step_1,
     data_df4 = data_df4,
+    y_c_strata_full = y_c_strata_full,
     y_c_strata = y_c_strata,
-    y_c_strata_sel = y_c_strata_sel,
     query_y_cs = query_y_cs,
     patient_sel = patient_sel,
     feature_sel = feature_sel,
@@ -432,19 +448,34 @@ full_conditional_estimation_with_no_truth_part2 <- function(temp_file_dir, setti
 }
 
 
-estimate_intensities_stratum_parallel_with_yc_part0 <- function(temp_file_dir, temp_file_dir2, setting_info_list, cont_ind, mouse){
+estimate_intensities_stratum_parallel_with_yc_part0 <- function(temp_file_dirs, setting_info_list, cont_ind, mouse){
   
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: for this strata, calculate weights and adj_mat (truth)
+  # GOAL: we are beginning the estimation method for a specific n_query.
+  #       calculate weights and adj_mat (truth), and store it in
+  #
+  #       'part2_block_banded_c0_n_100_nquery1.rds'
+  #
+  # 
+  #
+  # inputs:
+  #
+  # - temp_file_dirs      (vector of strings) c('temp_data/simu', 'temp_data/simu_data')
+  # - setting_info_list   (list)
+  # - cont_ind            (integer) n_query id
+  # - mouse               (boolean)  are we working with mice data?
   #
   #
-  # - temp_file_dir     (string) 'temp_data/simu'
-  # - temp_file_dir2    (string) 'temp_data/simu_data'
+  # outputs:
   #
+  # - list of items from part1 as well as:
   #
-  #
+  #   - weights
+  #   - W_y
+  #   - adj_mat_i
+  # 
   # ----------------------------------------------------------------------------
   
   list2env(setting_info_list, envir = environment())
@@ -458,7 +489,7 @@ estimate_intensities_stratum_parallel_with_yc_part0 <- function(temp_file_dir, t
     step_1_info_list <- paste0('part1_', adj_type, '_n_', n, '.rds')
   }
   
-  results <- readRDS(file.path(temp_file_dir, step_1_info_list))
+  results <- readRDS(file.path(temp_file_dirs[1], step_1_info_list))
   list2env(results, envir = environment())
   
   # 1) get the query and get the weights
@@ -466,15 +497,18 @@ estimate_intensities_stratum_parallel_with_yc_part0 <- function(temp_file_dir, t
   
   weights <- apply(y_c_strata, 1, function(row) {
     step_6_kernel(as.numeric(row), y_c_query, gamma_c) 
-  })    
-  weights2 <- weights / sum(weights) # normalize
+  })  
   
-  results[['weights2']] <- weights2
+  W_y <- sum(weights)
+  weights2 <- weights / W_y # normalize
+  
+  results[['weights']] <- weights2
+  results[['W_y']] <- W_y
   
   # 2) get the ground truth adj_mat
   if(! mouse){
     truth_data_name <- paste0('truths_', adj_type, '_n_', n_large, '_nquery', cont_ind, '.rds')
-    truths <- readRDS(file.path(temp_file_dir2, truth_data_name))
+    truths <- readRDS(file.path(temp_file_dirs[2], truth_data_name))
 
     results[['adj_mat_i']] <- truths$true_graphs$adj_mat_truth
   }
@@ -488,13 +522,13 @@ estimate_intensities_stratum_parallel_with_yc_part0 <- function(temp_file_dir, t
     datafile_name <- paste0('part2_', adj_type, '_n_', n, '_nquery', cont_ind, '.rds')
   }
   
-  saveRDS(results, file = file.path(temp_file_dir, datafile_name))  
+  saveRDS(results, file = file.path(temp_file_dir, datafile_name))
   
 
 }
 
 # rho_i
-estimate_intensities_stratum_parallel_with_yc_part1 <- function(temp_file_dir, setting_info_list, cont_ind, i, mouse) {
+estimate_intensities_stratum_parallel_with_yc_part1 <- function(temp_file_dir, setting_info_list, cont_ind, i, mouse, X_truth) {
   
   
   # ----------------------------------------------------------------------------
@@ -512,12 +546,21 @@ estimate_intensities_stratum_parallel_with_yc_part1 <- function(temp_file_dir, s
   # - cont_ind              (integer)   which n_query index
   # - i                     (integer)   process_id from 1 to p
   # - mouse                 (boolean)   mouse (T) or simulation (F)
+  # - X_truth               (boolean)   do we want to do estimation from true log-intensities?
   #
+  #
+  # outputs:
+  #
+  # - rho_i_result          (list)
+  #
+  #   - rho_i_est           (m-dim vector)  rho_i_est
+  #   - rho_i_X_truth       (m-dim vector)  only computed if we have X_truth = T
   #
   # ----------------------------------------------------------------------------
   
   list2env(setting_info_list, envir = environment())
   
+  # 1) load
   
   if(mouse){
     step_2_info_list <- paste0('part2_', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '.rds')
@@ -526,13 +569,15 @@ estimate_intensities_stratum_parallel_with_yc_part1 <- function(temp_file_dir, s
   }
 
   
+  # load `dataset$X_k_truth`
   results <- readRDS(file.path(temp_file_dir, step_2_info_list))
   list2env(results, envir = environment())
   
   
   n_time <- length(time_grid_est)  # 19
   
-  # step 2: univariate case 
+  
+  # 2) solve for rho_i
   
   data_i <- data_df4[feature_id == feature_sel[i], ]
   
@@ -543,7 +588,7 @@ estimate_intensities_stratum_parallel_with_yc_part1 <- function(temp_file_dir, s
     Gamma_i <- data_i[, estimate_density(time, time_grid_est), by = "subject_num"]
     rho_mat <- matrix(Gamma_i$rho_hat, nrow = n_time)
     
-    included_weights <- weights2[unique(Gamma_i$subject_num)]  # assume weights2 contains everyone so we have to filter here
+    included_weights <- weights[unique(Gamma_i$subject_num)]  # assume weights contains everyone so we have to filter here
     
     normalized_weights = included_weights / sum(included_weights)
     
@@ -554,8 +599,12 @@ estimate_intensities_stratum_parallel_with_yc_part1 <- function(temp_file_dir, s
   
   # store rho_i
   
-  out_list <- list()
-  out_list[[i]] <- rho_i
+  rho_i_result <- list(rho_i_est = rho_i) 
+  
+  if(X_truth){
+    rho_i_result[['rho_i_X_truth']] = apply(exp(dataset$X_k_truth[i, , ]), 1, mean) # take (12 x 30 x 100), index only the i-th process, then take sample mean across n
+  }
+  
   
   
   if(mouse){
@@ -564,12 +613,12 @@ estimate_intensities_stratum_parallel_with_yc_part1 <- function(temp_file_dir, s
     rho_i_file_name <- paste0('step_2_rho_i_', adj_type, '_n_', n, '_nquery', cont_ind, '_', i, '.rds')
   }
   
-  saveRDS(out_list, file = file.path(temp_file_dir, rho_i_file_name))  
+  saveRDS(rho_i_result, file = file.path(temp_file_dir, rho_i_file_name))  
   
 }
 
 # key_k
-estimate_intensities_stratum_parallel_with_yc_part2 <- function(temp_file_dir, setting_info_list, cont_ind, k, mouse) {
+estimate_intensities_stratum_parallel_with_yc_part2 <- function(temp_file_dir, setting_info_list, cont_ind, k, mouse, X_truth) {
   
   
   # ----------------------------------------------------------------------------
@@ -587,6 +636,15 @@ estimate_intensities_stratum_parallel_with_yc_part2 <- function(temp_file_dir, s
   # - cont_ind              (integer)   which n_query index
   # - k                     (integer)   index number corresponding to a i_j pair
   # - mouse                 (boolean)   mouse (T) or simulation (F)
+  # - X_truth               (boolean)   do we want X_truth?
+  #
+  #
+  # outputs:
+  #
+  # - rho_ij_result       (list)
+  # 
+  #   - rho_ii_est        (m x m matrix)
+  #   - rho_ii_X_truth    (m x m matrix)  only calcualted when X_truth = T
   #
   #
   # ----------------------------------------------------------------------------
@@ -604,7 +662,7 @@ estimate_intensities_stratum_parallel_with_yc_part2 <- function(temp_file_dir, s
     step_2_info_list <- paste0("part2_", adj_type, '_n_', n, '_nquery', cont_ind, '.rds')
   }
   
-  
+  # load `dataset`
   results <- readRDS(file.path(temp_file_dir, step_2_info_list))
   list2env(results, envir = environment())
   
@@ -651,7 +709,7 @@ estimate_intensities_stratum_parallel_with_yc_part2 <- function(temp_file_dir, s
       
       bivariate_intensity <- matrix(Gamma_ij$V1, nrow = n_time^2)
       
-      included_weights <- weights2[unique(Gamma_ij$subject_num)]
+      included_weights <- weights[unique(Gamma_ij$subject_num)]
       normalized_weights = included_weights / sum(included_weights)
       
       bivariate_intensity2 <- sweep(bivariate_intensity, 2, normalized_weights, `*`) # multiply each 19-dim vec by its normalized weight      
@@ -663,8 +721,16 @@ estimate_intensities_stratum_parallel_with_yc_part2 <- function(temp_file_dir, s
   
   # store rho_ij_mat
   
-  out_list <- list()
-  out_list[[key_ij]] <- rho_ij_mat
+  
+  
+  rho_ij_result <- list(rho_ii_est = rho_ij_mat)
+  
+  if(X_truth){
+    
+    rho_ii_X_truth <- estimate_rho_ij_from_Lambda(dataset$X_k_truth, i, j, weights)
+    
+    rho_ij_result[['rho_ii_X_truth']] <- rho_ii_X_truth
+  }
   
   if(mouse){
     rho_ij_file_name <- paste0('step_2_rho_ij_', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '_', k, '.rds')
@@ -672,7 +738,7 @@ estimate_intensities_stratum_parallel_with_yc_part2 <- function(temp_file_dir, s
     rho_ij_file_name <- paste0("step_2_rho_ij_", adj_type, '_n_', n, '_nquery', cont_ind, '_', k, '.rds')
   }
   
-  saveRDS(out_list, file = file.path(temp_file_dir, rho_ij_file_name))  
+  saveRDS(rho_ij_result, file = file.path(temp_file_dir, rho_ij_file_name))  
   
 }
 
@@ -723,20 +789,29 @@ estimate_intensities_stratum_parallel_with_yc_part3 <- function(temp_file_dir, s
   }
 
   
-  # 2) Load all files into a list - but there are some serious wrangling issues
-  # - rho_i_list
-  # - rho_ij_list
+  # 2) Load all rho_i files into a list + reorganize them
+  
+  rho_i_list_raw <- lapply(rho_i_file_names, readRDS)  # list of p items --> `rho_i_est` `rho_i_X_truth` etc...
+                                                       # we wish to create step_2 --> `rho_i_est` = pxm matrix, `rho_i_X_truth` = pxm matrix etc...
+  
 
-  rho_i_list_raw <- lapply(rho_i_file_names, readRDS) # it's a list of lists, only rho_i_list[[2]][[2]] is relevant
+  vec_names <- names(rho_i_list_raw[[1]])
+  step_2 <- lapply(vec_names, function(nm) {
+    mat <- t(sapply(rho_i_list_raw, function(sub) sub[[nm]]))  # stack the vectors
+    return(mat)   
+  })
   
-  rho_i_list <- mapply(function(x, idx) x[[idx]], 
-                       rho_i_list_raw, 
-                       seq_along(rho_i_list_raw),
-                       SIMPLIFY = FALSE)
-  names(rho_i_list) <- 1:length(rho_i_list)
+  names(step_2) <- vec_names
   
   
-  rho_ij_list_raw <- lapply(rho_ij_file_names, readRDS)
+  
+  # 3) Load all rho_ij files into a list + organize them
+  
+  
+  rho_ij_list_raw <- lapply(rho_ij_file_names, readRDS) # list of p items --> `rho_ii_est`, `rho_ii_X_truth` etc...
+                                                        # we wish to create step_2b --> `rho_ii_est` = list of mxm matrices, `rho_ii_X_truth` = list of mxm matrices
+  
+  
   rho_ij_list <- lapply(rho_ij_list_raw, `[[`, 1)
   names(rho_ij_list) <- sapply(rho_ij_list_raw, function(x) names(x)[1])
   
@@ -861,7 +936,6 @@ full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, sett
     step_9b <- step_9b_eigenfunction_outers(step_4, full)
   }
   
-  # reunite at step 10 onwards
   
   block <- F
   MP <- F
@@ -875,6 +949,8 @@ full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, sett
     cat("Dataset saved to dataset.RData\n")
     stop(e)  # Re-throw the error
   })
+  
+  # step_10b - using tau_c and tau_p to select for thresholds to minimize GIC
   
   
   step_11 <- step_11_HS_norms(step_9, step_10, p, full)
