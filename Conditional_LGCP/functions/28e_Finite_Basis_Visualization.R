@@ -3,7 +3,7 @@ source('functions/28y_Visualization_Blocks.R')
 source('functions/28_Simulation_Visualization.R')
 source('functions/28c_Grand_Visualizations.R')
 
-visualize_finite_basis <- function(truth_file_name, estimates_file_name, graph_ids){
+visualize_finite_basis <- function(truth_file_name, estimates_file_name, graph_ids, beta_truth = F, X_truth = F){
   
   # ----------------------------------------------------------------------------
   #
@@ -19,6 +19,8 @@ visualize_finite_basis <- function(truth_file_name, estimates_file_name, graph_i
   # - graph_ids             (vector of strings)   which graphs do we want to see
   # - i
   # - j
+  # - beta_truth            (boolean)             do our results have beta_truth values? 
+  # - X_truth               (boolean)             do our results have X_truth values? 
   #
   #
   # outputs:
@@ -34,7 +36,7 @@ visualize_finite_basis <- function(truth_file_name, estimates_file_name, graph_i
 
   # 2) now, utilize the code in 28c
 
-  g_comparisons <- visualize_over_time(merged, graph_ids, full)
+  g_comparisons <- visualize_over_time(merged, graph_ids, beta_truth, X_truth)
   
   return(g_comparisons)
   
