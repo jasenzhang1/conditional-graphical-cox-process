@@ -1,5 +1,5 @@
 packages <- c("dplyr", "data.table", "pROC", "grid", "abind", "future.apply", "pbmcapply",
-              "Matrix", "ggplot2", "reshape2", "gridExtra", "viridis")
+              "Matrix", "ggplot2", "reshape2", "gridExtra", "viridis", "MASS")
 
 for (p in packages) {
   suppressPackageStartupMessages(library(p, character.only = TRUE))
@@ -27,6 +27,7 @@ source('functions/08a_conditional_covariance_G_ij.R')
 source('functions/08z_cross_covariance_bundle.R')
 source('functions/09_conditional_correlation.R')
 source('functions/10_precision_operator.R')
+source('functions/10b_GIC.R')
 source('functions/11_graph_estimation.R')
 source('functions/12_full_estimation_procedure.R')
 source('functions/12a_full_estimation_procedure_G_ij.R')
