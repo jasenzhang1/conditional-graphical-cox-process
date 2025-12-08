@@ -515,33 +515,37 @@ trig_basis_eigendecomposition <- function(G, cov_mat, cor_mat, prec_mat, basis_l
   # - KL_prec       (pc2 list of dxd matrices)    prec(beta, beta)
   # - C_cond        (pc2 list of mxm matrices)    double sum of cor(beta, beta) * tensorprod(phi, phi)
   # - P_cond        (pc2 list of mxm matrices)    double sum of prec(beta, beta) * tensorprod(phi, phi)
+  # - C_HS
   # - P_HS          (pxp matrix)
+  # - C_HS_unnorm
+  # - P_HS_unnorm
+  # - efunc_outer
+  # - efunc_outer_unnorm
   #
   #
   # ----------------------------------------------------------------------------
   
-  
+  # 0) parameters
   d <- dim(G)[1]
   p <- dim(cov_mat)[1] / d
   m <- length(time_grid)
   delta <- 1/m
 
+  # 1) obtain ground truth eigenfunction basis
   phi <- trig_basis_realization(basis_list, time_grid) # (m x d)
   
   eigen_result <- list()
   
   for(i in 1:p){ # for each process
     
-    # 1) (dxd) eigendecomposition
+    # 3) eigendecomposition of the (i, i) block, usually the identity matrix
 
-    sigma_ii <- extract_block_structure_ij(cov_mat, d, i, i)  # (d x d)
+    sigma_ii <- extract_block_structure_ij(cor_mat, d, i, i)  # (d x d)
     
     
-    
-    eigen_mat <- sigma_ii %*% G
     
     if(any(G != diag(d))){
-      stop('Error: gram matrix says eigenfunctions are not orthogona')
+      stop('Error: gram matrix says eigenfunctions are not orthogonal')
     }
     
   
@@ -550,12 +554,12 @@ trig_basis_eigendecomposition <- function(G, cov_mat, cor_mat, prec_mat, basis_l
 
     
     
-    # 2) retrieval of eigenfunctions - when sigma_ii = identity and G = identity, then eigenfunctions are just the basis functions
+    # 4) retrieval of eigenfunctions - when sigma_ii = identity and G = identity, then eigenfunctions are just the basis functions
 
     eigenfunction_i <- phi %*% eigen_result_i$vectors   # (m x d) times (d x 2)
     
     
-    # 4) storing
+    # 5) storing
     
     eigen_result_i$eigenfunctions <- eigenfunction_i
     
@@ -563,10 +567,9 @@ trig_basis_eigendecomposition <- function(G, cov_mat, cor_mat, prec_mat, basis_l
     
   }
   
-  # correlation operator (C_cond)
-  # - linear combination of KL covariances and tensor product of eigenfunctions
   
-  
+  # 6) correlation operator (C_cond) in basis space (d-dim) and in regular space (m-dim)
+
   C_cond <- list()
   P_cond <- list()
   
@@ -577,32 +580,26 @@ trig_basis_eigendecomposition <- function(G, cov_mat, cor_mat, prec_mat, basis_l
   
   efunc_outer_unnorm <- list()
   
-  cor_mat_list  <- extract_block_structure_v2(cor_mat, p, d) 
-  prec_mat_list <- extract_block_structure_v2(prec_mat, p, d) 
+  KL_cov <- extract_block_structure_v2(cov_mat, p, d)   # (pd x pd) --> list of (d x d) matrices
+  KL_cor  <- extract_block_structure_v2(cor_mat, p, d) 
+  KL_prec <- extract_block_structure_v2(prec_mat, p, d) 
   
   for(i in 1:p){
     for(j in i:p){
       
       key <- paste0(i, '_', j)
       
-      cor_ij <- cor_mat_list[[key]]  #(d x d)
-      prec_ij <- prec_mat_list[[key]]  #(d x d)
+      cor_ij <- KL_cor[[key]]  #(d x d)
+      prec_ij <- KL_prec[[key]]  #(d x d)
       
-      eigenfunction_i_norm <- eigen_result[[i]]$eigenfunction * sqrt(delta)  # (m x d) normalized eigenfunction
-      eigenfunction_j_norm <- eigen_result[[j]]$eigenfunction * sqrt(delta)
+      eigenfunction_i_norm <- eigen_result[[i]]$eigenfunctions * sqrt(delta)  # (m x d) normalized eigenfunction
+      eigenfunction_j_norm <- eigen_result[[j]]$eigenfunctions * sqrt(delta)
       
-      eigenfunction_i_unnorm <- eigen_result[[i]]$eigenfunction # (m x d) normalized eigenfunction
-      eigenfunction_j_unnorm <- eigen_result[[j]]$eigenfunction 
+      eigenfunction_i_unnorm <- eigen_result[[i]]$eigenfunctions # (m x d) normalized eigenfunction
+      eigenfunction_j_unnorm <- eigen_result[[j]]$eigenfunctions 
       
-      # C_ij <- matrix(0, nrow = m, ncol = m)
-      # P_ij <- matrix(0, nrow = m, ncol = m)
-      # 
-      # for(a in 1:d){
-      #   for(b in 1:d){
-      #     C_ij <- C_ij + delta^2 * eigenfunction_i[, a] %*% cor_ij[a, b] %*% eigenfunction_j[, b]   # (m x d) * (d x d) * (d x m) = (m x m)
-      #     P_ij <- P_ij + delta^2 * eigenfunction_i[, a] %*% prec_ij[a, b] %*% eigenfunction_j[, b]
-      #   }
-      # }
+      
+      # take the outer products: sum_{a, b} phi_a * cor_ij(a, b) * phi_b
       
       C_ij <- eigenfunction_i_norm %*% cor_ij %*% t(eigenfunction_j_norm)  # (m x d) * (d x d) * (d x m)
       P_ij <- eigenfunction_i_norm %*% prec_ij %*% t(eigenfunction_j_norm) # (m x d) * (d x d) * (d x m)
@@ -613,9 +610,9 @@ trig_basis_eigendecomposition <- function(G, cov_mat, cor_mat, prec_mat, basis_l
       efunc_outer_ij_norm <- eigenfunction_i_norm %*% t(eigenfunction_j_norm)   # (m x d) * (d x m)
       efunc_outer_ij_unnorm <- eigenfunction_i_unnorm %*% t(eigenfunction_j_unnorm)   # (m x d) * (d x m)
       
-      C_cond[[key]] <- C_ij
-      P_cond[[key]] <- P_ij
-      efunc_outer[[key]] <- efunc_outer_ij_norm
+      C_cond[[key]] <- C_ij                       # (m x m)
+      P_cond[[key]] <- P_ij                       # (m x m)
+      efunc_outer[[key]] <- efunc_outer_ij_norm   # (m x m)
       
       C_cond_unnorm[[key]] <- C_ij_unnorm
       P_cond_unnorm[[key]] <- P_ij_unnorm
@@ -623,45 +620,42 @@ trig_basis_eigendecomposition <- function(G, cov_mat, cor_mat, prec_mat, basis_l
     }
   }
   
+  
+  
+  # 7) HS_truth 
+  
   C_cond_full <- assemble_block_matrix_v2(C_cond, p, m) 
   P_cond_full <- assemble_block_matrix_v2(P_cond, p, m)
   
   C_cond_full_unnorm <- assemble_block_matrix_v2(C_cond_unnorm, p, m) 
   P_cond_full_unnorm <- assemble_block_matrix_v2(P_cond_unnorm, p, m)
   
-  # KL_cov and KL_cov
-  
-  KL_cov <- extract_block_structure_v2(cov_mat, p, d)
-  KL_cor <- extract_block_structure_v2(cor_mat, p, d)
-  KL_prec <- extract_block_structure_v2(prec_mat, p, d)
-  
-  # HS_truth - normalize here
   C_HS <- hilbert_schmidt_norm_pm(C_cond_full, p, m)
   P_HS <- hilbert_schmidt_norm_pm(P_cond_full, p, m)
   C_HS_unnorm <- hilbert_schmidt_norm_pm(C_cond_full_unnorm, p, m)
   P_HS_unnorm <- hilbert_schmidt_norm_pm(P_cond_full_unnorm, p, m)
   
-  # reordering 
+
   
-  # reorder for step_4
+  # 8) reorder for step_4
   
   eigen_result_v2 <- list(
     eigenvalues   = lapply(eigen_result, `[[`, "values"),
     eigenfunctions = lapply(eigen_result, `[[`, "eigenfunctions"),
-    n_dims        = lapply(eigen_result, function(x) dim(x$eigenfunction)[2])
+    n_dims        = lapply(eigen_result, function(x) dim(x$eigenfunctions)[2])
   )
   
   
-
+  # 9) return
   
   return(list(eigen_decomp = eigen_result_v2,
               KL_cov = KL_cov,                           # (pc2 list of dxd matrices)
               KL_cor = KL_cor,                           # (pc2 list of dxd matrices)
               KL_prec = KL_prec,                         # (pc2 list of dxd matrices)
-              C_cond_full = C_cond_full,                 # (pm x pm matrix) 
-              P_cond_full = P_cond_full,                 # (pm x pm matrix)
-              C_cond_full_unnorm = C_cond_full_unnorm,   # (pm x pm matrix) 
-              P_cond_full_unnorm = P_cond_full_unnorm,   # (pm x pm matrix)              
+              C_cond = C_cond,                           # (pc2 list of dxd matrices)
+              P_cond = P_cond,                           # (pc2 list of dxd matrices)
+              C_cond_unnorm = C_cond_unnorm,             # (pc2 list of dxd matrices)
+              P_cond_unnorm = P_cond_unnorm,             # (pc2 list of dxd matrices)             
               C_HS = C_HS,                               # (pxp matrix)
               P_HS = P_HS,
               C_HS_unnorm = C_HS_unnorm,
