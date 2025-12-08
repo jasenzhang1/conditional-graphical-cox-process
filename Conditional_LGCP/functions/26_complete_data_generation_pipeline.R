@@ -1139,14 +1139,14 @@ simulate_finite_basis_cox_data_part4 <- function(temp_file_dir, setting_info_lis
     
 
   
-  step_9 <- list(C_cond_truth_full          = eigen_truths$C_cond_full,
-                 C_cond_truth_unnorm_full   = eigen_truths$C_cond_full_unnorm)          # (pm x pm matrix)
+  step_9 <- list(C_cond_truth                = eigen_truths$C_cond,
+                 C_cond_truth_unnorm         = eigen_truths$C_cond_unnorm)          # (pm x pm matrix)
   
-  step_9b <- list(efunc_outer_truth = eigen_truths$efunc_outer,
-                  efunc_outer_unnorm_truth = eigen_truths$efunc_outer_unnorm)          # (pc2 list of mxm matrices)
+  step_9b <- list(efunc_outer_truth          = eigen_truths$efunc_outer,
+                  efunc_outer_unnorm_truth   = eigen_truths$efunc_outer_unnorm)          # (pc2 list of mxm matrices)
   
-  step_10 <- list(P_cond_truth_full           = eigen_truths$P_cond_full,
-                  P_cond_truth_unnorm_full    = eigen_truths$P_cond_full_unnorm)          # (pm x pm matrix)
+  step_10 <- list(P_cond_truth               = eigen_truths$P_cond,
+                  P_cond_truth_unnorm        = eigen_truths$P_cond_unnorm)          # (pm x pm matrix)
   
   step_11 <- list(adj_mat_truth       = adj_mat_truth,
                   w_mat_truth         = eigen_truths$P_HS,
