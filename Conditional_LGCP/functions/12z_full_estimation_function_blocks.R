@@ -1,3 +1,37 @@
+step_00_grab_ID <- function(vec, prefix, suffix = NULL){
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: grab names from a vector of names that share the same prefix and perhaps a suffix
+  # 
+  #       E.G. c('prefix_name1_suffix', 'prefix_name2_suffix')
+  #
+  # inputs:
+  #
+  # - vec     (vector of untrimmed names)
+  # - prefix  (string)                      prefix name, not including the underscore between prefix and name
+  # - suffix  (string)                      suffix name, not including the underscore between name and suffix
+  #
+  # ouptuts:
+  #
+  # - out     (vector of names)
+  #
+  # ----------------------------------------------------------------------------
+  
+  # Build prefix regex
+  prefix_pattern <- paste0("^", prefix, "_")
+  
+  # Remove prefix only where it matches
+  out <- sub(prefix_pattern, "", vec)
+  
+  # If suffix provided, remove it too
+  if (!is.null(suffix)) {
+    suffix_pattern <- paste0("_", suffix, "$")
+    out <- sub(suffix_pattern, "", out)
+  }
+  
+  return(out)
+}
 
 step_0_check <- function(dataset){
   
@@ -113,10 +147,11 @@ step_0_preprocess <- function(dataset){
   #
   #   - [[1]] data_df4
   #   - [[2]] y_c_strata        all n y_c_strata
-  #   - [[3]] query_y_cs
-  #   - [[4]] patient_sel
-  #   - [[5]] feature_sel
-  #   - [[6]] y_c_strata_sel    subset of stratas in case some subjects are discarded
+  #   - [[3]] y_c_strata_sel    subset of stratas in case some subjects are discarded
+  #   - [[4]] query_y_cs
+  #   - [[5]] patient_sel
+  #   - [[6]] feature_sel
+  #   
   #
   # ----------------------------------------------------------------------------
   
@@ -126,8 +161,8 @@ step_0_preprocess <- function(dataset){
   
   data_df4 <- convert_data_for_estimation_event_times(dataset$event_times) 
 
-  y_c_strata <- dataset$Y_continuous
-  y_c_strata_sel <- dataset$Y_continuous_k
+  y_c_strata_full <- dataset$Y_continuous
+  y_c_strata <- dataset$Y_continuous_k
   
   query_y_cs <- dataset$simulation_params$query_y_cs  
   
@@ -145,11 +180,11 @@ step_0_preprocess <- function(dataset){
   feature_sel = unique(data_df4$feature_id) %>% sort()
   
   return(list(data_df4 = data_df4,
+              y_c_strata_full = y_c_strata_full,
               y_c_strata = y_c_strata,
               query_y_cs = query_y_cs,
               patient_sel = patient_sel,
-              feature_sel = feature_sel,
-              y_c_strata_sel = y_c_strata_sel
+              feature_sel = feature_sel
               ))
   
   
@@ -1546,6 +1581,45 @@ step_11_HS_norms <- function(step_9, step_10, p, full = T){
     w_mat_X_coarse_truth = w_mat_X_coarse_truth,
     w_mat_est = w_mat_est
   ))
+  
+}
+
+steps_10_11_GIC <- function(step_9, p, W_y){
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: estimate the adjacency structure with double thresholding
+  #
+  # 
+  # inputs:
+  #
+  # - step_9
+  #   - C_cond_est                        (list of i_j matrix)  
+  #
+  # - p             (integer)  number of processes
+  # - W_y           (scalar)   weighted sample size of this y_c_query
+  #
+  # outputs:
+  #
+  # - list of:
+  #   - GIC_est                           (list of items)
+  #
+  # ----------------------------------------------------------------------------
+  
+  # 1) grab names
+  result <- list()
+  IDs <- step_00_grab_ID(names(step_9), 'C_cond', 'full')
+  names_0 <- names(step_9)
+  
+  for(i in length(IDs)){
+    
+    name_i <- paste0('GIC_', suffix)
+    
+    result[[name_i]] <- GIC_algorithm(step_9[[names_0[i]]], p, W_y)
+  }
+    
+  return(result)
+
   
 }
 
