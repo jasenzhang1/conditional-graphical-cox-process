@@ -262,3 +262,38 @@ estimate_intensities_stratum_parallel_with_yc <- function(data_all, y_c_query, y
   
 }
 
+
+estimate_rho_ij_from_Lambda <- function(X_mat, i, j, weights){
+  
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: with log-intensity values (X_mat) for i_j pair, calculate its weighted bivariate intensity (rho_ij)
+  #
+  #
+  # input:
+  #
+  # - X_mat         (p x m x n) 
+  # - i             (integer) 
+  # - j             (integer)
+  # - weights       (n-dim vector)   weights for each subject
+  #
+  # outputs:
+  #
+  # - rho_ij    (m x m)
+  #
+  # ----------------------------------------------------------------------------
+  
+  weights2 <- weights / sum(weights)
+  weight_mat <- diag(weights2)      # (n x n matrix)
+  
+  Lambda_i <- exp(X_mat[i,,])       # (m x n)
+  Lambda_j <- exp(X_mat[j,,])       # (m x n)
+  
+
+  rho_ij <- Lambda_i %*% weight_mat %*% t(Lambda_j) # weighted average of outer product 
+
+  
+  return(rho_ij)
+  
+}
