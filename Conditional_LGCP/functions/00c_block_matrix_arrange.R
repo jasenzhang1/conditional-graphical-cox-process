@@ -26,7 +26,7 @@ assemble_block_matrix_v2 <- function(operator_list, p, block_size) {
   #
   # ------------------------------------------------------------------------
   
-  check1 <- all(sapply(my_list, function(x) {
+  check1 <- all(sapply(operator_list, function(x) {
     is.matrix(x) && all(dim(x) == c(block_size, block_size))
   }))
   
