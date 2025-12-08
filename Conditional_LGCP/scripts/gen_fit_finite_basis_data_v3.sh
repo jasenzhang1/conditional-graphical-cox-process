@@ -205,13 +205,13 @@ for entry in "${adj_type_params[@]}"; do
           
           for k in $(seq 1 "$n_i"); do
               wait_for_slot
-              Rscript script_step2_part1.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$j" "$k" >> "$outfile" 2>&1 &
+              Rscript script_step2_part1.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$X_truth" "$j" "$k" >> "$outfile" 2>&1 &
           done
           echo "Query $j out of $n_queries [1/4] done with rho_i" >> "$outfile"
           
           for kl in $(seq 1 "$n_ij"); do
               wait_for_slot
-              Rscript script_step2_part2.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$j" "$kl" >> "$outfile" 2>&1 &
+              Rscript script_step2_part2.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$X_truth" "$j" "$kl" >> "$outfile" 2>&1 &
           done
           wait
           echo "Query $j out of $n_queries [2/4] done with rho_ij" >> "$outfile"

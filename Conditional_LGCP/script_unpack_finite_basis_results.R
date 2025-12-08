@@ -24,8 +24,8 @@ method      <- args[4]    # method <- 'CPGM'
 # adj_type <- 'block_banded_c0'
 # method <- 'CPGM'
 
-n_large <- 10000
-n <- 10000
+n_large <- 1000
+n <- 1000
 
 # heatmaps of certain metrics 
 
