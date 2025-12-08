@@ -90,7 +90,7 @@ rearrange_plots <- function(g_list){
 
 # everything over all query_id
 
-visualize_over_time <- function(graph_results_i, graph_ids, full = T){
+visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth){
   
   
   # ----------------------------------------------------------------------------
@@ -105,7 +105,8 @@ visualize_over_time <- function(graph_results_i, graph_ids, full = T){
   # - graph_ids         (vector of strings)    which graphs do we want?
   # - i
   # - j
-  # - full
+  # - beta_truth            (boolean)             do our results have beta_truth values? 
+  # - X_truth               (boolean)             do our results have X_truth values? 
   #
   # 
   # output:
@@ -155,38 +156,33 @@ visualize_over_time <- function(graph_results_i, graph_ids, full = T){
   
   if('11' %in% graph_ids){
     
-    if(! full){
-      i <- 1
+    i <- 1
+    if(X_truth){
       graphs[['g_11']] <- grid.arrange(visualize_log_intensity(step_1$X_k_est[1:5,,i],            time_grid_est,  'Estimate',       step_1$mu_t_coarse_truth ),
                                        visualize_log_intensity(step_1$X_k_coarse_truth[1:5,,i],   time_grid_est,  'Coarser Truth',  step_1$mu_t_coarse_truth ),
                                        visualize_log_intensity(step_1$X_k_truth[1:5,,i],          time_grid,      'Finer Truth',    step_1$mu_t_truth),
                                        visualize_log_intensity(step_1$X_k_both_truth[1:5,,i],     time_grid_both, 'Combined Truth', step_1$mu_t_both_truth),
                                        textGrob("0. Log Intensity\n of first 5 processes\nof subject 1", gp = gpar(fontsize = 14)),
                                        layout_matrix = arr_mat_6) 
+    } else{
+      graphs[['g_11']] <- grid.arrange(visualize_log_intensity(step_1$X_k_est[1:5,,i],            time_grid_est,  'Estimate',       step_1$mu_t_coarse_truth ),
+                                       textGrob("0. Log Intensity\n of first 5 processes\nof subject 1", gp = gpar(fontsize = 14)),
+                                       layout_matrix = arr_mat_6) 
     }
-    
-    step_1 <- graph_results_i$step_1
-    
-    mu_t <- graph_results_i$kernel_params_i[[1]]$base_mean
-    mu_t_est <- graph_results_i$kernel_params_i[[1]]$base_mean_est
-    mu_t_both <- graph_results_i$kernel_params_i[[1]]$base_mean_both
-    
-    graphs[['g_11']] <- grid.arrange(visualize_log_intensity(step_1[[1]][1:5,,1],   time_grid_est,  'Estimate', mu_t_est ),
-                                     visualize_log_intensity(step_1[[3]][1:5,,1],   time_grid_est,  'Coarser Truth', mu_t_est ),
-                                     visualize_log_intensity(step_1[[2]][1:5,,1],   time_grid,      'Finer Truth', mu_t     ),
-                                     visualize_log_intensity(step_1[[4]][1:5,,1],   time_grid_both, 'Combined Truth', mu_t_both),
-                                     textGrob("0. Log Intensity\n of first 5 processes\nof subject 1", gp = gpar(fontsize = 14)),
-                                     layout_matrix = arr_mat_6) 
   }
   
   if('12' %in% graph_ids){
     
-    if(! full){
-      
+    if(X_truth){
       # p x m x n --> mean --> p x m --> choose first 5 processes --> 5 x m
-      
+      graphs[['g_12']] <- grid.arrange(visualize_log_intensity(apply(step_1$X_k_est,            c(1, 2), mean)[1:5, ],   time_grid_est,  'Estimate',        step_1$mu_t_coarse_truth),
+                                       visualize_log_intensity(apply(step_1$X_k_coarse_truth,   c(1, 2), mean)[1:5, ],   time_grid_est,  'Coarser Truth',   step_1$mu_t_coarse_truth),
+                                       visualize_log_intensity(apply(step_1$X_k_truth,          c(1, 2), mean)[1:5, ],   time_grid,      'Finer Truth',     step_1$mu_t_coarse_truth),
+                                       visualize_log_intensity(apply(step_1$X_k_both_truth,     c(1, 2), mean)[1:5, ],   time_grid_both, 'Combined Truth',  step_1$mu_t_truth),
+                                       textGrob("0. Average Log Intensity\n of first 5 processes", gp = gpar(fontsize = 14)),
+                                       layout_matrix = arr_mat_6) 
+    } else{
       graphs[['g_12']] <- grid.arrange(visualize_log_intensity(apply(step_1$X_k_est,          c(1, 2), mean)[1:5, ],   time_grid_est,  'Estimate',     step_1$mu_t_coarse_truth),
-                                       visualize_log_intensity(apply(step_1$X_k_truth,        c(1, 2), mean)[1:5, ],   time_grid,      'Truth',        step_1$mu_t_truth),
                                        textGrob("0. Average Log Intensity\n of first 5 processes", gp = gpar(fontsize = 14)),
                                        layout_matrix = arr_mat_6) 
     }
@@ -194,46 +190,26 @@ visualize_over_time <- function(graph_results_i, graph_ids, full = T){
   
   # rho_i(t) for processes 1 through 5
   if('22' %in% graph_ids){
-    graphs[['g_22']] <- result_line_graph_prep(step_2, 'rho_i', time_grid_est, num_processes = 5)
+    graphs[['g_22']] <- result_line_graph_prep(step_2, 'rho_i', time_grid_est, X_truth, beta_truth, num_processes = 5)
   }
   
   # rho_ij(s,t) for process pair 1_1
   if('24' %in% graph_ids){ 
-    
-    # key <- '1_1'
-    # 
-    # zmin <- min(sapply(step_2b, function(x) c(as.numeric(x$rho_ii_est[[key]]), as.numeric(x$rho_ii_truth[[key]]))), na.rm = TRUE)   # global min
-    # zmax <- max(sapply(step_2b, function(x) c(as.numeric(x$rho_ii_est[[key]]), as.numeric(x$rho_ii_truth[[key]]))), na.rm = TRUE)   # global min
-    # 
-    # zmin = zmin - 0.01 * (zmax - zmin)  # buffer area
-    # zmax = zmax + 0.01 * (zmax - zmin)    
-    # 
-    # g_list <- lapply(step_2b, function(x){result_20s_prep(x, i = 1, j = 1, zmin, zmax, full)})
-    # graphs[['g_24']] <- rearrange_plots(g_list)
-    
-    # new way
-    
-    graphs[['g_24']] <- result_heatmap_ij_prep(step_2b, 'rho_ii', time_grid_est, is_full = F, i = 1, j = 1)
+    graphs[['g_24']] <- result_heatmap_ij_prep(step_2b, 'rho_ii', time_grid_est, i = 1, j = 1, is_full = F, X_truth = F, beta_truth = F)
   }  
   
   # rho_ij(s,t) for process pair 1_2
   if('25' %in% graph_ids){ 
-    
-    graphs[['g_25']] <- result_heatmap_ij_prep(step_2b, 'rho_ii', time_grid_est, is_full = F, i = 1, j = 2)
+    graphs[['g_25']] <- result_heatmap_ij_prep(step_2b, 'rho_ii', time_grid_est, i = 1, j = 2, is_full = F, X_truth = F, beta_truth = F)
   }  
   
   # rho_ij(s,t) for process pair 3_5
   if('26' %in% graph_ids){ 
-    
-    graphs[['g_26']] <- result_heatmap_ij_prep(step_2b, 'rho_ii', time_grid_est, is_full = F, i = 3, j = 5)
+    graphs[['g_26']] <- result_heatmap_ij_prep(step_2b, 'rho_ii', time_grid_est, i = 3, j = 5, is_full = F, X_truth = F, beta_truth = F)
   }   
   
   # weights, all y_c_query settings in a row
   if('29' %in% graph_ids){
-    
-    # we assume step_2[[i]]$weights is a n-dim vector
-    # we assume Y_continuous is dumped from graph_results_i
-    
     graph_list <- lapply(seq_along(step_2), function(i) {
       result_29(step_2[[i]]$weights, Y_continuous, y_c_names[i])
     })
@@ -243,30 +219,21 @@ visualize_over_time <- function(graph_results_i, graph_ids, full = T){
   
   # g_ij(s,t) at 1_1
   if('31' %in% graph_ids){ 
-    
-    # g_list <- lapply(step_3, function(x){result_30s_prep(x, i = 1, j = 1, full)})
-    # graphs[['g_31']] <- rearrange_plots(g_list)
-    
-    graphs[['g_31']] <- result_heatmap_ij_prep(step_3, 'g_ij', time_grid_est, is_full = F, i = 1, j = 1, zmid = 0)
+    graphs[['g_31']] <- result_heatmap_ij_prep(step_3, 'g_ij', time_grid_est, i = 1, j = 1, is_full = F, X_truth = F, beta_truth = F, zmid = 0)
   }  
   
   # g_ij(s,t) at 1_2
   if('32' %in% graph_ids){ 
-    graphs[['g_32']] <- result_heatmap_ij_prep(step_3, 'g_ij', time_grid_est, is_full = F, i = 1, j = 2, zmid = 0)
+    graphs[['g_32']] <- result_heatmap_ij_prep(step_3, 'g_ij', time_grid_est, i = 1, j = 2, is_full = F, X_truth = F, beta_truth = F, zmid = 0)
   }  
   
   # g_ij(s,t) at 3_5
   if('33' %in% graph_ids){ 
-    graphs[['g_33']] <- result_heatmap_ij_prep(step_3, 'g_ij', time_grid_est, is_full = F, i = 3, j = 5, zmid = 0)
+    graphs[['g_33']] <- result_heatmap_ij_prep(step_3, 'g_ij', time_grid_est, i = 3, j = 5, is_full = F, X_truth = F, beta_truth = F, zmid = 0)
   }    
   
   # eigenfunctions
   if('41' %in% graph_ids){ 
-    # g_list <- lapply(step_4, function(x){result_41_prep(x, time_grid, time_grid_est, full)})
-    # graphs[['g_41']] <- rearrange_plots(g_list)
-    
-    # only keep eigenfunctions from first process
-    
     step_4_v2 <- lapply(step_4, function(x) {
       list(
         eigen_decomp_est   = x$eigen_decomp_est$eigenfunctions[[1]] %>% t(),
@@ -277,21 +244,21 @@ visualize_over_time <- function(graph_results_i, graph_ids, full = T){
     graphs[['g_41']] <- result_line_graph_prep(step_4_v2, 'eigen_decomp', time_grid_est)
   }  
   
-  # reconstructing g_ij from eigenfunctions
+  # reconstructing g_11 from eigenfunctions
   if('42' %in% graph_ids){ 
-    g_list <- lapply(1:length(step_3), function(i){result_42_prep(step_3[[i]], step_4[[i]], p, full)})
+    g_list <- lapply(1:length(step_3), function(i){result_42_prep(step_3[[i]], step_4[[i]], p, X_truth = F)})
     graphs[['g_42']] <- rearrange_plots(g_list)
   }  
   
   # orthonormality of eigenfunctions
   if('43' %in% graph_ids){ 
-    g_list <- lapply(step_4, function(x){result_43_prep(x, full)})
+    g_list <- lapply(step_4, function(x){result_43_prep(x, X_truth = F)})
     graphs[['g_43']] <- rearrange_plots(g_list)
   }
   
   # reconstruction error histogram 
   if('44' %in% graph_ids){ 
-    g_list <- lapply(1:length(step_3), function(i){result_44_prep(step_3[[i]], step_4[[i]], p, full)})
+    g_list <- lapply(1:length(step_3), function(i){result_44_prep(step_3[[i]], step_4[[i]], p, X_truth = F)})
     graphs[['g_44']] <- rearrange_plots(g_list)
   } 
   # eigenvalue decay - check if G_ii / m makes the eigenvalues similar between coarse/fine settings
@@ -320,38 +287,59 @@ visualize_over_time <- function(graph_results_i, graph_ids, full = T){
   # C_Xi_Xj for block (1, 1)
   
   if('90' %in% graph_ids){
-    graphs[['g_90']] <- result_heatmap_ij_prep(step_9, 'C_cond', time_grid_est, is_full = T, i = 1, j = 1, zmid = 0)
+    graphs[['g_90']] <- result_heatmap_ij_prep(step_9, 'C_cond', time_grid_est, i = 1, j = 1, is_full = T, X_truth = F, beta_truth = F, zmid = 0)
   }  
   
   # C_Xi_Xj for block (1, 2)
   if('91' %in% graph_ids){
-    graphs[['g_91']] <- result_heatmap_ij_prep(step_9, 'C_cond', time_grid_est, is_full = T, i = 1, j = 2, zmid = 0)
+    graphs[['g_91']] <- result_heatmap_ij_prep(step_9, 'C_cond', time_grid_est, i = 1, j = 2, is_full = T, X_truth = F, beta_truth = F, zmid = 0)
   }
   
   # C_Xi_Xj for block (3, 5)
   if('92' %in% graph_ids){
-    graphs[['g_92']] <- result_heatmap_ij_prep(step_9, 'C_cond', time_grid_est, is_full = T, i = 3, j = 5, zmid = 0)
+    graphs[['g_92']] <- result_heatmap_ij_prep(step_9, 'C_cond', time_grid_est, i = 3, j = 5, is_full = T, X_truth = F, beta_truth = F, zmid = 0)
   }  
   
   # C for all blocks (pm x pm)
   if('93' %in% graph_ids){
-    graphs[['g_93']] <- result_heatmap_nonblock_prep(step_9, 'C_cond', time_grid_est, data_format = 'full', zmid = 0)
+    graphs[['g_93']] <- result_heatmap_nonblock_prep(step_9, 'C_cond', time_grid_est, data_format = 'full', X_truth = F, beta_truth = F, zmid = 0)
   }  
   
   # C_HS for all pxp blocks
   if('95' %in% graph_ids){
-    graphs[['g_95']] <- result_heatmap_nonblock_prep(step_11, 'C_HS', time_grid_est, data_format = 'regular', zmid = 0)
+    graphs[['g_95']] <- result_heatmap_nonblock_prep(step_11, 'C_HS', time_grid_est, data_format = 'regular', X_truth = F, beta_truth = F, zmid = 0)
   }
+  
+  # distribution of C_HS
+  if('96' %in% graph_ids){
+    graphs[['g_96']] <- result_histogram_prep(step_11, 'C_HS', X_truth = F, beta_truth = F, nbins = 40)
+  }
+  
+  # P_Xi_Xj for block (1, 1)
+  
+  if('90' %in% graph_ids){
+    graphs[['g_100']] <- result_heatmap_ij_prep(step_10, 'P_cond', time_grid_est, i = 1, j = 1, is_full = T, X_truth = F, beta_truth = F, zmid = 0)
+  }  
+  
+  # P_Xi_Xj for block (1, 2)
+  if('91' %in% graph_ids){
+    graphs[['g_101']] <- result_heatmap_ij_prep(step_10, 'P_cond', time_grid_est, i = 1, j = 2, is_full = T, X_truth = F, beta_truth = F, zmid = 0)
+  }
+  
+  # P_Xi_Xj for block (3, 5)
+  if('92' %in% graph_ids){
+    graphs[['g_102']] <- result_heatmap_ij_prep(step_10, 'P_cond', time_grid_est, i = 3, j = 5, is_full = T, X_truth = F, beta_truth = F, zmid = 0)
+  }  
   
   # P for all blocks (pm x pm)
   if('103' %in% graph_ids){
-    graphs[['g_103']] <- result_heatmap_nonblock_prep(step_10, 'P_cond', time_grid_est, data_format = 'full', zmid = 0)
+    graphs[['g_103']] <- result_heatmap_nonblock_prep(step_10, 'P_cond', time_grid_est, data_format = 'full', X_truth = F, beta_truth = F, rm_diag = T, zmid = 0)
+    graphs[['g_103b']] <- result_heatmap_nonblock_prep(step_10, 'P_cond', time_grid_est, data_format = 'full', X_truth = F, beta_truth = F, rm_diag = F, zmid = 0)
   } 
   
   # P_HS (w_mat) for all pxp blocks
   if('112' %in% graph_ids){
-    graphs[['g_112']] <- result_heatmap_nonblock_prep(step_11, 'w_mat', time_grid_est, data_format = 'regular', zmid = 0)
-    graphs[['g_112b']] <- result_heatmap_nonblock_prep(step_11, 'w_mat', time_grid_est, data_format = 'regular')
+    graphs[['g_112']] <- result_heatmap_nonblock_prep(step_11, 'w_mat', time_grid_est, data_format = 'regular', X_truth = F, beta_truth = F, rm_diag = T, zmid = 0)
   }  
   
   if('113' %in% graph_ids){
