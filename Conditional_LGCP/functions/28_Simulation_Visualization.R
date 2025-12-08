@@ -145,16 +145,20 @@ HS_heatmap <- function(precision_op, delta_t){
   
 }
 
-visualize_error_histogram <- function(mat_est, mat_reconstruct, g_title, bin_count){
+visualize_histogram <- function(mat_est, mat_reconstruct = NULL, g_title = 'Title', bin_count = 20){
   
   # ----------------------------------------------------------------------------
   #
-  # visualize the errors between mat_est and mat_reconstruct
+  # GOAL: 1) visualize the distribution of a matrix object
+  #       2) if we supply two matrices, we wish to visualize the errors between mat_est and mat_reconstruct
   # 
-  # mat_est = (matrix)
-  # mat_reconstruct = (matrix)
-  # g_title
-  # n_bins = number of histogram bins
+  # 
+  # inputs:
+  # 
+  # - mat_est           (matrix)
+  # - mat_reconstruct   (matrix)
+  # - g_title           (string)
+  # - n_bins            (integer)  number of histogram bins
   #
   #
   # output:
@@ -163,11 +167,15 @@ visualize_error_histogram <- function(mat_est, mat_reconstruct, g_title, bin_cou
   #
   # ----------------------------------------------------------------------------
   
-  errors <- as.numeric(mat_est - mat_reconstruct)
+  if(is.null(mat_reconstruct)){
+    plot_data = as.numeric(mat_est)
+  } else{
+    plot_data <- as.numeric(mat_est - mat_reconstruct)
+  }
   
-  df <- data.frame(errors = errors)
+  df <- data.frame(plot_data = plot_data)
   
-  g <- ggplot(df, aes(x = errors)) +
+  g <- ggplot(df, aes(x = plot_data)) +
     geom_histogram(bins = bin_count, fill = "skyblue", color = "black") +
     labs(title = g_title) +
     theme_minimal()
