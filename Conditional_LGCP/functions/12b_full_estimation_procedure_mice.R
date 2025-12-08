@@ -522,7 +522,7 @@ estimate_intensities_stratum_parallel_with_yc_part0 <- function(temp_file_dirs, 
     datafile_name <- paste0('part2_', adj_type, '_n_', n, '_nquery', cont_ind, '.rds')
   }
   
-  saveRDS(results, file = file.path(temp_file_dir, datafile_name))
+  saveRDS(results, file = file.path(temp_file_dirs[1], datafile_name))
   
 
 }
