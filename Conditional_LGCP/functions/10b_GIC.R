@@ -1,3 +1,4 @@
+# helpers
 GIC_pseudo_logdet <- function(A, tol = 1e-8) {
   
   # ----------------------------------------------------------------------------
@@ -28,7 +29,6 @@ GIC_pseudo_logdet <- function(A, tol = 1e-8) {
   
   sum(log(ev_pos))
 }
-
 
 GIC_local_loss <- function(C_mat, Theta){
   
@@ -422,6 +422,8 @@ GIC_edge_count <- function(M_list, p){
   
 }
 
+
+# final function used in 12z
 GIC_algorithm <- function(C_cond, p, W_y){
   
   # ----------------------------------------------------------------------------
