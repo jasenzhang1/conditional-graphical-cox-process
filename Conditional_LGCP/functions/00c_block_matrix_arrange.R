@@ -26,6 +26,14 @@ assemble_block_matrix_v2 <- function(operator_list, p, block_size) {
   #
   # ------------------------------------------------------------------------
   
+  check1 <- all(sapply(my_list, function(x) {
+    is.matrix(x) && all(dim(x) == c(block_size, block_size))
+  }))
+  
+  if(! check1){
+    stop('STOP: assemble_block_matrix_v2: not a perfect square block matrix')
+  }
+  
   key_mat <- do.call(rbind, strsplit(names(operator_list), "_"))
   key_mat <- apply(key_mat, 2, as.numeric)
   
@@ -59,6 +67,128 @@ assemble_block_matrix_v2 <- function(operator_list, p, block_size) {
   return(block_matrix)
 }
 
+assemble_block_matrix_irregular <- function(operator_list, p) {
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: Assemble a block matrix from a list of blocks operator_list
+  # 
+  # - Only contains i_j with i <= j. Off-diagonal blocks can be rectangular
+  # - j_i entries are automatically set as transpose of i_j
+  #
+  #
+  # input:
+  # 
+  # - operator_list  (list of entries named i_j)
+  # - p              (integer)                      number of processes
+  #
+  #
+  # output:
+  #
+  # - list of the following:
+  #
+  #   - block_matrix  (square pd x pd-ish matrix)
+  #   - row_borders   (last index of the respective row block)
+  #   - col_borders   (last index of the respective column block)
+  # 
+  # ----------------------------------------------------------------------------
+  
+  # parse names into i,j
+  key_mat <- do.call(rbind, strsplit(names(operator_list), "_"))
+  key_mat <- apply(key_mat, 2, as.numeric)
+  
+  # determine total number of rows and columns
+  # by summing the rows of each diagonal block (i==j) and columns of each diagonal block
+  row_sizes <- col_sizes <- numeric(p)
+  for (k in 1:nrow(key_mat)) {
+    i <- key_mat[k,1]
+    j <- key_mat[k,2]
+    block <- operator_list[[paste(i, j, sep="_")]]
+    nr <- nrow(block)
+    nc <- ncol(block)
+    if (i == j) {
+      row_sizes[i] <- nr
+      col_sizes[j] <- nc
+    }
+  }
+  
+  total_rows <- sum(row_sizes)
+  total_cols <- sum(col_sizes)
+  
+  block_matrix <- matrix(0, nrow = total_rows, ncol = total_cols)
+  
+  # compute row/column starting positions
+  row_starts <- cumsum(c(0, row_sizes[-p])) + 1
+  row_ends   <- cumsum(row_sizes)
+  col_starts <- cumsum(c(0, col_sizes[-p])) + 1
+  col_ends   <- cumsum(col_sizes)
+  
+  # fill in blocks
+  for (k in 1:nrow(key_mat)) {
+    i <- key_mat[k,1]
+    j <- key_mat[k,2]
+    block <- operator_list[[paste(i,j,sep="_")]]
+    
+    # indices in final matrix
+    rs <- row_starts[i]; re <- row_ends[i]
+    cs <- col_starts[j]; ce <- col_ends[j]
+    
+    # place block
+    block_matrix[rs:re, cs:ce] <- block
+    
+    # for off-diagonal, fill j_i as transpose
+    if (i != j) {
+      block_matrix[cs:ce, rs:re] <- t(block)
+    }
+  }
+  
+  return(list(
+    block_matrix = block_matrix,
+    row_borders = row_ends,
+    col_borders = col_ends
+  ))
+}
+
+extract_block_matrix_irregular <- function(full_matrix, row_borders, col_borders) {
+  
+  
+  # ----------------------------------------------------------------------------
+  # GOAL:
+  # Given a full matrix and row/column borders, extract blocks as a list.
+  #
+  # Inputs:
+  # - full_matrix  (pm x qm matrix)
+  # - row_borders: (vector of cumulative row ends, e.g. row_ends)
+  # - col_borders: (vector of cumulative col ends, e.g. col_ends)
+  #
+  # Outputs:
+  # - block_list: list of i_j blocks (names "i_j")
+  # ----------------------------------------------------------------------------
+  
+  p <- length(row_borders)
+  q <- length(col_borders)
+  
+  # compute row/col starts
+  row_starts <- c(1, row_borders[-p] + 1)
+  col_starts <- c(1, col_borders[-q] + 1)
+  
+  block_list <- list()
+  
+  for (i in 1:p) {
+    for (j in i:q) {  # only upper triangular blocks (i <= j)
+      rs <- row_starts[i]
+      re <- row_borders[i]
+      cs <- col_starts[j]
+      ce <- col_borders[j]
+      
+      block <- full_matrix[rs:re, cs:ce, drop=FALSE]
+      block_list[[paste(i,j,sep="_")]] <- block
+    }
+  }
+  
+  return(block_list)
+}
+
 extract_block_structure_v2 <- function(block_matrix, p, block_size) {
   
   # ----------------------------------------------------------------------------
@@ -81,6 +211,14 @@ extract_block_structure_v2 <- function(block_matrix, p, block_size) {
   # - operator_list (list of length p + pC2, each element block_size x block_size)
   #
   # ----------------------------------------------------------------------------
+  
+  if(dim(block_matrix)[1] != dim(block_matrix)[2]){
+    stop('STOP: extract_block_structure_v2: input is not a square matrix')
+  }
+  
+  if(p * block_size != dim(block_matrix)[1]){
+    stop('STOP: extract_block_structure_v2: parameter sizes do not match')
+  }
   
   operator_list <- list()
   
