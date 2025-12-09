@@ -198,7 +198,7 @@ step_0_preprocess <- function(dataset){
 }
 
 
-step_1_log_intensities <- function(dataset, data_df4, time_grid_est, time_grid, time_grid_both, full = T){
+step_1_log_intensities <- function(data_df4, time_grid_est){
   
   
   # ----------------------------------------------------------------------------
@@ -208,50 +208,30 @@ step_1_log_intensities <- function(dataset, data_df4, time_grid_est, time_grid, 
   # 
   # inputs:
   # 
-  # - dataset           (dataset generated from simulation)
   # - data_df4          (data.table with `time`, `feature_id`, `subject_num`)
   # - time_grid_est     (m_est-dim vec of discretized times)
-  # - time_grid         (m-dim vec)
-  # - time_grid_both    (union of the two)
-  # - full              (boolean)      are we including truths?
   #
   #
   # outputs:
   # 
   # - list of:
-  #   - X_k_est                   (p x m_est   x n)
-  #   - X_k_truth                 (p x m_truth x n)
-  #   - X_k_coarse_truth          (p x m_est   x n)
-  #   - X_k_both_truth            (p x m_both  x n)
-  #   - Lambda_k_truth            (p x m_truth x n)
-  #   - Lambda_k_coarse_truth     (p x m_est   x n)
-  #   - Lambda_k_est              (p x m_est   x n)
+  #   - list of:
+  #     - X_k_suffix                 (p x m x n)
+  #   - list of:
+  #     - Lambda_k_suffix            (p x m x n)
   #
   # ----------------------------------------------------------------------------
   
-  if(! full){
-    X_k_est <- subject_specific_log_intensity(data_df4, time_grid_est)
-    return(list(X_k_est = X_k_est))
-  } else{
-
-    X_k_est <- subject_specific_log_intensity(data_df4, time_grid_est)
-    X_k_truth <- dataset$X_k_truth
-    X_k_coarse_truth <- dataset$X_k_coarse_truth
-    X_k_both_truth <- dataset$X_k_both_truth
-    
-    Lambda_k_truth        <- exp(X_k_truth)
-    Lambda_k_coarse_truth <- exp(X_k_coarse_truth)
-    Lambda_k_est          <- exp(X_k_est)
+  X_k_est <- subject_specific_log_intensity(data_df4, time_grid_est)
+  Lambda_k_est <- exp(X_k_est)
   
-    
-    return(list(X_k_est = X_k_est,
-                X_k_truth = X_k_truth,
-                X_k_coarse_truth = X_k_coarse_truth,
-                X_k_both_truth = X_k_both_truth,
-                Lambda_k_truth = Lambda_k_truth,
-                Lambda_k_coarse_truth = Lambda_k_coarse_truth,
-                Lambda_k_est = Lambda_k_est))
-  }
+  step_1 <- list(X_k_est = X_k_est)
+  step_1b <- list(Lambda_k_est = Lambda_k_est)
+  
+  
+  return(list(step_1 = step_1,
+              step_1b = step_1b))
+  
 }
 
 step_2_rho_i <- function(dataset, data_df4, kernel_params, rho_kernel, patient_sel, feature_sel, 
@@ -817,6 +797,47 @@ step_5b_KL_correlation <- function(step_5, p){
   return(result)
 }
 
+step_5c_KL_precision <- function(step_5b, p){
+  
+  # ----------------------------------------------------------------------------
+  # 
+  # GOAL: estimate precisions of the KL coefficients for CPGM method
+  #
+  # inputs:
+  #
+  # - step_5b
+  #   - KL_cor_suffix          (list of d_i x d_j matrices for i_j entries)
+  # 
+  # - p            (integer)
+  #
+  #
+  # outputs:
+  #
+  # - list of:
+  #   - KL_prec_suffix          (list of d_i x d_j matrices for i_j entries)
+  #
+  # ----------------------------------------------------------------------------
+  
+  result <- list()
+  
+  # 1) grab names
+  
+  core_names <- step_00_grab_ID(names(step_5b), 'KL_cor')
+  
+  input_names <- names(step_5b)
+  
+  # 2) for each core name `est`, `X_truth` etc... get the resulting name, apply the function on it, and store it
+  for(i in 1:length(core_names)){
+    
+    name_i <- paste0('KL_prec_', core_names[i])
+    
+    result[[name_i]] <- estimate_KL_precision(step_5b[[input_names[i]]], p)     
+    
+  }
+  
+  return(result)
+}
+
 steps_78_OG <- function(kl_coeffs, y_c_strata, query_y_c, eigenfunctions, ncores){
   
   
@@ -1240,6 +1261,88 @@ step_10_P_cond <- function(step_9, p, block, MP){
   return(result)
 }
 
+step_11_HS_norms_from_KL <- function(step_5c, p){
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: get w_mat from KL_prec
+  #
+  #
+  # inputs:
+  #
+  # - step_5c (list)
+  #   - KL_prec_suffix
+  #
+  # - p      (integer)
+  #
+  # outputs:
+  #
+  # - step_11 (list)
+  #   - w_mat_KL_suffix
+  # 
+  # ----------------------------------------------------------------------------
+  
+  result <- list()
+  
+  # 1) grab names
+  
+  core_names <- step_00_grab_ID(names(step_5c), 'KL_prec')
+  input_names <- names(step_5c)
+
+  # 2) for each core name `est`, `X_truth` etc... get the resulting name, apply the function on it, and store it
+  for(i in 1:length(core_names)){
+    
+    name_i <- paste0('w_mat_KL_', core_names[i])
+    
+    result[[name_i]]  <- hilbert_schmidt_norm_list_to_mat(step_5c[[input_names[i]]], p)   
+
+  }
+  
+  return(result)
+  
+}
+
+step_11b_HS_norms_from_KL <- function(step_5b, p){
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: get C_HS from KL_cor
+  #
+  #
+  # inputs:
+  #
+  # - step_5b (list)
+  #   - KL_cor_suffix
+  #
+  # - p      (integer)
+  #
+  # outputs:
+  #
+  # - step_11 (list)
+  #   - C_HS_KL_suffix
+  # 
+  # ----------------------------------------------------------------------------
+  
+  result <- list()
+  
+  # 1) grab names
+  
+  core_names <- step_00_grab_ID(names(step_5b), 'KL_cor')
+  input_names <- names(step_5b)
+  
+  # 2) for each core name `est`, `X_truth` etc... get the resulting name, apply the function on it, and store it
+  for(i in 1:length(core_names)){
+    
+    name_i <- paste0('C_HS_KL_', core_names[i])
+    
+    result[[name_i]]  <- hilbert_schmidt_norm_list_to_mat(step_5b[[input_names[i]]], p)   
+    
+  }
+  
+  return(result)
+  
+}
+
 step_11_HS_norms <- function(step_9, step_10, p){
   
   # ----------------------------------------------------------------------------
@@ -1291,6 +1394,46 @@ step_11_HS_norms <- function(step_9, step_10, p){
   }
   
   return(result)
+  
+}
+
+steps_10_11_GIC_from_KL <- function(step_5b, p, W_y){
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: estimate the adjacency structure with double thresholding
+  #
+  # 
+  # inputs:
+  #
+  # - step_5b
+  #   - KL_cor_suffix                        (list of i_j matrix)  
+  #
+  # - p             (integer)  number of processes
+  # - W_y           (scalar)   weighted sample size of this y_c_query
+  #
+  # outputs:
+  #
+  # - list of:
+  #   - GIC_KL_suffix                           (list of items)
+  #
+  # ----------------------------------------------------------------------------
+  
+  # 1) grab names
+  result <- list()
+  core_names <- step_00_grab_ID(names(step_5b), 'KL_cor')
+  input_names <- names(step_5b)
+  
+  # for each name `est`, `X_truth` etc... get the resulting name, apply the function on it, and store it
+  for(i in 1:length(core_names)){
+    
+    name_i <- paste0('GIC_KL_', core_names)
+    
+    result[[name_i]] <- GIC_algorithm(step_5b[[input_names[i]]], p, W_y)
+  }
+  
+  return(result)
+  
   
 }
 
