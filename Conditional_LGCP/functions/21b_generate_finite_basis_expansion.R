@@ -515,12 +515,14 @@ trig_basis_eigendecomposition <- function(G, cov_mat, cor_mat, prec_mat, basis_l
   # - KL_prec       (pc2 list of dxd matrices)    prec(beta, beta)
   # - C_cond        (pc2 list of mxm matrices)    double sum of cor(beta, beta) * tensorprod(phi, phi)
   # - P_cond        (pc2 list of mxm matrices)    double sum of prec(beta, beta) * tensorprod(phi, phi)
-  # - C_HS
-  # - P_HS          (pxp matrix)
-  # - C_HS_unnorm
-  # - P_HS_unnorm
-  # - efunc_outer
-  # - efunc_outer_unnorm
+  # - C_HS          (pxp matrix)                  HS norm of pm x pm matrix
+  # - P_HS          (pxp matrix)                  HS norm of pm x pm matrix
+  # - C_HS_unnorm   (pxp matrix)                  HS norm of pm x pm matrix
+  # - P_HS_unnorm   (pxp matrix)                  HS norm of pm x pm matrix
+  # - C_HS_KL       (pxp matrix)                  HS norm of pd x pd matrix of correlations
+  # - P_HS_KL       (pxp matrix)                  HS norm of pd x pd matrix of precisions
+  # - efunc_outer           (i_j list of mxm matrices)
+  # - efunc_outer_unnorm    (i_j list of mxm matrices)
   #
   #
   # ----------------------------------------------------------------------------
@@ -622,7 +624,12 @@ trig_basis_eigendecomposition <- function(G, cov_mat, cor_mat, prec_mat, basis_l
   
   
   
-  # 7) HS_truth 
+  # 7) HS_truth from KL_cov (d x d)
+  
+  P_HS_KL <- hilbert_schmidt_norm_pm(prec_mat, p, d)
+  C_HS_KL <- hilbert_schmidt_norm_pm(cor_mat, p, d)
+  
+  # 8) HS_truth from C_cond (m x m)
   
   C_cond_full <- assemble_block_matrix_v2(C_cond, p, m) 
   P_cond_full <- assemble_block_matrix_v2(P_cond, p, m)
@@ -637,7 +644,7 @@ trig_basis_eigendecomposition <- function(G, cov_mat, cor_mat, prec_mat, basis_l
   
 
   
-  # 8) reorder for step_4
+  # 9) reorder for step_4
   
   eigen_result_v2 <- list(
     eigenvalues   = lapply(eigen_result, `[[`, "values"),
@@ -646,22 +653,31 @@ trig_basis_eigendecomposition <- function(G, cov_mat, cor_mat, prec_mat, basis_l
   )
   
   
-  # 9) return
+  # 10) return
   
   return(list(eigen_decomp = eigen_result_v2,
-              KL_cov = KL_cov,                           # (pc2 list of dxd matrices)
-              KL_cor = KL_cor,                           # (pc2 list of dxd matrices)
-              KL_prec = KL_prec,                         # (pc2 list of dxd matrices)
-              C_cond = C_cond,                           # (pc2 list of dxd matrices)
-              P_cond = P_cond,                           # (pc2 list of dxd matrices)
-              C_cond_unnorm = C_cond_unnorm,             # (pc2 list of dxd matrices)
-              P_cond_unnorm = P_cond_unnorm,             # (pc2 list of dxd matrices)             
-              C_HS = C_HS,                               # (pxp matrix)
+              
+              # (i_j list of dxd matrices)
+              KL_cov = KL_cov,                           
+              KL_cor = KL_cor,                           
+              KL_prec = KL_prec,  
+              
+              # (i_j list of mxm matrices)  
+              C_cond = C_cond,                          
+              P_cond = P_cond,                           
+              C_cond_unnorm = C_cond_unnorm,             
+              P_cond_unnorm = P_cond_unnorm,             
+              efunc_outer = efunc_outer,
+              efunc_outer_unnorm = efunc_outer_unnorm,
+              
+              # (pxp matrix)
+              C_HS = C_HS,                               
               P_HS = P_HS,
               C_HS_unnorm = C_HS_unnorm,
-              P_HS_unnorm = P_HS_unnorm,                 # (pxp matrix)
-              efunc_outer = efunc_outer,
-              efunc_outer_unnorm = efunc_outer_unnorm))               
+              P_HS_unnorm = P_HS_unnorm, 
+              C_HS_KL = C_HS_KL,
+              P_HS_KL = P_HS_KL
+              ))               
 }
 
 
