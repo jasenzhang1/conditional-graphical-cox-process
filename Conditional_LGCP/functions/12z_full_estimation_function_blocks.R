@@ -4,7 +4,9 @@ step_00_grab_ID <- function(vec, prefix, suffix = NULL){
   #
   # GOAL: grab names from a vector of names that share the same prefix and perhaps a suffix
   # 
-  #       E.G. c('prefix_name1_suffix', 'prefix_name2_suffix')
+  #       E.G. c('prefix_name1_suffix', 'prefix_name2_suffix', 'diff_prefix_name3')
+  #
+  #       output: c('name1', 'name2')
   #
   # inputs:
   #
@@ -18,11 +20,15 @@ step_00_grab_ID <- function(vec, prefix, suffix = NULL){
   #
   # ----------------------------------------------------------------------------
   
-  # Build prefix regex
+  # Pattern to match entries that start with the prefix
   prefix_pattern <- paste0("^", prefix, "_")
   
-  # Remove prefix only where it matches
-  out <- sub(prefix_pattern, "", vec)
+  # Keep only matching entries
+  keep_idx <- grepl(prefix_pattern, vec)
+  vec_filtered <- vec[keep_idx]
+  
+  # Remove prefix
+  out <- sub(prefix_pattern, "", vec_filtered)
   
   # If suffix provided, remove it too
   if (!is.null(suffix)) {
@@ -507,7 +513,7 @@ step_2_rho_ij <- function(step_1, step_2, kernel_params, i_neq_j, full = T){
               rho_ii_est = rho_ii_est))
 }
 
-step_3_g_ij <- function(step_2, step_2b, kernel_params, i_neq_j, full = T){
+step_3_g_ij <- function(step_2, step_2b, i_neq_j){
   
   
   # ----------------------------------------------------------------------------
@@ -518,106 +524,48 @@ step_3_g_ij <- function(step_2, step_2b, kernel_params, i_neq_j, full = T){
   # inputs:
   #
   # - step_2:
-  #   - rho_i_truth               (p x m)
-  #   - rho_i_coarse_truth        (p x m_est)
-  #   - rho_i_X_truth             (p x m)
-  #   - rho_i_X_coarse_truth      (p x m_est)
-  #   - rho_i_est                 (p x m_est)
-  #   - rho_list                  (list format, [[1]] = rho_i, [[2]] = rho_ij)
+  #   - rho_i_suffix              (p x m)
+  #   - suffixes = truth, X_truth, est, etc
+  #
   #
   # - step_2b: 
-  #   - rho_ii_truth               (list of m x m matrices, could have only i_i or i_j as well)
-  #   - rho_ii_coarse_truth        (list of m_est x m_est matrices)
-  #   - rho_ii_X_truth             (list of m x m matrices)
-  #   - rho_ii_X_coarse_truth      (list of m_est x m_est matrices)
-  #   - rho_ii_est                 (list of m_est x m_est matrices)
+  #   - rho_ii_suffix              (list of m x m matrices, could have only i_i or i_j as well)
   #
-  # - kernel_params              (list of kernel params)
   # - i_neq_j                    (boolean) do we include i =/= j terms?
-  # - full                       (boolean)    are we including truths in our estimation?
   # 
   # outputs:
   #
   # - list of:
-  #   - g_ij_ground_truth                (list of m x m matrices for i_j entries)
-  #   - g_ij_coarse_ground_truth         (list of m_est x m_est matrices for i_j entries)
-  #   - g_ij_truth                       (list of m x m matrices for i_j entries)
-  #   - g_ij_coarse_truth                (list of m_est x m_est matrices for i_j entries)
-  #   - g_ij_X_truth                     (list of m x m matrices for i_j entries)
-  #   - g_ij_X_coarse_truth              (list of m_est x m_est matrices for i_j entries)
-  #   - g_ij_est                         (list of m_est x m_est matrices for i_j entries)  
+  #   - g_ij_suffix                      (list of m x m matrices for i_j entries)
   #
   # ----------------------------------------------------------------------------
   
-  if(! full){ # just estimation
-    rho_i_est <- step_2$rho_i_est
-    rho_ii_est <- step_2b$rho_ii_est
+  result <- list()
+  
+  # 1) grab names
+  
+  core_names <- step_00_grab_ID(names(step_2), 'rho_i')
+  
+  input_names_step_2 <- names(step_2)
+  input_names_step_2b <- names(step_2b)
+  
+  # 2) for each core name `est`, `X_truth` etc... get the resulting name, apply the function on it, and store it
+  for(i in 1:length(core_names)){
+    
+    name_i <- paste0('g_ij_', core_names[i])
     
     if(i_neq_j){
-      g_ij_est <- estimate_covariance_functions_ij(rho_i_est, rho_ii_est)
+      result[[name_i]] <- estimate_covariance_functions_ij(step_2[[input_names_step_2[i]]], step_2b[[input_names_step_2b[i]]])
     } else{
-      g_ij_est <- estimate_covariance_functions_ii(rho_i_est, rho_ii_est)
+      result[[name_i]] <- estimate_covariance_functions_ii(step_2[[input_names_step_2[i]]], step_2b[[input_names_step_2b[i]]])
     }
-    
-    return(list(g_ij_est = g_ij_est))
   }
   
+  return(result)
   
-  # prep
-  rho_i_truth          <- step_2[[1]]
-  rho_i_coarse_truth   <- step_2[[2]]
-  rho_i_X_truth        <- step_2[[3]]
-  rho_i_X_coarse_truth <- step_2[[4]]
-  rho_i_est            <- step_2[[5]]
-  
-  rho_ii_truth          <- step_2b[[1]]
-  rho_ii_coarse_truth   <- step_2b[[2]]
-  rho_ii_X_truth        <- step_2b[[3]]
-  rho_ii_X_coarse_truth <- step_2b[[4]]
-  rho_ii_est            <- step_2b[[5]]
-  
-  p   <- dim(rho_i_truth)[1]
-  m   <- dim(rho_i_truth)[2]
-  m_est <- dim(rho_i_est)[2]
-  
-  # est
-  
-  if(i_neq_j){
-    
-    g_ij_truth          <- estimate_covariance_functions_ij(rho_i_truth,          rho_ii_truth)
-    g_ij_coarse_truth   <- estimate_covariance_functions_ij(rho_i_coarse_truth,   rho_ii_coarse_truth)
-    g_ij_X_truth        <- estimate_covariance_functions_ij(rho_i_X_truth,        rho_ii_X_truth)
-    g_ij_X_coarse_truth <- estimate_covariance_functions_ij(rho_i_X_coarse_truth, rho_ii_X_coarse_truth)
-    g_ij_est            <- estimate_covariance_functions_ij(rho_i_est,            rho_ii_est)
-  } else{
-    
-    
-    g_ij_truth          <- estimate_covariance_functions_ii(rho_i_truth,          rho_ii_truth)
-    g_ij_coarse_truth   <- estimate_covariance_functions_ii(rho_i_coarse_truth,   rho_ii_coarse_truth)
-    g_ij_X_truth        <- estimate_covariance_functions_ii(rho_i_X_truth,        rho_ii_X_truth)
-    g_ij_X_coarse_truth <- estimate_covariance_functions_ii(rho_i_X_coarse_truth, rho_ii_X_coarse_truth)
-    g_ij_est            <- estimate_covariance_functions_ii(rho_i_est,            rho_ii_est)
-    
-  }
-  
-  
-  g_ij_ground_truth_pm <- kronecker(kernel_params$prec_mat_truth$cor_mat, kernel_params$base_cov)
-  g_ij_coarse_ground_truth_pm <- kronecker(kernel_params$prec_mat_truth$cor_mat, kernel_params$base_cov_est)  
-  
-  g_ij_ground_truth        <- extract_block_structure_v2(g_ij_ground_truth_pm, p, m)
-  g_ij_coarse_ground_truth <- extract_block_structure_v2(g_ij_coarse_ground_truth_pm, p, m_est)
-  
-  
-  return(list(g_ij_ground_truth = g_ij_ground_truth,
-              g_ij_coarse_ground_truth = g_ij_coarse_ground_truth,
-              g_ij_truth = g_ij_truth,
-              g_ij_coarse_truth = g_ij_coarse_truth,
-              g_ij_X_truth = g_ij_X_truth,
-              g_ij_X_coarse_truth= g_ij_X_coarse_truth,
-              g_ij_est = g_ij_est))
 }
 
-step_4_eigendecomp <- function(step_3, p, time_grid, time_grid_est, full = T){
+step_4_eigendecomp <- function(step_3, p){
   
 
   # ----------------------------------------------------------------------------
@@ -627,87 +575,44 @@ step_4_eigendecomp <- function(step_3, p, time_grid, time_grid_est, full = T){
   # inputs:
   #
   # - step_3
-  #   - g_ij_ground_truth                (list of m x m matrices for i_j entries)
-  #   - g_ij_coarse_ground_truth         (list of m_est x m_est matrices for i_j entries)
-  #   - g_ij_truth                       (list of m x m matrices for i_j entries)
-  #   - g_ij_coarse_truth                (list of m_est x m_est matrices for i_j entries)
-  #   - g_ij_X_truth                     (list of m x m matrices for i_j entries)
-  #   - g_ij_X_coarse_truth              (list of m_est x m_est matrices for i_j entries)
-  #   - g_ij_est                         (list of m_est x m_est matrices for i_j entries)   
+  #   - g_ij_suffix                (list of m x m matrices for i_j entries)
   #
   # - p                   (scalar)
   # - time_grid           (m-dim vector)
   # - time_grid_est       (m_est-dim vector)
-  # - full                (boolean)    are we including truths in our estimation?
   #
   #
   # outputs:
   #
   # - list of:
-  #   - eigen_decomp_truth             (list of 4 things)
+  #   - eigen_decomp_suffix             (list of 3 things)
   #     - [[1]] eigenvalues            (list of p vectors of eigenvalues)
   #     - [[2]] eigenvectors           (list of p matrices of m x d_i)
   #     - [[3]] n_dims                 (list of p integers denoting d_i)
   #
-  #   - eigen_decomp_coarse_truth
-  #   - eigen_decomp_X_truth
-  #   - eigen_decomp_X_coarse_truth
-  #   - eigen_decomp_est
   #
   # ----------------------------------------------------------------------------
   
-  if(! full){
-    g_ij_est <- step_3$g_ij_est
-    g_ii_est <- prep_eigendecomposition_ii(g_ij_est, p)
+  
+  result <- list()
+  
+  # 1) grab names
+  
+  core_names <- step_00_grab_ID(names(step_3), 'g_ij')
+  
+  input_names <- names(step_3)
+  
+  # 2) for each core name `est`, `X_truth` etc... get the resulting name, apply the function on it, and store it
+  for(i in 1:length(core_names)){
     
-    # perform eigendecomposition
-    eigen_decomp_est <- compute_eigendecomposition_ii(g_ii_est)
+    name_i <- paste0('eigen_decomp_', core_names[i])
     
-    return(list(eigen_decomp_est = eigen_decomp_est))
+    temp_var <- prep_eigendecomposition_ii(step_3[[input_names[i]]], p)  # prep
+    result[[name_i]] <- compute_eigendecomposition_ii(temp_var)       # then compute
+
   }
-
-  # prep
-  g_ij_truth          <- step_3[[3]]
-  g_ij_coarse_truth   <- step_3[[4]]
-  g_ij_X_truth        <- step_3[[5]]
-  g_ij_X_coarse_truth <- step_3[[6]]
-  g_ij_est            <- step_3[[7]]
   
-
-  m     <- dim(g_ij_truth[[1]])[1]
-  m_est <- dim(g_ij_truth[[2]])[1]
-
-    
-  
-  # only keep g_ii
-
-  g_ii_truth          <- prep_eigendecomposition_ii(g_ij_truth, p)
-  g_ii_coarse_truth   <- prep_eigendecomposition_ii(g_ij_coarse_truth, p)
-  g_ii_X_truth        <- prep_eigendecomposition_ii(g_ij_X_truth, p)
-  g_ii_X_coarse_truth <- prep_eigendecomposition_ii(g_ij_X_coarse_truth, p)
-  g_ii_est            <- prep_eigendecomposition_ii(g_ij_est, p)
-
-  
-
-  
-  # perform eigendecomposition
-  eigen_decomp_truth          <- compute_eigendecomposition_ii(g_ii_truth)
-  eigen_decomp_coarse_truth   <- compute_eigendecomposition_ii(g_ii_coarse_truth)
-  eigen_decomp_X_truth        <- compute_eigendecomposition_ii(g_ii_X_truth)
-  eigen_decomp_X_coarse_truth <- compute_eigendecomposition_ii(g_ii_X_coarse_truth)
-  eigen_decomp_est            <- compute_eigendecomposition_ii(g_ii_est)
-  
-  
-  
-  
-  return(list(eigen_decomp_truth = eigen_decomp_truth,
-              eigen_decomp_coarse_truth = eigen_decomp_coarse_truth,
-              eigen_decomp_X_truth = eigen_decomp_X_truth,
-              eigen_decomp_X_coarse_truth = eigen_decomp_X_coarse_truth,
-              eigen_decomp_est = eigen_decomp_est))
-  
-  
-  
+  return(result)
 }
 
 step_5_KL_expansion <- function(step_1, step_4, kernel_params, time_grid, time_grid_est, ncores){
@@ -829,60 +734,49 @@ step_5_KL_covariance <- function(step_3, step_4, full = T){
   # inputs:
   #
   # - step_3
-  #   - g_ij_ground_truth                (list of m x m matrices for i_j entries)
-  #   - g_ij_coarse_ground_truth         (list of m_est x m_est matrices for i_j entries)
-  #   - g_ij_truth                       (list of m x m matrices for i_j entries)
-  #   - g_ij_coarse_truth                (list of m_est x m_est matrices for i_j entries)
-  #   - g_ij_X_truth                     (list of m x m matrices for i_j entries)
-  #   - g_ij_X_coarse_truth              (list of m_est x m_est matrices for i_j entries)
-  #   - g_ij_est                         (list of m_est x m_est matrices for i_j entries)  
+  #   - g_ij_suffix                (list of m x m matrices for i_j entries)
   # 
   # - step_4
-  #   - eigen_decomp_truth               (list of 3 things)
+  #   - eigen_decomp_suffix               (list of 3 things)
   #     - [[1]] eigenvalues  (list of p vectors of eigenvalues)
   #     - [[2]] eigenvectors (list of p matrices of m x d_i)
   #     - [[3]] n_dims       (list of p integers denoting d_i)
   #
-  #   - eigen_decomp_coarse_truth
-  #   - eigen_decomp_X_truth
-  #   - eigen_decomp_X_coarse_truth
-  #   - eigen_decomp_est
-  #
-  # - full         (boolean)    are we including truths in our estimation?
   #
   #
   # outputs:
   #
   # - list of:
-  #   - KL_cov_truth           (list of d_i x d_j matrices for i_j entries)
-  #   - KL_cov_coarse_truth    (list of d_i x d_j matrices for i_j entries)
-  #   - KL_cov_X_truth         (list of d_i x d_j matrices for i_j entries)
-  #   - KL_cov_X_coarse_truth  (list of d_i x d_j matrices for i_j entries)
-  #   - KL_cov_est             (list of d_i x d_j matrices for i_j entries)
+  #   - KL_cov_suffix           (list of d_i x d_j matrices for i_j entries)
   #
   # ----------------------------------------------------------------------------
   
-  if(! full){
-    KL_cov_est <- estimate_KL_covariance(step_3$g_ij_est, step_4$eigen_decomp_est$eigenfunctions)
+  result <- list()
+  
+  # 1) grab names
+  
+  core_names <- step_00_grab_ID(names(step_3), 'g_ij')
+  
+  input_names_step_3 <- names(step_3)
+  input_names_step_4 <- names(step_4)
+  
+  # 2) for each core name `est`, `X_truth` etc... get the resulting name, apply the function on it, and store it
+  for(i in 1:length(core_names)){
     
-    return(list(KL_cov_est = KL_cov_est))
+    step_3_i <- input_names_step_3[i]
+    step_4_i <- input_names_step_4[i]
+    
+    name_i <- paste0('KL_cov_', core_names[i])
+    
+    result[[name_i]] <- estimate_KL_covariance(step_3[[step_3_i]], step_4[[step_4_i]]$eigenfunctions)     
+    
   }
   
+  return(result)
   
-  KL_cov_truth          <- estimate_KL_covariance(step_3[[3]], step_4[[1]]$eigenfunctions)
-  KL_cov_coarse_truth   <- estimate_KL_covariance(step_3[[4]], step_4[[2]]$eigenfunctions)
-  KL_cov_X_truth        <- estimate_KL_covariance(step_3[[5]], step_4[[3]]$eigenfunctions)
-  KL_cov_X_coarse_truth <- estimate_KL_covariance(step_3[[6]], step_4[[4]]$eigenfunctions)
-  KL_cov_est            <- estimate_KL_covariance(step_3[[7]], step_4[[5]]$eigenfunctions)
-  
-  return(list(KL_cov_truth = KL_cov_truth,
-              KL_cov_coarse_truth = KL_cov_coarse_truth,
-              KL_cov_X_truth = KL_cov_X_truth,
-              KL_cov_X_coarse_truth = KL_cov_X_coarse_truth,
-              KL_cov_est = KL_cov_est))
 }
 
-step_5b_KL_correlation <- function(step_5, p, full = T){
+step_5b_KL_correlation <- function(step_5, p){
   
   # ----------------------------------------------------------------------------
   # 
@@ -891,45 +785,36 @@ step_5b_KL_correlation <- function(step_5, p, full = T){
   # inputs:
   #
   # - step_5
-  #   - KL_cov_truth           (list of d_i x d_j matrices for i_j entries)
-  #   - KL_cov_coarse_truth    (list of d_i x d_j matrices for i_j entries)
-  #   - KL_cov_X_truth         (list of d_i x d_j matrices for i_j entries)
-  #   - KL_cov_X_coarse_truth  (list of d_i x d_j matrices for i_j entries)
-  #   - KL_cov_est             (list of d_i x d_j matrices for i_j entries)
+  #   - KL_cov_suffix          (list of d_i x d_j matrices for i_j entries)
   # 
   # - p            (integer)
-  # - full         (boolean)    are we including truths in our estimation?
   #
   #
   # outputs:
   #
   # - list of:
-  #   - KL_cor_truth           (list of d_i x d_j matrices for i_j entries)
-  #   - KL_cor_coarse_truth    (list of d_i x d_j matrices for i_j entries)
-  #   - KL_cor_X_truth         (list of d_i x d_j matrices for i_j entries)
-  #   - KL_cor_X_coarse_truth  (list of d_i x d_j matrices for i_j entries)
-  #   - KL_cor_est             (list of d_i x d_j matrices for i_j entries)
+  #   - KL_cor_suffix          (list of d_i x d_j matrices for i_j entries)
   #
   # ----------------------------------------------------------------------------
   
-  if(! full){
-    KL_cor_est <- estimate_KL_correlation(step_5$KL_cov_est, p)
+  result <- list()
+  
+  # 1) grab names
+  
+  core_names <- step_00_grab_ID(names(step_5), 'KL_cov')
+  
+  input_names <- names(step_5)
+  
+  # 2) for each core name `est`, `X_truth` etc... get the resulting name, apply the function on it, and store it
+  for(i in 1:length(core_names)){
     
-    return(list(KL_cor_est = KL_cor_est))
+    name_i <- paste0('KL_cor_', core_names[i])
+    
+    result[[name_i]] <- estimate_KL_correlation(step_5[[input_names[i]]], p)     
+    
   }
   
-  
-  KL_cor_truth          <- estimate_KL_correlation(step_5[[1]], p)
-  KL_cor_coarse_truth   <- estimate_KL_correlation(step_5[[2]], p)
-  KL_cor_X_truth        <- estimate_KL_correlation(step_5[[3]], p)
-  KL_cor_X_coarse_truth <- estimate_KL_correlation(step_5[[4]], p)
-  KL_cor_est            <- estimate_KL_correlation(step_5[[5]], p)
-  
-  return(list(KL_cor_truth = KL_cor_truth,
-              KL_cor_coarse_truth = KL_cor_coarse_truth,
-              KL_cor_X_truth = KL_cor_X_truth,
-              KL_cor_X_coarse_truth = KL_cor_X_coarse_truth,
-              KL_cor_est = KL_cor_est))
+  return(result)
 }
 
 steps_78_OG <- function(kl_coeffs, y_c_strata, query_y_c, eigenfunctions, ncores){
@@ -1204,7 +1089,7 @@ step_9_C_cond_from_V_cond <- function(step_8, kernel_params_i){
   
 }
 
-step_9_C_cond_from_KL_cor <- function(step_4, step_5b, kernel_params, full = T){
+step_9_C_cond_from_KL_cor <- function(step_4, step_5b){
   
   # ----------------------------------------------------------------------------
   #
@@ -1214,118 +1099,53 @@ step_9_C_cond_from_KL_cor <- function(step_4, step_5b, kernel_params, full = T){
   # inputs:
   #
   # - step_4
-  #   - eigen_decomp_truth               (list of 3 things)
+  #   - eigen_decomp_suffix               (list of 3 things)
   #     - [[1]] eigenvalues  (list of p vectors of eigenvalues)
   #     - [[2]] eigenvectors (list of p matrices of m x d_i)          THEY ARE NOT NORMALIZED
   #     - [[3]] n_dims       (list of p integers denoting d_i)
   #
-  #   - eigen_decomp_coarse_truth
-  #   - eigen_decomp_X_truth
-  #   - eigen_decomp_X_coarse_truth
-  #   - eigen_decomp_est
   #
   # - step_5b
-  #   - KL_cor_truth           (list of d_i x d_j matrices for i_j entries)
-  #   - KL_cor_coarse_truth    (list of d_i x d_j matrices for i_j entries)
-  #   - KL_cor_X_truth         (list of d_i x d_j matrices for i_j entries)
-  #   - KL_cor_X_coarse_truth  (list of d_i x d_j matrices for i_j entries)
-  #   - KL_cor_est             (list of d_i x d_j matrices for i_j entries)
+  #   - KL_cor_suffix         (list of d_i x d_j matrices for i_j entries)
   #
-  # - kernel_params
-  # - full              (boolean)    are we including truths in our estimation?
   # 
   # outputs:
   # 
   # - list of:
-  #   - C_cond_ground_truth_full           (pm x pm matrix)
-  #   - C_cond_coarse_ground_truth_full    (pm_est x pm_est matrix)
-  #   - C_cond_truth_full                  (pm x pm matrix)
-  #   - C_cond_coarse_truth_full           (pm_est x pm_est matrix)
-  #   - C_cond_X_truth_full                (pm x pm matrix)
-  #   - C_cond_X_coarse_truth_full         (pm_est x pm_est matrix)
-  #   - C_cond_est_full                    (pm_est x pm_est matrix) 
-  #   - C_cond_ground_truth_full_v2        (pm x pm matrix)
-  #   - C_cond_coarse_ground_truth_full_v2 (pm_est x pm_est matrix)
+  #   - C_cond_suffix           (list of i_j m x m matrices)
   #
   # ----------------------------------------------------------------------------
   
-  if(! full){
-    eigen_decomp_est    <- step_4$eigen_decomp_est
-    KL_cor_est          <- step_5b$KL_cor_est
-    C_cond_list         <- correlation_estimation_KL_cor(eigen_decomp_est, KL_cor_est) 
-    C_cond_est          <- C_cond_list$C_cond
-    C_cond_est_unnorm   <- C_cond_list$C_cond_unnorm
+  result <- list()
+  
+  # 1) grab names
+  
+  core_names <- step_00_grab_ID(names(step_4), 'eigen_decomp')
+  
+  input_names_step_4 <- names(step_4)
+  input_names_step_5b <- names(step_5b)
+  
+  # 2) for each core name `est`, `X_truth` etc... get the resulting name, apply the function on it, and store it
+  for(i in 1:length(core_names)){
     
-    p <- length(eigen_decomp_est[[1]])
-    m_est <- dim(C_cond_est[[1]])[1]
+    step_4_i <- input_names_step_4[i]
+    step_5b_i <- input_names_step_5b[i]
     
-    C_cond_est_full            <- assemble_block_matrix_v2(C_cond_est, p, m_est)
-    C_cond_est_unnorm_full     <- assemble_block_matrix_v2(C_cond_est_unnorm, p, m_est)
+    name_i <- paste0('C_cond_', core_names[i])
+    name_i_unnorm <- paste0(name_i, '_unnorm')
     
-    return(list(C_cond_est_full = C_cond_est_full,
-                C_cond_est_unnorm_full = C_cond_est_unnorm_full))
+    temp_list <- correlation_estimation_KL_cor(step_4[[step_4_i]],
+                                               step_5b[[step_5b_i]])
+    
+    result[[name_i]] <- temp_list$C_cond    
+    result[[name_i_unnorm]] <- temp_list$C_cond_unnorm  
   }
   
-  # 0) prep
-  
-  
-  eigen_decomp_truth          <- step_4[[1]]
-  eigen_decomp_coarse_truth   <- step_4[[2]]
-  eigen_decomp_X_truth        <- step_4[[3]]
-  eigen_decomp_X_coarse_truth <- step_4[[4]]
-  eigen_decomp_est            <- step_4[[5]]
-  
-  KL_cor_truth          <- step_5b[[1]]
-  KL_cor_coarse_truth   <- step_5b[[2]]
-  KL_cor_X_truth        <- step_5b[[3]]
-  KL_cor_X_coarse_truth <- step_5b[[4]]
-  KL_cor_est            <- step_5b[[5]]
-  
-  p     <- length(eigen_decomp_truth[[1]])
-  m     <- dim(eigen_decomp_truth[[2]][[1]])[1]
-  m_est <- dim(eigen_decomp_coarse_truth[[2]][[1]])[1]
-  
-  # 1) estimation
-  C_cond_truth          <- correlation_estimation_KL_cov(eigen_decomp_truth,          KL_cor_truth)
-  C_cond_coarse_truth   <- correlation_estimation_KL_cov(eigen_decomp_coarse_truth,   KL_cor_coarse_truth)
-  C_cond_X_truth        <- correlation_estimation_KL_cov(eigen_decomp_X_truth,        KL_cor_X_truth)
-  C_cond_X_coarse_truth <- correlation_estimation_KL_cov(eigen_decomp_X_coarse_truth, KL_cor_X_coarse_truth)
-  C_cond_est            <- correlation_estimation_KL_cov(eigen_decomp_est,            KL_cor_est)
-  
-  
-  
-  # 2) ground truth is cor_mat \otimes I_m
-  C_cond_ground_truth_full          <- kronecker(kernel_params$prec_mat_truth$cor_mat, diag(m))
-  C_cond_coarse_ground_truth_full   <- kronecker(kernel_params$prec_mat_truth$cor_mat, diag(m_est))
-  
-  # 3) or is ground truth cor_mat \otimes K_base?
-  C_cond_ground_truth_full_v2          <- kronecker(kernel_params$prec_mat_truth$cor_mat, kernel_params$base_cov)
-  C_cond_coarse_ground_truth_full_v2   <- kronecker(kernel_params$prec_mat_truth$cor_mat, kernel_params$base_cov_est)
-  
-  # 4) assemble and visualize the entire pm x pm block 
-  
-  C_cond_truth_full                 <- assemble_block_matrix_v2(C_cond_truth,               p, m)
-  C_cond_coarse_truth_full          <- assemble_block_matrix_v2(C_cond_coarse_truth,        p, m_est)
-  C_cond_X_truth_full               <- assemble_block_matrix_v2(C_cond_X_truth,             p, m)  
-  C_cond_X_coarse_truth_full        <- assemble_block_matrix_v2(C_cond_X_coarse_truth,      p, m_est)
-  C_cond_est_full                   <- assemble_block_matrix_v2(C_cond_est,                 p, m_est)
-  
-  
-  
-  
-  return(list(C_cond_ground_truth_full = C_cond_ground_truth_full,
-              C_cond_coarse_ground_truth_full = C_cond_coarse_ground_truth_full,
-              C_cond_truth_full = C_cond_truth_full,
-              C_cond_coarse_truth_full = C_cond_coarse_truth_full,
-              C_cond_X_truth_full = C_cond_X_truth_full,
-              C_cond_X_coarse_truth_full = C_cond_X_coarse_truth_full,
-              C_cond_est_full = C_cond_est_full,
-              C_cond_ground_truth_full_v2 = C_cond_ground_truth_full_v2,
-              C_cond_coarse_ground_truth_full_v2 = C_cond_coarse_ground_truth_full_v2))
+  return(result)
   
 }
 
-step_9b_eigenfunction_outers <- function(step_4, full = T){
+step_9b_eigenfunction_outers <- function(step_4){
   
   # ----------------------------------------------------------------------------
   #
@@ -1335,42 +1155,41 @@ step_9b_eigenfunction_outers <- function(step_4, full = T){
   # inputs:
   #
   # - step_4
-  #   - eigen_decomp_truth               (list of 3 things)
+  #   - eigen_decomp_suffix               (list of 3 things)
   #     - [[1]] eigenvalues  (list of p vectors of eigenvalues)
   #     - [[2]] eigenvectors (list of p matrices of m x d_i)          THEY ARE NOT NORMALIZED
   #     - [[3]] n_dims       (list of p integers denoting d_i)
   #
-  #   - eigen_decomp_coarse_truth
-  #   - eigen_decomp_X_truth
-  #   - eigen_decomp_X_coarse_truth
-  #   - eigen_decomp_est
-  #
-  #
-  # - full              (boolean)    are we including truths in our estimation?
   # 
   # outputs:
   # 
   # - list of:
   #
-  #   - efunc_outer_truth                  (pc2 list of mxm matrices)
+  #   - efunc_outer_suffix                  (pc2 list of mxm matrices)
   #
   # ----------------------------------------------------------------------------
   
-  if(! full){
-    eigen_decomp_est <- step_4$eigen_decomp_est
+  result <- list()
+  
+  # 1) grab names
+  
+  core_names <- step_00_grab_ID(names(step_4), 'eigen_decomp')
+  
+  input_names <- names(step_4)
+  
+  # 2) for each core name `est`, `X_truth` etc... get the resulting name, apply the function on it, and store it
+  for(i in 1:length(core_names)){
     
+    temp_result <- correlation_eigenfunction_outer(step_4[[input_names[i]]])
+    names(temp_result) <- paste0(names(temp_result), '_', core_names[i])
     
-    efunc_outer_list <- correlation_eigenfunction_outer(eigen_decomp_est)
-    
-
-    
-    return(list(efunc_outer_truth = efunc_outer_list$efunc_outer_list,
-                efunc_outer_truth_unnorm = efunc_outer_list$efunc_outer_list_unnorm))
+    result <- c(result, temp_result)
   }
   
+  return(result)
 }
 
-step_10_P_cond <- function(step_9, kernel_params, p, block, MP, full = T){
+step_10_P_cond <- function(step_9, p, block, MP){
   
   
   # ----------------------------------------------------------------------------
@@ -1381,90 +1200,47 @@ step_10_P_cond <- function(step_9, kernel_params, p, block, MP, full = T){
   # inputs:
   #
   # - step_9
-  #   - C_cond_ground_truth_full          (pm x pm matrix)
-  #   - C_cond_coarse_ground_truth_full   (pm_est x pm_est matrix)
-  #   - C_cond_truth_full                 (pm x pm matrix)
-  #   - C_cond_coarse_truth_full          (pm_est x pm_est matrix)
-  #   - C_cond_X_truth_full               (pm x pm matrix)
-  #   - C_cond_X_coarse_truth_full        (pm_est x pm_est matrix)
-  #   - C_cond_est_full                   (pm_est x pm_est matrix)  
+  #   - C_cond_suffix          (i_j list of mxm matrices)
   #
   # - kernel_params (list)     list of simulation parameters
   # - p             (integer)  number of processes
   # - block         (boolean)  do we take the inverse of each block? If false, take the inverse of the entire pm x pm matrix
   # - MP            (boolean)  do we use moore-penrose inverse? If false, to regular inverse.
-  # - full          (boolean)  are we including truths in our estimation?
   #
   # outputs:
   #
   # - list of:
-  #   - P_cond_ground_truth_full          (pm x pm matrix)
-  #   - P_cond_coarse_ground_truth_full   (pm_est x pm_est matrix)
-  #   - P_cond_truth_full                 (pm x pm matrix)
-  #   - P_cond_coarse_truth_full          (pm_est x pm_est matrix)
-  #   - P_cond_X_truth_full               (pm x pm matrix)
-  #   - P_cond_X_coarse_truth_full        (pm_est x pm_est matrix)
-  #   - P_cond_est_full                   (pm_est x pm_est matrix)
+  #   - P_cond_suffix                     (i_j list of mxm matrices)
   #
   # ----------------------------------------------------------------------------
   
-  if(! full){
-    C_cond_est_full          <- step_9$C_cond_est_full
-    C_cond_est_unnorm_full   <- step_9$C_cond_est_unnorm_full
+  result <- list()
+  
+  # 1) grab names
+  
+  core_names <- step_00_grab_ID(names(step_9), 'C_cond')
+  
+  input_names <- names(step_9)
+  
+  # 2) for each core name `est`, `X_truth` etc... get the resulting name, apply the function on it, and store it
+  for(i in 1:length(core_names)){
     
+    # make full --> invert --> make into list again
     
-    P_cond_est_full           <- estimate_precision_operator_v3(C_cond_est_full, p, block, MP)
-    P_cond_est_unnorm_full    <- estimate_precision_operator_v3(C_cond_est_unnorm_full, p, block, MP)
+    name_i <- paste0('P_cond_', core_names[i])
     
+    m <- dim(step_9[[input_names[i]]][[1]])[1]
     
-    return(list(P_cond_est_full = P_cond_est_full,
-                P_cond_est_unnorm_full = P_cond_est_unnorm_full))
+    C_cond_full <- assemble_block_matrix_v2(step_9[[input_names[i]]], p, m)
+    P_cond_full <- estimate_precision_operator_v3(C_cond_full, p, block, MP)
+    result[[name_i]] <- extract_block_structure_v2(P_cond_full, p, m)
+    
   }
   
-  # 1) prep
-  C_cond_truth_full          <- step_9[[3]]
-  C_cond_coarse_truth_full   <- step_9[[4]]
-  C_cond_X_truth_full        <- step_9[[5]]
-  C_cond_X_coarse_truth_full <- step_9[[6]]
-  C_cond_est_full            <- step_9[[7]]
-   
-  m     <- dim(C_cond_truth_full)[1] / p
-  m_est <- dim(C_cond_coarse_truth_full)[1] / p  
-  
-  
-  # 2) estimate
-  P_cond_truth_full          <- estimate_precision_operator_v3(C_cond_truth_full,          p, block, MP)
-  P_cond_coarse_truth_full   <- estimate_precision_operator_v3(C_cond_coarse_truth_full,   p, block, MP)
-  P_cond_X_truth_full        <- estimate_precision_operator_v3(C_cond_X_truth_full,        p, block, MP)  
-  P_cond_X_coarse_truth_full <- estimate_precision_operator_v3(C_cond_X_coarse_truth_full, p, block, MP)
-  P_cond_est_full            <- estimate_precision_operator_v3(C_cond_est_full,            p, block, MP)
-  
-  P_cond_truth          <- extract_block_structure_v2(P_cond_truth_full,          p, m)
-  P_cond_coarse_truth   <- extract_block_structure_v2(P_cond_coarse_truth_full,   p, m_est)
-  P_cond_X_truth        <- extract_block_structure_v2(P_cond_X_truth_full,        p, m)  
-  P_cond_X_coarse_truth <- extract_block_structure_v2(P_cond_X_coarse_truth_full, p, m_est)
-  P_cond_est            <- extract_block_structure_v2(P_cond_est_full,            p, m_est)
-  
-  # truth = prec_mat \otimes I_m
-  P_cond_ground_truth_full           <- kronecker(kernel_params$prec_mat_truth$prec_mat, diag(m))
-  P_cond_coarse_ground_truth_full    <- kronecker(kernel_params$prec_mat_truth$prec_mat, diag(m_est))
-  P_cond_ground_truth                <- extract_block_structure_v2(P_cond_ground_truth_full, p, m)
-  P_cond_coarse_ground_truth         <- extract_block_structure_v2(P_cond_coarse_ground_truth_full, p, m_est)
-  
-  
-  return(list(
-    P_cond_ground_truth_full = P_cond_ground_truth_full,
-    P_cond_coarse_ground_truth_full = P_cond_coarse_ground_truth_full,
-    P_cond_truth_full = P_cond_truth_full,
-    P_cond_coarse_truth_full = P_cond_coarse_truth_full,
-    P_cond_X_truth_full = P_cond_X_truth_full,
-    P_cond_X_coarse_truth_full = P_cond_X_coarse_truth_full,
-    P_cond_est_full = P_cond_est_full
-  ))
-  
+  return(result)
 }
 
-step_11_HS_norms <- function(step_9, step_10, p, full = T){
+step_11_HS_norms <- function(step_9, step_10, p){
   
   # ----------------------------------------------------------------------------
   #
@@ -1473,22 +1249,10 @@ step_11_HS_norms <- function(step_9, step_10, p, full = T){
   # input:
   #
   # - step_9
-  #   - C_cond_ground_truth_full          (pm x pm matrix)
-  #   - C_cond_coarse_ground_truth_full   (pm_est x pm_est matrix)
-  #   - C_cond_truth_full                 (pm x pm matrix)
-  #   - C_cond_coarse_truth_full          (pm_est x pm_est matrix)
-  #   - C_cond_X_truth_full               (pm x pm matrix)
-  #   - C_cond_X_coarse_truth_full        (pm_est x pm_est matrix)
-  #   - C_cond_est_full                   (pm_est x pm_est matrix)  
+  #   - C_cond_suffix          (i_j list of mxm matrices)
   #
   # - step_10
-  #   - P_cond_ground_truth_full          (pm x pm matrix)
-  #   - P_cond_coarse_ground_truth_full   (pm_est x pm_est matrix)
-  #   - P_cond_truth_full                 (pm x pm matrix)
-  #   - P_cond_coarse_truth_full          (pm_est x pm_est matrix)
-  #   - P_cond_X_truth_full               (pm x pm matrix)
-  #   - P_cond_X_coarse_truth_full        (pm_est x pm_est matrix)
-  #   - P_cond_est_full                   (pm_est x pm_est matrix)
+  #   - P_cond_suffix          (i_j list of mxm matrices)
   #
   # - adj_mat_i    (p x p matrix of 0's and 1's) ground truth adjacencies for the i-th query
   # - p            (integer)
@@ -1497,90 +1261,36 @@ step_11_HS_norms <- function(step_9, step_10, p, full = T){
   # outputs:
   #
   # - list of:
-  #   - w_mat_ground_truth        (p x p)   matrix of HS norms of the pm x pm ground truth
-  #   - w_mat_coarse_ground_truth (p x p)   matrix of HS norms of the pm_est x pm_est ground truth 
-  #   - w_mat_X_coarse_truth      (p x p)   matrix of HS norms of ...
-  #   - w_mat_X_truth             (p x p)   matrix of HS norms of ...
-  #   - w_mat_coarse_truth        (p x p)   matrix of HS norms of ...
-  #   - w_mat_truth               (p x p)   matrix of HS norms of ...
-  #   - w_mat_est                 (p x p)   matrix of HS norms of ...
+  #   - w_mat_suffix        (p x p)   matrix of HS norms of the pm x pm matrices
   #
   # ----------------------------------------------------------------------------
   
-  if(! full){
+  result <- list()
+  
+  # 1) grab names
+  
+  core_names <- step_00_grab_ID(names(step_9), 'C_cond')
+  
+  input_names_step_9 <- names(step_9)
+  input_names_step_10 <- names(step_10)
+  
+  # 2) for each core name `est`, `X_truth` etc... get the resulting name, apply the function on it, and store it
+  for(i in 1:length(core_names)){
     
-    C_cond_est_full <- step_9$C_cond_est_full
-    C_cond_est_unnorm_full <- step_9$C_cond_est_unnorm_full
-    P_cond_est_full <- step_10$P_cond_est_full
-    P_cond_est_unnorm_full <- step_10$P_cond_est_unnorm_full
+    name_i <- paste0('w_mat_', core_names[i])
+    name2_i <- paste0('C_HS_', core_names[i])
     
-    m_est <- dim(P_cond_est_full)[1] / p
-    w_mat_est <- hilbert_schmidt_norm_pm(P_cond_est_full, p, m_est)
-    w_mat_est_unnorm <- hilbert_schmidt_norm_pm(P_cond_est_unnorm_full, p, m_est)
-    C_HS_est <- hilbert_schmidt_norm_pm(C_cond_est_full, p, m_est)
-    C_HS_est_unnorm <- hilbert_schmidt_norm_pm(C_cond_est_unnorm_full, p, m_est)
+    m <- dim(step_9[[input_names_step_9[i]]][[1]])[1]
     
-    return(
-      list(w_mat_est = w_mat_est,
-           w_mat_est_unnorm = w_mat_est_unnorm,
-           C_HS_est = C_HS_est,
-           C_HS_est_unnorm = C_HS_est_unnorm)
-    )
+    C_cond_full <- step_9[[input_names_step_9[i]]]    %>% assemble_block_matrix_v2(p, m)
+    P_cond_full <- step_10[[input_names_step_10[i]]]  %>% assemble_block_matrix_v2(p, m)
+    
+    
+    result[[name_i]]  <- hilbert_schmidt_norm_pm(P_cond_full, p, m)    
+    result[[name2_i]] <- hilbert_schmidt_norm_pm(C_cond_full, p, m)
   }
   
-  # prep
-  P_cond_ground_truth_full        <- step_10[[1]]
-  P_cond_coarse_ground_truth_full <- step_10[[2]]
-  P_cond_truth_full               <- step_10[[3]]
-  P_cond_coarse_truth_full        <- step_10[[4]]
-  P_cond_X_truth_full             <- step_10[[5]]
-  P_cond_X_coarse_truth_full      <- step_10[[6]]
-  P_cond_est_full                 <- step_10[[7]]
-  
-  m <- dim(P_cond_truth_full)[1] / p
-  m_est <- dim(P_cond_coarse_truth_full)[1] / p
-  
-  # est
-  w_mat_est            <- hilbert_schmidt_norm_pm(P_cond_est_full,            p, m_est)
-  w_mat_X_coarse_truth <- hilbert_schmidt_norm_pm(P_cond_X_coarse_truth_full, p, m_est)
-  w_mat_X_truth        <- hilbert_schmidt_norm_pm(P_cond_X_truth_full,        p, m)
-  w_mat_coarse_truth   <- hilbert_schmidt_norm_pm(P_cond_coarse_truth_full,   p, m_est)
-  w_mat_truth          <- hilbert_schmidt_norm_pm(P_cond_truth_full,          p, m)
-  
-  w_mat_ground_truth        <- hilbert_schmidt_norm_pm(P_cond_ground_truth_full, p, m)
-  w_mat_coarse_ground_truth <- hilbert_schmidt_norm_pm(P_cond_coarse_ground_truth_full, p, m_est)
-
-  
-  # hilbert schmidt normalized HS norms 
-  
-  # w_mat_normalized_X_coarse_truth      <- hilbert_schmidt_norm_pm_normalize(P_cond_X_coarse_truth_full, p, m_est)
-  # w_mat_normalized_X_truth             <- hilbert_schmidt_norm_pm_normalize(P_cond_X_truth_full, p, m)    
-  # w_mat_normalized_coarse_truth        <- hilbert_schmidt_norm_pm_normalize(P_cond_coarse_truth_full, p, m_est)
-  # w_mat_normalized_truth               <- hilbert_schmidt_norm_pm_normalize(P_cond_truth_full, p, m)
-  # w_mat_normalized_est                 <- hilbert_schmidt_norm_pm_normalize(P_cond_est_full, p, m_est)  
-  
-  # diag(w_mat_normalized_X_coarse_truth) <- 0
-  # diag(w_mat_normalized_X_truth) <- 0
-  # diag(w_mat_normalized_coarse_truth) <- 0
-  # diag(w_mat_normalized_truth) <- 0
-  # diag(w_mat_normalized_est) <- 0
-  
-  # w_mat_normalized_ground_truth        <- hilbert_schmidt_norm_pm_normalize(P_cond_ground_truth_full, p, m)
-  # w_mat_normalized_coarse_ground_truth <- hilbert_schmidt_norm_pm_normalize(P_cond_coarse_ground_truth_full, p, m_est)
-  # diag(w_mat_normalized_ground_truth) <- 0
-  # diag(w_mat_normalized_coarse_ground_truth) <- 0    
-  
-
-  
-  return(list(
-    w_mat_ground_truth = w_mat_ground_truth,
-    w_mat_coarse_ground_truth = w_mat_coarse_ground_truth,
-    w_mat_truth = w_mat_truth,
-    w_mat_coarse_truth = w_mat_coarse_truth,
-    w_mat_X_truth = w_mat_X_truth,
-    w_mat_X_coarse_truth = w_mat_X_coarse_truth,
-    w_mat_est = w_mat_est
-  ))
+  return(result)
   
 }
 
@@ -1611,9 +1321,10 @@ steps_10_11_GIC <- function(step_9, p, W_y){
   IDs <- step_00_grab_ID(names(step_9), 'C_cond', 'full')
   names_0 <- names(step_9)
   
-  for(i in length(IDs)){
+  # for each name `est`, `X_truth` etc... get the resulting name, apply the function on it, and store it
+  for(i in 1:length(IDs)){
     
-    name_i <- paste0('GIC_', suffix)
+    name_i <- paste0('GIC_', IDs)
     
     result[[name_i]] <- GIC_algorithm(step_9[[names_0[i]]], p, W_y)
   }
@@ -1623,7 +1334,7 @@ steps_10_11_GIC <- function(step_9, p, W_y){
   
 }
 
-step_12_ROC <- function(step_11, adj_mat_i, full = T){
+step_12_ROC <- function(step_11, adj_mat_i){
   
   # ----------------------------------------------------------------------------
   #
@@ -1632,13 +1343,7 @@ step_12_ROC <- function(step_11, adj_mat_i, full = T){
   # inputs:
   #
   # - step_11
-  #   - w_mat_ground_truth        (p x p)   matrix of HS norms of the pm x pm ground truth
-  #   - w_mat_coarse_ground_truth (p x p)   matrix of HS norms of the pm_est x pm_est ground truth 
-  #   - w_mat_X_coarse_truth      (p x p)   matrix of HS norms of ...
-  #   - w_mat_X_truth             (p x p)   matrix of HS norms of ...
-  #   - w_mat_coarse_truth        (p x p)   matrix of HS norms of ...
-  #   - w_mat_truth               (p x p)   matrix of HS norms of ...
-  #   - w_mat_est                 (p x p)   matrix of HS norms of ...
+  #   - w_mat_suffix        (p x p)   matrix of HS norms of the pm x pm ground truth
   #
   #
   # - adj_mat_i    (p x p matrix of 0's and 1's)   denoting ground truth adjacencies with 0's on the diagonal
@@ -1647,54 +1352,28 @@ step_12_ROC <- function(step_11, adj_mat_i, full = T){
   # outputs:
   #
   # - list of:
-  #   - roc_ground_truth           (list of roc outputs)
-  #   - roc_coarse_ground_truth
-  #   - roc_truth
-  #   - roc_coarse_truth
-  #   - roc_X_truth
-  #   - roc_X_coarse_truth
-  #   - roc_est
+  #   - roc_suffix           (list of roc outputs)
   #
   # ----------------------------------------------------------------------------
   
-  if(! full){
-    w_mat_est <- step_11$w_mat_est
-    w_mat_est_unnorm <- step_11$w_mat_est_unnorm
+  result <- list()
+  
+  # 1) grab names
+  
+  core_names <- step_00_grab_ID(names(step_11), 'w_mat')
+  
+  input_names <- paste0('w_mat_', core_names)
+  
+  # 2) for each core name `est`, `X_truth` etc... get the resulting name, apply the function on it, and store it
+  for(i in 1:length(core_names)){
     
-    roc_est                 <- roc_with_threshold(w_mat_est,                 adj_mat_i, 'Estimate')
-    roc_est_unnorm          <- roc_with_threshold(w_mat_est_unnorm,          adj_mat_i, 'Estimate Unnorm')
+    name_i <- paste0('roc_', core_names[i])
     
-    return(list(roc_est = roc_est,
-                roc_est_unnorm = roc_est_unnorm))
+    result[[name_i]]  <- roc_with_threshold(step_11[[input_names[i]]], adj_mat_i, core_names[i])
+
   }
   
-  # prep
-  w_mat_ground_truth        <- step_11[[1]]
-  w_mat_coarse_ground_truth <- step_11[[2]]
-  w_mat_truth               <- step_11[[3]]
-  w_mat_coarse_truth        <- step_11[[4]]
-  w_mat_X_truth             <- step_11[[5]]
-  w_mat_X_coarse_truth      <- step_11[[6]]
-  w_mat_est                 <- step_11[[7]]
+  return(result)
   
-  # estimate 
-  roc_ground_truth        <- roc_with_threshold(w_mat_ground_truth,        adj_mat_i, 'Ground Truth')
-  roc_coarse_ground_truth <- roc_with_threshold(w_mat_coarse_ground_truth, adj_mat_i, 'Coarse Ground Truth')
-  roc_truth               <- roc_with_threshold(w_mat_truth,               adj_mat_i, 'Truth Theory')   
-  roc_coarse_truth        <- roc_with_threshold(w_mat_coarse_truth,        adj_mat_i, 'Coarse Truth Theory')
-  roc_X_truth             <- roc_with_threshold(w_mat_X_truth,             adj_mat_i, 'Truth X')
-  roc_X_coarse_truth      <- roc_with_threshold(w_mat_X_coarse_truth,      adj_mat_i, 'Coarse Truth X')
-  roc_est                 <- roc_with_threshold(w_mat_est,                 adj_mat_i, 'Estimate')
-  
-
-  
-  
-  return(list(roc_ground_truth = roc_ground_truth,
-              roc_coarse_ground_truth = roc_coarse_ground_truth,
-              roc_truth = roc_truth,
-              roc_coarse_truth = roc_coarse_truth,
-              roc_X_truth = roc_X_truth,
-              roc_X_coarse_truth = roc_X_coarse_truth,
-              roc_est = roc_est))
   
 }
