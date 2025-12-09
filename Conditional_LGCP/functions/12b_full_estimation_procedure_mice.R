@@ -742,7 +742,7 @@ estimate_intensities_stratum_parallel_with_yc_part2 <- function(temp_file_dir, s
   
 }
 
-estimate_intensities_stratum_parallel_with_yc_part3 <- function(temp_file_dir, setting_info_list, cont_ind, n_keys_univariate, n_keys_bivariate, mouse, X_truth = F) {
+estimate_intensities_stratum_parallel_with_yc_part3 <- function(temp_file_dir, setting_info_list, cont_ind, n_keys_univariate, n_keys_bivariate, mouse, X_truth) {
   
   
   # ----------------------------------------------------------------------------
@@ -763,10 +763,10 @@ estimate_intensities_stratum_parallel_with_yc_part3 <- function(temp_file_dir, s
   # 
   # outputs:
   #
-  # - step_2  --> 'step_2_rho_list_block_banded_v2_n_1000_nquery1.rds'
+  # - result  --> 'step_2_rho_list_block_banded_v2_n_1000_nquery1.rds'
   # 
-  #  step_2 <- list(rho_i_est = rho_i_est,
-  #                 rho_list = rho_list)
+  #   - step_2    (each item is a p x m matrix)  rho_i_est
+  #   - step_2b   (each item is a i_j list of matrices)   rho_ii_est
   # 
   # ----------------------------------------------------------------------------
   
@@ -788,6 +788,10 @@ estimate_intensities_stratum_parallel_with_yc_part3 <- function(temp_file_dir, s
     part2_file_name   <- paste0('part2_', adj_type, '_n_', n, '_nquery', cont_ind, '.rds')
   }
 
+  # load `keys` 
+  results <- readRDS(file.path(temp_file_dir, part2_file_name))
+  keys <- results$keys
+  #list2env(results, envir = environment())
   
   # 2) Load all rho_i files into a list + reorganize them
   
@@ -811,30 +815,30 @@ estimate_intensities_stratum_parallel_with_yc_part3 <- function(temp_file_dir, s
   rho_ij_list_raw <- lapply(rho_ij_file_names, readRDS) # list of p items --> `rho_ii_est`, `rho_ii_X_truth` etc...
                                                         # we wish to create step_2b --> `rho_ii_est` = list of mxm matrices, `rho_ii_X_truth` = list of mxm matrices
   
+  names(rho_ij_list_raw) <- keys
+  mat_names <- names(rho_ij_list_raw[[1]])
   
-  rho_ij_list <- lapply(rho_ij_list_raw, `[[`, 1)
-  names(rho_ij_list) <- sapply(rho_ij_list_raw, function(x) names(x)[1])
+  step_2b <- list()
+  
+  for (nm in mat_names) {
+    
+    # for this result name, extract the mxm matrix from each of the p lists
+    mats <- lapply(rho_ij_list_raw, function(x) x[[nm]])
+    
+    # store as a list of mxm matrices
+    step_2b[[nm]] <- mats
+  }
+  
+
   
 
   
   
-  # 3) retrieve rho_i_X_truth 
+  # 4) store them
+
   
-  results <- readRDS(file.path(temp_file_dir, part2_file_name))
-  list2env(results, envir = environment())
-  
-  
-  # 4) store rho_list and rho_i_est
-  
-  rho_i_est <- do.call(rbind, rho_i_list)
-  
-  rho_list = list(rho_i_list, rho_ij_list)
-  
-  
-  
-  step_2 <- list(rho_i_est = rho_i_est,
-                 rho_i_X_truth = results$dataset$X_k_truth,
-                 rho_list = rho_list)
+  result <- list(step_2 = step_2,
+                 step_2b = step_2b)
   
   if(mouse){
     rho_list_name <- paste0('step_2_rho_list_', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '.rds')
@@ -847,11 +851,11 @@ estimate_intensities_stratum_parallel_with_yc_part3 <- function(temp_file_dir, s
   # file.remove(rho_i_file_names)
   # file.remove(rho_ij_file_names)
   
-  saveRDS(step_2, file = file.path(temp_file_dir, rho_list_name))  
+  saveRDS(result, file = file.path(temp_file_dir, rho_list_name))  
   
 }
 
-full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, setting_info_list, cont_ind, mouse){
+full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, setting_info_list, cont_ind, mouse, X_truth){
   
   # ----------------------------------------------------------------------------
   #
@@ -869,8 +873,8 @@ full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, sett
   # 
   # loading
   #
-  # - part2_
-  # - step_2_rho_list_
+  # - part2             (list of various parameters)
+  # - step_2_rho_list   (list of step_2 and step_2b)
   # 
   # outputs:
   #
@@ -903,20 +907,24 @@ full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, sett
   
   results <- readRDS(file.path(temp_file_dir, step_2_info_list))
   list2env(results, envir = environment())
-  step_2 <- readRDS(file.path(temp_file_dir, rho_list_name))
+  steps_2_and_2b <- readRDS(file.path(temp_file_dir, rho_list_name))
+  
+  step_2 <- steps_2_and_2b$step_2
+  step_2b <- steps_2_and_2b$step_2b
   
   # ------------------
   # Step 2b onward
   # ------------------
-  full <- F
+  
+  full <- F     
   i_neq_j <- T
-  step_2b <- step_2_rho_ij(step_1, step_2, kernel_params_i, i_neq_j, full)
-  step_3  <- step_3_g_ij(step_2, step_2b, kernel_params_i, i_neq_j, full)
+
+  step_3  <- step_3_g_ij(step_2, step_2b, i_neq_j)
   
   
   
   step_4 <- tryCatch({
-    step_4_eigendecomp(step_3, p, time_grid, time_grid_est, full)
+    step_4_eigendecomp(step_3, p)
   }, error = function(e) {
     cat("Error in step_4, saving dataset...\n")
     save(dataset, file = file.path(temp_file_dir, datafile_error_name))
@@ -925,24 +933,20 @@ full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, sett
   
   # step 5 to 9 split:
   
-  if(method %in% c('OG', 'JASA')){
-    step_5 <- step_5_KL_expansion(step_1, step_4, kernel_params_i, time_grid, time_grid_est, ncores)
-    step_8 <- steps_78(step_4, step_5, kernel_params_i, y_c_strata, query_y_c, method, ncores)
-    step_9 <- step_9_C_cond_from_V_cond(step_8, kernel_params_i)
-  } else{
-    step_5 <- step_5_KL_covariance(step_3, step_4, full)
-    step_5b <- step_5b_KL_correlation(step_5, p, full)
-    step_9 <- step_9_C_cond_from_KL_cor(step_4, step_5b, kernel_params_i, full)
-    step_9b <- step_9b_eigenfunction_outers(step_4, full)
-  }
+
+  step_5 <- step_5_KL_covariance(step_3, step_4)
+  step_5b <- step_5b_KL_correlation(step_5, p)
+  step_9 <- step_9_C_cond_from_KL_cor(step_4, step_5b)
+  step_9b <- step_9b_eigenfunction_outers(step_4)
+
   
   
   block <- F
   MP <- F
   
-  # step_10 <- step_10_P_cond(step_9, kernel_params_i, p, block, MP)
+  # step_10 - get precision matrix
   step_10 <- tryCatch({
-    step_10_P_cond(step_9, kernel_params_i, p, block, MP, full)
+    step_10_P_cond(step_9, p, block, MP)
   }, error = function(e) {
     cat("Error occurred in step_10, saving dataset...\n")
     save(dataset, file = file.path(temp_file_dir, datafile_error_name))
@@ -953,10 +957,10 @@ full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, sett
   # step_10b - using tau_c and tau_p to select for thresholds to minimize GIC
   
   
-  step_11 <- step_11_HS_norms(step_9, step_10, p, full)
+  step_11 <- step_11_HS_norms(step_9, step_10, p)
   
   if(! mouse){
-    step_12 <- step_12_ROC(step_11, adj_mat_i, full)
+    step_12 <- step_12_ROC(step_11, adj_mat_i)
   }
   
   estimated_graphs <- list(step_2 = step_2, step_2b = step_2b, step_3 = step_3,
