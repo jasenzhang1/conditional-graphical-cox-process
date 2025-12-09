@@ -223,7 +223,7 @@ GIC_threshold_block_matrix <- function(M, thresh) {
 
 }
 
-GIC_get_thresholds <- function(M) {
+GIC_get_thresholds <- function(M_list) {
   
   
   # ----------------------------------------------------------------------------
@@ -233,7 +233,7 @@ GIC_get_thresholds <- function(M) {
   #
   # inputs:
   #
-  # - M     (list of i_j matrices)
+  # - M_list     (list of i_j matrices)
   #
   # outputs:
   #
@@ -248,9 +248,9 @@ GIC_get_thresholds <- function(M) {
   hs_index  <- c()       # corresponding list indices
   
   # 1) collect HS norms for off-diagonal blocks only
-  for (idx in seq_along(M)) {
-    nm <- names(M)[idx]
-    block <- M[[idx]]
+  for (idx in seq_along(M_list)) {
+    nm <- names(M_list)[idx]
+    block <- M_list[[idx]]
     
     parts <- strsplit(nm, "_")[[1]]
     if (length(parts) != 2)
@@ -433,7 +433,7 @@ GIC_algorithm <- function(C_cond, p, W_y){
   #
   # Input: 
   #
-  # - C_cond        (pd x pd matrix)
+  # - C_cond        (i_j list of any sized matrix, d_i x d_j or m x m)
   # - p             (scalar)
   # - W_y           (scalar)           effective sample size
   #
@@ -448,7 +448,10 @@ GIC_algorithm <- function(C_cond, p, W_y){
   # ----------------------------------------------------------------------------
   
   # 0) make diagonal entries identity + prep
+  
   C_cond <- GIC_set_CXX_diag_identity(C_cond)
+  
+  
   best_k <- NA
   best_l <- NA
   lowest_GIC <- NA
