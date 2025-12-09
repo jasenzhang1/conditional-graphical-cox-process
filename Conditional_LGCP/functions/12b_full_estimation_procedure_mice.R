@@ -194,7 +194,7 @@ full_conditional_estimation_with_no_truth <- function(dataset, method, ncores, d
   
 }
 
-full_conditional_estimation_with_no_truth_part1 <- function(dataset, setting_info_list, ncores, temp_file_dir, mouse, X_truth = F){
+full_conditional_estimation_with_no_truth_part1 <- function(dataset, setting_info_list, ncores, temp_file_dir, mouse, X_truth){
   
   # ----------------------------------------------------------------------------
   #
@@ -257,13 +257,12 @@ full_conditional_estimation_with_no_truth_part1 <- function(dataset, setting_inf
   
   
   p <- length(feature_sel)
-  full <- F
 
   # ----------------------------------------------------------------------------
   # Step 1 - Log intensities
   # ----------------------------------------------------------------------------
   
-  step_1 <- step_1_log_intensities(dataset, data_df4, time_grid_est, NA, NA, full) 
+  step_1_bundle <- step_1_log_intensities(data_df4, time_grid_est) 
   
   
   # 2) load gamma_c and i_j keys
@@ -285,7 +284,8 @@ full_conditional_estimation_with_no_truth_part1 <- function(dataset, setting_inf
   results <- list(
     dataset = dataset,
     step_0_events = step_0_events,
-    step_1 = step_1,
+    step_1 = step_1_bundle$step_1,
+    step_1b = step_1_bundle$step_1b,
     data_df4 = data_df4,
     y_c_strata_full = y_c_strata_full,
     y_c_strata = y_c_strata,
@@ -905,8 +905,10 @@ full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, sett
     datafile_error_name <- paste0("dataset_part2_", adj_type, '_n_', n, '_nquery', cont_ind, '.RData')  # in case we need to quit and troubleshoot
   }
   
+  # load `W_y`
   results <- readRDS(file.path(temp_file_dir, step_2_info_list))
-  list2env(results, envir = environment())
+  W_y <- results$W_y
+  #list2env(results, envir = environment())
   steps_2_and_2b <- readRDS(file.path(temp_file_dir, rho_list_name))
   
   step_2 <- steps_2_and_2b$step_2
@@ -931,15 +933,23 @@ full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, sett
     stop(e)
   })
   
-  # step 5 to 9 split:
+  # step 5 to 9 --> obtain KL_cor and KL_prec
   
 
   step_5 <- step_5_KL_covariance(step_3, step_4)
   step_5b <- step_5b_KL_correlation(step_5, p)
+  step_5c <- step_5c_KL_precision(step_5b, p)
   step_9 <- step_9_C_cond_from_KL_cor(step_4, step_5b)
   step_9b <- step_9b_eigenfunction_outers(step_4)
 
+  # estimate C_HS, w_mat from KL without thresh 
   
+  step_11  <- step_11_HS_norms_from_KL(step_5c, p)
+  step_11b <- step_11b_HS_norms_from_KL(step_5b, p)
+  
+  # estimate C_HS, w_mat from KL WITH thresh
+  
+  step_11_v2 <- steps_10_11_GIC_from_KL(step_5b, p, W_y)
   
   block <- F
   MP <- F
@@ -964,7 +974,8 @@ full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, sett
   }
   
   estimated_graphs <- list(step_2 = step_2, step_2b = step_2b, step_3 = step_3,
-                           step_4 = step_4, step_5 = step_5, step_5b = step_5b, step_9 = step_9, step_9b = step_9b,
+                           step_4 = step_4, step_5 = step_5, step_5b = step_5b, step_5c = step_5c, 
+                           step_9 = step_9, step_9b = step_9b,
                            step_10 = step_10, step_11 = step_11)
   
   
