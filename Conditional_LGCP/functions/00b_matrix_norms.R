@@ -122,7 +122,7 @@ hilbert_schmidt_norm_pm_rmse <- function(A, p, m) {
 
 hilbert_schmidt_norm_pm_normalize <- function(A, p, m) {
   
-  # ------------------------------------------------------------------------
+  # ----------------------------------------------------------------------------
   #
   # GOAL: Compute Hilbert-Schmidt norm of all p^2 mxm block matrices
   #
@@ -139,7 +139,7 @@ hilbert_schmidt_norm_pm_normalize <- function(A, p, m) {
   #
   # - norms (p x p matrix)
   #
-  # ------------------------------------------------------------------------
+  # ----------------------------------------------------------------------------
   
   
   if (!is.matrix(A) || nrow(A) != p*m || ncol(A) != p*m) {
@@ -163,6 +163,50 @@ hilbert_schmidt_norm_pm_normalize <- function(A, p, m) {
   
   return(delta_t * norms)
   
+}
+
+# (i_j list --> p x p matrix)
+hilbert_schmidt_norm_list_to_mat <- function(M_list, p){
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: Given a list of i_j matrices, compute the Hilbert-Schmidt norm of these blocks and arrange them in a pxp matrix
+  #
+  #
+  # inputs:
+  # 
+  # - M_list  (list of i_j matrices, where i <= j)
+  # - p       (integer)
+  # 
+  # 
+  # Output: 
+  #
+  # - HS_mat (p x p matrix)
+  #
+  # ----------------------------------------------------------------------------
+  
+  # 1) convert the names to an n x 2 matrix
+  nm <- names(M_list)
+  parts <- strsplit(nm, "_")
+  ij_mat <- do.call(rbind, parts)
+  ij_mat <- apply(ij_mat, 2, as.integer)
+  
+  # 2) Compute HS norms
+  HS_norms <- sapply(M_list, hilbert_schmidt_norm)
+  
+  # 3) Initialize and fill in matrix
+  HS_mat <- matrix(0, p, p)
+  
+  for(k in 1:nrow(ij_mat)){
+    i <- ij_mat[k,1]
+    j <- ij_mat[k,2]
+    
+
+    HS_mat[i,j] <- HS_norms[k]
+    HS_mat[j,i] <- HS_norms[k]
+  }
+  
+  return(HS_mat)
 }
 
 hilbert_schmidt_norm_diff <- function(mat_A, mat_B, time_grid_A, time_grid_B, fine_n = 200){
