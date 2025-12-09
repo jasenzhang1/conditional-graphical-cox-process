@@ -176,3 +176,33 @@ estimate_KL_correlation <- function(KL_cov, p){
   
 }
 
+estimate_KL_precision <- function(KL_cor, p){
+  
+  # ----------------------------------------------------------------------------
+  # 
+  #
+  # GOAL: estimate KL_precision between processes i and j and eigencomponents a and b
+  #
+  #
+  # inputs:
+  #
+  # - KL_cor           (list of i_j d_max x d_max matrices)     each entry represents the correlation of KL coefficients for process i and j
+  # - p                (integer)
+  #
+  # output:
+  #
+  # - KL_prec           (list of i_j d_max x d_max matrices)     each entry represents the precision of KL coefficients for process i and j 
+  #
+  # ----------------------------------------------------------------------------
+  
+  # assemble --> inverse --> extract
+  
+  
+  KL_cor_bundle <- assemble_block_matrix_irregular(KL_cor, p)
+  KL_prec_full <- sym(ginv(KL_cor_bundle$block_matrix))
+  KL_prec <- extract_block_matrix_irregular(KL_prec_full, KL_cor_bundle$row_borders, KL_cor_bundle$col_borders)
+
+  
+  return(KL_prec)
+  
+}
