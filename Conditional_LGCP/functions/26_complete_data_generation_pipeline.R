@@ -728,6 +728,15 @@ simulate_finite_basis_cox_data_parts1_and_2 <- function(temp_file_dir, setting_i
   # GOAL: generate log-intensities for each batch
   #
   #
+  # inputs:
+  #
+  # - temp_file_dir
+  # - setting_info_list     (list)
+  # - group_idx             (integer)  batch number
+  # - n_group               (integer)  number of processes per group
+  # - min_events            (integer)  minimum number of events
+  # - max_events            (integer)  maximum number of events for a subject's process
+  # 
   #
   # outputs:
   #
@@ -876,21 +885,6 @@ simulate_finite_basis_cox_data_part3 <- function(temp_file_dir, setting_info_lis
   results <- readRDS(file.path(temp_file_dir, part_0_info_list))
   list2env(results, envir = environment())
   
-  # # 0b) load all of the log-intensities and group them
-  # part_1_info_lists <- paste0(temp_file_dir, "/part1_", adj_type, '_n_', n, '_group', 1:group_nums, '.rds')
-  # all_part_1_loaded <- lapply(part_1_info_lists, readRDS)
-  # 
-  # cov_mat_list <- do.call(c, lapply(all_part_1_loaded, `[[`, "cov_mat_list"))
-  # log_intensities_both <- abind(lapply(all_part_1_loaded, `[[`, "log_intensities_both"), along = 3)
-  # log_intensities_est  <- abind(lapply(all_part_1_loaded, `[[`, "log_intensities_est"), along = 3)
-  # log_intensities      <- abind(lapply(all_part_1_loaded, `[[`, "log_intensities"), along = 3)
-  # beta_coeffs          <- abind(lapply(all_part_1_loaded, `[[`, "beta_coeffs"), along = 3)  
-  # 
-  # 
-  # # 0c) load all of the events and group them
-  # part_2_info_lists <- paste0(temp_file_dir, '/events_', adj_type, '_n_', n, '_group', 1:group_nums, '.rds')
-  # all_part_2_loaded <- lapply(part_2_info_lists, readRDS)
-  # events <- do.call(c, all_part_2_loaded)
   
   # 0bc) load parts 1 and 2 together
   part_1_and_2_info_lists <- paste0(temp_file_dir, '/parts1_and_2_', adj_type, '_n_', n, '_group', 1:group_nums, '.rds')
@@ -1129,34 +1123,37 @@ simulate_finite_basis_cox_data_part4 <- function(temp_file_dir, setting_info_lis
   
   step_4 <- list(eigen_decomp_truth = eigen_truths$eigen_decomp)
   
-  step_5 <- list(KL_coeffs_truth = beta_coeffs,                          # (p x d x n)
-                 KL_cov_truth = eigen_truths$KL_cov)    # (pc2 list of dxd matrices)
+  step_5 <- list(KL_cov_truth = eigen_truths$KL_cov)           # (i_j list of dxd matrices)
 
+  step_5b <- list(KL_cor_truth    = eigen_truths$KL_cor)       # (i_j list of dxd matrices)
   
-  step_5b <- list(KL_cor_truth    = eigen_truths$KL_cor,               # (pc2 list of dxd matrices)
-                  KL_prec_truth   = eigen_truths$KL_prec)              # (pc2 list of dxd matrices)
-    
-    
-
+  step_5c <- list(KL_prec_truth   = eigen_truths$KL_prec)      # (i_j list of dxd matrices)
   
+  step_5d <- list(KL_coeffs_truth = beta_coeffs)               # (p x d x n)
+    
   step_9 <- list(C_cond_truth                = eigen_truths$C_cond,
                  C_cond_truth_unnorm         = eigen_truths$C_cond_unnorm)          # (pm x pm matrix)
   
   step_9b <- list(efunc_outer_truth          = eigen_truths$efunc_outer,
-                  efunc_outer_unnorm_truth   = eigen_truths$efunc_outer_unnorm)          # (pc2 list of mxm matrices)
+                  efunc_outer_unnorm_truth   = eigen_truths$efunc_outer_unnorm)     # (pc2 list of mxm matrices)
   
   step_10 <- list(P_cond_truth               = eigen_truths$P_cond,
                   P_cond_truth_unnorm        = eigen_truths$P_cond_unnorm)          # (pm x pm matrix)
   
-  step_11 <- list(adj_mat_truth       = adj_mat_truth,
-                  w_mat_truth         = eigen_truths$P_HS,
-                  C_HS_truth          = eigen_truths$C_HS,
-                  w_mat_truth_unnorm  = eigen_truths$P_HS_unnorm,
-                  C_HS_truth_unnorm   = eigen_truths$C_HS_unnorm)                       # (pxp matrix)
+  step_11 <- list(w_mat_truth         = eigen_truths$P_HS,                          # matrices of HS norms 
+                  w_mat_truth_unnorm  = eigen_truths$P_HS_unnorm,                   # (pxp matrix)
+                  w_mat_KL_truth      = eigen_truths$P_HS_KL)                   
   
-  # step 12
+  step_11b <- list(C_HS_truth          = eigen_truths$C_HS,
+                   C_HS_truth_unnorm   = eigen_truths$C_HS_unnorm,
+                   C_HS_KL_truth       = eigen_truths$C_HS_KL)
+  
+  
+
   w_mat_truth         = eigen_truths$P_HS
   step_12 <- list(roc_truth = roc_with_threshold(w_mat_truth, adj_mat_truth, 'Truth'))
+  
+  step_12b <- list(adj_mat_truth = adj_mat_truth)
   
   # true_graphs
   
@@ -1180,8 +1177,8 @@ simulate_finite_basis_cox_data_part4 <- function(temp_file_dir, setting_info_lis
 
     step_11[['w_mat_beta_truth']] <- step_9_10_11_X_truth$P_HS_X_truth
     step_11[['C_HS_beta_truth']] <- step_9_10_11_X_truth$C_HS_X_truth
-    
 
+    
     
     w_mat_X_truth            <- step_9_10_11_X_truth$P_HS_X_truth
     step_12[['roc_beta_truth']] <- roc_with_threshold(w_mat_X_truth, adj_mat_truth, 'Beta Truth')
@@ -1194,11 +1191,15 @@ simulate_finite_basis_cox_data_part4 <- function(temp_file_dir, setting_info_lis
                      step_4 = step_4,
                      step_5 = step_5,
                      step_5b = step_5b,
+                     step_5c = step_5c,
+                     step_5d = step_5d,
                      step_9 = step_9,
                      step_9b = step_9b,
                      step_10 = step_10,
                      step_11 = step_11,
+                     step_11b = step_11b,
                      step_12 = step_12,
+                     step_12b = step_12b,
                      true_graphs = true_graphs
                      )
   
@@ -1270,15 +1271,19 @@ simulate_finite_basis_cox_data_part5 <- function(temp_file_dir, setting_info_lis
   # 1c) aggregate results
   step_1 <- list(X_k_truth = log_intensities,
                  X_k_coarse_truth = log_intensities_est,
-                 X_k_both_truth = log_intensities_both,
-                 Lambda_k_truth = exp(log_intensities),
-                 Lambda_k_coarse_truth = exp(log_intensities_est),
-                 Lambda_k_both_truth = exp(log_intensities_both),
-                 mu_t_truth = mu_t,
-                 mu_t_both_truth = mu_t_both,
-                 mu_t_coarse_truth = mu_t_coarse)
+                 X_k_both_truth = log_intensities_both)
+  
+  step_1b <- list(Lambda_k_truth = exp(log_intensities),
+                  Lambda_k_coarse_truth = exp(log_intensities_est),
+                  Lambda_k_both_truth = exp(log_intensities_both))
+  
+  step_1c <- list(mu_t_truth = mu_t,
+                  mu_t_both_truth = mu_t_both,
+                  mu_t_coarse_truth = mu_t_coarse)
   
   all_truths[['step_1']] <- step_1
+  all_truths[['step_1b']] <- step_1b
+  all_truths[['step_1c']] <- step_1c
   
   # ------------------------
   # REMOVE ALL FILES HERE 
@@ -1286,15 +1291,11 @@ simulate_finite_basis_cox_data_part5 <- function(temp_file_dir, setting_info_lis
   
 
   part0_file_name           <- paste0('part0_', adj_type, '_n_', n, '.rds')
-  # part1_file_name           <- paste0('part1_', adj_type, '_n_', n, '_group', 1:group_nums, '.rds')
-  # events_file_name          <- paste0('events_', adj_type, '_n_', n, '_group', 1:group_nums, '.rds')
   parts_1_and_2_file_name   <- paste0('parts1_and_2_', adj_type, '_n_', n, '_group', 1:group_nums, '.rds')
   truths_file_name          <- paste0('truths_', adj_type, '_n_', n, '_nquery', 1:cont_inds, '.rds')
   dataset_file_name         <- paste0('dataset_', adj_type, '_n_', n, '.rds')
   
   # file.remove(file.path(temp_file_dir, part0_file_name)) 
-  # # file.remove(file.path(temp_file_dir, part1_file_name)) 
-  # # file.remove(file.path(temp_file_dir, events_file_name)) 
   # file.remove(file.path(temp_file_dir, parts_1_and_2_file_name)) 
   # file.remove(file.path(temp_file_dir, truths_file_name)) 
   # file.remove(file.path(temp_file_dir, dataset_file_name)) 
