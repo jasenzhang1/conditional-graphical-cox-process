@@ -36,7 +36,7 @@ min_events=5
 max_events=10000
 n_query=1
 beta_truth="F"
-X_truth="F"
+X_truth="T"
 
 function wait_for_slot {
     # Wait until the number of background jobs is strictly less than max_jobs
@@ -217,7 +217,7 @@ for entry in "${adj_type_params[@]}"; do
           echo "Query $j out of $n_queries [2/4] done with rho_ij" >> "$outfile"
 
           wait_for_slot
-          Rscript script_step2_part3.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$j" "$n_i" "$n_ij" >> "$outfile" 2>&1
+          Rscript script_step2_part3.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$X_truth" "$j" "$n_i" "$n_ij" >> "$outfile" 2>&1
           echo "Query $j out of $n_queries [3/4] done with merger" >> "$outfile"
           
           # ----------------
@@ -225,7 +225,7 @@ for entry in "${adj_type_params[@]}"; do
           # ---------------- 
           
           wait_for_slot
-          Rscript script_fit_mice_data_part2b.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$j" >> "$outfile" 2>&1
+          Rscript script_fit_mice_data_part2b.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$X_truth" "$j" >> "$outfile" 2>&1
           echo "Query $j out of $n_queries [4/4] finished" >> "$outfile"
       done
       

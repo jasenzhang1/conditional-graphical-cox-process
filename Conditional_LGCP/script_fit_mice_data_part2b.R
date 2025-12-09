@@ -39,7 +39,8 @@ if(model_type == 'mice'){
   n <- as.numeric(args[3])
   adj_type <- args[4]
   method <- args[5]
-  cont_ind <- as.numeric(args[6])
+  X_truth <- as.logical(args[6])
+  cont_ind <- as.numeric(args[7])
   
   setting_info_list <- list(n_large = n_large,
                             n = n,
@@ -58,7 +59,7 @@ if(model_type == 'mice'){
 # estimation
 # ---------------------------
 
-full_conditional_estimation_with_no_truth_part2b(temp_file_dir, setting_info_list, cont_ind, mouse)
+full_conditional_estimation_with_no_truth_part2b(temp_file_dir, setting_info_list, cont_ind, mouse, X_truth)
 
 
 
