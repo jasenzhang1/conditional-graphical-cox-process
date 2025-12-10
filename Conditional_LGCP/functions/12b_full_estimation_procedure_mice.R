@@ -569,10 +569,9 @@ estimate_intensities_stratum_parallel_with_yc_part1 <- function(temp_file_dir, s
   }
 
   
-  # load `dataset$X_k_truth`
+  # load `dataset$X_k_truth`, `weights`, `data_df4`
   results <- readRDS(file.path(temp_file_dir, step_2_info_list))
   list2env(results, envir = environment())
-  
   
   n_time <- length(time_grid_est)  # 19
   
@@ -588,11 +587,7 @@ estimate_intensities_stratum_parallel_with_yc_part1 <- function(temp_file_dir, s
     Gamma_i <- data_i[, estimate_density(time, time_grid_est), by = "subject_num"]
     rho_mat <- matrix(Gamma_i$rho_hat, nrow = n_time)
     
-    included_weights <- weights[unique(Gamma_i$subject_num)]  # assume weights contains everyone so we have to filter here
-    
-    normalized_weights = included_weights / sum(included_weights)
-    
-    rho_mat2 <- sweep(rho_mat, 2, normalized_weights, `*`) # multiply each 19-dim vec by its normalized weight
+    rho_mat2 <- sweep(rho_mat, 2, weights, `*`) # multiply each 19-dim vec by `weight` which was already filtered for n <= n_large and normalized
     
     rho_i <- apply(rho_mat2, 1, sum) # since these are normalized weights, just add them
   }
