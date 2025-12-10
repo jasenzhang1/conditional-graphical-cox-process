@@ -905,9 +905,11 @@ full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, sett
     datafile_error_name <- paste0("dataset_part2_", adj_type, '_n_', n, '_nquery', cont_ind, '.RData')  # in case we need to quit and troubleshoot
   }
   
-  # load `W_y`
+  # load `W_y`, `p`
   results <- readRDS(file.path(temp_file_dir, step_2_info_list))
+  p <- results$p
   W_y <- results$W_y
+  adj_mat_i <- results$adj_mat_i
   #list2env(results, envir = environment())
   steps_2_and_2b <- readRDS(file.path(temp_file_dir, rho_list_name))
   
@@ -918,7 +920,6 @@ full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, sett
   # Step 2b onward
   # ------------------
   
-  full <- F     
   i_neq_j <- T
 
   step_3  <- step_3_g_ij(step_2, step_2b, i_neq_j)
@@ -933,28 +934,33 @@ full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, sett
     stop(e)
   })
   
-  # step 5 to 9 --> obtain KL_cor and KL_prec
+  # 3) steps 5: obtain KL_cor and KL_prec
   
 
   step_5 <- step_5_KL_covariance(step_3, step_4)
   step_5b <- step_5b_KL_correlation(step_5, p)
   step_5c <- step_5c_KL_precision(step_5b, p)
-  step_9 <- step_9_C_cond_from_KL_cor(step_4, step_5b)
-  step_9b <- step_9b_eigenfunction_outers(step_4)
-
+  
   # estimate C_HS, w_mat from KL without thresh 
   
-  step_11  <- step_11_HS_norms_from_KL(step_5c, p)
-  step_11b <- step_11b_HS_norms_from_KL(step_5b, p)
+  step_11_KL_no_thresh  <- step_11_HS_norms_from_KL(step_5c, p)
+  step_11b_KL_no_thresh <- step_11b_HS_norms_from_KL(step_5b, p)
   
   # estimate C_HS, w_mat from KL WITH thresh
   
-  step_11_v2 <- steps_10_11_GIC_from_KL(step_5b, p, W_y)
+  step_11_GIC_bundle <- steps_10_11_GIC_from_KL(step_5b, p, W_y)
+  
+  step_11_KL_yes_thresh  <- step_11_HS_norms_from_KL_GIC(step_11_GIC_bundle)
+  step_11b_KL_yes_thresh <- step_11b_HS_norms_from_KL_GIC(step_11_GIC_bundle)
+  
+  # 4) step 9: Construct mxm object from KL correlation + get precision operator
+  
+  step_9 <- step_9_C_cond_from_KL_cor(step_4, step_5b)
+  step_9b <- step_9b_eigenfunction_outers(step_4)
+
   
   block <- F
   MP <- F
-  
-  # step_10 - get precision matrix
   step_10 <- tryCatch({
     step_10_P_cond(step_9, p, block, MP)
   }, error = function(e) {
@@ -964,19 +970,41 @@ full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, sett
     stop(e)  # Re-throw the error
   })
   
-  # step_10b - using tau_c and tau_p to select for thresholds to minimize GIC
+
+  # 5) estimate C_HS, w_mat from pxp without thresh
   
+  step_11_mxm_no_thresh_bundle <- step_11_HS_norms(step_9, step_10, p)
   
-  step_11 <- step_11_HS_norms(step_9, step_10, p)
+  # 6) estiamte C_HS, w_mat from pxp WITH thresh
+
+  # step_11_mxm_GIC_bundle <- steps_10_11_GIC(step_9, p, W_y)
+  # 
+  # step_11_KL_yes_thresh  <- step_11_HS_norms_from_KL_GIC(step_11_mxm_GIC_bundle)
+  # step_11b_KL_yes_thresh <- step_11b_HS_norms_from_KL_GIC(step_11_mxm_GIC_bundle)
+
+  
+  # 7) collect all of 11 and 11b results
+  
+  step_11 <- c(step_11_KL_no_thresh,
+               step_11_KL_yes_thresh,
+               step_11_mxm_no_thresh_bundle$step_11)
+  
+  step_11b <- c(step_11b_KL_no_thresh,
+                step_11b_KL_yes_thresh,
+                step_11_mxm_no_thresh_bundle$step_11b)
+  
   
   if(! mouse){
     step_12 <- step_12_ROC(step_11, adj_mat_i)
   }
   
+  step_12b <- step_12b_adj_mat(step_11)
+  
   estimated_graphs <- list(step_2 = step_2, step_2b = step_2b, step_3 = step_3,
                            step_4 = step_4, step_5 = step_5, step_5b = step_5b, step_5c = step_5c, 
-                           step_9 = step_9, step_9b = step_9b,
-                           step_10 = step_10, step_11 = step_11)
+                           step_9 = step_9, step_9b = step_9b, step_10 = step_10, 
+                           step_11 = step_11, step_11b = step_11b, 
+                           step_12 = step_12, step_12b = step_12b)
   
   
 
@@ -1011,12 +1039,16 @@ full_conditional_estimation_with_no_truth_part3 <- function(temp_file_dir, setti
   # - estimated_graphs   (list of the following)
   #
   #   - step_0_events     (list of i_j entries --> each entry is a vector of timestamps)
-  #   - step_1            X_k_est
-  #   - step_2            (list for each y_c_query --> rho_i_est, rho_list, weights)
-  #   - step_3            (list for each y_c_query --> rho_ii_est)
+  #   - step_1            X_k_suffix
+  #   - step_1b           Lambda_k_suffix
+  #   - step_1c           mu_t_suffix
+  #   - step_2            (list for each y_c_query --> rho_i_est)
+  #   - step_2b           (list for each y_c_query --> rho_ii_est)
+  #   - step_3            (list for each y_c_query --> g_ij_est)
   #   - step_4            (list for each y_c_query --> eigen_decomp_est)
   #   - step_5            (list for each y_c_query --> KL_cov_est)
   #   - step_5b           (list for each y_c_query --> KL_cor_est)
+  #   - step_5c           (list for each y_c_query --> KL_prec_est)
   #   - step_9            (list for each y_c_query --> C_cond_est_full, C_cond_est_unnorm_full)
   #   - step_9b
   #   - step_10           (list for each y_c_query --> P_cond_est_full, P_cond_est_unnorm_full)
@@ -1079,6 +1111,7 @@ full_conditional_estimation_with_no_truth_part3 <- function(temp_file_dir, setti
 
   estimated_graphs[['step_0_events']] <- step_0_events
   estimated_graphs[['step_1']] <- step_1
+  estimated_graphs[['step_1b']] <- step_1b
   estimated_graphs$y_c_query <- query_y_cs
   estimated_graphs$p <- p
   estimated_graphs$Y_continuous <- y_c_strata
@@ -1090,13 +1123,16 @@ full_conditional_estimation_with_no_truth_part3 <- function(temp_file_dir, setti
   } else{
     step_2_list_names <- paste0(temp_file_dir, '/part2_', adj_type, '_n_', n, '_nquery', 1:cont_inds, '.rds')
   }
-  weights <- lapply(step_2_list_names, readRDS) %>% lapply(function(x) x$weights2[patient_sel])
-
-  estimated_graphs$step_2 <- Map(
-    function(x, w) { x$weights <- w; x },
-    estimated_graphs$step_2,
-    weights
-  )
+  
+  step_2_all_data <- lapply(step_2_list_names, readRDS)
+  
+  all_weights <- lapply(step_2_all_data, `[[`, "weights")
+  names(all_weights) <- round(query_y_cs[,1], 3)
+  all_W_y <- lapply(step_2_all_data, `[[`, "W_y")
+  names(all_W_y) <- round(query_y_cs[,1], 3)
+  
+  estimated_graphs[['weights']] <- all_weights
+  estimated_graphs[['W_y']] <- all_W_y
   
   if(mouse){
     estimated_graphs$time_grid_est <- time_grid_est
