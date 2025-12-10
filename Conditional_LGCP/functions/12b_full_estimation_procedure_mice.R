@@ -704,11 +704,8 @@ estimate_intensities_stratum_parallel_with_yc_part2 <- function(temp_file_dir, s
       
       bivariate_intensity <- matrix(Gamma_ij$V1, nrow = n_time^2)
       
-      included_weights <- weights[unique(Gamma_ij$subject_num)]
-      normalized_weights = included_weights / sum(included_weights)
-      
-      bivariate_intensity2 <- sweep(bivariate_intensity, 2, normalized_weights, `*`) # multiply each 19-dim vec by its normalized weight      
-      
+      bivariate_intensity2 <- sweep(bivariate_intensity, 2, weights, `*`) # multiply each 19-dim vec by `weight` which was already filtered for n <= n_large and normalized   
+
       rho_ij <- apply(bivariate_intensity2, 1, sum) # since these are normalized weights, just add them
       rho_ij_mat <- matrix(rho_ij, nrow = n_time)
     }
