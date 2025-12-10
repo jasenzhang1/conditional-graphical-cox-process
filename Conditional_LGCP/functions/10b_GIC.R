@@ -595,9 +595,9 @@ GIC_algorithm <- function(C_cond, p, W_y){
                  # operators in list form
                  C_cond = C_cond_thresh_final,                    
                  Theta_cond = Theta_cond_thresh_final,
-                 # operators in matrix form
-                 C_cond_full = C_cond_full_final$block_matrix,
-                 Theta_cond_full = Theta_cond_full_final$block_matrix,
+                 # pxp HS norm matrix 
+                 C_HS = hilbert_schmidt_norm_list_to_mat(C_cond_thresh_final, p),
+                 w_mat = hilbert_schmidt_norm_list_to_mat(Theta_cond_thresh_final, p),
                  # adjacencies
                  adj_mat = adj_results$adj_mat,
                  adj_list = adj_results$adj_list,
