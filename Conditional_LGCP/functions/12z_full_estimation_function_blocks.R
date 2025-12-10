@@ -1363,12 +1363,17 @@ step_11_HS_norms <- function(step_9, step_10, p){
   #
   # outputs:
   #
-  # - list of:
-  #   - w_mat_suffix        (p x p)   matrix of HS norms of the pm x pm matrices
+  # - list of the following:
+  #   - list of 
+  #     - w_mat_suffix        (p x p)   matrix of HS norms of the pm x pm matrices
+  #
+  #   - list of
+  #     - C_HS_suffix
   #
   # ----------------------------------------------------------------------------
   
-  result <- list()
+  result1 <- list()
+  result2 <- list()
   
   # 1) grab names
   
@@ -1389,11 +1394,12 @@ step_11_HS_norms <- function(step_9, step_10, p){
     P_cond_full <- step_10[[input_names_step_10[i]]]  %>% assemble_block_matrix_v2(p, m)
     
     
-    result[[name_i]]  <- hilbert_schmidt_norm_pm(P_cond_full, p, m)    
-    result[[name2_i]] <- hilbert_schmidt_norm_pm(C_cond_full, p, m)
+    result1[[name_i]]  <- hilbert_schmidt_norm_pm(P_cond_full, p, m)    
+    result2[[name2_i]] <- hilbert_schmidt_norm_pm(C_cond_full, p, m)
   }
   
-  return(result)
+  return(list(step_11 = result1,
+              step_11b = result2))
   
 }
 
@@ -1427,7 +1433,7 @@ steps_10_11_GIC_from_KL <- function(step_5b, p, W_y){
   # for each name `est`, `X_truth` etc... get the resulting name, apply the function on it, and store it
   for(i in 1:length(core_names)){
     
-    name_i <- paste0('GIC_KL_', core_names)
+    name_i <- paste0('GIC_KL_', core_names[i])
     
     result[[name_i]] <- GIC_algorithm(step_5b[[input_names[i]]], p, W_y)
   }
@@ -1477,6 +1483,94 @@ steps_10_11_GIC <- function(step_9, p, W_y){
   
 }
 
+step_11_HS_norms_from_KL_GIC <- function(step_11_GIC_bundle){
+  
+  
+  # ----------------------------------------------------------------------------  
+  #
+  # GOAL: obtain HS_norms from the GIC bundle
+  #
+  # 
+  # inputs:
+  #
+  # - step_11_GIC_bundle
+  #   - GIC_KL_suffix                        (list of items)  
+  #
+  #
+  # outputs:
+  #
+  # - list of:
+  #   - w_mat_KL_GIC_suffix                  (list of pxp HS matrices)
+  #
+  # ----------------------------------------------------------------------------
+  
+  result <- list()
+  
+  # 1) grab names
+  
+  core_names <- step_00_grab_ID(names(step_11_GIC_bundle), 'GIC_KL')
+  
+  input_names <- names(step_11_GIC_bundle)
+  
+  # 2) for each core name `est`, `X_truth` etc... get the resulting name, apply the function on it, and store it
+  for(i in 1:length(core_names)){
+    
+    # obtain w_mat from the entry
+    
+    name_i <- paste0('w_mat_KL_GIC_', core_names[i])
+    
+    result[[name_i]] <- step_11_GIC_bundle[[input_names[i]]][['w_mat']]
+    
+  }
+  
+  return(result)
+  
+}
+
+step_11b_HS_norms_from_KL_GIC <- function(step_11_GIC_bundle){
+  
+  
+  # ----------------------------------------------------------------------------  
+  #
+  # GOAL: obtain HS_norms for correlation operator from the GIC bundle
+  #
+  # 
+  # inputs:
+  #
+  # - step_11_GIC_bundle
+  #   - GIC_KL_suffix                        (list of items)  
+  #
+  #
+  # outputs:
+  #
+  # - list of:
+  #   - C_HS_KL_GIC_suffix                  (list of pxp HS matrices)
+  #
+  # ----------------------------------------------------------------------------
+  
+  result <- list()
+  
+  # 1) grab names
+  
+  core_names <- step_00_grab_ID(names(step_11_GIC_bundle), 'GIC_KL')
+  
+  input_names <- names(step_11_GIC_bundle)
+  
+  # 2) for each core name `est`, `X_truth` etc... get the resulting name, apply the function on it, and store it
+  for(i in 1:length(core_names)){
+    
+    # obtain w_mat from the entry
+    
+    name_i <- paste0('C_HS_KL_GIC_', core_names[i])
+    
+    result[[name_i]] <- step_11_GIC_bundle[[input_names[i]]][['C_HS']]
+    
+  }
+  
+  return(result)
+  
+}
+
 step_12_ROC <- function(step_11, adj_mat_i){
   
   # ----------------------------------------------------------------------------
@@ -1518,5 +1612,55 @@ step_12_ROC <- function(step_11, adj_mat_i){
   
   return(result)
   
+  
+}
+
+step_12b_adj_mat <- function(step_11){
+  
+  # ----------------------------------------------------------------------------
+  # 
+  # GOAL: get pxp adjacency matrices from w_mat. 
+  #
+  #       label an edge if its HS_norm is > 0
+  # 
+  #
+  # inputs:
+  #
+  # step_11 (list)
+  #   - w_mat_suffix
+  #
+  # 
+  # outputs:
+  #
+  # - step_12b (list)
+  #   - adj_mat_suffix
+  #
+  #
+  # ----------------------------------------------------------------------------
+  
+  result <- list()
+  tol <- 1e-6
+  p <- dim(step_11[[1]])[1]
+  
+  # 1) grab names
+  
+  core_names <- step_00_grab_ID(names(step_11), 'w_mat')
+  
+  input_names <- paste0('w_mat_', core_names)
+  
+  # 2) for each core name `est`, `X_truth` etc... get the resulting name, apply the function on it, and store it
+  for(i in 1:length(core_names)){
+    
+    name_i <- paste0('adj_mat_', core_names[i])
+    
+
+    adj_mat <- step_11[[input_names[i]]] > tol
+    diag(adj_mat) <- 0
+    
+    result[[name_i]]  <- adj_mat
+    
+  }
+  
+  return(result)
   
 }
