@@ -850,6 +850,34 @@ result_58_prep <- function(step_5b, p){
   
 }
 
+# plot the assembled KL precision values of all blocks
+result_59_prep <- function(step_5c, p){
+  
+  g_list <- list()
+  
+  # 0) borrow from 12z - get suffix names
+  suffix_names <- step_00_grab_ID(names(step_5c), 'KL_prec')
+  
+  queried_names <- names(step_5c)
+  
+  # 2) for each suffix name, do it 
+  for(i in 1:length(suffix_names)){
+    
+    assembled_items <- assemble_block_matrix_irregular(step_5c[[queried_names[i]]], p)
+    
+    assembled_cor <- assembled_items$block_matrix
+    
+    g_list[[length(g_list) + 1]] <- visualize_matrix_heatmap(assembled_items$block_matrix, 
+                                                             g_title = suffix_names[i], 
+                                                             x_max_borders = assembled_items$col_borders,
+                                                             y_max_borders = assembled_items$row_borders,
+                                                             zmid = 0)
+  }
+  
+  return(g_list)
+  
+}
+
 result_80s_prep <- function(step_8, m, m_est, i, j){
   
   #   - V_cond_ground_truth_full          (pm x pm matrix)
