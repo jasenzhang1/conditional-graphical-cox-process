@@ -356,6 +356,7 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth)
     graphs[['g_112']] <- result_heatmap_nonblock_prep(step_11, 'w_mat', time_grid_est, data_format = 'regular', rm_diag = T, zmid = 0)
   }  
   
+  # ROC curves
   if('113' %in% graph_ids){
     
     y_names <- names(graph_results_i$step_12)
@@ -400,6 +401,10 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth)
   
   return(graphs)
   
+  # Final adj_mat for all pxp blocks
+  if('114' %in% graph_ids){
+    graphs[['g_114']] <- result_heatmap_nonblock_prep(step_12b, 'adj_mat', time_grid_est, data_format = 'regular', rm_diag = T, zmid = 0)
+  }   
   
 }
 
