@@ -100,7 +100,7 @@ result_20s_prep <- function(step_2b, i, j, zmin = NULL, zmax = NULL, full = T){
   return(g_list)
 }
 
-result_heatmap_ij_prep <- function(my_list, entry_name, time_grid_est, i, j, is_full, X_truth = F, beta_truth = F, palette_ID = 'Blue-Red 2', zmin = NULL, zmid = NULL, zmax = NULL){
+result_heatmap_ij_prep <- function(my_list, entry_name, time_grid_est, i, j, palette_ID = 'Blue-Red 2', zmin = NULL, zmid = NULL, zmax = NULL){
   
   # ----------------------------------------------------------------------------
   #
@@ -114,38 +114,16 @@ result_heatmap_ij_prep <- function(my_list, entry_name, time_grid_est, i, j, is_
   # - time_grid_est
   # - i 
   # - j
-  # - is_full     (boolean)  TRUE = pm x pm matrix. Otherwise, it's in list form
-  # - X_truth     (boolean)  do we have X_truth values?
-  # - beta_truth  (boolean)  do we have beta_truth values
   #
   # ----------------------------------------------------------------------------
   
 
   key <- paste0(i, '_', j)
   
-  # 1) obtain `queried_names` and `value_names`
+  # 1) borrow from 12z - get suffix names
+  suffix_names <- step_00_grab_ID(names(my_list[[1]]), entry_name)
   
-  suffix_names <- c('est')
-  value_names <- c('Estimate')
-  
-  if(X_truth){
-    suffix_names <- c(suffix_names, 'X_truth')
-    value_names <- c(value_names, 'X Truth')
-  }
-  
-  if(beta_truths){
-    suffix_names <- c(suffix_names, 'beta_truth')
-    value_names <- c(value_names, 'Beta Truth')
-  }
-  
-  suffix_names <- c(suffix_names, 'truth')
-  value_names <- c(value_names, 'Truth') 
-  
-  if(is_full){
-    queried_names <- paste0(entry_name, '_', suffix_names, '_full')
-  } else{
-    queried_names <- paste0(entry_name, '_', suffix_names)
-  }
+  queried_names <- names(my_list[[1]])
   
 
   # 2) colors
@@ -166,19 +144,14 @@ result_heatmap_ij_prep <- function(my_list, entry_name, time_grid_est, i, j, is_
     for (t in seq_along(queried_names)) {
       
       this_name <- queried_names[t]   # e.g. rho_est, rho_X_truth, ...
-      this_type <- value_names[t]     # e.g. Estimate, X Truth, Truth
+      this_type <- suffix_names[t]    # e.g. est, X_truth, ...
       
       # check existence
       if (is.null(entry[[this_name]])) next
       
-      # extract slice based on is_full setting
-      if (is_full) {
-        M <- extract_block_structure_ij(entry[[this_name]],
-                                        length(time_grid_est),
-                                        i, j)
-      } else {
-        M <- entry[[this_name]][[key]]
-      }
+      # extract slice assuming it's in list form
+      M <- entry[[this_name]][[key]]
+
       
       # melt into long format
       df_t <- reshape2::melt(M)
@@ -196,7 +169,7 @@ result_heatmap_ij_prep <- function(my_list, entry_name, time_grid_est, i, j, is_
   colnames(df_all)[1:3] <- c("Row", "Col", "Value")
   
   # Convert to factors for proper ordering
-  df_all$Type <- factor(df_all$Type, levels = c("Truth", "X_Truth", "Estimate"))
+  df_all$Type <- factor(df_all$Type)
   df_all$Matrix <- factor(df_all$Matrix)
   
   if(is.null(zmin)){
@@ -235,7 +208,7 @@ result_heatmap_ij_prep <- function(my_list, entry_name, time_grid_est, i, j, is_
     )
 }
 
-result_heatmap_nonblock_prep <- function(my_list, entry_name, time_grid_est, data_format, X_truth = F, beta_truth = F, rm_diag = F, palette_ID = 'Blue-Red 2', zmin = NULL, zmid = NULL, zmax = NULL){
+result_heatmap_nonblock_prep <- function(my_list, entry_name, time_grid_est, data_format, rm_diag = F, palette_ID = 'Blue-Red 2', zmin = NULL, zmid = NULL, zmax = NULL){
   
   # ----------------------------------------------------------------------------
   #
@@ -254,27 +227,9 @@ result_heatmap_nonblock_prep <- function(my_list, entry_name, time_grid_est, dat
   
   # 1) obtain `queried_names` and `value_names`
   
-  suffix_names <- c('est')
-  value_names <- c('Estimate')
+  suffix_names <- step_00_grab_ID(names(my_list[[1]]), entry_name)
   
-  if(X_truth){
-    suffix_names <- c(suffix_names, 'X_truth')
-    value_names <- c(value_names, 'X Truth')
-  }
-  
-  if(beta_truths){
-    suffix_names <- c(suffix_names, 'beta_truth')
-    value_names <- c(value_names, 'Beta Truth')
-  }
-  
-  suffix_names <- c(suffix_names, 'truth')
-  value_names <- c(value_names, 'Truth') 
-  
-  if(data_format == 'full'){
-    queried_names <- paste0(entry_name, '_', suffix_names, '_full')
-  } else{
-    queried_names <- paste0(entry_name, '_', suffix_names)
-  }
+  queried_names <- names(my_list[[1]])
   
   # 2) colors
   new_palette <- hcl.colors(3, palette = palette_ID)
@@ -296,7 +251,7 @@ result_heatmap_nonblock_prep <- function(my_list, entry_name, time_grid_est, dat
     for (t in seq_along(queried_names)) {
       
       this_name <- queried_names[t]     # e.g. rho_est, rho_X_truth, rho_truth
-      this_type <- value_names[t]       # e.g. Estimate, X Truth, Truth
+      this_type <- suffix_names[t]      # e.g. est, X_truth, truth
       
       # If an expected matrix isn't present, skip gracefully
       if (is.null(entry[[this_name]])) next
@@ -309,7 +264,7 @@ result_heatmap_nonblock_prep <- function(my_list, entry_name, time_grid_est, dat
         i_j <- names(entry[[this_name]])
         j_j <- i_j[length(i_j)]
         p <- as.numeric(strsplit(j_j, "_")[[1]][1])
-        M <- assemble_block_matrix_v2(entry[[this_name]], p, m)
+        M <- assemble_block_matrix_irregular(entry[[this_name]], p)$block_matrix
       }
       
       df_t <- reshape2::melt(M)
@@ -325,7 +280,7 @@ result_heatmap_nonblock_prep <- function(my_list, entry_name, time_grid_est, dat
   colnames(df_all)[1:3] <- c("Row", "Col", "Value")
   
   # Convert to factors for proper ordering
-  df_all$Type <- factor(df_all$Type, levels = c("Truth", "X_Truth", "Estimate"))
+  df_all$Type <- factor(df_all$Type)
   df_all$Matrix <- factor(df_all$Matrix)
   
 
@@ -355,7 +310,7 @@ result_heatmap_nonblock_prep <- function(my_list, entry_name, time_grid_est, dat
     }
   }
   
-  
+  # 5) min and max of legend 
   if(is.null(zmin)){
     zmin <- min(df_all$Value)
   }
@@ -369,6 +324,7 @@ result_heatmap_nonblock_prep <- function(my_list, entry_name, time_grid_est, dat
   zmax <- zmax + 0.1 * (zmax - zmin)
   zmin <- zmin - 0.1 * (zmax - zmin)
   
+  # 6) convert indices to timestamps
   if(length(unique(df_all$Col)) == length(time_grid_est)){
     df_all$Col_val <- time_grid_est[df_all$Col]
     df_all$Row_val <- time_grid_est[df_all$Row]    
@@ -379,7 +335,7 @@ result_heatmap_nonblock_prep <- function(my_list, entry_name, time_grid_est, dat
   
 
   
-  # Plot with facets
+  # 7) Plot with facets
   ggplot(df_all, aes(x = Col_val, y = Row_val, fill = Value)) +
     geom_tile() +
     scale_y_reverse() + # matrix y-axis 
@@ -398,7 +354,7 @@ result_heatmap_nonblock_prep <- function(my_list, entry_name, time_grid_est, dat
     )
 }
 
-result_line_graph_prep <- function(my_list, entry_name, time_grid, X_truth = F, beta_truth = F, palette_ID = 'Dark 2', num_processes = NULL){
+result_line_graph_prep <- function(my_list, entry_name, time_grid, palette_ID = 'Dark 2', num_processes = NULL){
   
   # ----------------------------------------------------------------------------
   #
@@ -410,38 +366,20 @@ result_line_graph_prep <- function(my_list, entry_name, time_grid, X_truth = F, 
   # - my_list     (list)     step_x; list of y_c_queries --> g_ij_est etc items
   # - entry_name  (string)   estimate prefix (e.g. rho_i)
   # - time_grid
-  # - X_truth     (boolean)
-  # - beta_truth  (boolean)
   # - palette_ID
   # - num_processes
   #
   # ----------------------------------------------------------------------------  
   
-  # 1) obtain `queried_names` and `value_names`
-  
-  suffix_names <- c('est')
-  value_names <- c('Estimate')
-  
-  if(X_truth){
-    suffix_names <- c(suffix_names, 'X_truth')
-    value_names <- c(value_names, 'X Truth')
-  }
-  
-  if(beta_truths){
-    suffix_names <- c(suffix_names, 'beta_truth')
-    value_names <- c(value_names, 'Beta Truth')
-  }
-  
-  suffix_names <- c(suffix_names, 'truth')
-  value_names <- c(value_names, 'Truth') 
-  
-  queried_names <- paste0(entry_name, '_', suffix_names)
+  # 0) borrow from 12z - get suffix names
+  suffix_names <- step_00_grab_ID(names(my_list[[1]]), entry_name)
+
+  queried_names <- names(my_list[[1]])
   
   
   # Suppose your list is called `my_list` with length m
   m <- length(my_list)
   
-
   
   # Combine all matrices into one long dataframe
   df_all <- bind_rows(lapply(seq_len(m), function(i) {
@@ -452,7 +390,7 @@ result_line_graph_prep <- function(my_list, entry_name, time_grid, X_truth = F, 
     for (j in seq_along(queried_names)) {
       
       this_name <- queried_names[j]        # e.g. rho_est, rho_X_truth ...
-      this_type <- value_names[j]          # e.g. Estimate, X Truth ...
+      this_type <- suffix_names[j]          # e.g. est, X_truth ...
       
       # Skip if not found in list
       if (is.null(entry[[this_name]])) next
@@ -480,7 +418,7 @@ result_line_graph_prep <- function(my_list, entry_name, time_grid, X_truth = F, 
   
   
   # Convert to factors for proper ordering
-  df_all$Type <- factor(df_all$Type, levels = c("Truth", "Estimate"))
+  df_all$Type <- factor(df_all$Type)
   df_all$process <- as.factor(df_all$process)
   
   # plot with facets
@@ -504,7 +442,7 @@ result_line_graph_prep <- function(my_list, entry_name, time_grid, X_truth = F, 
     )
 }
 
-result_histogram_prep <- function(my_list, entry_name, X_truth = F, beta_truth = F, nbins = 20){
+result_histogram_prep <- function(my_list, entry_name, data_format, nbins = 20){
   
   # ----------------------------------------------------------------------------
   #
@@ -521,35 +459,20 @@ result_histogram_prep <- function(my_list, entry_name, X_truth = F, beta_truth =
   #
   # ----------------------------------------------------------------------------  
   
-  # 1) obtain `queried_names` and `value_names`
+  # 1) borrow from 12z - get suffix names
+  suffix_names <- step_00_grab_ID(names(my_list[[1]]), entry_name)
   
-  suffix_names <- c('est')
-  value_names <- c('Estimate')
-  
-  if(X_truth){
-    suffix_names <- c(suffix_names, 'X_truth')
-    value_names <- c(value_names, 'X Truth')
-  }
-  
-  if(beta_truths){
-    suffix_names <- c(suffix_names, 'beta_truth')
-    value_names <- c(value_names, 'Beta Truth')
-  }
-  
-  suffix_names <- c(suffix_names, 'truth')
-  value_names <- c(value_names, 'Truth') 
-  
-  queried_names <- paste0(entry_name, '_', suffix_names)
+  queried_names <- names(my_list[[1]])
   
   
   # 2) collect items
   
   # Suppose your list is called `my_list` with length m
-  m <- length(my_list)
+  n_query <- length(my_list)
   
   
   # Combine all matrices into one long dataframe
-  df_all <- bind_rows(lapply(seq_len(m), function(k) {
+  df_all <- bind_rows(lapply(seq_len(n_query), function(k) {
     
     entry <- my_list[[k]]
     dfs <- list()
@@ -557,7 +480,7 @@ result_histogram_prep <- function(my_list, entry_name, X_truth = F, beta_truth =
     for (t in seq_along(queried_names)) {
       
       this_name <- queried_names[t]     # e.g. rho_est, rho_X_truth, rho_truth
-      this_type <- value_names[t]       # e.g. Estimate, X Truth, Truth
+      this_type <- suffix_names[t]      # e.g. est, X_truth, truth
       
       # If an expected matrix isn't present, skip gracefully
       if (is.null(entry[[this_name]])) next
@@ -570,7 +493,7 @@ result_histogram_prep <- function(my_list, entry_name, X_truth = F, beta_truth =
         i_j <- names(entry[[this_name]])
         j_j <- i_j[length(i_j)]
         p <- as.numeric(strsplit(j_j, "_")[[1]][1])
-        M <- assemble_block_matrix_v2(entry[[this_name]], p, m)
+        M <- assemble_block_matrix_irregular(entry[[this_name]], p)$block_matrix
       }
       
       df_t <- reshape2::melt(M)
@@ -588,7 +511,7 @@ result_histogram_prep <- function(my_list, entry_name, X_truth = F, beta_truth =
   
   colnames(df_all)[1:3] <- c("Row", "Col", "Value")
   
-  df_all$Type <- factor(df_all$Type, levels = value_names)   # use your dynamic value_names
+  df_all$Type <- factor(df_all$Type)   
   df_all$Matrix <- factor(df_all$Matrix)
   
   # Histogram plot instead of heatmap
@@ -661,96 +584,75 @@ result_30s_prep <- function(step_3, i, j, full = T){
   return(g_list)
 }
 
-result_41_prep <- function(step_4, time_grid, time_grid_est, full = T){
+result_41_prep <- function(step_4){
   
-  if(! full){
-    g_list <- list(visualize_log_intensity(t(step_4$eigen_decomp_truth$eigenfunctions[[1]]),    time_grid,      'Truth Theory'),
-                   visualize_log_intensity(t(step_4$eigen_decomp_est$eigenfunctions[[1]]),      time_grid_est,  'Estimate'))  
-    return(g_list)
-  }
+  # list --> n_query --> eigen_decomp_suffix
   
-  g_list <- list(visualize_log_intensity(t(step_4[[1]]$eigenfunctions[[1]]),    time_grid,      'Truth Theory'),
-                 visualize_log_intensity(t(step_4[[2]]$eigenfunctions[[1]]),    time_grid_est,  'Coarse Truth Theory'),
-                 visualize_log_intensity(t(step_4[[3]]$eigenfunctions[[1]]),    time_grid,      'Truth X'),
-                 visualize_log_intensity(t(step_4[[4]]$eigenfunctions[[1]]),    time_grid_est,  'Coarse Truth X'),
-                 visualize_log_intensity(t(step_4[[5]]$eigenfunctions[[1]]),    time_grid_est,  'Estimate'))  
+  full_names <- names(step_4[[1]])
   
-  return(g_list)
+  step_4_v2 <- lapply(step_4, function(x) {
+    lapply(full_names, function(nm) {
+      x[[nm]]$eigenfunctions[[1]] %>% t()
+    }) %>% setNames(full_names)
+  })
+  
+  
+  return(step_4_v2)
   
 }
 
 # does eigenreconstruction give us our original g_ij?
-result_42_prep <- function(step_3, step_4, p, X_truth){
+result_42_prep <- function(step_3, step_4, p){
+  
+  # assume step_3 and step_4 are n_query specific lists
   
   source('functions/04_eigendecomposition.R')
   source('functions/13_estimation_validation.R')
   
-  if(! X_truth){
-    g_ii_truth          <- prep_eigendecomposition_ii(step_3$g_ij_truth, p)
-    g_ii_est            <- prep_eigendecomposition_ii(step_3$g_ij_est, p)
+  g_list <- list()
+  
+  # 0) borrow from 12z - get suffix names
+  suffix_names <- step_00_grab_ID(names(step_3), 'g_ij')
+
+  
+  queried_names_3 <- names(step_3)
+  queried_names_4 <- names(step_4)
+  
+  # 2) for each suffix name, do it 
+  for(i in 1:length(suffix_names)){
     
-    g_ii_truth_decomp           <- validate_eigendecomposition_ii(g_ii_truth, step_4$eigen_decomp_truth)
-    g_ii_est_decomp             <- validate_eigendecomposition_ii(g_ii_est,   step_4$eigen_decomp_est)
     
-    g_list <- list(visualize_matrix_heatmap(g_ii_truth[,,1],               'Truth Theory (TT)', -1, 0, 1),  # ground truth 50 x 50 covariance
-                   visualize_matrix_heatmap(g_ii_truth_decomp[,,1],        'TT Reconstruct', -1,0, 1), # ground truth reconstructed
-                   visualize_matrix_heatmap(g_ii_est[,,1],                 'Estimate (E)', -1, 0, 1),    # estimate 19 x 19 covariance
-                   visualize_matrix_heatmap(g_ii_est_decomp[,,1],          'E Reconstruct', -1, 0, 1)) # reconstructed estimate
+    g_ii_suffix <- prep_eigendecomposition_ii(step_3[[queried_names_3[i]]], p)
+    g_ii_suffix_decomp <- validate_eigendecomposition_ii(g_ii_suffix, step_4[[queried_names_4[i]]])
     
-    return(g_list)
+    name_i <- suffix_names[i]
+    name_i_reconstruct <- paste0(name_i, ' reconstruct')
+    
+    g_list[[length(g_list) + 1]] <- visualize_matrix_heatmap(g_ii_suffix[,,1],               name_i,             -1, 0, 1)
+    g_list[[length(g_list) + 1]] <- visualize_matrix_heatmap(g_ii_suffix_decomp[,,1],        name_i_reconstruct, -1, 0, 1)
+                
   }
   
-  g_ii_truth          <- prep_eigendecomposition_ii(step_3[[3]], p)
-  g_ii_coarse_truth   <- prep_eigendecomposition_ii(step_3[[4]], p)
-  g_ii_X_truth        <- prep_eigendecomposition_ii(step_3[[5]], p)
-  g_ii_X_coarse_truth <- prep_eigendecomposition_ii(step_3[[6]], p)
-  g_ii_est            <- prep_eigendecomposition_ii(step_3[[7]], p) 
-  
-  # validate
-  g_ii_truth_decomp           <- validate_eigendecomposition_ii(g_ii_truth,          step_4[[1]])
-  g_ii_coarse_truth_decomp    <- validate_eigendecomposition_ii(g_ii_coarse_truth,   step_4[[2]]) 
-  g_ii_X_truth_decomp         <- validate_eigendecomposition_ii(g_ii_X_truth,        step_4[[3]]) 
-  g_ii_X_coarse_truth_decomp  <- validate_eigendecomposition_ii(g_ii_X_coarse_truth, step_4[[4]])  
-  g_ii_est_decomp             <- validate_eigendecomposition_ii(g_ii_est,            step_4[[5]])
-  
-  
-  
-  g_list <- list(visualize_matrix_heatmap(g_ii_truth[,,1],               'Truth Theory (TT)', -1, 0, 1),  # ground truth 50 x 50 covariance
-                 visualize_matrix_heatmap(g_ii_truth_decomp[,,1],        'TT Reconstruct', -1,0, 1), # ground truth reconstructed
-                 visualize_matrix_heatmap(g_ii_coarse_truth[,,1],        'Coarse Truth Theory (CTT)', -1, 0, 1), # ground truth 19 x 19 covariance
-                 visualize_matrix_heatmap(g_ii_coarse_truth_decomp[,,1], 'CTT Reconstruct', -1, 0, 1), # ground truth 19 x 19 covariance
-                 visualize_matrix_heatmap(g_ii_est[,,1],                 'Estimate (E)', -1, 0, 1),    # estimate 19 x 19 covariance
-                 visualize_matrix_heatmap(g_ii_est_decomp[,,1],          'E Reconstruct', -1, 0, 1)) # reconstructed estimate
   
   return(g_list)
 
 }
 
 # orthogonality of eigenfunctions
-result_43_prep <- function(step_4, X_truth){
+result_43_prep <- function(step_4){
   
-  if(! X_truth){
-    mat_truth          <- t(step_4$eigen_decomp_truth$eigenfunctions[[1]]) %*% step_4$eigen_decomp_truth$eigenfunctions[[1]]
-    mat_est            <- t(step_4$eigen_decomp_est$eigenfunctions[[1]]) %*% step_4$eigen_decomp_est$eigenfunctions[[1]]
+  g_list <- list()
+  
+  # 0) borrow from 12z - get suffix names
+  suffix_names <- step_00_grab_ID(names(step_4), 'eigen_decomp')
+  
+  queried_names <- names(step_4)
+  
+  for(i in 1:length(suffix_names)){
+    mat_ortho <- t(step_4[[queried_names[i]]]$eigenfunctions[[1]]) %*% step_4[[queried_names[i]]]$eigenfunctions[[1]]
     
-    g_list <- list(visualize_matrix_heatmap(mat_truth,   'Truth Theory',        zmid = 0),
-                   visualize_matrix_heatmap(mat_est,     'Estimate',            zmid = 0))
-    
-    return(g_list)
+    g_list[[length(g_list) + 1]] <- visualize_matrix_heatmap(mat_ortho, suffix_names[i], zmid = 0)
   }
-  
-  mat_truth          <- t(step_4[[1]]$eigenfunctions[[1]]) %*% step_4[[1]]$eigenfunctions[[1]]
-  mat_coarse_truth   <- t(step_4[[2]]$eigenfunctions[[1]]) %*% step_4[[2]]$eigenfunctions[[1]]   
-  mat_X_truth        <- t(step_4[[3]]$eigenfunctions[[1]]) %*% step_4[[3]]$eigenfunctions[[1]]
-  mat_X_coarse_truth <- t(step_4[[4]]$eigenfunctions[[1]]) %*% step_4[[4]]$eigenfunctions[[1]]
-  mat_est            <- t(step_4[[5]]$eigenfunctions[[1]]) %*% step_4[[5]]$eigenfunctions[[1]]
-  
-  g_list <- list(visualize_matrix_heatmap(mat_truth,            'Truth Theory',        zmid = 0),
-                 visualize_matrix_heatmap(mat_coarse_truth,     'Coarse Truth Theory', zmid = 0),
-                 visualize_matrix_heatmap(mat_X_truth,          'Truth X',             zmid = 0),
-                 visualize_matrix_heatmap(mat_X_coarse_truth,   'Coarse Truth X',      zmid = 0),
-                 visualize_matrix_heatmap(mat_est,              'Estimate',            zmid = 0))
-  
   return(g_list)
 }
 
@@ -839,46 +741,112 @@ result_45_prep <- function(step_4){
 }
 
 # plot the (dxd) KL covariance values of the (i, j) block
-result_55_prep <- function(step_5, i, j, full = T){
-  
-  #   - KL_cov_est      (i_j list)
-  #   - KL_cov_truth    (i_j list)
+result_55_prep <- function(step_5, i, j){
   
   key <- paste0(i, '_', j)
   
-  if(! full){
+  g_list <- list()
+  
+  # 0) borrow from 12z - get suffix names
+  suffix_names <- step_00_grab_ID(names(step_5), 'KL_cov')
+  
+  
+  queried_names <- names(step_5)
+  
+  # 2) for each suffix name, do it 
+  for(i in 1:length(suffix_names)){
     
+    g_list[[length(g_list) + 1]] <- visualize_matrix_heatmap(step_5[[queried_names[i]]][[key]], g_title = suffix_names[i], zmid = 0)
+
     
-    
-    g_list <- list(visualize_matrix_heatmap(step_5$KL_cov_truth[[key]], g_title = 'Ground Truth', zmid = 0),
-                   visualize_matrix_heatmap(step_5$KL_cov_est[[key]], g_title = 'Estimate', zmid = 0)) 
-    
-    return(g_list)
   }
   
-  return(NULL)
+  return(g_list)
   
 }
 
 # plot the (dxd) KL correlation values of the (i, j) block
-result_56_prep <- function(step_5b, i, j, full = T){
+result_56_prep <- function(step_5b, i, j){
   
-  #   - KL_cor_est      (i_j list)
-  #   - KL_cor_truth    (i_j list)
   
   key <- paste0(i, '_', j)
   
-  if(! full){
+  g_list <- list()
+  
+  # 0) borrow from 12z - get suffix names
+  suffix_names <- step_00_grab_ID(names(step_5b), 'KL_cor')
+  
+  
+  queried_names <- names(step_5b)
+  
+  # 2) for each suffix name, do it 
+  for(i in 1:length(suffix_names)){
+    
+    g_list[[length(g_list) + 1]] <- visualize_matrix_heatmap(step_5b[[queried_names[i]]][[key]], g_title = suffix_names[i], zmid = 0)
     
     
-    
-    g_list <- list(visualize_matrix_heatmap(step_5b$KL_cor_truth[[key]], g_title = 'Ground Truth', zmid = 0),
-                   visualize_matrix_heatmap(step_5b$KL_cor_est[[key]], g_title = 'Estimate', zmid = 0)) 
-    
-    return(g_list)
   }
   
-  return(NULL)
+  return(g_list)
+  
+}
+
+# plot the (dxd) KL precision values of the (i, j) block
+result_57_prep <- function(step_5c, i, j){
+  
+  
+  key <- paste0(i, '_', j)
+  
+  g_list <- list()
+  
+  # 0) borrow from 12z - get suffix names
+  suffix_names <- step_00_grab_ID(names(step_5c), 'KL_prec')
+  
+  
+  queried_names <- names(step_5c)
+  
+  # 2) for each suffix name, do it 
+  for(i in 1:length(suffix_names)){
+    
+    g_list[[length(g_list) + 1]] <- visualize_matrix_heatmap(step_5c[[queried_names[i]]][[key]], g_title = suffix_names[i], zmid = 0)
+    
+    
+  }
+  
+  return(g_list)
+  
+}
+
+# plot the assembled KL correlation values of all blocks
+result_58_prep <- function(step_5b, p){
+  
+  g_list <- list()
+  
+  # 0) borrow from 12z - get suffix names
+  suffix_names <- step_00_grab_ID(names(step_5b), 'KL_cor')
+  
+  
+  queried_names <- names(step_5b)
+  
+  # 2) for each suffix name, do it 
+  for(i in 1:length(suffix_names)){
+    
+    assembled_items <- assemble_block_matrix_irregular(step_5b[[queried_names[i]]], p)
+    
+    assembled_cor <- assembled_items$block_matrix
+    
+    
+    
+    g_list[[length(g_list) + 1]] <- visualize_matrix_heatmap(assembled_items$block_matrix, 
+                                                             g_title = suffix_names[i], 
+                                                             x_max_borders = assembled_items$col_borders,
+                                                             y_max_borders = assembled_items$row_borders,
+                                                             zmid = 0)
+    
+    
+  }
+  
+  return(g_list)
   
 }
 

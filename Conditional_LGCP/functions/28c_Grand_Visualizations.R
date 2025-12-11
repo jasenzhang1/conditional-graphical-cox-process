@@ -154,6 +154,7 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth)
   
   # 2) figure out which steps have unique results for y_c_query and which steps are constant
   
+  # log-intensity of first 5 processes of subject i
   if('11' %in% graph_ids){
     
     i <- 1
@@ -171,6 +172,7 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth)
     }
   }
   
+  # average log-intensity of first 5 processes
   if('12' %in% graph_ids){
     
     if(X_truth){
@@ -190,28 +192,28 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth)
   
   # rho_i(t) for processes 1 through 5
   if('22' %in% graph_ids){
-    graphs[['g_22']] <- result_line_graph_prep(step_2, 'rho_i', time_grid_est, X_truth, beta_truth, num_processes = 5)
+    graphs[['g_22']] <- result_line_graph_prep(step_2, 'rho_i', time_grid_est, num_processes = 5)
   }
   
   # rho_ij(s,t) for process pair 1_1
   if('24' %in% graph_ids){ 
-    graphs[['g_24']] <- result_heatmap_ij_prep(step_2b, 'rho_ii', time_grid_est, i = 1, j = 1, is_full = F, X_truth = F, beta_truth = F)
+    graphs[['g_24']] <- result_heatmap_ij_prep(step_2b, 'rho_ii', time_grid_est, i = 1, j = 1)
   }  
   
   # rho_ij(s,t) for process pair 1_2
   if('25' %in% graph_ids){ 
-    graphs[['g_25']] <- result_heatmap_ij_prep(step_2b, 'rho_ii', time_grid_est, i = 1, j = 2, is_full = F, X_truth = F, beta_truth = F)
+    graphs[['g_25']] <- result_heatmap_ij_prep(step_2b, 'rho_ii', time_grid_est, i = 1, j = 2)
   }  
   
   # rho_ij(s,t) for process pair 3_5
   if('26' %in% graph_ids){ 
-    graphs[['g_26']] <- result_heatmap_ij_prep(step_2b, 'rho_ii', time_grid_est, i = 3, j = 5, is_full = F, X_truth = F, beta_truth = F)
+    graphs[['g_26']] <- result_heatmap_ij_prep(step_2b, 'rho_ii', time_grid_est, i = 3, j = 5)
   }   
   
   # weights, all y_c_query settings in a row
   if('29' %in% graph_ids){
-    graph_list <- lapply(seq_along(step_2), function(i) {
-      result_29(step_2[[i]]$weights, Y_continuous, y_c_names[i])
+    graph_list <- lapply(seq_along(weights), function(i) {
+      result_29(weights[[i]], Y_continuous, y_c_names[i])
     })
     
     graphs[['g_29']] <- do.call(grid.arrange, c(graph_list, nrow = 1))
@@ -219,40 +221,35 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth)
   
   # g_ij(s,t) at 1_1
   if('31' %in% graph_ids){ 
-    graphs[['g_31']] <- result_heatmap_ij_prep(step_3, 'g_ij', time_grid_est, i = 1, j = 1, is_full = F, X_truth = F, beta_truth = F, zmid = 0)
+    graphs[['g_31']] <- result_heatmap_ij_prep(step_3, 'g_ij', time_grid_est, i = 1, j = 1, zmid = 0)
   }  
   
   # g_ij(s,t) at 1_2
   if('32' %in% graph_ids){ 
-    graphs[['g_32']] <- result_heatmap_ij_prep(step_3, 'g_ij', time_grid_est, i = 1, j = 2, is_full = F, X_truth = F, beta_truth = F, zmid = 0)
+    graphs[['g_32']] <- result_heatmap_ij_prep(step_3, 'g_ij', time_grid_est, i = 1, j = 2, zmid = 0)
   }  
   
   # g_ij(s,t) at 3_5
   if('33' %in% graph_ids){ 
-    graphs[['g_33']] <- result_heatmap_ij_prep(step_3, 'g_ij', time_grid_est, i = 3, j = 5, is_full = F, X_truth = F, beta_truth = F, zmid = 0)
+    graphs[['g_33']] <- result_heatmap_ij_prep(step_3, 'g_ij', time_grid_est, i = 3, j = 5, zmid = 0)
   }    
   
   # eigenfunctions
   if('41' %in% graph_ids){ 
-    step_4_v2 <- lapply(step_4, function(x) {
-      list(
-        eigen_decomp_est   = x$eigen_decomp_est$eigenfunctions[[1]] %>% t(),
-        eigen_decomp_truth = x$eigen_decomp_truth$eigenfunctions[[1]] %>% t()
-      )
-    })   
+    step_4_v2 <- result_41_prep(step_4)  
     
     graphs[['g_41']] <- result_line_graph_prep(step_4_v2, 'eigen_decomp', time_grid_est)
   }  
   
   # reconstructing g_11 from eigenfunctions
   if('42' %in% graph_ids){ 
-    g_list <- lapply(1:length(step_3), function(i){result_42_prep(step_3[[i]], step_4[[i]], p, X_truth = F)})
+    g_list <- lapply(1:length(step_3), function(i){result_42_prep(step_3[[i]], step_4[[i]], p)})
     graphs[['g_42']] <- rearrange_plots(g_list)
   }  
   
   # orthonormality of eigenfunctions
   if('43' %in% graph_ids){ 
-    g_list <- lapply(step_4, function(x){result_43_prep(x, X_truth = F)})
+    g_list <- lapply(step_4, function(x){result_43_prep(x)})
     graphs[['g_43']] <- rearrange_plots(g_list)
   }
   
@@ -269,14 +266,26 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth)
   
   # KL_cov of (1, 2) block
   if('55' %in% graph_ids){
-    g_list <- lapply(step_5, function(x) result_55_prep(x, i = 1, j = 2, full))
+    g_list <- lapply(step_5, function(x) result_55_prep(x, i = 1, j = 2))
     graphs[['g_55']] <- rearrange_plots(g_list) 
   }
   
   # KL_cor of (1, 2) block
   if('56' %in% graph_ids){
-    g_list <- lapply(step_5b, function(x) result_56_prep(x, i = 1, j = 2, full))
+    g_list <- lapply(step_5b, function(x) result_56_prep(x, i = 1, j = 2))
     graphs[['g_56']] <- rearrange_plots(g_list) 
+  }
+  
+  # KL_prec of (1, 2) block
+  if('57' %in% graph_ids){
+    g_list <- lapply(step_5c, function(x) result_57_prep(x, i = 1, j = 2))
+    graphs[['g_57']] <- rearrange_plots(g_list) 
+  }
+  
+  # KL_cor entire matrix
+  if('58' %in% graph_ids){
+    g_list <- lapply(step_5b, function(x) result_58_prep(x, p))
+    graphs[['g_58']] <- rearrange_plots(g_list) 
   }
   
   # V_Xi_Xj
@@ -287,59 +296,58 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth)
   # C_Xi_Xj for block (1, 1)
   
   if('90' %in% graph_ids){
-    graphs[['g_90']] <- result_heatmap_ij_prep(step_9, 'C_cond', time_grid_est, i = 1, j = 1, is_full = T, X_truth = F, beta_truth = F, zmid = 0)
+    graphs[['g_90']] <- result_heatmap_ij_prep(step_9, 'C_cond', time_grid_est, i = 1, j = 1, zmid = 0)
   }  
   
   # C_Xi_Xj for block (1, 2)
   if('91' %in% graph_ids){
-    graphs[['g_91']] <- result_heatmap_ij_prep(step_9, 'C_cond', time_grid_est, i = 1, j = 2, is_full = T, X_truth = F, beta_truth = F, zmid = 0)
+    graphs[['g_91']] <- result_heatmap_ij_prep(step_9, 'C_cond', time_grid_est, i = 1, j = 2, zmid = 0)
   }
   
   # C_Xi_Xj for block (3, 5)
   if('92' %in% graph_ids){
-    graphs[['g_92']] <- result_heatmap_ij_prep(step_9, 'C_cond', time_grid_est, i = 3, j = 5, is_full = T, X_truth = F, beta_truth = F, zmid = 0)
+    graphs[['g_92']] <- result_heatmap_ij_prep(step_9, 'C_cond', time_grid_est, i = 3, j = 5, zmid = 0)
   }  
   
   # C for all blocks (pm x pm)
   if('93' %in% graph_ids){
-    graphs[['g_93']] <- result_heatmap_nonblock_prep(step_9, 'C_cond', time_grid_est, data_format = 'full', X_truth = F, beta_truth = F, zmid = 0)
+    graphs[['g_93']] <- result_heatmap_nonblock_prep(step_9, 'C_cond', time_grid_est, data_format = 'list', zmid = 0)
   }  
   
   # C_HS for all pxp blocks
   if('95' %in% graph_ids){
-    graphs[['g_95']] <- result_heatmap_nonblock_prep(step_11, 'C_HS', time_grid_est, data_format = 'regular', X_truth = F, beta_truth = F, zmid = 0)
+    graphs[['g_95']] <- result_heatmap_nonblock_prep(step_11b, 'C_HS', time_grid_est, data_format = 'regular', rm_diag = T, zmid = 0)
   }
   
   # distribution of C_HS
   if('96' %in% graph_ids){
-    graphs[['g_96']] <- result_histogram_prep(step_11, 'C_HS', X_truth = F, beta_truth = F, nbins = 40)
+    graphs[['g_96']] <- result_histogram_prep(step_11b, 'C_HS', data_format = 'regular', nbins = 40)
   }
   
   # P_Xi_Xj for block (1, 1)
   
-  if('90' %in% graph_ids){
-    graphs[['g_100']] <- result_heatmap_ij_prep(step_10, 'P_cond', time_grid_est, i = 1, j = 1, is_full = T, X_truth = F, beta_truth = F, zmid = 0)
+  if('100' %in% graph_ids){
+    graphs[['g_100']] <- result_heatmap_ij_prep(step_10, 'P_cond', time_grid_est, i = 1, j = 1, zmid = 0)
   }  
   
   # P_Xi_Xj for block (1, 2)
-  if('91' %in% graph_ids){
-    graphs[['g_101']] <- result_heatmap_ij_prep(step_10, 'P_cond', time_grid_est, i = 1, j = 2, is_full = T, X_truth = F, beta_truth = F, zmid = 0)
+  if('101' %in% graph_ids){
+    graphs[['g_101']] <- result_heatmap_ij_prep(step_10, 'P_cond', time_grid_est, i = 1, j = 2, zmid = 0)
   }
   
   # P_Xi_Xj for block (3, 5)
-  if('92' %in% graph_ids){
-    graphs[['g_102']] <- result_heatmap_ij_prep(step_10, 'P_cond', time_grid_est, i = 3, j = 5, is_full = T, X_truth = F, beta_truth = F, zmid = 0)
+  if('102' %in% graph_ids){
+    graphs[['g_102']] <- result_heatmap_ij_prep(step_10, 'P_cond', time_grid_est, i = 3, j = 5, zmid = 0)
   }  
   
   # P for all blocks (pm x pm)
   if('103' %in% graph_ids){
-    graphs[['g_103']] <- result_heatmap_nonblock_prep(step_10, 'P_cond', time_grid_est, data_format = 'full', X_truth = F, beta_truth = F, rm_diag = T, zmid = 0)
-    graphs[['g_103b']] <- result_heatmap_nonblock_prep(step_10, 'P_cond', time_grid_est, data_format = 'full', X_truth = F, beta_truth = F, rm_diag = F, zmid = 0)
+    graphs[['g_103']] <- result_heatmap_nonblock_prep(step_10, 'P_cond', time_grid_est, data_format = 'list', rm_diag = T, zmid = 0)
   } 
   
   # P_HS (w_mat) for all pxp blocks
   if('112' %in% graph_ids){
-    graphs[['g_112']] <- result_heatmap_nonblock_prep(step_11, 'w_mat', time_grid_est, data_format = 'regular', X_truth = F, beta_truth = F, rm_diag = T, zmid = 0)
+    graphs[['g_112']] <- result_heatmap_nonblock_prep(step_11, 'w_mat', time_grid_est, data_format = 'regular', rm_diag = T, zmid = 0)
   }  
   
   if('113' %in% graph_ids){
