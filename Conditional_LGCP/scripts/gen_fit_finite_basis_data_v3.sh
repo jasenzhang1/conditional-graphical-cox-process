@@ -36,7 +36,7 @@ max_jobs=60
 min_events=10
 max_events=20000
 n_query=1
-beta_0=5.4
+beta_0=4.8
 beta_truth="F"
 X_truth="T"
 
