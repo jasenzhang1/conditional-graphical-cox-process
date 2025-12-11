@@ -6,7 +6,7 @@
 source('functions/00a_matrix_massaging.R')
 source('functions/24_log_intensity_generation.R')
 
-visualize_matrix_heatmap <- function(mat, g_title = NULL, zmin = NULL, zmid = NULL, zmax = NULL, palette_ID = 'Blue-Red 2') {
+visualize_matrix_heatmap <- function(mat, g_title = NULL, zmin = NULL, zmid = NULL, zmax = NULL, x_max_borders = NULL, y_max_borders = NULL, palette_ID = 'Blue-Red 2') {
   
   
   # ----------------------------------------------------------------------------
@@ -20,11 +20,13 @@ visualize_matrix_heatmap <- function(mat, g_title = NULL, zmin = NULL, zmid = NU
   #
   # input:
   #
-  # - mat       (p x p matrix)
-  # - g_title   (string)
-  # - zmin      (number) to denote the very smallest value
-  # - zmid      (number) to denote the midpoint (white) value
-  # - zmax      (number) to denote the highest value (red)
+  # - mat            (p x p matrix)
+  # - g_title        (string)
+  # - zmin           (number) to denote the very smallest value
+  # - zmid           (number) to denote the midpoint (white) value
+  # - zmax           (number) to denote the highest value (red)
+  # - x_max_borders  (vector)  optional vector to denote block matrix borders
+  # - y_max_borders  (vector)  optional vector to denote block matrix borders
   #
   # output:
   #
@@ -40,7 +42,7 @@ visualize_matrix_heatmap <- function(mat, g_title = NULL, zmin = NULL, zmid = NU
   
   # Convert matrix to data frame for ggplot
   df <- reshape2::melt(mat)
-  colnames(df) <- c("x", "y", "value")
+  colnames(df) <- c("y", "x", "value")
   
   # Set defaults for color scale
   if (is.null(zmin)) zmin <- min(df$value, na.rm = TRUE)
@@ -51,7 +53,7 @@ visualize_matrix_heatmap <- function(mat, g_title = NULL, zmin = NULL, zmid = NU
     zmin = zmid
   }
   
-  ggplot(df, aes(x = x, y = y, fill = value)) +
+  g <- ggplot(df, aes(x = x, y = y, fill = value)) +
     geom_tile() +
     scale_fill_gradient2(
       low = c_low, #"blue",     # negative values
@@ -67,9 +69,18 @@ visualize_matrix_heatmap <- function(mat, g_title = NULL, zmin = NULL, zmid = NU
     labs(x = NULL, y = NULL, fill = "Value") + 
     ggtitle(g_title)
   
-
+  # 3) if we have borders
+  if (!is.null(x_max_borders)) {
+    g <- g + geom_vline(xintercept = x_max_borders + 0.5, size = 0.5, alpha = 0.2)
+  }
+  
+  if (!is.null(y_max_borders)) {
+    g <- g + geom_hline(yintercept = y_max_borders + 0.5, size = 0.5, alpha = 0.2)
+  }
+  
+  return(g)
+  
 }
-
 
 visualize_precision_matrix <- function(precision_op){
   
