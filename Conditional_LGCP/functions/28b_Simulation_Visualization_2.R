@@ -418,7 +418,38 @@ visualize_metrics <- function(folder_name, metrics, i = NULL, j = NULL){
   
 }
 
-# merge data with estimates
+# merge two lists recursively if they have the same name
+merge_lists_recursive <- function(x, y) {
+  
+  # If either is NULL, return the other
+  if (is.null(x)) return(y)
+  if (is.null(y)) return(x)
+  
+  # If neither is a list, just combine into a list
+  if (!is.list(x) || !is.list(y)) return(list(x, y))
+  
+  # Get union of names (handle unnamed lists)
+  x_names <- names(x)
+  y_names <- names(y)
+  
+  if (is.null(x_names)) x_names <- seq_along(x)
+  if (is.null(y_names)) y_names <- seq_along(y)
+  
+  all_names <- union(x_names, y_names)
+  
+  merged <- lapply(all_names, function(nm) {
+    e <- if (nm %in% x_names) x[[nm]] else NULL
+    t <- if (nm %in% y_names) y[[nm]] else NULL
+    merge_lists_recursive(e, t)
+  })
+  
+  # Preserve names if original lists had names
+  if (!is.null(names(x)) || !is.null(names(y))) names(merged) <- all_names
+  
+  merged
+}
+
+# merge data with estimates - deprecated 
 convergence_metrics_part1 <- function(truth_file_name, estimates_file_name){
   
   # ----------------------------------------------------------------------------
