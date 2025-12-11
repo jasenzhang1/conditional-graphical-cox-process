@@ -159,14 +159,14 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth)
     
     i <- 1
     if(X_truth){
-      graphs[['g_11']] <- grid.arrange(visualize_log_intensity(step_1$X_k_est[1:5,,i],            time_grid_est,  'Estimate',       step_1$mu_t_coarse_truth ),
-                                       visualize_log_intensity(step_1$X_k_coarse_truth[1:5,,i],   time_grid_est,  'Coarser Truth',  step_1$mu_t_coarse_truth ),
-                                       visualize_log_intensity(step_1$X_k_truth[1:5,,i],          time_grid,      'Finer Truth',    step_1$mu_t_truth),
-                                       visualize_log_intensity(step_1$X_k_both_truth[1:5,,i],     time_grid_both, 'Combined Truth', step_1$mu_t_both_truth),
+      graphs[['g_11']] <- grid.arrange(visualize_log_intensity(step_1$X_k_est[1:5,,i],            time_grid_est,  'Estimate',       step_1c$mu_t_coarse_truth ),
+                                       visualize_log_intensity(step_1$X_k_coarse_truth[1:5,,i],   time_grid_est,  'Coarser Truth',  step_1c$mu_t_coarse_truth ),
+                                       visualize_log_intensity(step_1$X_k_truth[1:5,,i],          time_grid,      'Finer Truth',    step_1c$mu_t_truth),
+                                       visualize_log_intensity(step_1$X_k_both_truth[1:5,,i],     time_grid_both, 'Combined Truth', step_1c$mu_t_both_truth),
                                        textGrob("0. Log Intensity\n of first 5 processes\nof subject 1", gp = gpar(fontsize = 14)),
                                        layout_matrix = arr_mat_6) 
     } else{
-      graphs[['g_11']] <- grid.arrange(visualize_log_intensity(step_1$X_k_est[1:5,,i],            time_grid_est,  'Estimate',       step_1$mu_t_coarse_truth ),
+      graphs[['g_11']] <- grid.arrange(visualize_log_intensity(step_1$X_k_est[1:5,,i],            time_grid_est,  'Estimate',       step_1c$mu_t_coarse_truth ),
                                        textGrob("0. Log Intensity\n of first 5 processes\nof subject 1", gp = gpar(fontsize = 14)),
                                        layout_matrix = arr_mat_6) 
     }
@@ -177,14 +177,14 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth)
     
     if(X_truth){
       # p x m x n --> mean --> p x m --> choose first 5 processes --> 5 x m
-      graphs[['g_12']] <- grid.arrange(visualize_log_intensity(apply(step_1$X_k_est,            c(1, 2), mean)[1:5, ],   time_grid_est,  'Estimate',        step_1$mu_t_coarse_truth),
-                                       visualize_log_intensity(apply(step_1$X_k_coarse_truth,   c(1, 2), mean)[1:5, ],   time_grid_est,  'Coarser Truth',   step_1$mu_t_coarse_truth),
-                                       visualize_log_intensity(apply(step_1$X_k_truth,          c(1, 2), mean)[1:5, ],   time_grid,      'Finer Truth',     step_1$mu_t_coarse_truth),
-                                       visualize_log_intensity(apply(step_1$X_k_both_truth,     c(1, 2), mean)[1:5, ],   time_grid_both, 'Combined Truth',  step_1$mu_t_truth),
+      graphs[['g_12']] <- grid.arrange(visualize_log_intensity(apply(step_1$X_k_est,            c(1, 2), mean)[1:5, ],   time_grid_est,  'Estimate',        step_1c$mu_t_coarse_truth),
+                                       visualize_log_intensity(apply(step_1$X_k_coarse_truth,   c(1, 2), mean)[1:5, ],   time_grid_est,  'Coarser Truth',   step_1c$mu_t_coarse_truth),
+                                       visualize_log_intensity(apply(step_1$X_k_truth,          c(1, 2), mean)[1:5, ],   time_grid,      'Finer Truth',     step_1c$mu_t_coarse_truth),
+                                       visualize_log_intensity(apply(step_1$X_k_both_truth,     c(1, 2), mean)[1:5, ],   time_grid_both, 'Combined Truth',  step_1c$mu_t_truth),
                                        textGrob("0. Average Log Intensity\n of first 5 processes", gp = gpar(fontsize = 14)),
                                        layout_matrix = arr_mat_6) 
     } else{
-      graphs[['g_12']] <- grid.arrange(visualize_log_intensity(apply(step_1$X_k_est,          c(1, 2), mean)[1:5, ],   time_grid_est,  'Estimate',     step_1$mu_t_coarse_truth),
+      graphs[['g_12']] <- grid.arrange(visualize_log_intensity(apply(step_1$X_k_est,          c(1, 2), mean)[1:5, ],   time_grid_est,  'Estimate',     step_1c$mu_t_coarse_truth),
                                        textGrob("0. Average Log Intensity\n of first 5 processes", gp = gpar(fontsize = 14)),
                                        layout_matrix = arr_mat_6) 
     }
@@ -286,6 +286,12 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth)
   if('58' %in% graph_ids){
     g_list <- lapply(step_5b, function(x) result_58_prep(x, p))
     graphs[['g_58']] <- rearrange_plots(g_list) 
+  }
+  
+  # KL_prec entire matrix
+  if('59' %in% graph_ids){
+    g_list <- lapply(step_5c, function(x) result_59_prep(x, p))
+    graphs[['g_59']] <- rearrange_plots(g_list) 
   }
   
   # V_Xi_Xj
