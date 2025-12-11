@@ -1153,13 +1153,13 @@ step_9_C_cond_from_KL_cor <- function(step_4, step_5b){
     step_5b_i <- input_names_step_5b[i]
     
     name_i <- paste0('C_cond_', core_names[i])
-    name_i_unnorm <- paste0(name_i, '_unnorm')
+    #name_i_unnorm <- paste0(name_i, '_unnorm')
     
     temp_list <- correlation_estimation_KL_cor(step_4[[step_4_i]],
                                                step_5b[[step_5b_i]])
     
     result[[name_i]] <- temp_list$C_cond    
-    result[[name_i_unnorm]] <- temp_list$C_cond_unnorm  
+    #result[[name_i_unnorm]] <- temp_list$C_cond_unnorm  
   }
   
   return(result)
