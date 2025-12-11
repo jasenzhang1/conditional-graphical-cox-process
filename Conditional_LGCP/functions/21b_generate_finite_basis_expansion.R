@@ -148,26 +148,20 @@ trig_basis_prec_mat <- function(d, p, y_c_k, adj_type, adj_params){
     return(theta_pd)
   }
   
-  if(adj_type %in% c('flexible_block_banded_c0')){
     
-    # Theta_{i,i}   = c1 * I_d 
-    # Theta_{i,i+1} = [c2 0; 0 c3]
-    
-    # calculating J_2_const
-    if(adj_type == 'flexible_block_banded_c0'){
 
-      c1 <- adj_params[2]
-      c2 <- adj_params[3]
-      c3 <- adj_params[4] 
-      
-      J_11 <- c2
-      J_22 <- c3
-    }
-      
+  if(adj_type == 'flexible_block_banded_c0'){
     
-    off_block <- diag(c(J_11, J_22))
+    # Theta_{i,i}   = [c1 0; 0 c2]
+    # Theta_{i,i+1} = [c3 0; 0 c4]
+
+    c1 <- adj_params[2]
+    c2 <- adj_params[3]
+    c3 <- adj_params[4] 
+    c4 <- adj_params[5]
     
-    on_block <- diag(d) * c1
+    off_block <- diag(c(c3, c4))
+    on_block  <- diag(c(c1, c2))
     
     theta_pd <- matrix(0, nrow = p*d, ncol = p*d)
     
@@ -190,7 +184,6 @@ trig_basis_prec_mat <- function(d, p, y_c_k, adj_type, adj_params){
     
     return(theta_pd)
   }
-  
 }
 
 trig_basis_cov_mat <- function(d, p, y_c_k, adj_type, adj_params){
