@@ -31,8 +31,11 @@ visualize_finite_basis <- function(truth_file_name, estimates_file_name, graph_i
   
   # 1) merge truths and estimates
   
-  merged <- convergence_metrics_part1(truth_file_name, estimates_file_name)
+  truths <- load_file(truth_file_name)
+  estimates <- load_file(estimates_file_name)
   
+  #merged <- convergence_metrics_part1(truth_file_name, estimates_file_name)
+  merged <- merge_lists_recursive(truths, estimates)
 
   # 2) now, utilize the code in 28c
 
