@@ -1131,27 +1131,30 @@ simulate_finite_basis_cox_data_part4 <- function(temp_file_dir, setting_info_lis
   
   step_5d <- list(KL_coeffs_truth = beta_coeffs)               # (p x d x n)
     
-  step_9 <- list(C_cond_truth                = eigen_truths$C_cond,
-                 C_cond_truth_unnorm         = eigen_truths$C_cond_unnorm)          # (pm x pm matrix)
+  step_9 <- list(C_cond_truth                = eigen_truths$C_cond)
+                 #C_cond_truth_unnorm         = eigen_truths$C_cond_unnorm)          # (pm x pm matrix)
   
-  step_9b <- list(efunc_outer_truth          = eigen_truths$efunc_outer,
-                  efunc_outer_unnorm_truth   = eigen_truths$efunc_outer_unnorm)     # (pc2 list of mxm matrices)
+  step_9b <- list(efunc_outer_truth          = eigen_truths$efunc_outer)
+                  #efunc_outer_unnorm_truth   = eigen_truths$efunc_outer_unnorm)     # (pc2 list of mxm matrices)
   
-  step_10 <- list(P_cond_truth               = eigen_truths$P_cond,
-                  P_cond_truth_unnorm        = eigen_truths$P_cond_unnorm)          # (pm x pm matrix)
+  step_10 <- list(P_cond_truth               = eigen_truths$P_cond)
+                  #P_cond_truth_unnorm        = eigen_truths$P_cond_unnorm)          # (pm x pm matrix)
   
   step_11 <- list(w_mat_truth         = eigen_truths$P_HS,                          # matrices of HS norms 
-                  w_mat_truth_unnorm  = eigen_truths$P_HS_unnorm,                   # (pxp matrix)
+                  #w_mat_truth_unnorm  = eigen_truths$P_HS_unnorm,                   # (pxp matrix)
                   w_mat_KL_truth      = eigen_truths$P_HS_KL)                   
   
   step_11b <- list(C_HS_truth          = eigen_truths$C_HS,
-                   C_HS_truth_unnorm   = eigen_truths$C_HS_unnorm,
+                   #C_HS_truth_unnorm   = eigen_truths$C_HS_unnorm,
                    C_HS_KL_truth       = eigen_truths$C_HS_KL)
   
   
 
-  w_mat_truth         = eigen_truths$P_HS
-  step_12 <- list(roc_truth = roc_with_threshold(w_mat_truth, adj_mat_truth, 'Truth'))
+  w_mat_truth     <- eigen_truths$P_HS
+  w_mat_KL_truth  <- eigen_truths$P_HS_KL
+  
+  step_12 <- list(roc_truth    = roc_with_threshold(w_mat_truth, adj_mat_truth, 'truth'),
+                  roc_KL_truth = roc_with_threshold(w_mat_KL_truth, adj_mat_truth, 'KL_truth'))
   
   step_12b <- list(adj_mat_truth = adj_mat_truth)
   
