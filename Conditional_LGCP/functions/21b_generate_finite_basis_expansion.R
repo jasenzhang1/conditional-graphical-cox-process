@@ -89,7 +89,8 @@ trig_basis_prec_mat <- function(d, p, y_c_k, adj_type, adj_params){
   #
   # ----------------------------------------------------------------------------
   
-  if(! adj_type %in% c('block_banded_v2', 'block_banded_c2', 'block_banded_c0')){
+  if(! adj_type %in% c('block_banded_v2', 'block_banded_c2', 'block_banded_c0',
+                       'flexible_block_banded_c0')){
     stop('Error 21b: adj_type not available')
   }
   if(! length(y_c_k) == 1){
