@@ -88,8 +88,8 @@ assemble_block_matrix_irregular <- function(operator_list, p) {
   # - list of the following:
   #
   #   - block_matrix  (square pd x pd-ish matrix)
-  #   - row_borders   (last index of the respective row block)
-  #   - col_borders   (last index of the respective column block)
+  #   - row_borders   (last index of the respective row block)    (y = c horizontal borders)
+  #   - col_borders   (last index of the respective column block) (x = d vertical borders)
   # 
   # ----------------------------------------------------------------------------
   
