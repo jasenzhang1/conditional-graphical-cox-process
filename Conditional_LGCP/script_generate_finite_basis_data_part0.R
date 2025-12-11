@@ -9,8 +9,9 @@ args <- commandArgs(trailingOnly = TRUE)
 
 n <- as.numeric(args[1])
 n_query <- as.numeric(args[2])
-adj_type <- args[3]
-adj_params <- as.numeric(args[4:length(args)])
+beta_0 <- as.numeric(args[3])
+adj_type <- args[4]
+adj_params <- as.numeric(args[5:length(args)])
 
 
 source('functions/00_function_wrapper.R')
@@ -23,6 +24,7 @@ source('functions/20_simulation_function_wrapper.R')
 # adj_type <- 'block_banded_c0'
 # adj_params <- c(0.5, 0.5, 2)
 
+# 1) intermediate parameters
 d <- 2
 p <- 12
 m <- 30
@@ -30,7 +32,6 @@ m_est <- 30
 T_max <- 1
 
 
-beta_0 <- 5
 time_grid <- make_time_grid(m)
 time_grid_est <- make_time_grid(m_est)
 time_grid_both <- sort(union(time_grid, time_grid_est))

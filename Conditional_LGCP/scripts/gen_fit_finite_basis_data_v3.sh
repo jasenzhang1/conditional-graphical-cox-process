@@ -22,11 +22,12 @@ adj_type_params=(
   #"banded_trig2 0 1 0.3"
   #"sparse_v2 0 1 2 0.3 -1 2 0.01"
   #"block_banded_v2 0 1 0.4 0.8 2"
-  "block_banded_c0 0.5 0.5 2"
+  #"block_banded_c0 0.5 0.5 2"
+  "flexible_block_banded_c0 0.5 6.5 0.125 2.75"
 )
 
 n_large=100
-ns=(50 100)
+ns=(100)
 n_group=10
 groups=$(( n_large / n_group ))
 method="CPGM"
@@ -34,7 +35,8 @@ model_type="simu"  # simu or mice
 max_jobs=60
 min_events=5
 max_events=10000
-n_query=2
+n_query=1
+beta_0=6
 beta_truth="F"
 X_truth="T"
 
@@ -93,7 +95,7 @@ for entry in "${adj_type_params[@]}"; do
   echo "[STEP 1] Generating dataset..." | tee -a "$outfile"
   step1_start=$(date +%s)
 
-  Rscript script_generate_finite_basis_data_part0.R "$n_large" "$n_query" "$adj_type" "${adj_params[@]}" >> "$outfile" 2>&1
+  Rscript script_generate_finite_basis_data_part0.R "$n_large" "$n_query" "$beta_0" "$adj_type" "${adj_params[@]}" >> "$outfile" 2>&1
   
   for group_idx in $(seq 1 "$groups"); do
       print_bar "$group_idx" "$groups"   # ← live bar on screen
