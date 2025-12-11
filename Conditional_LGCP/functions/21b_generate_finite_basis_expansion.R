@@ -146,6 +146,50 @@ trig_basis_prec_mat <- function(d, p, y_c_k, adj_type, adj_params){
     
     return(theta_pd)
   }
+  
+  if(adj_type %in% c('flexible_block_banded_c0')){
+    
+    # Theta_{i,i}   = c1 * I_d 
+    # Theta_{i,i+1} = [c2 0; 0 c3]
+    
+    # calculating J_2_const
+    if(adj_type == 'flexible_block_banded_c0'){
+
+      c1 <- adj_params[2]
+      c2 <- adj_params[3]
+      c3 <- adj_params[4] 
+      
+      J_11 <- c2
+      J_22 <- c3
+    }
+      
+    
+    off_block <- diag(c(J_11, J_22))
+    
+    on_block <- diag(d) * c1
+    
+    theta_pd <- matrix(0, nrow = p*d, ncol = p*d)
+    
+    for(i in 1:p){
+      for(j in 1:p){
+        # Compute index ranges for block (i,j)
+        row_idx <- ((i - 1) * d + 1):(i * d)
+        col_idx <- ((j - 1) * d + 1):(j * d)
+        
+        
+        if(i == j){
+          theta_pd[row_idx, col_idx] <- on_block
+        }
+        
+        if(abs(i-j) == 1){
+          theta_pd[row_idx, col_idx] <- off_block
+        }
+      }
+    }
+    
+    return(theta_pd)
+  }
+  
 }
 
 trig_basis_cov_mat <- function(d, p, y_c_k, adj_type, adj_params){
