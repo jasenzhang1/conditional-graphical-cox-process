@@ -21,11 +21,11 @@ method      <- args[4]    # method <- 'CPGM'
 
 # data_folder <- 'simu_data'
 # base_folder <- 'simu_results'
-# adj_type <- 'block_banded_c0'
+# adj_type <- 'flexible_block_banded_c0'
 # method <- 'CPGM'
 
-n_large <- 1000
-n <- 1000
+n_large <- 100
+n <- 100
 
 # heatmaps of certain metrics 
 
