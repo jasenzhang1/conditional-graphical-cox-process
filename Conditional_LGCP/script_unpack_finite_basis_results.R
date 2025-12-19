@@ -24,16 +24,14 @@ method      <- args[4]    # method <- 'CPGM'
 # adj_type <- 'flexible_block_banded_c0'
 # method <- 'CPGM'
 
-n_large <- 100
-n <- 100
+n_large <- 2000
+n <- 2000
 
 # heatmaps of certain metrics 
 
 graph_ids <- c('22',    # rho_i
                '25',    # rho_ij [1,2]
                '32',    # g_ij [1,2]
-               '91',    # C_Xi_Xj [1,2]
-               '95',    # C_HS
                '112',   # w_mat  (P_HS)
                '113')   # roc
 
