@@ -66,6 +66,7 @@ trig_basis_realization <- function(basis_list, time_grid){
   return(B_mat)
 }
 
+# initialize the prec mat
 trig_basis_prec_mat <- function(d, p, y_c_k, adj_type, adj_params){
   
   
@@ -186,6 +187,7 @@ trig_basis_prec_mat <- function(d, p, y_c_k, adj_type, adj_params){
   }
 }
 
+# invert prec_mat --> cov_mat
 trig_basis_cov_mat <- function(d, p, y_c_k, adj_type, adj_params){
   
   
@@ -329,9 +331,7 @@ trig_basis_log_intensity <- function(cov_mat_list, basis_list, mu_t, time_grid){
 
 # truths
 
-
-
-trig_basis_rho_truth <- function(basis_list, mean_vec, time_grid, mu_t, y_c_query, adj_type, adj_params){
+trig_basis_rho_truth <- function(basis_list, mean_vec, cov_mat, time_grid, mu_t){
   
   # ----------------------------------------------------------------------------
   # 
@@ -342,12 +342,13 @@ trig_basis_rho_truth <- function(basis_list, mean_vec, time_grid, mu_t, y_c_quer
   # - where phi^k(t) are the k orthonormal basis functions
   # - and beta_{ik} are normally distributed with a pd x pd matrix
   #
-  # - E[exp(X_i(t))] = exp(mu(t) + \sum_{k=1}^d m_{ik} phi^k(t) +  0.5 \sum_{k=1}^d lambda_k [phi^k(t)]^2 )
+  # - E[exp(X_i(t))] = exp( mu(t) + \sum_{k=1}^d m_{ik} phi^k(t) +  0.5 \sum_{k=1}^d lambda_k [phi^k(t)]^2 )
   # 
   # input:
   # 
   # - basis_list       (d-dim list)                           output from trig_basis
   # - mean_vec         (pd-dim vector)                        mean vector for beta: beta ~ N(mean_vec, cov_mat)
+  # - cov_mat          (pd x pm matrix)                       covariance matrix for beta: beta ~ N(mean_vec, cov_mat)
   # - time_grid        (m-dim vector)                         time discretization
   # - mu_t             (m-dim vector)                         mu(t) when defining X_i(t)
   #
@@ -366,8 +367,7 @@ trig_basis_rho_truth <- function(basis_list, mean_vec, time_grid, mu_t, y_c_quer
   d <- length(basis_list)
   p <- length(mean_vec) / d
   
-  cov_mat <- trig_basis_cov_mat(d, p, y_c_query, adj_type, adj_params)  # (pd x pd)
-  lambda_vec <- diag(cov_mat)
+  lambda_vec <- diag(cov_mat) # eigenvalues
 
   # 2) get phi(t) and phi^2(t) ready
   
@@ -384,6 +384,10 @@ trig_basis_rho_truth <- function(basis_list, mean_vec, time_grid, mu_t, y_c_quer
   cov_ii_list <- lapply(1:p, function(i) extract_block_structure_ij(cov_mat, d, i, i))  # p-dim list of (d x d) matrices
   
   # 4) obtain values for rho_i_truth
+  #  
+  #    term_2:   mu_beta * phi (usually 0)
+  #    term_3b:  ????
+  #    term_3:   phi %*% Sigma_ii %*% phi
   
   term_2 <-  lapply(mean_list, function(v) as.numeric(t(v) %*% t(phi)))              # M_i(t)  (1 x d) * (d x)
   term_3b <- lapply(lambda_list, function(v) as.numeric(t(v) %*% t(phi_squared)))     # V_i(t)
@@ -580,7 +584,7 @@ trig_basis_eigendecomposition <- function(G, cov_mat, cor_mat, prec_mat, basis_l
     
     # 3) eigendecomposition of the (i, i) block, usually the identity matrix
 
-    sigma_ii <- extract_block_structure_ij(cor_mat, d, i, i)  # (d x d)
+    sigma_ii <- extract_block_structure_ij(cov_mat, d, i, i)  # (d x d)
     
     
     
@@ -719,7 +723,112 @@ trig_basis_eigendecomposition <- function(G, cov_mat, cor_mat, prec_mat, basis_l
 }
 
 
+trig_basis_eigendecomposition_beta_truths <- function(beta_coeffs, eigen_decomp_truth, Y_c, y_c_query_k){
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: find ground truths from realized beta values
+  #
+  #
+  # inputs:
+  #
+  #
+  # - beta_coeffs        (p x d x n matrix of realized beta coefficients)
+  # - eigen_decomp_truth (list of 3 things)
+  #   - eigenvalues         (p-dim list of d_i-dim vector of eigenvalues)
+  #   - eigenfunctions      (p-dim list of m x d_i matrices of eigenfunctions)
+  #   - n_dims              (p-dim list of d_i scalars)
+  #
+  # - Y_c               (n x q_c matrix)
+  # - y_c_query_k       (scalar)
+  #
+  # outputs:
+  # 
+  # - list of the following:
+  #
+  # - C_cond_beta_truth
+  # - C_cond_beta_truth_unnorm
+  # - P_cond_beta_truth
+  # - P_cond_beta_truth_unnorm
+  # - C_HS_beta_truth
+  # - P_HS_beta_truth
+  #
+  #
+  # ----------------------------------------------------------------------------
+  
+  # 1) get weights for this cont_ind
+  
+  p <- dim(beta_coeffs)[1]
+  d <- dim(beta_coeffs)[2]
+  n <- dim(beta_coeffs)[3]
+  
+  weights_k <- KDE_weights(Y_c, y_c_query_k)
+  
+  # 2) get unbiased weighted covariance matrix estimate (pd x pd) 
+  
+  X <- aperm(beta_coeffs, c(2, 1, 3)) %>% 
+    matrix(nrow = p*d, ncol = n) %>% # reshape to p*d × n
+    t()  # (n x pd)
+  
+  # weighted mean (length p*d)
+  mu <- colSums(weights_k * X)
+  
+  # centered data
+  XC <- sweep(X, 2, mu)
+  
+  # weighted covariance: sum_i w_i (x_i - mu)(x_i - mu)^T
+  cov_w <- t(XC * weights_k) %*% XC
+  
+  kappa <- 1 - sum(weights_k^2)
+  cov_w_unbiased <- cov_w / kappa 
+  
+  
+  
+  # 3) convert to correlation using blockwise function
+  
+  cor_w_unbiased <- assemble_blockwise_correlation(cov_w_unbiased, p, d)
+  prec_w_unbiased <- sym(solve(cor_w_unbiased))
+  
+  KL_beta_truth <- list(KL_cov = cov_w_unbiased,
+                        KL_cor = cor_w_unbiased,
+                        KL_prec = prec_w_unbiased)
+  
+  # 3c) compute C_cond_X_truth 
+  
 
+  KL_cov_beta_truth           <- KL_beta_truth$KL_cov %>% extract_block_structure_v2(p, d)
+  KL_cor_beta_truth           <- KL_beta_truth$KL_cor %>% extract_block_structure_v2(p, d)
+  KL_prec_beta_truth          <- KL_beta_truth$KL_prec %>% extract_block_structure_v2(p, d)
+  C_cond_list_beta_truth      <- correlation_estimation_KL_cor(eigen_decomp_truth, KL_cor_beta_truth) 
+  P_cond_list_beta_truth      <- correlation_estimation_KL_cor(eigen_decomp_truth, KL_prec_beta_truth) 
+  
+  C_cond_beta_truth_full          <- C_cond_list_beta_truth$C_cond %>% assemble_block_matrix_v2(p, m)
+  C_cond_beta_truth_unnorm_full   <- C_cond_list_beta_truth$C_cond_unnorm %>% assemble_block_matrix_v2(p, m)
+  
+  # step 10
+  P_cond_beta_truth_full          <- P_cond_list_beta_truth$C_cond %>% assemble_block_matrix_v2(p, m)
+  P_cond_beta_truth_unnorm_full   <- P_cond_list_beta_truth$C_cond_unnorm %>% assemble_block_matrix_v2(p, m)
+  
+  P_cond_beta_truth               <- extract_block_structure_v2(P_cond_beta_truth_full, p, m)
+  P_cond_beta_truth_unnorm        <- extract_block_structure_v2(P_cond_beta_truth_unnorm_full, p, m)
+  
+  # step 11
+  C_HS_beta_truth <- hilbert_schmidt_norm_pm(KL_beta_truth$KL_cor, p, d)
+  P_HS_beta_truth <- hilbert_schmidt_norm_pm(KL_beta_truth$KL_prec, p, d)
+  
+  step_9_10_11_beta_truth <- list(KL_cov_beta_truth = KL_cov_beta_truth,
+                                  KL_cor_beta_truth = KL_cor_beta_truth,
+                                  KL_prec_beta_truth = KL_prec_beta_truth,
+                                  C_cond_beta_truth = C_cond_list_beta_truth$C_cond,
+                                  C_cond_beta_truth_unnorm = C_cond_list_beta_truth$C_cond_unnorm,
+                                  P_cond_beta_truth = P_cond_beta_truth,
+                                  P_cond_beta_truth_unnorm = P_cond_beta_truth_unnorm,
+                                  C_HS_beta_truth = C_HS_beta_truth,
+                                  P_HS_beta_truth = P_HS_beta_truth)
+  
+  return(step_9_10_11_beta_truth)
+                               
+}
 
 
 
