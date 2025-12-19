@@ -35,7 +35,7 @@ T_max <- 1
 time_grid <- make_time_grid(m)
 time_grid_est <- make_time_grid(m_est)
 time_grid_both <- sort(union(time_grid, time_grid_est))
-
+m_both <- length(time_grid_both)
 
 
 y_c_query <- make_time_grid(n_query) %>% matrix(nrow = n_query)
@@ -51,11 +51,9 @@ ncores = 1
 
 Y_c <- generate_y_c_adj_type(n, adj_type, adj_params, seed = NULL)
 basis_list <- trig_basis(d)
-mean_vec <- rep(0, p*d)
+mean_vec <- rep(0, p*d) # mean for generating beta
 
-m <- length(time_grid)
-m_est <- length(time_grid_est)
-m_both <- length(time_grid_both)
+
 
 mu_t        <- rep(beta_0, m)    # mu(t) = beta_0 (constant)
 mu_t_both   <- rep(beta_0, m_both)
