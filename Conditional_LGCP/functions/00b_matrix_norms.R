@@ -25,7 +25,9 @@ hilbert_schmidt_norm <- function(A) {
 
 hilbert_schmidt_norm_rmse <- function(A){
   
-  sqrt(sum(A^2)) / sqrt(length(A)) 
+  # sum of squares --> divide by amount of elements --> then take sqrt
+  
+  sqrt(sum(A^2) / length(A)) 
   
 }
 
