@@ -449,63 +449,8 @@ merge_lists_recursive <- function(x, y) {
   merged
 }
 
-# merge data with estimates - deprecated 
-convergence_metrics_part1 <- function(truth_file_name, estimates_file_name){
-  
-  # ----------------------------------------------------------------------------
-  #
-  # GOAL: create `merged`, the combination of `estimates` and `truths` for finite basis 
-  #
-  #
-  # inputs:
-  #
-  # - truth_file_name
-  # - estimates_file_name
-  #
-  # outputs:
-  #
-  # - merged
-  #
-  # ----------------------------------------------------------------------------
-  
-  truths <- load_file(truth_file_name)
-  estimates <- load_file(estimates_file_name)
-  
-  
-  full <- F
-  
-  # estimates has the hierarchy of step_X --> [[i]] --> 'est'
-  # truths    has the hierarchy of step_X --> [[i]] --> 'truth'
-  
-  # merged    has the same hierarchy and ests and truths are put together
-  
-  merged <- lapply(names(estimates), function(step_name) {
-    est_step <- estimates[[step_name]]
-    tru_step <- truths[[step_name]]
-    
-    if (!is.null(tru_step)) {
-      # If both are lists of lists (e.g., step_2), merge elementwise
-      if (is.list(est_step[[1]]) && is.list(tru_step[[1]])) {
-        mapply(function(e, t) c(e, t), est_step, tru_step, SIMPLIFY = FALSE)
-      } else {
-        # Otherwise, just combine their contents directly (e.g., step_1)
-        c(est_step, tru_step)
-      }
-    } else {
-      # No matching truth: keep as-is
-      est_step
-    }
-  })
-  
-  names(merged) <- names(estimates)
-  
-  merged[['true_graphs']] <- truths$true_graphs
-  
-  return(merged)
-  
-}
-
-convergence_metrics_part2 <- function(merged, k){
+# tediously get each convergence metric
+convergence_metrics_part2 <- function(merged, k, i, j){
   
   
   # ----------------------------------------------------------------------------
@@ -525,7 +470,14 @@ convergence_metrics_part2 <- function(merged, k){
   #
   # output:
   #
-  # - metrics such as HS distance between truth and est, etc
+  # - list of lists:
+  #   - point_metrics
+  #     
+  #     each list has a named vector of values that can be graphed
+  # 
+  #   - eval_metrics
+  #
+  #     dataframe with eigenvalues that are graphed separately
   #
   # 
   # ----------------------------------------------------------------------------
@@ -534,49 +486,140 @@ convergence_metrics_part2 <- function(merged, k){
   
   p <- dim(merged$step_2[[k]]$rho_i_est)[1]
   m_est <- dim(merged$step_2[[k]]$rho_i_est)[2]
+  key <- paste0(i, '_', j)
+
+  # step_2) find distance between rho_i_truth and everything else
+  
+  rho_i_names <- names(merged$step_2[[k]])
+  rho_i_else <- setdiff(rho_i_names, 'rho_i_truth')
+  
+  rho_i_dist <- sapply(rho_i_else, function(x) {
+    hilbert_schmidt_norm_rmse(merged$step_2[[k]][[x]] - merged$step_2[[k]]$rho_i_truth)
+  })
+  
+  # step_2b) find distance between rho_ii_truth[[i_j]] and everything else
+  rho_ii_names <- names(merged$step_2b[[k]])
+  rho_ii_else <- setdiff(rho_ii_names, 'rho_ii_truth')
+  
+  rho_ii_dist <- sapply(rho_ii_else, function(x) {
+    hilbert_schmidt_norm_rmse(merged$step_2b[[k]][[x]][[key]] - merged$step_2b[[k]][['rho_ii_truth']][[key]])
+  })
+  
+  # step_3) find distance between g_ij_truth[[i_j]] and everything else
+  g_ij_names <- names(merged$step_3[[k]])
+  g_ij_else <- setdiff(g_ij_names, 'g_ij_truth')
+  
+  g_ij_dist <- sapply(g_ij_else, function(x) {
+    hilbert_schmidt_norm_rmse(merged$step_3[[k]][[x]][[key]] - merged$step_3[[k]][['g_ij_truth']][[key]])
+  })
+  
+  # step_4) eigenvalues - dataframe with `est_name`, `process`, `eval_id`, `value`
+  n_comps <- 2
+  n_processes <- 5
+  big_list <- merged$step_4[[k]]
+  eval_df <- data.frame()
+  
+  for(n_comp in 1:n_comps){
+    
+    # create a dataframe with all the i-th evals
+    df <- do.call(
+      rbind,
+      lapply(names(big_list), function(sub_name) {
+        
+        eig_list <- big_list[[sub_name]]$eigenvalues
+        
+        data.frame(
+          sublist    = sub_name,
+          process  = seq_along(eig_list),
+          value  = sapply(eig_list, `[[`, n_comp),
+          eval_id = n_comp,
+          row.names  = NULL
+        )
+      })
+    ) %>% filter(process <= n_processes)
+    
+    eval_df <- rbind(eval_df, df)
+  }
+  
+  
+  # step_11b) C_HS of (i, j) cell
+  C_HS_ij_names <- names(merged$step_11b[[k]])
+  C_HS_ij_else <- setdiff(C_HS_ij_names, 'C_HS_truth')
+  
+  C_HS_ij_dist <- sapply(C_HS_ij_else, function(x) {
+    hilbert_schmidt_norm_rmse(merged$step_11b[[k]][[x]][i,j] - merged$step_11b[[k]][['C_HS_truth']][i,j])
+  })
+  
+  # step_11b) C_HS of every cell
+  
+  C_HS_dist <- sapply(C_HS_ij_else, function(x) {
+    hilbert_schmidt_norm_rmse(merged$step_11b[[k]][[x]] - merged$step_11b[[k]][['C_HS_truth']])
+  })
+  
+  # step_11) w_mat of (i, j) cell
+  w_mat_ij_names <- names(merged$step_11[[k]])
+  w_mat_ij_else <- setdiff(w_mat_ij_names, 'w_mat_truth')
+  
+  w_mat_ij_dist <- sapply(w_mat_ij_else, function(x) {
+    hilbert_schmidt_norm_rmse(merged$step_11[[k]][[x]][i,j] - merged$step_11[[k]][['w_mat_truth']][i,j])
+  })
+  
+  # step_11b) C_HS of every cell
+  
+  w_mat_dist <- sapply(w_mat_ij_else, function(x) {
+    hilbert_schmidt_norm_rmse(merged$step_11[[k]][[x]] - merged$step_11[[k]][['w_mat_truth']])
+  })
   
 
-  # 1) find HS_norm of differences between pm x pm matrices
   
-  P_HS    <- hilbert_schmidt_norm_pm_rmse(merged$step_10[[k]]$P_cond_est_full - merged$step_10[[k]]$P_cond_truth_full, p, m_est)
-  C_HS    <- hilbert_schmidt_norm_pm_rmse(merged$step_9[[k]]$C_cond_est_full - merged$step_9[[k]]$C_cond_truth_full, p, m_est)
+  # step_12) ROC results
   
-  # 2) find distance between rho_i and rho_i_coarse_truth
+  roc_names <- names(merged$step_12[[k]])
+  df_roc <- data.frame()
   
-  rho_i_dist <- hilbert_schmidt_norm_rmse(merged$step_2[[k]]$rho_i_est - merged$step_2[[k]]$rho_i_truth)
+  for(roc_name_i in roc_names){
+    roc_results <- merged$step_12[[k]][[roc_name_i]]
+    df_i <- data.frame(sens = roc_results$sensitivity,
+                       spec = roc_results$specificity,
+                       auc = as.numeric(roc_results$auc),
+                       accuracy = roc_results$accuracy)
+    df_i$sublist <- roc_name_i
+    df_roc <- rbind(df_roc, df_i)
+  }
   
-  # distance between rho_ij and rho_ij_coarse truth
-  rho_ij_est_mat <- assemble_block_matrix_v2(merged$step_2b[[k]]$rho_ii_est, p, m_est)
-  rho_ij_truth_mat <- assemble_block_matrix_v2(merged$step_2b[[k]]$rho_ii_truth, p, m_est)
-  rho_ij_dist <- hilbert_schmidt_norm_pm_rmse(rho_ij_est_mat - rho_ij_truth_mat, p, m_est)
-  
-  # 3) find distance between g_ij_est and g_ij_coarse_truth
-  
-  g_ij_est_mat <- assemble_block_matrix_v2(merged$step_3[[k]]$g_ij_est, p, m_est)
-  g_ij_truth_mat <- assemble_block_matrix_v2(merged$step_3[[k]]$g_ij_truth, p, m_est)
-  g_ij_dist <- hilbert_schmidt_norm_pm_rmse(g_ij_est_mat - g_ij_truth_mat, p, m_est)
-  
-  # 4) ROC results
-  
-  roc_results <- merged$step_12[[k]]$roc_est
+  sens <- df_roc$sens
+  names(sens) <- df_roc$sublist
+  spec <- df_roc$spec
+  names(spec) <- df_roc$sublist
+  auc <- df_roc$auc
+  names(auc) <- df_roc$sublist
+  accuracy <- df_roc$accuracy
+  names(accuracy) <- df_roc$sublist
   
   # 5) group metrics
   
-  metrics <- list(rho_i_dist = rho_i_dist,
-                  rho_ij_dist = rho_ij_dist,
-                  g_ij_dist = g_ij_dist,
-                  P_HS = P_HS,
-                  C_HS = C_HS,
-                  sens = roc_results$sensitivity,
-                  spec = roc_results$specificity,
-                  auc = as.numeric(roc_results$auc),
-                  accuracy = roc_results$accuracy)
+  point_metrics <- list(rho_i_dist = rho_i_dist,
+                        rho_ii_dist = rho_ii_dist,
+                        g_ij_dist = g_ij_dist,
+                        C_HS_ij_dist = C_HS_ij_dist,
+                        C_HS_dist = C_HS_dist,
+                        w_mat_ij_dist = w_mat_ij_dist,
+                        w_mat_dist = w_mat_dist,
+                        sens = sens,
+                        spec = spec,
+                        auc = auc,
+                        accuracy = accuracy)
   
-  return(metrics)
+  eval_metrics <- eval_df
+                  
+  
+  return(list(point_metrics = point_metrics,
+              eval_metrics = eval_metrics))
   
 }
 
-convergence_metrics_part3 <- function(merged){
+# outer loop of convergence_metrics_part2 - iterate through all y_c_query values
+convergence_metrics_part3 <- function(merged, i, j){
   
   # ----------------------------------------------------------------------------
   #
@@ -598,8 +641,9 @@ convergence_metrics_part3 <- function(merged){
   
   n_query <- nrow(merged$y_c_query)
   
+  
   metrics <- lapply(1:n_query, function(k){
-    convergence_metrics_part2(merged, k)
+    convergence_metrics_part2(merged, k, i, j)
   })
   
   names(metrics) <- round(merged$y_c_query[,1], 3)
@@ -607,7 +651,8 @@ convergence_metrics_part3 <- function(merged){
   return(metrics)
 }
 
-visualize_metrics_finite_basis <- function(truth_file_name, results_folder, metric_names, i = NULL, j = NULL){
+# function to graph ||truth - est||_HS
+visualize_metrics_finite_basis <- function(truth_file_name, results_folder, i = NULL, j = NULL){
   
   # ----------------------------------------------------------------------------
   #
@@ -631,13 +676,9 @@ visualize_metrics_finite_basis <- function(truth_file_name, results_folder, metr
   #
   # input:
   #
-  # - data_folder    (string)  'simu_data'
-  # - results_folder (string)  'simu_results/block_banded_v2/CPGM'
-  # - metric         (string)  
-  #   - 'rho_i_dist'
-  #   - 'rho_ij_dist'
-  #   - 'g_ij_dist'
-  #   - 'P_HS', 'C_HS', 'V_HS'
+  # - truth_file_name    (string)  'simu_data/block_banded_c0_n_2000_truths.RData'
+  # - results_folder     (string)  'simu_results/block_banded_v2/CPGM'
+  # 
   # - i and j    (integers)  indices for matrix metrics
   #
   # output:
@@ -659,6 +700,7 @@ visualize_metrics_finite_basis <- function(truth_file_name, results_folder, metr
   ns <- get_ns(results_folder)
   
   results_df <- data.frame()
+  evals_df <- data.frame()
   
   for(l in 1:length(ns)){
     n <- ns[l]
@@ -666,54 +708,97 @@ visualize_metrics_finite_basis <- function(truth_file_name, results_folder, metr
 
     # 1) merge truths and estimates
     
-    merged <- convergence_metrics_part1(truth_file_name, estimates_file_name)
+    truths <- load_file(truth_file_name)
+    estimates <- load_file(estimates_file_name)
+    merged <- merge_lists_recursive(truths, estimates)
     
     # 2) getting metrics
     
-    all_metrics <- convergence_metrics_part3(merged)
+    all_metrics <- convergence_metrics_part3(merged, i, j)
     
-    # 3) create dataframe for graphing
+    metric_names <- names(all_metrics[[1]][['point_metrics']])
     
-    for(metric in metric_names){
-      
-      # 3a) get the name
-      if(metric %in% c('rho_ij_dist', 'g_ij_dist', 'P_HS', 'C_HS', 'V_HS')){
-        metric_name <- paste0(metric, '_', i, '_', j)
-        values <- sapply(all_metrics, function(x) x[[metric]][i,j])
-      } else{
-        metric_name <- metric  
-        values <- sapply(all_metrics, function(x) x[[metric]])
-      }
-      
-      temp_df <- data.frame(n, as.numeric(names(values)), unname(values), metric_name)
-      colnames(temp_df) <- c('n', 'y_c_query', 'values', 'metric')
-      
-      results_df <- rbind(results_df, temp_df)
-    }
+    # 3) create dataframe for graphing - via CHATGPT
+    df_point_metrics <- do.call(
+      rbind,
+      lapply(names(all_metrics), function(y_name) {
+        
+        point_metrics <- all_metrics[[y_name]]$point_metrics
+        
+        do.call(
+          rbind,
+          lapply(names(point_metrics), function(metric_name) {
+            
+            vec <- point_metrics[[metric_name]]
+            
+            data.frame(
+              y_c_query   = y_name,
+              point_metric = metric_name,
+              vector_name = names(vec),
+              value       = as.numeric(vec),
+              row.names   = NULL
+            )
+          })
+        )
+      })
+    )
+    
+    df_point_metrics <- cbind(n, df_point_metrics)
+    results_df <- rbind(results_df, df_point_metrics)
+    
+    # 3b) eigenvalues dataframe - CHATGPT
+    
+    df_eval <- do.call(
+      rbind,
+      lapply(names(all_metrics), function(y_name) {
+        
+        df <- all_metrics[[y_name]]$eval_metrics
+        
+        df$y_c_query <- y_name
+        df
+      })
+    )
+    df_eval <- cbind(n, df_eval)
+    evals_df <- rbind(evals_df, df_eval)
+    
   }
   
   results_df$n <- factor(results_df$n)
+  evals_df$n <- factor(evals_df$n)
+
   
-  metric_names_graphs <- unique(results_df$metric)
+  metric_names_graphs <- unique(results_df$point_metric)
   
-  # graph
+  # now, we have a dataframe (df_point_metrics) with:
+  #   - n
+  #   - y_c_query
+  #   - point_metric ('rho_i_dist', 'rho_ii_dist', etc)
+  #   - vector_name  ('rho_i_est', 'rho_i_X_truth', etc)
+  #   - value        (the point_metric type at the [n, y_c_query] point)
+  
+  # 4) point estimates graph
   graphs <- list()
   
   for(metric_name in metric_names_graphs){
     
     title_name <- paste0(metric_name, ' versus n and y_c_query')
     
-    results_df2 <- results_df %>% filter(metric == metric_name)
+    results_df2 <- results_df %>% filter(point_metric == metric_name)
+    results_df2$vector_name <- factor(results_df2$vector_name)
     
     g <- ggplot() + 
-      geom_line(data = results_df2, aes(x = y_c_query, y = values, group = n, color = n)) + 
-      geom_point(data = results_df2, aes(x = y_c_query, y = values, group = n, color = n)) + 
+      geom_line(data = results_df2, aes(x = y_c_query, y = value, 
+                                        group = interaction(n, vector_name), 
+                                        color = n)) + 
+      geom_point(data = results_df2, aes(x = y_c_query, y = value, 
+                                         group = interaction(n, vector_name), 
+                                         color = n,
+                                         shape = vector_name)) + 
       ylab(metric_name) + 
       xlab('Y_c Query') + 
-      # ggtitle(title_name) + 
       theme_bw() 
     
-    if(metric_name %in% c('auc')){
+    if(metric_name %in% c('sens', 'spec', 'auc', 'accuracy')){
       g <- g + ylim(0, 1)
     } else{
       g <- g + scale_y_log10(limits = c(NA, NA))
@@ -721,12 +806,74 @@ visualize_metrics_finite_basis <- function(truth_file_name, results_folder, metr
     graphs[[metric_name]] <- g
   }
   
-  # grid arrange
+  # 5) grid arrange - point estimates
   
   arranged_plots <- do.call(arrangeGrob, c(graphs, ncol = 3))
   
+  # 6) plot evals_df for each eigendecomp and y_c_query
+  
+  # evals_df has columns:
+  #
+  # - n       (sample size)
+  # - sublist (eigen_decomp_name) 
+  # - process
+  # - value
+  # - eval_id (1, 2, eigencomponent_ID)
+  # - y_c_query (y_c_query)
+  
+  y_c_querys <- unique(evals_df$y_c_query)
+  eigencomps <- unique(evals_df$eval_id)
+  eigen_graphs <- list()
+  
+  
+  for(eigencomp_i in eigencomps){
+    for(query_i in y_c_querys){
+      
+      evals_df_i <- evals_df %>% filter(y_c_query == query_i) %>% 
+        filter(eval_id == eigencomp_i)
+      plot_title <- paste0('PC: ', eigencomp_i, ' Y_c_query: ', query_i)
+      
+      evals_graph <- ggplot() + 
+        geom_line(data = evals_df_i, aes(x = process, y = value, 
+                                          group = interaction(n, sublist), 
+                                          color = sublist)) + 
+        geom_point(data = evals_df_i, aes(x = process, y = value, 
+                                           group = interaction(n, sublist), 
+                                           color = sublist,
+                                           shape = n)) + 
+        ylab(metric_name) + 
+        xlab('Process') + 
+        ggtitle(plot_title) + 
+        theme_bw() 
+        
+      eigen_graphs[[length(eigen_graphs) + 1]] <- evals_graph
+      
+    }
+  }
+  
+  g_eval <- ggplot(
+    evals_df,
+    aes(
+      x = process,
+      y = value,
+      group = interaction(n, sublist),
+      color = n,
+      shape = sublist
+    )
+  ) +
+    geom_line() +
+    geom_point() +
+    ylab('Eigenvalue') +
+    xlab("Process") +
+    ggtitle('Eval Convergence between PCs') + 
+    facet_grid(eval_id ~ y_c_query, scales = "free_y") +  # rows = eval_id, columns = y_c_query
+    theme_bw()
+  
+  arranged_eval_plots <- do.call(arrangeGrob, c(eigen_graphs, ncol = length(y_c_querys)))
+  
   # Display it
-  return(list(metric_graph = arranged_plots,
+  return(list(point_metrics_graph = arranged_plots,
+              eval_metrics_graph = g_eval,
               metric_table = results_df))
   
   
