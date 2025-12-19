@@ -761,7 +761,7 @@ trig_basis_eigendecomposition_beta_truths <- function(beta_coeffs, eigen_decomp_
   p <- dim(beta_coeffs)[1]
   d <- dim(beta_coeffs)[2]
   n <- dim(beta_coeffs)[3]
-  
+  m <- dim(eigen_decomp_truth$eigenfunctions[[1]])[1]
   weights_k <- KDE_weights(Y_c, y_c_query_k)
   
   # 2) get unbiased weighted covariance matrix estimate (pd x pd) 
