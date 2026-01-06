@@ -497,6 +497,8 @@ convergence_metrics_part2 <- function(merged, k, i, j){
     hilbert_schmidt_norm_rmse(merged$step_2[[k]][[x]] - merged$step_2[[k]]$rho_i_truth)
   })
   
+
+  
   # step_2b) find distance between rho_ii_truth[[i_j]] and everything else
   rho_ii_names <- names(merged$step_2b[[k]])
   rho_ii_else <- setdiff(rho_ii_names, 'rho_ii_truth')
@@ -596,7 +598,22 @@ convergence_metrics_part2 <- function(merged, k, i, j){
   accuracy <- df_roc$accuracy
   names(accuracy) <- df_roc$sublist
   
-  # 5) group metrics
+  # 5) rename by removing the prefixes
+  
+  names(rho_i_dist) <- sub("^rho_i_", "", names(rho_i_dist)) 
+  names(rho_ii_dist) <- sub("^rho_ii_", "", names(rho_ii_dist)) 
+  names(g_ij_dist) <- sub("^g_ij_", "", names(g_ij_dist)) 
+  names(C_HS_ij_dist) <- sub("^C_HS_", "", names(C_HS_ij_dist)) 
+  names(C_HS_dist) <- sub("^C_HS_", "", names(C_HS_dist)) 
+  names(w_mat_ij_dist) <- sub("^w_mat_", "", names(w_mat_ij_dist))
+  names(w_mat_dist) <- sub("^w_mat_", "", names(w_mat_dist))
+  names(sens) <- sub("^roc_", "", names(sens)) 
+  names(spec) <- sub("^roc_", "", names(spec)) 
+  names(auc) <- sub("^roc_", "", names(auc))
+  names(accuracy) <- sub("^roc_", "", names(accuracy))
+
+  
+  # 6) group metrics
   
   point_metrics <- list(rho_i_dist = rho_i_dist,
                         rho_ii_dist = rho_ii_dist,
@@ -652,7 +669,7 @@ convergence_metrics_part3 <- function(merged, i, j){
 }
 
 # function to graph ||truth - est||_HS
-visualize_metrics_finite_basis <- function(truth_file_name, results_folder, i = NULL, j = NULL){
+visualize_metrics_finite_basis <- function(truth_file_name, results_folder, i, j){
   
   # ----------------------------------------------------------------------------
   #
@@ -743,6 +760,7 @@ visualize_metrics_finite_basis <- function(truth_file_name, results_folder, i = 
       })
     )
     
+    # include sample size 
     df_point_metrics <- cbind(n, df_point_metrics)
     results_df <- rbind(results_df, df_point_metrics)
     
@@ -758,57 +776,59 @@ visualize_metrics_finite_basis <- function(truth_file_name, results_folder, i = 
         df
       })
     )
+    
+    # include sample size 
     df_eval <- cbind(n, df_eval)
     evals_df <- rbind(evals_df, df_eval)
     
   }
   
+  # pad as factors
   results_df$n <- factor(results_df$n)
   evals_df$n <- factor(evals_df$n)
-
+  results_df$vector_name <- factor(results_df$vector_name)
   
-  metric_names_graphs <- unique(results_df$point_metric)
+  
+  metric_hierarchy <-  c('rho_i_dist',
+                         'rho_ii_dist',
+                         'g_ij_dist',
+                         'C_HS_ij_dist',
+                         'C_HS_dist',
+                         'w_mat_ij_dist',
+                         'w_mat_dist',
+                         'sens', 'spec',
+                         'auc', 'accuracy')
+  results_df$point_metric <- factor(results_df$point_metric, levels = metric_hierarchy)
+  
+  # 4) point estimates graph
   
   # now, we have a dataframe (df_point_metrics) with:
   #   - n
   #   - y_c_query
   #   - point_metric ('rho_i_dist', 'rho_ii_dist', etc)
-  #   - vector_name  ('rho_i_est', 'rho_i_X_truth', etc)
+  #   - vector_name  ('est', 'X_truth', etc)
   #   - value        (the point_metric type at the [n, y_c_query] point)
   
-  # 4) point estimates graph
-  graphs <- list()
+
   
-  for(metric_name in metric_names_graphs){
-    
-    title_name <- paste0(metric_name, ' versus n and y_c_query')
-    
-    results_df2 <- results_df %>% filter(point_metric == metric_name)
-    results_df2$vector_name <- factor(results_df2$vector_name)
-    
-    g <- ggplot() + 
-      geom_line(data = results_df2, aes(x = y_c_query, y = value, 
-                                        group = interaction(n, vector_name), 
-                                        color = n)) + 
-      geom_point(data = results_df2, aes(x = y_c_query, y = value, 
-                                         group = interaction(n, vector_name), 
-                                         color = n,
-                                         shape = vector_name)) + 
-      ylab(metric_name) + 
-      xlab('Y_c Query') + 
-      theme_bw() 
-    
-    if(metric_name %in% c('sens', 'spec', 'auc', 'accuracy')){
-      g <- g + ylim(0, 1)
-    } else{
-      g <- g + scale_y_log10(limits = c(NA, NA))
-    }
-    graphs[[metric_name]] <- g
-  }
+  shape_vals <- c(0, 1, 2, 3, 4, 5, 6, 7, 8)
   
-  # 5) grid arrange - point estimates
+  g_point_estimates <- ggplot(
+    results_df,
+    aes(
+      x = y_c_query,
+      y = value,
+      group = interaction(n, vector_name),
+      color = n,
+      shape = vector_name
+    )
+  ) +
+    geom_line() +
+    geom_point() +
+    scale_shape_manual(values = shape_vals) +
+    facet_wrap(~ point_metric, scales = "free_y") +
+    theme_bw()
   
-  arranged_plots <- do.call(arrangeGrob, c(graphs, ncol = 3))
   
   # 6) plot evals_df for each eigendecomp and y_c_query
   
@@ -821,36 +841,7 @@ visualize_metrics_finite_basis <- function(truth_file_name, results_folder, i = 
   # - eval_id (1, 2, eigencomponent_ID)
   # - y_c_query (y_c_query)
   
-  y_c_querys <- unique(evals_df$y_c_query)
-  eigencomps <- unique(evals_df$eval_id)
-  eigen_graphs <- list()
-  
-  
-  for(eigencomp_i in eigencomps){
-    for(query_i in y_c_querys){
-      
-      evals_df_i <- evals_df %>% filter(y_c_query == query_i) %>% 
-        filter(eval_id == eigencomp_i)
-      plot_title <- paste0('PC: ', eigencomp_i, ' Y_c_query: ', query_i)
-      
-      evals_graph <- ggplot() + 
-        geom_line(data = evals_df_i, aes(x = process, y = value, 
-                                          group = interaction(n, sublist), 
-                                          color = sublist)) + 
-        geom_point(data = evals_df_i, aes(x = process, y = value, 
-                                           group = interaction(n, sublist), 
-                                           color = sublist,
-                                           shape = n)) + 
-        ylab(metric_name) + 
-        xlab('Process') + 
-        ggtitle(plot_title) + 
-        theme_bw() 
-        
-      eigen_graphs[[length(eigen_graphs) + 1]] <- evals_graph
-      
-    }
-  }
-  
+
   g_eval <- ggplot(
     evals_df,
     aes(
@@ -869,10 +860,9 @@ visualize_metrics_finite_basis <- function(truth_file_name, results_folder, i = 
     facet_grid(eval_id ~ y_c_query, scales = "free_y") +  # rows = eval_id, columns = y_c_query
     theme_bw()
   
-  arranged_eval_plots <- do.call(arrangeGrob, c(eigen_graphs, ncol = length(y_c_querys)))
   
   # Display it
-  return(list(point_metrics_graph = arranged_plots,
+  return(list(point_metrics_graph = g_point_estimates,
               eval_metrics_graph = g_eval,
               metric_table = results_df))
   
