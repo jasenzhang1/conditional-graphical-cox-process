@@ -24,8 +24,8 @@ method      <- args[4]    # method <- 'CPGM'
 # adj_type <- 'flexible_block_banded_c0'
 # method <- 'CPGM'
 
-n_large <- 2000
-n <- 2000
+n_large <- 600
+n <- 600
 
 # heatmaps of certain metrics 
 
@@ -37,37 +37,45 @@ graph_ids <- c('22',    # rho_i
 
 truth_file_name <- paste0(data_folder, '/', adj_type, '_n_', n_large, '_truths.RData')
 estimates_file_name <- paste0(base_folder, '/', adj_type, '/', method, '/', adj_type, '_n_', n, '.RData')
-# estimates_file_name <- paste0(base_folder, '/', adj_type, '/', method, '/', method, '_n_', n, '_finer.RData')
 
 # 28e - visualize results over y_c
 g_heatmaps <- visualize_finite_basis(truth_file_name, estimates_file_name, graph_ids)
 
 # 2) convergence of intermediate estimators (28b)
 
-metric_names <- c('rho_i_dist', 'rho_ij_dist', 'g_ij_dist', 'C_HS', 'P_HS', 'auc')
+i <- 1
+j <- 2
 results_folder <- paste0(base_folder, '/', adj_type, '/', method)
-metrics_summary <- visualize_metrics_finite_basis(truth_file_name, results_folder, metric_names, i, j)
+metrics_summary <- visualize_metrics_finite_basis(truth_file_name, results_folder, i, j)
 
+results_folder_2 <- paste0(results_folder, '/export')
+
+if (!dir.exists(results_folder_2)) {
+  dir.create(results_folder_2)
+}
 
 # print table and figure
-write.csv(metrics_summary$metric_table, paste0(results_folder, "/metrics_summary.csv"), row.names = FALSE)
+write.csv(metrics_summary$metric_table, paste0(results_folder_2, "/metrics_summary.csv"), row.names = FALSE)
 
 
-pdf(paste0(results_folder, "/metrics_summary.pdf"), width = 8, height = 6)  # open PDF file
-grid.arrange(metrics_summary$metric_graph)                                 # draw the grob/layout
-dev.off()                                                                  # close the file
+pdf(paste0(results_folder_2, "/point_metrics_summary.pdf"), width = 8, height = 6)        # open PDF file
+grid.arrange(metrics_summary$point_metrics_graph)                                 # draw the grob/layout
+dev.off()                                                                         # close the file
 
+pdf(paste0(results_folder_2, "/eval_metrics_summary.pdf"), width = 8, height = 6)        # open PDF file
+grid.arrange(metrics_summary$eval_metrics_graph)                                  # draw the grob/layout
+dev.off()                                                                         # close the file
 
 # 2) ground truth vs estimated p x p matrix
 
-max_n <- max(get_ns(results_folder))
-
-n_y_c_query <- length(get_y_c_query(results_folder, max_n))
-
-prec_mat_comparison <- visualize_prec_mat_over_time(results_folder, max_n)
-pdf(paste0(results_folder, "/prec_mat_over_time.pdf"), width = 3 * (n_y_c_query-2), height = 3)  # open PDF file
-grid.arrange(prec_mat_comparison$graph)                                                            # draw the grob/layout
-dev.off()  
+# max_n <- max(get_ns(results_folder))
+# 
+# n_y_c_query <- length(get_y_c_query(results_folder, max_n))
+# 
+# prec_mat_comparison <- visualize_prec_mat_over_time(results_folder, max_n)
+# pdf(paste0(results_folder, "/prec_mat_over_time.pdf"), width = 3 * (n_y_c_query-2), height = 3)  # open PDF file
+# grid.arrange(prec_mat_comparison$graph)                                                            # draw the grob/layout
+# dev.off()  
 
   
   
