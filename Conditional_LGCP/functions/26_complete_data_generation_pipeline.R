@@ -1127,10 +1127,10 @@ simulate_finite_basis_cox_data_part4 <- function(temp_file_dir, setting_info_lis
     step_5c[['KL_prec_beta_truth']] <- eigen_beta_truths$KL_prec_beta_truth
     
     step_9[['C_cond_beta_truth']]        <- eigen_beta_truths$C_cond_beta_truth
-    step_9[['C_cond_beta_truth_unnorm']] <- eigen_beta_truths$C_cond_beta_truth_unnorm
+    #step_9[['C_cond_beta_truth_unnorm']] <- eigen_beta_truths$C_cond_beta_truth_unnorm
 
     step_10[['P_cond_beta_truth']]        <- eigen_beta_truths$P_cond_beta_truth
-    step_10[['P_cond_beta_truth_unnorm']] <- eigen_beta_truths$P_cond_beta_truth_unnorm
+    #step_10[['P_cond_beta_truth_unnorm']] <- eigen_beta_truths$P_cond_beta_truth_unnorm
     
 
     step_11[['w_mat_beta_truth']] <- eigen_beta_truths$P_HS_beta_truth

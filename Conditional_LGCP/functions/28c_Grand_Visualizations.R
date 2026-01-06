@@ -360,7 +360,7 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth)
   if('112' %in% graph_ids){
     step_11_v2 <- step_11
     step_11_v2 <- lapply(step_11_v2, function(x) {
-      x[!names(x) %in% c("w_mat_est", "w_mat_X_truth")]
+      x[!names(x) %in% c("w_mat_est", "w_mat_X_truth", 'w_mat_KL_X_truth')]
     })
     graphs[['g_112b']] <- result_heatmap_nonblock_prep(step_11_v2, 'w_mat', time_grid_est, data_format = 'regular', rm_diag = T, zmid = 0)
   } 
