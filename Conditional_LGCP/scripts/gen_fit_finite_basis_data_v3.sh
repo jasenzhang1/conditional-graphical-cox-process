@@ -26,8 +26,8 @@ adj_type_params=(
   "flexible_block_banded_c0 0.5 6 2 2.9 0.9"
 )
 
-n_large=600
-ns=(200 400 600)
+n_large=3000
+ns=(1000 2000 3000)
 n_group=10
 groups=$(( n_large / n_group ))
 method="CPGM"
