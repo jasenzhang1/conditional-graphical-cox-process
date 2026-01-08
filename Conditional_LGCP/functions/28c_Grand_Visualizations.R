@@ -179,8 +179,8 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth)
       # p x m x n --> mean --> p x m --> choose first 5 processes --> 5 x m
       graphs[['g_12']] <- grid.arrange(visualize_log_intensity(apply(step_1$X_k_est,            c(1, 2), mean)[1:5, ],   time_grid_est,  'Estimate',        step_1c$mu_t_coarse_truth),
                                        visualize_log_intensity(apply(step_1$X_k_coarse_truth,   c(1, 2), mean)[1:5, ],   time_grid_est,  'Coarser Truth',   step_1c$mu_t_coarse_truth),
-                                       visualize_log_intensity(apply(step_1$X_k_truth,          c(1, 2), mean)[1:5, ],   time_grid,      'Finer Truth',     step_1c$mu_t_coarse_truth),
-                                       visualize_log_intensity(apply(step_1$X_k_both_truth,     c(1, 2), mean)[1:5, ],   time_grid_both, 'Combined Truth',  step_1c$mu_t_truth),
+                                       visualize_log_intensity(apply(step_1$X_k_truth,          c(1, 2), mean)[1:5, ],   time_grid,      'Finer Truth',     step_1c$mu_t_truth),
+                                       visualize_log_intensity(apply(step_1$X_k_both_truth,     c(1, 2), mean)[1:5, ],   time_grid_both, 'Combined Truth',  step_1c$mu_t_both_truth),
                                        textGrob("0. Average Log Intensity\n of first 5 processes", gp = gpar(fontsize = 14)),
                                        layout_matrix = arr_mat_6) 
     } else{
@@ -192,7 +192,7 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth)
   
   # rho_i(t) for processes 1 through 5
   if('22' %in% graph_ids){
-    graphs[['g_22']] <- result_line_graph_prep(step_2, 'rho_i', time_grid_est, num_processes = 5)
+    graphs[['g_22']] <- result_line_graph_prep(step_2, 'rho_i', time_grid_est, num_processes = 12)
   }
   
   # rho_ij(s,t) for process pair 1_1
