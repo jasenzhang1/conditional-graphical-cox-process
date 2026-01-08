@@ -200,7 +200,7 @@ full_conditional_estimation_with_no_truth_part1 <- function(dataset, setting_inf
   #
   # GOAL: bundle all relevant parameters into a list called:
   #
-  #       part1_block_banded_c0_n_100.rds
+  #       temp_data/simu/part1_block_banded_c0_n_100.rds
   #
   #
   # inputs:
@@ -263,7 +263,18 @@ full_conditional_estimation_with_no_truth_part1 <- function(dataset, setting_inf
   # ----------------------------------------------------------------------------
   
   step_1_bundle <- step_1_log_intensities(data_df4, time_grid_est) 
+  step_1 <- step_1_bundle$step_1
+  step_1b <- step_1_bundle$step_1b
   
+  if(X_truth){
+    step_1[['X_k_coarse_truth']] <- dataset$X_k_coarse_truth
+    step_1[['X_k_truth']]        <- dataset$X_k_truth
+    step_1[['X_k_both_truth']]   <- dataset$X_k_both_truth
+    
+    step_1b[['Lambda_k_coarse_truth']] <- exp(dataset$X_k_coarse_truth)
+    step_1b[['Lambda_k_truth']]        <- exp(dataset$X_k_truth)
+    step_1b[['Lambda_k_both_truth']]   <- exp(dataset$X_k_both_truth)
+  }
   
   # 2) load gamma_c and i_j keys
   
@@ -454,9 +465,9 @@ estimate_intensities_stratum_parallel_with_yc_part0 <- function(temp_file_dirs, 
   # ----------------------------------------------------------------------------
   #
   # GOAL: we are beginning the estimation method for a specific n_query.
-  #       calculate weights and adj_mat (truth), and store it in
+  #       calculate weights and adj_mat (truth), and store it in:
   #
-  #       'part2_block_banded_c0_n_100_nquery1.rds'
+  #       temp_data/simu/part2_block_banded_c0_n_100_nquery1.rds
   #
   # 
   #
@@ -493,6 +504,7 @@ estimate_intensities_stratum_parallel_with_yc_part0 <- function(temp_file_dirs, 
   list2env(results, envir = environment())
   
   # 1) get the query and get the weights
+  
   y_c_query <- query_y_cs[cont_ind,]
   
   weights <- apply(y_c_strata, 1, function(row) {
@@ -506,6 +518,7 @@ estimate_intensities_stratum_parallel_with_yc_part0 <- function(temp_file_dirs, 
   results[['W_y']] <- W_y
   
   # 2) get the ground truth adj_mat
+  
   if(! mouse){
     truth_data_name <- paste0('truths_', adj_type, '_n_', n_large, '_nquery', cont_ind, '.rds')
     truths <- readRDS(file.path(temp_file_dirs[2], truth_data_name))
@@ -514,7 +527,7 @@ estimate_intensities_stratum_parallel_with_yc_part0 <- function(temp_file_dirs, 
   }
   
   
-  # save
+  # 3) save
   
   if(mouse){
     datafile_name <- paste0('part2_', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '.rds')
@@ -533,9 +546,9 @@ estimate_intensities_stratum_parallel_with_yc_part1 <- function(temp_file_dir, s
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: calculate rho_i for a single i and save it as 
+  # GOAL: calculate rho_i for a single i and save it as
   #       
-  #       'step_2_rho_i_block_banded_v2_n_100_nqueryk_i.rds'
+  #       temp_data/simu/step_2_rho_i_block_banded_v2_n_100_nqueryk_i.rds'
   #
   # 
   # inputs:
@@ -620,7 +633,7 @@ estimate_intensities_stratum_parallel_with_yc_part2 <- function(temp_file_dir, s
   #
   # GOAL: calculate rho_ij for a single i_j pair and save it as 
   #       
-  #       'step_2_rho_ij_block_banded_v2_n_100_nqueryk_i.rds'
+  #       temp_data/simu/step_2_rho_ij_block_banded_v2_n_100_nqueryk_i.rds
   #
   # 
   # inputs:
@@ -742,6 +755,10 @@ estimate_intensities_stratum_parallel_with_yc_part3 <- function(temp_file_dir, s
   # GOAL: putting the rho_i, rho_ii, and rho_list results together
   #       used in script_step2_part3
   #
+  #       output file:
+  #
+  #       step_2_rho_list_block_banded_c0_n_100_nquery1.rds
+  #
   # 
   # inputs
   #
@@ -854,6 +871,10 @@ full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, sett
   # GOAL: estimation of everything else after step 2 in series
   #       used in script_fit_mice_data_part2b
   #
+  #       save file called:
+  #
+  #       temp_data/simu/part3_block_banded_c0_n_100_nquery1.rds
+  # 
   # 
   # inputs
   #
@@ -1018,6 +1039,7 @@ full_conditional_estimation_with_no_truth_part3 <- function(temp_file_dir, setti
   #
   # GOAL: merge all the estimates from each y_c_query
   #
+  #       just return an object called 'estimated_graphs'
   #
   # inputs:
   # 
@@ -1058,7 +1080,7 @@ full_conditional_estimation_with_no_truth_part3 <- function(temp_file_dir, setti
   # read from steps 1 and 2 and then remove everything
   # ----------------------------------------------------------------------------  
   
-  # Vector of file names
+  # Vector of file names from part3
   
   list2env(setting_info_list, envir = environment())
   
