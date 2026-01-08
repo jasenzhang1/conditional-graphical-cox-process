@@ -56,7 +56,7 @@ if(model_type == 'mice'){
 
 
 # ---------------------------
-# estimation
+# estimation - create file called 'part_3....rds' in /temp_data/simu
 # ---------------------------
 
 full_conditional_estimation_with_no_truth_part2b(temp_file_dir, setting_info_list, cont_ind, mouse, X_truth)

@@ -75,7 +75,9 @@ if(model_type == 'mice'){
 }
 
 # ---------------------------
-# estimation
+# estimation - read everything from temp_data/simu (part_1, part_2, part_3)
+#
+#              save in simu_results/adj_type/CPGM/adj_type_n.RData
 # ---------------------------
 
 if(method == 'CPGM'){

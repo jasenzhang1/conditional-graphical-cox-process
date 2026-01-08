@@ -68,7 +68,7 @@ ncores <- 1
 
 
 # ---------------------------
-# estimation
+# estimation - read in data from simu_data/ or mice_data/
 # ---------------------------
 
 if(mouse){
