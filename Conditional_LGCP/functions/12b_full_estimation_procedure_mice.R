@@ -248,8 +248,6 @@ full_conditional_estimation_with_no_truth_part1 <- function(dataset, setting_inf
   # Step 0 - Check and preprocess data
   # ----------------------------------------------------------------------------
   
-  step_0_events <- step_0_keep_events(dataset, k = 1, i_vec = 1:5)
-  
   # load `data_df4`, `y_c_strata_full`, `y_c_strata`, `query_y_cs`, `patient_sel`, `feature_sel`
   processed_data <- step_0_preprocess(dataset)
   list2env(processed_data, envir = environment()) 
@@ -257,6 +255,10 @@ full_conditional_estimation_with_no_truth_part1 <- function(dataset, setting_inf
   
   
   p <- length(feature_sel)
+  
+  step_0_events <- step_0_keep_events(dataset, k_vec = 1:n, i_vec = 1:p)
+  
+
 
   # ----------------------------------------------------------------------------
   # Step 1 - Log intensities

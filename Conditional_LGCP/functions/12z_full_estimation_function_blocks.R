@@ -73,7 +73,7 @@ step_0_check <- function(dataset){
   
 }
 
-step_0_keep_events <- function(dataset, k, i_vec){
+step_0_keep_events <- function(dataset, k_vec, i_vec){
   
   
   # ----------------------------------------------------------------------------
@@ -84,8 +84,8 @@ step_0_keep_events <- function(dataset, k, i_vec){
   # input:
   #
   # - dataset    (list)
-  # - k          (integer)          ubject id
-  # - i_vec      (q-dim vector)  vector of process ID's
+  # - k          (vector)            vector of subject id's
+  # - i_vec      (vector)            vector of process ID's
   #
   # 
   # outputs:
@@ -94,7 +94,11 @@ step_0_keep_events <- function(dataset, k, i_vec){
   #
   # ----------------------------------------------------------------------------
   
-  keys <- paste0(k, '_', i_vec)
+  keys <- paste0(
+    rep(k_vec, each = length(i_vec)),
+    "_",
+    rep(i_vec, times = length(k_vec))
+  )
   
   events <- dataset$event_times[keys]
   
