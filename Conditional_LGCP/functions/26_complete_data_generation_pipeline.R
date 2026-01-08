@@ -726,7 +726,8 @@ simulate_finite_basis_cox_data_parts1_and_2 <- function(temp_file_dir, setting_i
   # ----------------------------------------------------------------------------
   #
   # GOAL: generate log-intensities for each batch
-  #
+  # 
+  #       stored as: temp_data/simu_data/parts1_and_2...
   #
   # inputs:
   #
@@ -840,6 +841,8 @@ simulate_finite_basis_cox_data_part3 <- function(temp_file_dir, setting_info_lis
   #
   # GOAL: merge all the events and store in results
   #
+  #       stored as: temp_data/simu_data/dataset...rds
+  # 
   # inputs:
   #
   # - temp_file_dir
@@ -930,6 +933,8 @@ simulate_finite_basis_cox_data_part4 <- function(temp_file_dir, setting_info_lis
   #
   # GOAL: obtain truths for y_c_query_k
   #
+  #       stored as: temp_data/simu_data/truths...
+  # 
   # inputs:
   #
   # - temp_file_dir
