@@ -215,10 +215,10 @@ step_1_log_intensities <- function(data_df4, time_grid_est){
   # outputs:
   # 
   # - list of:
-  #   - list of:
-  #     - X_k_suffix                 (p x m x n)
-  #   - list of:
-  #     - Lambda_k_suffix            (p x m x n)
+  #   - step_1:
+  #     - X_k_est                 (p x m x n)
+  #   - step_1b:
+  #     - Lambda_k_est            (p x m x n)
   #
   # ----------------------------------------------------------------------------
   
