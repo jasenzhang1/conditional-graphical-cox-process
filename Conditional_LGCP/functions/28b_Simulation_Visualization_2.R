@@ -3,18 +3,68 @@ source('functions/28y_Visualization_Blocks.R')
 source('functions/28_Simulation_Visualization.R')
 
 
-
-visualize_points <- function(step_0_events){
+# visualize raw timestamp data
+visualize_points_step_0_events <- function(step_0_events, k = 1){
   
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: plot the events from t = 0 to t = 1 for various processes
+  # GOAL: plot the event timestamps from t = 0 to t = 1 for various processes
   #
   # 
   # input: 
   #
-  # - step_0_events   (list)  each item denotes a process and is a vector of points
+  # - step_0_events   (list)  each item is a vector, named k_i for subject k and process i, with all event timestamps 
+  #
+  # 
+  # output:
+  #
+  # - g     (graph)
+  #
+  # ----------------------------------------------------------------------------
+  
+  # 1) find the indices for subject k
+  
+  entry_names <- names(step_0_events)  #k_i
+  
+  parts <- do.call(rbind, strsplit(entry_names, "_"))
+  k_vec <- as.numeric(parts[, 1])
+  i_vec <- as.numeric(parts[, 2])
+  
+  step_0_events_k <- step_0_events[k_vec == k]
+  names(step_0_events_k) <- i_vec[k_vec == k]
+  
+  # 2) transform step_0_events_k from list to dataframe (process, time)
+  
+  df <- do.call(rbind, lapply(seq_along(step_0_events_k), function(l) {
+    data.frame(process = as.numeric(names(step_0_events_k)[l]), time = step_0_events_k[[l]])
+  }))  
+  
+  # 3) graph
+  
+  title_name <- paste0('Point Process Events of Subject ', k)
+  
+  g_points <- ggplot(df, aes(x = time, y = process)) +
+    geom_point(size = 0.8, alpha = 0.5) +
+    labs(x = "Time", y = "Process", title = title_name) +
+    theme_bw() + 
+    theme(panel.grid = element_blank())
+
+  return(g_points)
+}
+
+# visualize raw timestamp data - from data_df4 
+visualize_points_data_df4 <- function(data_df4, k = 1){
+  
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: plot the event timestamps from t = 0 to t = 1 for all processes of subject k
+  #
+  # 
+  # input: 
+  #
+  # - data_df4   (dataframe)  three columns (feature_id, time, subject_num)
   #
   # 
   # output:
@@ -25,19 +75,18 @@ visualize_points <- function(step_0_events){
   
   
   
-  df <- do.call(rbind, lapply(seq_along(step_0_events), function(i) {
-    data.frame(process = i, time = events[[i]])
-  }))  
+  df <- data_df4[data_df4$subject_num == k,]
   
-  g <- ggplot(df, aes(x = time, y = process)) +
+  g <- ggplot(df, aes(x = time, y = feature_id)) +
     geom_point(size = 0.8, alpha = 0.5) +
     labs(x = "Time", y = "Process", title = "Point Process Events of First Subject") +
     theme_bw() + 
     theme(panel.grid = element_blank())
-
+  
   
 }
 
+# visualize raw timestamp data + intensity function overlayed 
 visualize_points_on_intensity <- function(step_0_events, step_1, time_grid){
   
   
@@ -104,7 +153,6 @@ visualize_points_on_intensity <- function(step_0_events, step_1, time_grid){
 }
 
 # visualize ||V_cond - V_cond_est||_HS convergence
-
 visualize_V_cond_convergence <- function(folder_name, mat_name, i, j){
   
   # ----------------------------------------------------------------------------
@@ -202,7 +250,6 @@ visualize_V_cond_convergence <- function(folder_name, mat_name, i, j){
 }
 
 # across all n's, plot Y_c_query vs AUC
-
 visualize_AUC_across_n <- function(folder_name){
   
   # ----------------------------------------------------------------------------
@@ -693,10 +740,9 @@ visualize_metrics_finite_basis <- function(truth_file_name, results_folder, i, j
   #
   # input:
   #
-  # - truth_file_name    (string)  'simu_data/block_banded_c0_n_2000_truths.RData'
-  # - results_folder     (string)  'simu_results/block_banded_v2/CPGM'
-  # 
-  # - i and j    (integers)  indices for matrix metrics
+  # - truth_file_name    (string)    'simu_data/block_banded_c0_n_2000_truths.RData'
+  # - results_folder     (string)    'simu_results/block_banded_v2/CPGM'
+  # - i and j            (integers)  indices for matrix metrics
   #
   # output:
   #
@@ -719,7 +765,8 @@ visualize_metrics_finite_basis <- function(truth_file_name, results_folder, i, j
   results_df <- data.frame()
   evals_df <- data.frame()
   
-  for(l in 1:length(ns)){
+  
+  for(l in 1:length(ns)){ # for each sample size:
     n <- ns[l]
     estimates_file_name <- estimate_files[l]
 
@@ -783,7 +830,7 @@ visualize_metrics_finite_basis <- function(truth_file_name, results_folder, i, j
     
   }
   
-  # pad as factors
+  # 4) pad n and vector_name (est, X_truth, beta_truth) as factors
   results_df$n <- factor(results_df$n)
   evals_df$n <- factor(evals_df$n)
   results_df$vector_name <- factor(results_df$vector_name)
@@ -800,16 +847,17 @@ visualize_metrics_finite_basis <- function(truth_file_name, results_folder, i, j
                          'auc', 'accuracy')
   results_df$point_metric <- factor(results_df$point_metric, levels = metric_hierarchy)
   
-  # 4) point estimates graph
+  # ----------------------------------------------------------------------------
+  # 5) point estimates graph
   
-  # now, we have a dataframe (df_point_metrics) with:
-  #   - n
-  #   - y_c_query
+  # now, we have a dataframe (df_results) with:
+  #   - n            (1000, 2000, 3000)
+  #   - y_c_query    (0.167, 0.500, 0.833)
   #   - point_metric ('rho_i_dist', 'rho_ii_dist', etc)
   #   - vector_name  ('est', 'X_truth', etc)
   #   - value        (the point_metric type at the [n, y_c_query] point)
   
-
+  # create the graph of point estimates
   
   shape_vals <- c(0, 1, 2, 3, 4, 5, 6, 7, 8)
   
@@ -830,16 +878,39 @@ visualize_metrics_finite_basis <- function(truth_file_name, results_folder, i, j
     theme_bw()
   
   
+  # 5b) simpler graph with just est
+  
+  results_df2 <- results_df %>% filter(vector_name %in% c('est', 'KL_est', 'KL_GIC_est'))
+  g_point_estimates2 <- ggplot(
+    results_df2,
+    aes(
+      x = y_c_query,
+      y = value,
+      group = interaction(n, vector_name),
+      color = n,
+      shape = vector_name
+    )
+  ) +
+    geom_line() +
+    geom_point() +
+    scale_shape_manual(values = shape_vals) +
+    facet_wrap(~ point_metric, scales = "free_y") +
+    theme_bw()
+  
+  
+  # ----------------------------------------------------------------------------
   # 6) plot evals_df for each eigendecomp and y_c_query
+  
+  # it should be that the 1st and 2nd eigenvalues are close to 1, and then they drop off
   
   # evals_df has columns:
   #
-  # - n       (sample size)
-  # - sublist (eigen_decomp_name) 
-  # - process
-  # - value
-  # - eval_id (1, 2, eigencomponent_ID)
-  # - y_c_query (y_c_query)
+  # - n          (sample size)
+  # - sublist    (eigen_decomp_name) 
+  # - process    (1 through p)
+  # - value      (real number)
+  # - eval_id    (1, 2, eigencomponent_ID)
+  # - y_c_query  (y_c_query)
   
 
   g_eval <- ggplot(
@@ -863,6 +934,7 @@ visualize_metrics_finite_basis <- function(truth_file_name, results_folder, i, j
   
   # Display it
   return(list(point_metrics_graph = g_point_estimates,
+              point_metrics_est_graph = g_point_estimates2,   # only estimates shown
               eval_metrics_graph = g_eval,
               metric_table = results_df))
   
