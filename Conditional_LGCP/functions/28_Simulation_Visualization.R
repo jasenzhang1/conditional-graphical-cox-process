@@ -209,6 +209,7 @@ visualize_log_intensity <- function(X_k, time_grid,  g_title = 'Title', mu_t = N
   # - mu_t           (m-dim vec of the mean of the GP)
   # - legend_title   (string)
   #
+  #
   # output:
   # 
   # graph of all p log intensites at m timepoints
