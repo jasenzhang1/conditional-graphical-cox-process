@@ -213,7 +213,7 @@ result_heatmap_ij_prep <- function(my_list, entry_name, time_grid_est, i, j, pal
     )
 }
 
-result_heatmap_nonblock_prep <- function(my_list, entry_name, time_grid_est, data_format, rm_diag = F, palette_ID = 'Blue-Red 2', zmin = NULL, zmid = NULL, zmax = NULL){
+result_heatmap_nonblock_prep <- function(my_list, entry_name, data_format, time_grid_est = NULL, rm_diag = F, palette_ID = 'Blue-Red 2', zmin = NULL, zmid = NULL, zmax = NULL){
   
   # ----------------------------------------------------------------------------
   #
@@ -223,10 +223,11 @@ result_heatmap_nonblock_prep <- function(my_list, entry_name, time_grid_est, dat
   #
   # inputs:
   #
-  # - my_list       (list)     step_x; list of y_c_queries --> g_ij_est etc items
-  # - entry_name    (string)   estimate prefix (e.g. rho_ii, g_ij)
-  # - data_format   (string)   'full', 'regular', 'list'
-  # - rm_diag       (boolean)  do we remove the diag term?
+  # - my_list          (list)     step_x; list of y_c_queries --> g_ij_est etc items
+  # - entry_name       (string)   estimate prefix (e.g. rho_ii, g_ij)
+  # - time_grid_est    (vector)   do we substitute indices with timestamps?
+  # - data_format      (string)   'full', 'regular', 'list'
+  # - rm_diag          (boolean)  do we remove the diag term?
   #
   #
   # outputs:
@@ -281,7 +282,7 @@ result_heatmap_nonblock_prep <- function(my_list, entry_name, time_grid_est, dat
       
       df_t <- reshape2::melt(M)
       df_t$Type <- this_type
-      df_t$Matrix <- sub_names[k]
+      df_t$y_c <- sub_names[k]
       dfs[[length(dfs) + 1]] <- df_t
     }
     
@@ -293,9 +294,17 @@ result_heatmap_nonblock_prep <- function(my_list, entry_name, time_grid_est, dat
   
   # Convert to factors for proper ordering
   df_all$Type <- factor(df_all$Type)
-  df_all$Matrix <- factor(df_all$Matrix)
+  df_all$y_c <- factor(as.numeric(df_all$y_c))
   
-
+  # now, df_all has 5 columns:
+  #
+  # - Row   (integer)
+  # - Col   (integer)
+  # - Value (number)
+  # - Type  (factor) estimand such as est, truth, X_truth
+  # - y_c   (factor) continuous covariate value
+  
+  
   # 4) Remove diagonal or diagonal blocks
 
   if (rm_diag) {
@@ -336,19 +345,19 @@ result_heatmap_nonblock_prep <- function(my_list, entry_name, time_grid_est, dat
   zmax <- zmax + 0.1 * (zmax - zmin)
   zmin <- zmin - 0.1 * (zmax - zmin)
   
-  # 6) convert indices to timestamps
-  if(length(unique(df_all$Col)) == length(time_grid_est)){
+  # 6) convert indices to timestamps if relevant and dimensions add up
+  
+  if(!is.null(time_grid_est) & length(unique(df_all$Col)) == length(time_grid_est)){
     df_all$Col_val <- time_grid_est[df_all$Col]
     df_all$Row_val <- time_grid_est[df_all$Row]    
   } else{
     df_all$Col_val <- df_all$Col
-    df_all$Row_val <- df_all$Row   
+    df_all$Row_val <- df_all$Row    
   }
-  
 
   
   # 7) Plot with facets
-  ggplot(df_all, aes(x = Col_val, y = Row_val, fill = Value)) +
+  g <- ggplot(df_all, aes(x = Col_val, y = Row_val, fill = Value)) +
     geom_tile() +
     scale_y_reverse() + # matrix y-axis 
     scale_fill_gradient2(low = c_low, mid = c_mid, high = c_high,
@@ -356,7 +365,7 @@ result_heatmap_nonblock_prep <- function(my_list, entry_name, time_grid_est, dat
                          limits = c(zmin, zmax)) +
     coord_fixed() +
     theme_minimal() +
-    facet_grid(Type ~ Matrix, scales = "fixed") +
+    facet_grid(Type ~ y_c, scales = "fixed") +
     labs(x = "t", y = "s", fill = "f(s,t)") +
     theme(
       strip.background = element_rect(fill = "gray90"),
@@ -364,6 +373,20 @@ result_heatmap_nonblock_prep <- function(my_list, entry_name, time_grid_est, dat
       axis.text.x = element_text(angle = 90),
       axis.text.y = element_text()
     )
+  
+  g <- ggplot(df_all, aes(x = Col_val, y = Row_val, fill = Value)) +
+    geom_tile(width = 1, height = 1) +
+    scale_x_continuous(expand = c(0, 0)) +
+    scale_y_reverse(expand = c(0, 0)) +
+    scale_fill_gradient2(
+      low = c_low, mid = c_mid, high = c_high,
+      midpoint = zmid,
+      limits = c(zmin, zmax)
+    ) +
+    theme_minimal() +
+    facet_wrap(~ Type + y_c, scales = "free") +
+    labs(x = "t", y = "s", fill = "f(s,t)")
+  return(g)
 }
 
 result_line_graph_prep <- function(my_list, entry_name, time_grid, grouping = 'estimand', palette_ID = 'Dark 2', num_processes = NULL){
@@ -875,6 +898,12 @@ result_58_prep <- function(step_5b, p){
   
   
   queried_names <- names(step_5b)
+  
+  # 1) global max and min
+  vals <- unlist(step_5b, recursive = TRUE, use.names = FALSE)
+  
+  global_min <- min(vals, na.rm = TRUE)
+  global_max <- max(vals, na.rm = TRUE)
   
   # 2) for each suffix name, do it 
   for(i in 1:length(suffix_names)){
