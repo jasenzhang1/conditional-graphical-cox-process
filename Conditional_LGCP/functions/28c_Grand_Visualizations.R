@@ -154,6 +154,31 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth)
   
   # 2) figure out which steps have unique results for y_c_query and which steps are constant
   
+  # raw data for subject k
+  if('01' %in% graph_ids){
+    k <- 1
+    graphs[['g_01']] <- visualize_points_step_0_events(step_0_events, k) #28b
+  }
+  
+  
+  # histograms of event times with intensity (Lambda) overlay
+  if('02' %in% graph_ids){
+    k <- 1
+    if(X_truth){
+      graphs[['g_02']] <- visualize_points_on_intensity(step_0_events, step_1b, k, time_grid_est, X_truth, time_grid) #28b
+    } else{
+      graphs[['g_02']] <- visualize_points_on_intensity(step_0_events, step_1b, k, time_grid_est, X_truth)
+    }
+    
+  }
+  
+  # intensities for each subject across all processes
+  if('03' %in% graph_ids){
+    g_03_est <- visualize_log_intensity_bold_mean(step_1b$Lambda_k_est, time_grid_est)
+    
+    g_03_X_truth <- visualize_log_intensity_bold_mean(step_1b$Lambda_k_truth, time_grid)
+  }
+  
   # log-intensity of first 5 processes of subject i
   if('11' %in% graph_ids){
     
@@ -263,6 +288,16 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth)
     g_list <- lapply(step_4, function(x) result_45_prep(x))
     graphs[['g_45']] <- rearrange_plots(g_list) 
   }
+  
+  # assume we know beta_truths, do their empirical correlations match the actual correlations?
+  if('50' %in% graph_ids){
+
+    graphs[['g_50']] <- visualize_beta_corr(step_5d[[1]]$KL_coeffs_truth, 
+                                            true_graphs[[1]]$cov_mat_truth,
+                                            true_graphs[[1]]$cor_mat_truth,
+                                            true_graphs[[1]]$prec_mat_truth)
+  }
+  
   
   # KL_cov of (1, 2) block
   if('55' %in% graph_ids){
