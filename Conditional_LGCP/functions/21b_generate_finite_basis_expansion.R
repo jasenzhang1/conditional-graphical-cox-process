@@ -90,8 +90,12 @@ trig_basis_prec_mat <- function(d, p, y_c_k, adj_type, adj_params){
   #
   # ----------------------------------------------------------------------------
   
-  if(! adj_type %in% c('block_banded_v2', 'block_banded_c2', 'block_banded_c0',
-                       'flexible_block_banded_c0')){
+  if(! adj_type %in% c('block_banded_c0', 
+                       'block_banded_c2', 
+                       'block_banded_v2',
+                       'flexible_block_banded_c0', 
+                       'flexible_block_banded_c2',
+                       'flexible_block_banded_v2')){
     stop('Error 21b: adj_type not available')
   }
   if(! length(y_c_k) == 1){
@@ -151,15 +155,42 @@ trig_basis_prec_mat <- function(d, p, y_c_k, adj_type, adj_params){
   
     
 
-  if(adj_type == 'flexible_block_banded_c0'){
+  if(adj_type %in% c('flexible_block_banded_v2', 'flexible_block_banded_c2', 'flexible_block_banded_c0')){
     
     # Theta_{i,i}   = [c1 0; 0 c2]
     # Theta_{i,i+1} = [c3 0; 0 c4]
 
-    c1 <- adj_params[2]
-    c2 <- adj_params[3]
-    c3 <- adj_params[4] 
-    c4 <- adj_params[5]
+    # 1) extract c1, c2, c3, c4 constants
+
+    if(adj_type == 'flexible_block_banded_c0'){
+      c1 <- adj_params[2]
+      c2 <- adj_params[3]
+      c3 <- adj_params[4] 
+      c4 <- adj_params[5]
+    } else if(adj_type == 'flexible_block_banded_c2'){
+      c1 <- adj_params[3]
+      c2 <- adj_params[4]
+      c3 <- adj_params[5] 
+      c4 <- adj_params[6]
+    } else if(adj_type == 'flexible_block_banded_v2'){
+      y_c_min <- adj_params[1]
+      y_c_max <- adj_params[2]
+      c1      <- adj_params[3]
+      c2      <- adj_params[4]
+      c3_min  <- adj_params[5]
+      c3_max  <- adj_params[6]
+      c4_min  <- adj_params[7]
+      c4_max  <- adj_params[8]
+
+      # interpolation
+      c3 <- c3_min + (c3_max - c3_min) * (y_c_k - y_c_min) / (y_c_max - y_c_min)
+      c4 <- c4_min + (c4_max - c4_min) * (y_c_k - y_c_min) / (y_c_max - y_c_min)
+      
+    } else{
+      stop('Error 21b: adj_type not available')
+    }
+      
+    # 2) assemble on and off-block matrics and the pd x pd matrix
     
     off_block <- diag(c(c3, c4))
     on_block  <- diag(c(c1, c2))
@@ -184,6 +215,7 @@ trig_basis_prec_mat <- function(d, p, y_c_k, adj_type, adj_params){
     }
     
     return(theta_pd)
+
   }
 }
 
@@ -219,12 +251,77 @@ trig_basis_cov_mat <- function(d, p, y_c_k, adj_type, adj_params){
 
 }
 
+# invert prec_mat --> cov_mat --> cor_mat
+trig_basis_cor_mat <- function(d, p, y_c_k, adj_type, adj_params){
+  
+  
+  # ----------------------------------------------------------------------------
+  #
+  #
+  # GOAL: define the corrleation matrix that generated beta's 
+  #
+  # inputs:
+  #
+  # - d                 (integer)
+  # - p                 (integer)
+  # - y_c_k             (q_c-dim vector)
+  # - adj_type          (string)
+  # - adj_params        (vector)
+  #
+  #
+  # outputs:
+  #
+  # cov_mat   (pd x pd matrix)
+  #
+  # ----------------------------------------------------------------------------
+  
+  cov_mat <- trig_basis_cov_mat(d, p, y_c_k, adj_type, adj_params)
+  
+  cor_mat <- assemble_blockwise_correlation(cov_mat, p, d)
+  #cor_mat2 <- cov2cor(cov_mat)
+  return(cor_mat)
+  
+}
+
+# invert prec_mat --> cov_mat --> cor_mat --> invert to get prec_2
+trig_basis_prec_mat_normalized <- function(d, p, y_c_k, adj_type, adj_params){
+  
+  
+  # ----------------------------------------------------------------------------
+  #
+  #
+  # GOAL: define the normalized precision matrix that generated beta's 
+  #
+  # inputs:
+  #
+  # - d                 (integer)
+  # - p                 (integer)
+  # - y_c_k             (q_c-dim vector)
+  # - adj_type          (string)
+  # - adj_params        (vector)
+  #
+  #
+  # outputs:
+  #
+  # prec_mat_normalized   (pd x pd matrix)
+  #
+  # ----------------------------------------------------------------------------
+  
+  cor_mat <- trig_basis_cor_mat(d, p, y_c_k, adj_type, adj_params)
+  
+  prec_mat_normalized <- sym(solve(cor_mat))
+  
+  return(prec_mat_normalized)
+  
+}
+
+# prec_mat --> HS norm --> adj_mat
 trig_basis_adj_mat <- function(d, p, y_c_k, adj_type, adj_params, thresh = 1e-3){
   
   # ----------------------------------------------------------------------------
   #
   #
-  # GOAL: define the adjacency matrix behind a covariance matrix 
+  # GOAL: define the adjacency matrix behind a covariance matrix through its precision HS
   #
   # inputs:
   #
