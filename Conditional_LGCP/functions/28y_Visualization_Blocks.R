@@ -115,6 +115,11 @@ result_heatmap_ij_prep <- function(my_list, entry_name, time_grid_est, i, j, pal
   # - i 
   # - j
   #
+  #
+  # outputs:
+  #
+  # - ggplot object
+  # 
   # ----------------------------------------------------------------------------
   
 
@@ -223,6 +228,11 @@ result_heatmap_nonblock_prep <- function(my_list, entry_name, time_grid_est, dat
   # - data_format   (string)   'full', 'regular', 'list'
   # - rm_diag       (boolean)  do we remove the diag term?
   #
+  #
+  # outputs:
+  # 
+  # - ggplot object
+  # 
   # ----------------------------------------------------------------------------
   
   # 1) obtain `queried_names` and `value_names`
@@ -230,6 +240,8 @@ result_heatmap_nonblock_prep <- function(my_list, entry_name, time_grid_est, dat
   suffix_names <- step_00_grab_ID(names(my_list[[1]]), entry_name)
   
   queried_names <- names(my_list[[1]])
+  
+  sub_names <- names(my_list)
   
   # 2) colors
   new_palette <- hcl.colors(3, palette = palette_ID)
@@ -269,7 +281,7 @@ result_heatmap_nonblock_prep <- function(my_list, entry_name, time_grid_est, dat
       
       df_t <- reshape2::melt(M)
       df_t$Type <- this_type
-      df_t$Matrix <- k
+      df_t$Matrix <- sub_names[k]
       dfs[[length(dfs) + 1]] <- df_t
     }
     
