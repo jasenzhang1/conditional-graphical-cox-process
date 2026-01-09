@@ -253,13 +253,14 @@ trig_basis_adj_mat <- function(d, p, y_c_k, adj_type, adj_params, thresh = 1e-3)
 
 }
 
-trig_basis_log_intensity <- function(cov_mat_list, basis_list, mu_t, time_grid){
+trig_basis_log_intensity <- function(cov_mat_list, basis_list, mu_t, time_grid, mean_vec){
   
   
   # ----------------------------------------------------------------------------
   # 
   # GOAL: draw n log-intensities from the trig-basis data generation process
   #
+  #       beta_i ~ N(mean_vec, cov_mat[[i]])
   #
   # input:
   #
@@ -267,6 +268,7 @@ trig_basis_log_intensity <- function(cov_mat_list, basis_list, mu_t, time_grid){
   # - basis_list    (list of d eigenfunctions)   
   # - mu_t          (m-dim vector)                baseline mean mu(t)
   # - time_grid     (m-dim vector)                time discretization
+  # - mean_vec      (pd-dim vector)               mean vector for beta generation
   #
   #
   # output:
@@ -304,7 +306,7 @@ trig_basis_log_intensity <- function(cov_mat_list, basis_list, mu_t, time_grid){
     
     # draw b ~ N(0, cov_mat)
     z <- rnorm(pd)
-    b <- as.vector(L %*% z)  # pd x 1
+    b <- mean_vec + t(L) %*% z  # pd x 1
     
     # reshape b into p x d matrix of coefficients
     B_mat <- matrix(b, nrow = p, ncol = d, byrow = TRUE)
@@ -313,7 +315,6 @@ trig_basis_log_intensity <- function(cov_mat_list, basis_list, mu_t, time_grid){
     log_int_mat <- matrix(0, nrow = p, ncol = m)
     for (i in 1:p) {
       # linear combination: mu(t) + sum_k beta_k * b_ik * phi_k(t)
-      #log_int_mat[i, ] <- mu_t + colSums(matrix(betas * B_mat[i, ], nrow = d, ncol = m, byrow = FALSE) * t(Phi))
       log_int_mat[i, ] <- mu_t + colSums(matrix(B_mat[i, ], nrow = d, ncol = m, byrow = FALSE) * t(Phi))
       
     }
