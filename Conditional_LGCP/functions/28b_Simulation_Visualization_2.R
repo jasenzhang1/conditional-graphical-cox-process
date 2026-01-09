@@ -87,18 +87,18 @@ visualize_points_data_df4 <- function(data_df4, k = 1){
 }
 
 # visualize raw timestamp data + intensity function overlayed 
-visualize_points_on_intensity <- function(step_0_events, step_1, time_grid){
+visualize_points_on_intensity <- function(step_0_events, step_1b, k, time_grid_est, X_truth, time_grid = NULL){
   
   
   # ----------------------------------------------------------------------------
   #
   # 
-  # GOAL: map the events onto the estimated and true intensities from step_1
+  # GOAL: map the events onto the estimated and true intensities from step_1b
   #
   # inputs:
   #
   # - step_0_events   (list)    each item denotes a process and is a vector of points
-  # - step_1          (list)    
+  # - step_1b         (list)    
   #   - X_k_est                   (p x m_est   x n)
   #   - X_k_truth                 (p x m_truth x n)
   #   - X_k_coarse_truth          (p x m_est   x n)
@@ -107,48 +107,270 @@ visualize_points_on_intensity <- function(step_0_events, step_1, time_grid){
   #   - Lambda_k_coarse_truth     (p x m_est   x n)
   #   - Lambda_k_est              (p x m_est   x n)
   #
-  # 
+  # - k              (integer)          subject id
   # - time_grid_est  (m_est-dim vec)    vector of timepoints
-  #
+  # - X_truth        (boolean)          do we have X_truths?
+  # - time_grid      (m-dim vec)        vector of timepoints for the truth (if we have it)
   #
   # outputs:
   #
-  # - graphs   (list of graphs)       graph of all processes mapped on their Lambda_k_truth and Lambda_k_est
+  # - graphs   (list of graphs)       graph of all processes mapped on their Lambda_k_est and Lambda_k_truth when available
   #
   #
   # ----------------------------------------------------------------------------
   
-  process_id <- 1:length(step_0_events)
+  # 1) find the indices for subject k
+  
+  entry_names <- names(step_0_events)  #k_i
+  
+  parts <- do.call(rbind, strsplit(entry_names, "_"))
+  k_vec <- as.numeric(parts[, 1])
+  i_vec <- as.numeric(parts[, 2])
+  
+  step_0_events_k <- step_0_events[k_vec == k]
+  names(step_0_events_k) <- i_vec[k_vec == k]
+  
+
+  process_id <- 1:length(step_0_events_k)
+  
+
+  
+  # 2) graph
   
   graphs <- list()
   
   nbins <- 30
 
+  # 2a) prepare global limits of patchwork graph
+  
+  xlim_all <- c(0, 1)
+  
+  # 2b) start of graph loop
   
   for(i in process_id){
-    x <- step_0_events[[i]]
+    x <- step_0_events_k[[i]]
     
-    df_est <- data.frame(x = time_grid_est, y = step_1$Lambda_k_est[i, , 1] / nbins)
-    df_truth <- data.frame(x = time_grid, y = step_1$Lambda_k_truth[i, , 1] / nbins)
+    df_est <- data.frame(
+      x = time_grid_est,
+      y = step_1b$Lambda_k_est[i, , 1] / nbins
+    )
     
-    graphs[[i]] <- ggplot() + geom_histogram(data = data.frame(x), aes(x = x, fill = 'Events'), bins = nbins) + 
-      geom_line(data = df_est, aes(x = x, y = y, color = 'Estimate')) + 
-      geom_line(data = df_truth, aes(x = x, y = y, color = 'Truth')) + 
+    # 2c) graph
+    
+    graph_i <- ggplot() +
+      geom_histogram(
+        data = data.frame(x),
+        aes(x = x, fill = 'Events'),
+        bins = nbins
+      ) +
+      geom_line(
+        data = df_est,
+        aes(x = x, y = y, color = 'Estimate')
+      ) +
+      labs(
+        title = paste0("Process ", i),
+        fill = "Event",
+        color = "Intensity"
+      ) +
+      scale_fill_manual(values = c("Events" = "lightblue")) +
+      scale_color_manual(
+        values = c("Estimate" = "red", "Truth" = "green")
+      ) +
+      coord_cartesian(xlim = xlim_all) +
+      theme_minimal() +
+      theme(
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank()
+      )
+    
+    # 2d) for x_truth, add Lambda_k intensity
+    if(X_truth){
+      df_truth <- data.frame(
+        x = time_grid,
+        y = step_1b$Lambda_k_truth[i, , 1] / nbins
+      )
+      
+      graph_i <- graph_i +
+        geom_line(
+          data = df_truth,
+          aes(x = x, y = y, color = 'Truth')
+        )
+    }
+    
+    graphs[[i]] <- graph_i
+  }
+  
+  # 3) combine with patchwork
+  
+  final_plot <-
+    wrap_plots(graphs, ncol = 3) +
+    plot_layout(guides = "collect") &
+    theme(legend.position = "bottom")
+  
+  final_plot <- final_plot +
+    labs(
+      x = "Time",
+      y = "Count or Intensity / Bin Width"
+    )
+  
+  
+  
+  return(final_plot)
+}
+
+visualize_log_intensity_bold_mean <- function(Lambda_k_est, time_grid_est){
+  
+  # ----------------------------------------------------------------------------
+  #
+  # 
+  # visualize the log intensities
+  # 
+  # inputs:
+  # 
+  # - Lambda_k_est            (p x m x n matrix)  (12 x 30 x 100)
+  # - time_grid_est           (m-dim vec of timepoints)
+  #
+  #
+  # output:
+  # 
+  # list of graphs:
+  #
+  # - g_bold   (for each process, graph all the Lambda_k's and its average in bold)
+  # - g_means  (graph all averages from each process)
+  #
+  # 
+  # ----------------------------------------------------------------------------
+  
+  
+  p <- dim(Lambda_k_est)[1]
+  m <- dim(Lambda_k_est)[2]
+  n <- dim(Lambda_k_est)[3]
+  
+  graphs <- list()
+  
+  mean_mat <- matrix(0, nrow = p, ncol = m)
+  
+  for(i in 1:p){
+    mat <- Lambda_k_est[i, , ]        # 30 x 100
+    mean_vec <- rowMeans(mat)         # 30
+    
+    mean_mat[i,] <- mean_vec
+    
+    # Long format for all 100 trajectories
+    df_all <- data.frame(
+      time   = rep(time_grid_est, times = n),
+      value  = as.vector(mat),
+      sample = rep(seq_len(n), each = m)
+    )
+    
+    # Mean trajectory
+    df_mean <- data.frame(
+      time  = time_grid_est,
+      value = mean_vec
+    )
+    
+    g_i <- ggplot() +
+      geom_line(
+        data = df_all, 
+        aes(x = time, y = value, group = sample), 
+        alpha = 0.2, size = 0.4, color = "steelblue") +
+      geom_line(
+        data = df_mean,
+        aes(x = time, y = value),
+        size = 1.3,
+        color = "black"
+      ) +
       labs(
         title = paste0("Process ", i),
         x = "Time",
-        y = "Count or Intensity / Bin Width",
-        fill = "Event",
-        color = "Intensity",
+        y = "Intensity"
       ) +
-      scale_fill_manual(values = c("Events" = "lightblue")) +
-      scale_color_manual(values = c("Estimate" = "red", "Truth" = "green")) +
       theme_minimal()
+    
+    graphs[[i]] <- g_i
   }
   
-  return(graphs)
+  # graph of means
+  
+  g_means <- visualize_log_intensity(mean_mat, time_grid_est)
+  
+  # patchwork
+  final_plot <-
+    wrap_plots(graphs, ncol = 3) +
+    plot_layout(guides = "collect") &
+    theme(legend.position = "bottom")
+  
+  return(list(g_bold = final_plot,
+              g_means = g_means))
+  
+}
+
+# g_50 - do beta coefficients reflect their ground truth correlations?
+visualize_beta_corr <- function(KL_coeffs_truth, cov_mat_truth, cor_mat_truth, prec_mat_truth){
+  
+  # ----------------------------------------------------------------------------
+  #
+  # 
+  # visualize whether the KL_coeffs (beta) values reflect the underlying cov_mat_truth, corr_mat_truth, prec_mat_truth
+  # 
+  # inputs:
+  # 
+  # - KL_coeffs_truth          (p x d x n matrix)  (12 x 2 x 100)
+  # - cov_mat_truth            (pd x pd matrix)    (24 x 24)
+  # - cor_mat_truth            (pd x pd matrix)    (24 x 24)
+  # - prec_mat_truth           (pd x pd matrix)    (24 x 24)
+  #
+  #
+  # output:
+  # 
+  # - 3x2 grid of graphs of (cov, cor, prec) with (truth, est)
+  #
+  #
+  # 
+  # ----------------------------------------------------------------------------
+  
+
+  # 1) reshape KL coefficients into (n x pd)
+
+  p <- dim(KL_coeffs_truth)[1]
+  d <- dim(KL_coeffs_truth)[2]
+  n <- dim(KL_coeffs_truth)[3]
+  pd <- p * d
+  
+  # each row = one sample
+  X <- t(apply(KL_coeffs_truth, 3, function(M) as.vector(t(M))))  # n x pd
+  
+  # ------------------------------------------------------------
+  # estimated matrices
+  # ------------------------------------------------------------
+  cov_mat_est   <- cov(X)
+  cor_mat_est   <- cor(X)
+  prec_mat_est  <- solve(cov_mat_est)
+  prec_mat_est2 <- solve(cor_mat_est)
   
   
+  # ------------------------------------------------------------
+  # plots - borrowed from 28y
+  #
+  # plot the 3x2 grid of cov, cor, and prec mats that are estimated and true
+  # ------------------------------------------------------------
+
+  mat_list_truth <- list(g_50_cov_mat  = cov_mat_truth,
+                         g_50_cor_mat  = cor_mat_truth,
+                         g_50_prec_mat = prec_mat_truth)
+  
+  mat_list_est <- list(g_50_cov_mat    = cov_mat_est,
+                       g_50_cor_mat    = cor_mat_est,
+                       g_50_prec_mat   = prec_mat_est2)
+  
+  input_list <- list(truth = mat_list_truth,
+                     est = mat_list_est)
+  entry_name <- 'g_50'
+  indices <- 1:pd
+  final_graph <- result_heatmap_nonblock_prep(input_list, entry_name, indices, data_format = 'regular', zmid = 0)
+    
+  
+  return(final_graph)
   
 }
 
