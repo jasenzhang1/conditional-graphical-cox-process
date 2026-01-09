@@ -326,6 +326,9 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth)
   if('58' %in% graph_ids){
     g_list <- lapply(step_5b, function(x) result_58_prep(x, p))
     graphs[['g_58']] <- rearrange_plots(g_list) 
+    
+    
+    # graphs[['g_58']] <- result_heatmap_nonblock_prep(step_5b, 'KL_cor', data_format = 'regular', rm_diag = F, zmid = 0, zmax = 1, zmin = -1)
   }
   
   # KL_prec entire matrix
@@ -357,12 +360,12 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth)
   
   # C for all blocks (pm x pm)
   if('93' %in% graph_ids){
-    graphs[['g_93']] <- result_heatmap_nonblock_prep(step_9, 'C_cond', time_grid_est, data_format = 'list', zmid = 0)
+    graphs[['g_93']] <- result_heatmap_nonblock_prep(step_9, 'C_cond', data_format = 'list', time_grid_est = time_grid_est, zmid = 0)
   }  
   
   # C_HS for all pxp blocks
   if('95' %in% graph_ids){
-    graphs[['g_95']] <- result_heatmap_nonblock_prep(step_11b, 'C_HS', time_grid_est, data_format = 'regular', rm_diag = T, zmid = 0)
+    graphs[['g_95']] <- result_heatmap_nonblock_prep(step_11b, 'C_HS', data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, zmid = 0)
   }
   
   # distribution of C_HS
@@ -388,12 +391,12 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth)
   
   # P for all blocks (pm x pm)
   if('103' %in% graph_ids){
-    graphs[['g_103']] <- result_heatmap_nonblock_prep(step_10, 'P_cond', time_grid_est, data_format = 'list', rm_diag = T, zmid = 0)
+    graphs[['g_103']] <- result_heatmap_nonblock_prep(step_10, 'P_cond', data_format = 'list', time_grid_est = time_grid_est, rm_diag = T, zmid = 0)
   } 
   
   # P_HS (w_mat) for all pxp blocks
   if('112' %in% graph_ids){
-    graphs[['g_112']] <- result_heatmap_nonblock_prep(step_11, 'w_mat', time_grid_est, data_format = 'regular', rm_diag = T, zmid = 0)
+    graphs[['g_112']] <- result_heatmap_nonblock_prep(step_11, 'w_mat', data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, zmid = 0)
   }  
   
   # P_HS (w_mat) for all pxp blocks - delete est and X_truth
@@ -402,7 +405,7 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth)
     step_11_v2 <- lapply(step_11_v2, function(x) {
       x[!names(x) %in% c("w_mat_est", "w_mat_X_truth", 'w_mat_KL_X_truth')]
     })
-    graphs[['g_112b']] <- result_heatmap_nonblock_prep(step_11_v2, 'w_mat', time_grid_est, data_format = 'regular', rm_diag = T, zmid = 0)
+    graphs[['g_112b']] <- result_heatmap_nonblock_prep(step_11_v2, 'w_mat', data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, zmid = 0)
   } 
   
   # ROC curves
@@ -452,7 +455,7 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth)
   
   # Final adj_mat for all pxp blocks
   if('114' %in% graph_ids){
-    graphs[['g_114']] <- result_heatmap_nonblock_prep(step_12b, 'adj_mat', time_grid_est, data_format = 'regular', rm_diag = T, zmid = 0)
+    graphs[['g_114']] <- result_heatmap_nonblock_prep(step_12b, 'adj_mat', data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, zmid = 0)
   }   
   
 }
