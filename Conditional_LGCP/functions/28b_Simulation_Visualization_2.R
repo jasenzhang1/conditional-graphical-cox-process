@@ -1103,7 +1103,7 @@ visualize_metrics_finite_basis <- function(truth_file_name, results_folder, i, j
   
   # 5b) simpler graph with just est
   
-  results_df2 <- results_df %>% filter(vector_name %in% c('est', 'KL_est', 'KL_GIC_est'))
+  results_df2 <- results_df %>% filter(vector_name %in% c('est', 'KL_est', 'truth', 'KL_truth'))
   g_point_estimates2 <- ggplot(
     results_df2,
     aes(
@@ -1157,7 +1157,7 @@ visualize_metrics_finite_basis <- function(truth_file_name, results_folder, i, j
   
   # Display it
   return(list(point_metrics_graph = g_point_estimates,
-              point_metrics_est_graph = g_point_estimates2,   # only estimates shown
+              point_metrics_graph_2 = g_point_estimates2,   # only estimates shown
               eval_metrics_graph = g_eval,
               metric_table = results_df))
   
