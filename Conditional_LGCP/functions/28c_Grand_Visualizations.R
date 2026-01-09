@@ -175,7 +175,6 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth)
   # intensities for each subject across all processes
   if('03' %in% graph_ids){
     g_03_est <- visualize_log_intensity_bold_mean(step_1b$Lambda_k_est, time_grid_est)
-    
     g_03_X_truth <- visualize_log_intensity_bold_mean(step_1b$Lambda_k_truth, time_grid)
   }
   
@@ -215,10 +214,16 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth)
     }
   }
   
-  # rho_i(t) for processes 1 through 5
+  # rho_i(t) for processes 1 through 5 - grouped by estimand (so all processes are together)
   if('22' %in% graph_ids){
-    graphs[['g_22']] <- result_line_graph_prep(step_2, 'rho_i', time_grid_est, num_processes = 12)
+    graphs[['g_22']] <- result_line_graph_prep(step_2, 'rho_i', time_grid_est, grouping = 'estimand', num_processes = 5)
   }
+  
+  # rho_i(t) for processes 1 through 5 - grouped by process (so all different estimands are together)
+  if('23' %in% graph_ids){
+    graphs[['g_23']] <- result_line_graph_prep(step_2, 'rho_i', time_grid_est, grouping = 'process', num_processes = 12)
+  }
+  
   
   # rho_ij(s,t) for process pair 1_1
   if('24' %in% graph_ids){ 
@@ -280,7 +285,7 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth)
   
   # reconstruction error histogram 
   if('44' %in% graph_ids){ 
-    g_list <- lapply(1:length(step_3), function(i){result_44_prep(step_3[[i]], step_4[[i]], p, X_truth = F)})
+    g_list <- lapply(1:length(step_3), function(i){result_44_prep(step_3[[i]], step_4[[i]], p, X_truth)})
     graphs[['g_44']] <- rearrange_plots(g_list)
   } 
   # eigenvalue decay - check if G_ii / m makes the eigenvalues similar between coarse/fine settings
