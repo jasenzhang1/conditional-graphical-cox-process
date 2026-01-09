@@ -223,7 +223,8 @@ visualize_log_intensity_bold_mean <- function(Lambda_k_est, time_grid_est){
   # ----------------------------------------------------------------------------
   #
   # 
-  # visualize the log intensities
+  # GOAL: for each process visualize intensities for all subjects along with their averaged intensity (bold)
+  #       then, collect all p averaged intensities and plot them
   # 
   # inputs:
   # 
@@ -292,7 +293,7 @@ visualize_log_intensity_bold_mean <- function(Lambda_k_est, time_grid_est){
   
   # graph of means
   
-  g_means <- visualize_log_intensity(mean_mat, time_grid_est)
+  g_means <- visualize_log_intensity(mean_mat, time_grid_est, g_title = 'Averaged Intensity')
   
   # patchwork
   final_plot <-
