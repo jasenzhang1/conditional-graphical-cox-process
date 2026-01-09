@@ -797,7 +797,7 @@ simulate_finite_basis_cox_data_parts1_and_2 <- function(temp_file_dir, setting_i
   counter = 0
   while(min_events_obs < min_events | max_events_obs > max_events){
     
-    result_both <- trig_basis_log_intensity(cov_mat_list, basis_list, mu_t_both, time_grid_both)
+    result_both <- trig_basis_log_intensity(cov_mat_list, basis_list, mu_t_both, time_grid_both, mean_vec)
     
     log_intensities_both <- result_both$log_intensities %>% simplify2array()           # (p x m_both x n)
     log_intensities_est <- log_intensities_both[, time_grid_both %in% time_grid_est ,] # (p x m_est x n)
