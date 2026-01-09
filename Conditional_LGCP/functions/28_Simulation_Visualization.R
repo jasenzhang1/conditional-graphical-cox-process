@@ -406,7 +406,7 @@ block_matrix_HS <- function(pm_mat, p){
 # visualize how a precision matrix changes over time using a gif
 # such as for banded_trig
 
-visualize_precision_gif <- function(p, adj_type, adj_params, ncores){
+visualize_precision_gif <- function(temp_file_dir, p, d, adj_type, adj_params, ncores){
   
   # ----------------------------------------------------------------------------
   #
@@ -417,7 +417,9 @@ visualize_precision_gif <- function(p, adj_type, adj_params, ncores){
   #
   # input:
   #
-  # - p             (integer)
+  # - temp_file_dir (str)      simu_results/flexible_block_banded_c0/CPGM
+  # - p             (integer)  number of processes
+  # - d             (integer)  number of eigencomponents in simulation
   # - adj_type      (string)
   # - adj_params    (vector)
   #
@@ -428,79 +430,123 @@ visualize_precision_gif <- function(p, adj_type, adj_params, ncores){
   #
   # ----------------------------------------------------------------------------
   
+  library(magick)
+  
+  # 0) extract suffix from adj_type
+  
+  last_char <- substr(adj_type, nchar(adj_type), nchar(adj_type))               # number denoting how y_c varies
+  second_last_char <- substr(adj_type, nchar(adj_type)-1, nchar(adj_type)-1)    # letter denoting how the graph varies
   
   # 1) generate precision and correlation (pxp) matrices
   
-  y_min <- adj_params[1]
-  y_max <- adj_params[2]
-  n_times <- 100
-  query_y_cs <- matrix(seq(y_min, y_max, length.out = n_times))
+  n_times <- 30
+  fps <- 10
+  query_y_cs <- generate_y_c_adj_type(n_times, adj_type, adj_params, seed = NULL)
   
 
     
   graphs <- lapply(1:nrow(query_y_cs), function(k){
     
     y_c_k <- query_y_cs[k,]
-    prec_mats <- generate_sparse_precision_matrix(y_c_k, p, adj_type, adj_params)
     
-    list(adj_mat = prec_mats$adj_mat,
-         prec_mat = prec_mats$prec_mat,
-         cor_mat = prec_mats$cor_mat)
+    #prec_mats <- generate_sparse_precision_matrix(y_c_k, p, adj_type, adj_params) 
+    prec_mat             <- trig_basis_prec_mat(d, p, y_c_k, adj_type, adj_params)
+    cov_mat              <- trig_basis_cov_mat(d, p, y_c_k, adj_type, adj_params)
+    adj_mat              <- trig_basis_adj_mat(d, p, y_c_k, adj_type, adj_params)
+    cor_mat              <- trig_basis_cor_mat(d, p, y_c_k, adj_type, adj_params)
+    prec_mat_normalized  <- trig_basis_prec_mat_normalized(d, p, y_c_k, adj_type, adj_params)
+    
+    
+    list(adj_mat = adj_mat,
+         prec_mat = prec_mat,
+         cov_mat = cov_mat,
+         cor_mat = cor_mat,
+         prec_mat_normalized = prec_mat_normalized)
   
   })
 
 
-  # 2) animate
+  # 2) Precompute global min/max if needed for consistent scales
+  prec_max <- max(sapply(graphs, function(x){max(as.numeric(x$prec_mat))}))
+  prec_min <- min(sapply(graphs, function(x){min(as.numeric(x$prec_mat))}))
+  
+  cov_max <- max(sapply(graphs, function(x){max(as.numeric(x$cov_mat))}))
+  cov_min <- min(sapply(graphs, function(x){min(as.numeric(x$cov_mat))}))
+  
+  cor_max <- 1
+  cor_min <- -1
+  
+  norm_max <- max(sapply(graphs, function(x){max(as.numeric(x$prec_mat_normalized))}))
+  norm_min <- min(sapply(graphs, function(x){min(as.numeric(x$prec_mat_normalized))}))
+  
+  # 3) animate
   
   imgs <- list()
   
   for (i in seq_along(graphs)) {
+    m_list <- list(
+      adj_mat = graphs[[i]]$adj_mat,
+      prec_mat = graphs[[i]]$prec_mat,
+      cov_mat = graphs[[i]]$cov_mat,
+      cor_mat = graphs[[i]]$cor_mat,
+      prec_mat_normalized = graphs[[i]]$prec_mat_normalized
+    )
     
-    m1 <- graphs[[i]]$adj_mat
-    m2 <- graphs[[i]]$prec_mat
-    m3 <- graphs[[i]]$cor_mat
+    titles <- c("Adj Matrix", "Prec Matrix", "Cov Matrix", "Cor Matrix", "Prec Mat Normalized")
+    
+    # optional: use global zmin/zmax per type
+    zlims <- list(
+      adj_mat = list(zmin = -1, zmid = 0, zmax = 1),
+      prec_mat = list(zmin = prec_min, zmid = 0, zmax = prec_max),
+      cov_mat = list(zmin = cov_min, zmid = 0, zmax = cov_max),
+      cor_mat = list(zmin = cor_min, zmid = 0, zmax = cor_max),
+      prec_mat_normalized = list(zmin = norm_min, zmid = 0, zmax = norm_max)
+    )
     
     y_c_print <- format(round(query_y_cs[i,], 2), nsmall = 2)
     
-    # Create a temporary image for each matrix heatmap
-    tmp1 <- tempfile(fileext = ".png")
-    png(tmp1, width = 400, height = 400)
-    gif_title1 <- paste0("Adj Matrix: y_c = ", y_c_print) 
-    visualize_matrix_heatmap(m1, g_title = gif_title1, zmin = -1, zmid = 0, zmax = 1) %>% print()
-    dev.off()
+    tmp_imgs <- vector("list", length = length(m_list))
     
-    # Middle plot
+    for (j in seq_along(m_list)) {
+      tmp_file <- tempfile(fileext = ".png")
+      png(tmp_file, width = 400, height = 400)
+      
+      gif_title <- paste0(titles[j], ": y_c = ", y_c_print)
+      
+      visualize_matrix_heatmap(
+        m_list[[j]],
+        g_title = gif_title,
+        zmin = zlims[[names(m_list)[j]]]$zmin,
+        zmid = zlims[[names(m_list)[j]]]$zmid,
+        zmax = zlims[[names(m_list)[j]]]$zmax
+      ) %>% print()
+      
+      dev.off()
+      
+      tmp_imgs[[j]] <- image_read(tmp_file)
+    }
     
-    tmp2 <- tempfile(fileext = ".png")
-    png(tmp2, width = 400, height = 400)
-    gif_title2 <- paste0("Prec Matrix: y_c = ", y_c_print) 
-    prec_max <- max(sapply(graphs, function(x){max(as.numeric(x$prec_mat))}))
-    prec_min <- min(sapply(graphs, function(x){min(as.numeric(x$prec_mat))}))
-    visualize_matrix_heatmap(m2, g_title = gif_title2, zmin = prec_min, zmid = 0, zmax = prec_max) %>% print()
-    dev.off()
-    
-    # Last plot
-    
-    tmp3 <- tempfile(fileext = ".png")
-    png(tmp3, width = 400, height = 400)
-    gif_title3 <- paste0("Cor Matrix: y_c = ", y_c_print) 
-    visualize_matrix_heatmap(m3, g_title = gif_title3, zmin = -1, zmid = 0, zmax = 1) %>% print()
-    dev.off()    
-    
-    # ---- read images and combine side by side ----
-    img1 <- image_read(tmp1)
-    img2 <- image_read(tmp2)
-    img3 <- image_read(tmp3)
-    
-    combined <- image_append(c(img1, img2, img3))  # horizontal side-by-side
+    # Combine all 5 images side by side
+    combined <- image_append(image = image_join(tmp_imgs), stack = FALSE)
     imgs[[i]] <- combined
   }
   
 
   
   # Combine into an animated gif
-  animation <- image_animate(image_join(imgs), fps = 100)
-  image_write(animation, "heatmap_animation_3side_single_v2.gif")  
+  animation <- image_animate(image_join(imgs), fps = fps)
+  
+  # save
+  # Ensure directory exists
+  if(!dir.exists(temp_file_dir)){
+    dir.create(temp_file_dir, recursive = TRUE)
+  }
+  
+  # Use file.path to construct path
+  gif_name <- file.path(temp_file_dir, paste0(adj_type, "_animation.gif"))
+  
+  # Write the GIF
+  image_write(animation, path = gif_name) 
   
 }
 
