@@ -366,7 +366,7 @@ result_heatmap_nonblock_prep <- function(my_list, entry_name, time_grid_est, dat
     )
 }
 
-result_line_graph_prep <- function(my_list, entry_name, time_grid, palette_ID = 'Dark 2', num_processes = NULL){
+result_line_graph_prep <- function(my_list, entry_name, time_grid, grouping = 'estimand', palette_ID = 'Dark 2', num_processes = NULL){
   
   # ----------------------------------------------------------------------------
   #
@@ -375,12 +375,20 @@ result_line_graph_prep <- function(my_list, entry_name, time_grid, palette_ID = 
   #
   # inputs:
   #
-  # - my_list     (list)     step_x; list of y_c_queries --> g_ij_est etc items
-  # - entry_name  (string)   estimate prefix (e.g. rho_i)
-  # - time_grid
+  # - my_list          (list)     step_x; list of y_c_queries --> g_ij_est etc items
+  # - entry_name       (string)   estimate prefix (e.g. rho_i)
+  # - time_grid        (vector)   vector of timepoints
+  # - grouping         (string)   'estimand' or 'process' if we group by estimand, different processes will be placed together.
+  #                                                       if we group by process, different estimands will be placed together.
   # - palette_ID
   # - num_processes
   #
+  #
+  # ouptput:
+  #
+  # - ggplot object
+  #
+  # 
   # ----------------------------------------------------------------------------  
   
   # 0) borrow from 12z - get suffix names
@@ -391,9 +399,9 @@ result_line_graph_prep <- function(my_list, entry_name, time_grid, palette_ID = 
   
   # Suppose your list is called `my_list` with length m
   m <- length(my_list)
+  y_c_names <- names(my_list)
   
-  
-  # Combine all matrices into one long dataframe
+  # 1) Combine all matrices into one long dataframe
   df_all <- bind_rows(lapply(seq_len(m), function(i) {
     
     entry <- my_list[[i]]
@@ -401,8 +409,8 @@ result_line_graph_prep <- function(my_list, entry_name, time_grid, palette_ID = 
     
     for (j in seq_along(queried_names)) {
       
-      this_name <- queried_names[j]        # e.g. rho_est, rho_X_truth ...
-      this_type <- suffix_names[j]          # e.g. est, X_truth ...
+      this_name <- queried_names[j]         # e.g. rho_i_truth, rho_i_est ...
+      this_type <- suffix_names[j]          # e.g. truth, est ...
       
       # Skip if not found in list
       if (is.null(entry[[this_name]])) next
@@ -415,10 +423,10 @@ result_line_graph_prep <- function(my_list, entry_name, time_grid, palette_ID = 
       }
       
       df_ij <- reshape2::melt(A)
-      df_ij$Var2 <- time_grid[df_ij$Var2]
+      df_ij$Var2 <- time_grid[df_ij$Var2]  # we assume truth and est are all the same 
       
       df_ij$Type <- this_type
-      df_ij$Matrix <- i
+      df_ij$y_c <- y_c_names[i]
       
       dfs[[length(dfs) + 1]] <- df_ij
     }
@@ -426,32 +434,67 @@ result_line_graph_prep <- function(my_list, entry_name, time_grid, palette_ID = 
     bind_rows(dfs)
   }), .id = NULL)
   
+  # 2) renaming + convert to factors for proper ordering
   colnames(df_all)[1:3] <- c("process", "time", "Value")
-  
-  
-  # Convert to factors for proper ordering
+
   df_all$Type <- factor(df_all$Type)
   df_all$process <- as.factor(df_all$process)
+  df_all$y_c     <- as.factor(as.numeric(df_all$y_c))
   
-  # plot with facets
-  ggplot(df_all, aes(x = time, y = Value, color = process, group = process)) +
-    geom_line(alpha = 0.5, size = 1) +
-    facet_grid(
-      rows = vars(Type),
-      cols = vars(Matrix)
-    ) +
-    scale_color_brewer(palette = "Dark2") +
-    theme_bw() +
-    labs(
-      x = "Time",
-      y = "Intensity",
-      color = "Process"
-    ) +
-    theme(
-      strip.background = element_rect(fill = "gray90"),
-      strip.text = element_text(face = "bold"),
-      strip.placement = "outside"  # optional, puts labels outside the panel
-    )
+  # now, we have df_all with the following columns:
+  #
+  # - process  (factor)  1 through p
+  # - time     (value)    which timestamp in time_grid_est 
+  # - value    (number)   y-axis value
+  # - type     (factor)   suffix such as truth, est, X_truth etc
+  # - y_c      (factor)   y_c value 
+  
+  # 3) plot with facets depending on grouping
+  
+  if(grouping == 'estimand'){
+    g <- ggplot(df_all, aes(x = time, y = Value, color = process, group = process)) +
+      geom_line(alpha = 0.5, size = 1) +
+      facet_grid(
+        rows = vars(Type),
+        cols = vars(y_c)
+      ) +
+      scale_color_brewer(palette = "Dark2") +
+      theme_bw() +
+      labs(
+        x = "Time",
+        y = "Intensity",
+        color = "Process"
+      ) +
+      theme(
+        strip.background = element_rect(fill = "gray90"),
+        strip.text = element_text(face = "bold"),
+        strip.placement = "outside"  # optional, puts labels outside the panel
+      )
+  } else if(grouping == 'process'){
+    g <- ggplot(df_all, aes(x = time, y = Value, color = Type, group = Type)) +
+      geom_line(alpha = 0.5, size = 1) +
+      facet_grid(
+        rows = vars(process),
+        cols = vars(y_c)
+      ) +
+      scale_color_brewer(palette = "Dark2") +
+      theme_bw() +
+      labs(
+        x = "Time",
+        y = "Intensity",
+        color = "Process"
+      ) +
+      theme(
+        strip.background = element_rect(fill = "gray90"),
+        strip.text = element_text(face = "bold"),
+        strip.placement = "outside"  # optional, puts labels outside the panel
+      )
+  } else{
+    g <- NULL
+  }
+  
+  return(g)
+
 }
 
 result_histogram_prep <- function(my_list, entry_name, data_format, nbins = 20){
@@ -684,30 +727,23 @@ result_44_prep <- function(step_3, step_4, p, X_truth){
     
     
     return(g_list)
+  } else{
+    g_ii_truth          <- prep_eigendecomposition_ii(step_3$g_ij_truth, p)
+    g_ii_est            <- prep_eigendecomposition_ii(step_3$g_ij_est, p) 
+    g_ii_X_truth        <- prep_eigendecomposition_ii(step_3$g_ij_X_truth, p) 
+    
+    # validate
+    g_ii_truth_decomp           <- validate_eigendecomposition_ii(g_ii_truth,          step_4$eigen_decomp_truth)
+    g_ii_est_decomp             <- validate_eigendecomposition_ii(g_ii_est,            step_4$eigen_decomp_est) 
+    g_ii_X_truth_decomp         <- validate_eigendecomposition_ii(g_ii_X_truth,        step_4$eigen_decomp_X_truth) 
+    
+    g_list <- list(visualize_histogram(g_ii_truth,          g_ii_truth_decomp,          'Truth',        20),
+                   visualize_histogram(g_ii_X_truth,        g_ii_X_truth_decomp,        'X Truth',      20),
+                   visualize_histogram(g_ii_est,            g_ii_est_decomp,            'Estimate',     20))
+    
+    
+    return(g_list)
   }
-  
-  g_ii_truth          <- prep_eigendecomposition_ii(step_3[[3]], p)
-  g_ii_coarse_truth   <- prep_eigendecomposition_ii(step_3[[4]], p)
-  g_ii_X_truth        <- prep_eigendecomposition_ii(step_3[[5]], p)
-  g_ii_X_coarse_truth <- prep_eigendecomposition_ii(step_3[[6]], p)
-  g_ii_est            <- prep_eigendecomposition_ii(step_3[[7]], p) 
-  
-  # validate
-  g_ii_truth_decomp           <- validate_eigendecomposition_ii(g_ii_truth,          step_4[[1]])
-  g_ii_coarse_truth_decomp    <- validate_eigendecomposition_ii(g_ii_coarse_truth,   step_4[[2]]) 
-  g_ii_X_truth_decomp         <- validate_eigendecomposition_ii(g_ii_X_truth,        step_4[[3]]) 
-  g_ii_X_coarse_truth_decomp  <- validate_eigendecomposition_ii(g_ii_X_coarse_truth, step_4[[4]])  
-  g_ii_est_decomp             <- validate_eigendecomposition_ii(g_ii_est,            step_4[[5]]) 
-  
-  
-  g_list <- list(visualize_error_histogram(g_ii_truth,          g_ii_truth_decomp,          'Truth Theory',        20),
-                 visualize_error_histogram(g_ii_coarse_truth,   g_ii_coarse_truth_decomp,   'Coarse Truth Theory', 20),
-                 visualize_error_histogram(g_ii_X_truth,        g_ii_X_truth_decomp,        'Truth X',             20),
-                 visualize_error_histogram(g_ii_X_coarse_truth, g_ii_X_coarse_truth_decomp, 'Coarse Truth X',      20),
-                 visualize_error_histogram(g_ii_est,            g_ii_est_decomp,            'Estimate',            20))
-                         
-  
-  return(g_list)
 }
 
 result_45_prep <- function(step_4){
