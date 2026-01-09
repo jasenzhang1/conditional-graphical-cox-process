@@ -585,35 +585,24 @@ trig_basis_eigendecomposition <- function(G, cov_mat, cor_mat, prec_mat, basis_l
     
     # 3) eigendecomposition of the (i, i) block, usually the identity matrix
 
-    sigma_ii <- extract_block_structure_ij(cov_mat, d, i, i)  # (d x d)
-    
-    
     
     if(any(G != diag(d))){
       stop('Error: gram matrix says eigenfunctions are not orthogonal')
     }
     
-  
-    eigen_result_i <- eigen(sigma_ii %*% G)
-    eigen_result_i$vectors <- diag(d)
-
+    sigma_ii <- extract_block_structure_ij(cov_mat, d, i, i)  # (d x d)
     
+    # 4) since G is identity, we manually create the eigendecomposition
+    eigen_result_i <- list(values         = diag(sigma_ii),
+                           eigenfunctions = phi)
     
-    # 4) retrieval of eigenfunctions - when sigma_ii = identity and G = identity, then eigenfunctions are just the basis functions
-
-    eigenfunction_i <- phi %*% eigen_result_i$vectors   # (m x d) times (d x 2)
-    
-    
-    # 5) storing
-    
-    eigen_result_i$eigenfunctions <- eigenfunction_i
     
     eigen_result[[i]] <- eigen_result_i
     
   }
   
   
-  # 6) correlation operator (C_cond) in basis space (d-dim) and in regular space (m-dim)
+  # 5) correlation operator (C_cond) in basis space (d-dim) and in regular space (m-dim)
 
   C_cond <- list()
   P_cond <- list()
@@ -667,12 +656,12 @@ trig_basis_eigendecomposition <- function(G, cov_mat, cor_mat, prec_mat, basis_l
   
   
   
-  # 7) HS_truth from KL_cov (d x d)
+  # 6) HS_truth from KL_cov (d x d)
   
   P_HS_KL <- hilbert_schmidt_norm_pm(prec_mat, p, d)
   C_HS_KL <- hilbert_schmidt_norm_pm(cor_mat, p, d)
   
-  # 8) HS_truth from C_cond (m x m)
+  # 7) HS_truth from C_cond (m x m)
   
   C_cond_full <- assemble_block_matrix_v2(C_cond, p, m) 
   P_cond_full <- assemble_block_matrix_v2(P_cond, p, m)
@@ -687,7 +676,7 @@ trig_basis_eigendecomposition <- function(G, cov_mat, cor_mat, prec_mat, basis_l
   
 
   
-  # 9) reorder for step_4
+  # 8) reorder for step_4
   
   eigen_result_v2 <- list(
     eigenvalues   = lapply(eigen_result, `[[`, "values"),
@@ -696,7 +685,7 @@ trig_basis_eigendecomposition <- function(G, cov_mat, cor_mat, prec_mat, basis_l
   )
   
   
-  # 10) return
+  # 9) return
   
   return(list(eigen_decomp = eigen_result_v2,
               
