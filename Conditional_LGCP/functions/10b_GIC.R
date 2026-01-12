@@ -339,6 +339,11 @@ GIC_theta_to_adj <- function(M_list, p){
     mat <- do.call(rbind, tmp)
     adj_list <- apply(mat, 2, as.numeric)
     
+    # edge case where adj_list becomes a vector if dim = 1
+    if(dim(mat)[1] == 1){
+      adj_list <- matrix(adj_list, nrow = 1)
+    }
+    
     # 4) make the pxp matrix of adjacencies
     adj_mat <- matrix(0, p, p)
     for(k in 1:nrow(adj_list)){
@@ -581,7 +586,7 @@ GIC_algorithm <- function(C_cond, p, W_y){
   num_edges_final <- GIC_edge_count(Theta_cond_thresh_final, p)
   GIC_final <- GIC_evalulation(C_cond_full_final$block_matrix, Theta_cond_full_final$block_matrix, W_y, num_edges_final)
   
-  # 10) oreganize and return
+  # 10) organize and return
   
   adj_results <- GIC_theta_to_adj(Theta_cond_thresh_final, p)
   
