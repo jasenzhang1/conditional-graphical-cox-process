@@ -286,7 +286,9 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth)
   # reconstruction error histogram 
   if('44' %in% graph_ids){ 
     g_list <- lapply(1:length(step_3), function(i){result_44_prep(step_3[[i]], step_4[[i]], p, X_truth)})
-    graphs[['g_44']] <- rearrange_plots(g_list)
+    names(g_list) <- y_c_names
+    
+    graphs[['g_44']] <- result_histogram_prep(g_list, 'error', data_format = 'regular', nbins = 20)
   } 
   # eigenvalue decay - check if G_ii / m makes the eigenvalues similar between coarse/fine settings
   if('45' %in% graph_ids){
@@ -300,9 +302,19 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth)
     graphs[['g_50']] <- visualize_beta_corr(step_5d[[1]]$KL_coeffs_truth, 
                                             true_graphs[[1]]$cov_mat_truth,
                                             true_graphs[[1]]$cor_mat_truth,
-                                            true_graphs[[1]]$prec_mat_truth)
+                                            true_graphs[[1]]$prec_mat_truth,
+                                            graph_type = 'heatmap')
   }
   
+  # assume we know beta_truths, do their empirical correlations match the actual correlations? With a histogram
+  if('51' %in% graph_ids){
+    
+    graphs[['g_51']] <- visualize_beta_corr(step_5d[[1]]$KL_coeffs_truth, 
+                                            true_graphs[[1]]$cov_mat_truth,
+                                            true_graphs[[1]]$cor_mat_truth,
+                                            true_graphs[[1]]$prec_mat_truth,
+                                            graph_type = 'histogram')
+  }
   
   # KL_cov of (1, 2) block
   if('55' %in% graph_ids){
@@ -406,6 +418,18 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth)
       x[!names(x) %in% c("w_mat_est", "w_mat_X_truth", 'w_mat_KL_X_truth')]
     })
     graphs[['g_112b']] <- result_heatmap_nonblock_prep(step_11_v2, 'w_mat', data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, zmid = 0)
+    
+    step_11_v3 <- step_11_v2
+    step_11_v3 <- lapply(step_11_v3, function(x) {
+      x[!names(x) %in% c("w_mat_KL_GIC_est", 'w_mat_KL_GIC_X_truth')]
+    })
+    graphs[['g_112c']] <- result_heatmap_nonblock_prep(step_11_v3, 'w_mat', data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, zmid = 0)
+    
+    step_11_v4 <- step_11_v3
+    step_11_v4 <- lapply(step_11_v4, function(x) {
+      x[!names(x) %in% c("w_mat_KL_est")]
+    })
+    graphs[['g_112d']] <- result_heatmap_nonblock_prep(step_11_v4, 'w_mat', data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, zmid = 0)
   } 
   
   # ROC curves
