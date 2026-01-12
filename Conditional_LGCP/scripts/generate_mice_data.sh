@@ -1,6 +1,12 @@
 #!/bin/bash
 
-# Loop over dataset indices
+# ------------------------------------------------------------------------------
+# Generate data replicates for mice data
+# 
+# - IDs          (vector)   mice ID that we want to make data for
+# - time_scales  (vector)   how long is each data replicate? 2, 5, or 10 seconds
+# 
+# ------------------------------------------------------------------------------
 
 cd "$(dirname "$0")/.."   # go one level up (from /scripts to /)
 
