@@ -94,14 +94,22 @@ get_spiketrain_dataset_conditional_LGCP <- function(ID, time_scale, discrete_cov
   # 
   # - updating 
   #
-  # ------------------------------------------------------------------------
+  # ----------------------------------------------------------------------------
   # 
   # inputs:
-  # - ID                (string):             3-digit mouse ID number in string form
-  # - time_scale        (integer):            Length of time (secs) for each replicate
-  # - covariates        (vector of strings):  Which covariates are we stratifying by? Options include 'movement', 'VR'
-  # - weekly_dataset    (enormous dataset)
-  # - neuron_df         (dataset of neuron info)
+  #
+  # - ID                         (string):             3-digit mouse ID number in string form
+  # - time_scale                 (integer):            Length of time (secs) for each replicate
+  # - discrete_covariates        (vector of strings):  Which discrete covariates are we stratifying by? Options include 'movement', 'VR'
+  # - continuous_covariates      (vector of strings):  Which continuous covariates are we stratifying by? Options include 'week', 'timestamp'
+  # - weekly_dataset             (enormous dataset)
+  # - neuron_df                  (6-column dataset of neuron info)
+  #                              - Neuron_Num      (scalar)
+  #                              - Electrode_Num   (scalar)
+  #                              - Brain_Region    (factor)  Hippocampus, Entorhinal_Cortex
+  #                              - Mouse           (string)  '346'
+  #                              - Strain          (string)  'WT', 'Tau'
+  #                              - ID2             (factor)  'Tau1', 'Tau2', 'Tau3', 'WT1', 'WT2', 'WT3'
   #
   # output:
   # - list of (3) items:
@@ -115,7 +123,7 @@ get_spiketrain_dataset_conditional_LGCP <- function(ID, time_scale, discrete_cov
   # - y_c_df (data.frame): dataframe with continuous covariate values (possibly age and timestamp) and their subject_num
   #
   #
-  # ------------------------------------------------------------------------  
+  # ----------------------------------------------------------------------------
   
   # 0) prepare datasets
   
