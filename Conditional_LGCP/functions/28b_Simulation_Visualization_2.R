@@ -307,7 +307,7 @@ visualize_log_intensity_bold_mean <- function(Lambda_k_est, time_grid_est){
 }
 
 # g_50 - do beta coefficients reflect their ground truth correlations?
-visualize_beta_corr <- function(KL_coeffs_truth, cov_mat_truth, cor_mat_truth, prec_mat_truth){
+visualize_beta_corr <- function(KL_coeffs_truth, cov_mat_truth, cor_mat_truth, prec_mat_truth, graph_type){
   
   # ----------------------------------------------------------------------------
   #
@@ -320,6 +320,7 @@ visualize_beta_corr <- function(KL_coeffs_truth, cov_mat_truth, cor_mat_truth, p
   # - cov_mat_truth            (pd x pd matrix)    (24 x 24)
   # - cor_mat_truth            (pd x pd matrix)    (24 x 24)
   # - prec_mat_truth           (pd x pd matrix)    (24 x 24)
+  # - graph_type               (string)          'heatmap' or 'histogram'
   #
   #
   # output:
@@ -367,8 +368,18 @@ visualize_beta_corr <- function(KL_coeffs_truth, cov_mat_truth, cor_mat_truth, p
   input_list <- list(truth = mat_list_truth,
                      est = mat_list_est)
   entry_name <- 'g_50'
-  indices <- 1:pd
-  final_graph <- result_heatmap_nonblock_prep(input_list, entry_name, indices, data_format = 'regular', zmid = 0)
+  
+  if(graph_type == 'heatmap'){
+    final_graph <- result_heatmap_nonblock_prep(input_list, entry_name, data_format = 'regular', zmid = 0)
+  } else if(graph_type == 'histogram'){
+    
+    diff_list <- Map(`-`, input_list[[1]], input_list[[2]]) # corresponding differences
+    diff_list <- list(beta_error = diff_list)
+    final_graph <- result_histogram_prep(diff_list, entry_name, data_format = 'regular')
+  } else{
+    stop('28b Error: unsupported graph type')
+  }
+  
     
   
   return(final_graph)
