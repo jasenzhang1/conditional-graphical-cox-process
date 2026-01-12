@@ -1,25 +1,36 @@
 #!/bin/bash
 
-# ============================================================
-# START TIMER
-# ============================================================
+# ------------------------------------------------------------------------------
+#
+# GOAL: Fit data replicates for mice data
+# 
+# - IDs          (vector)   mice ID that we want to make data for
+# - time_scales  (vector)   how long is each data replicate? 2, 5, or 10 seconds
+# - m            (integer)  granularity of time_grid
+# - max_processes  (integer)  do we truncate the number of neurons?
+# ------------------------------------------------------------------------------
+
+cd "$(dirname "$0")/.."   # go one level up (from /scripts to /)
+
 sh_outfile="script_outputs/mice/fit_mice.txt"
 rm -f "$sh_outfile"
 
 start_time=$(date +%s)
 echo "Pipeline started at: $(date)" >> "$sh_outfile"
 
-cd "$(dirname "$0")/.." || exit 1   # go one level up (from /scripts to /) and exit if fails
 
+
+ID="Tau3"
+y_c_structure="week_only"
 method="CPGM"
+model_type="mice"  # simu or mice
+max_jobs=30
 
-max_jobs=20
-
-# function wait_for_slot {
-#     while (( $(jobs -rp | wc -l) >= max_jobs )); do
-#         sleep 1
-#     done
-# }
+time_scale=10 
+m=20
+movement=(0 0 1 1)
+VR=(0 1 0 1)
+max_processes=500
 
 function wait_for_slot {
     # Wait until the number of background jobs is strictly less than max_jobs
@@ -31,15 +42,6 @@ function wait_for_slot {
         sleep 0.5
     done
 }
-
-ID="Tau3"
-y_c_structure="week_only"
-time_scale=10
-m=20
-movement=(0 0 1 1)
-VR=(0 1 0 1)
-model_type="mice"  # simu or mice
-max_processes=500
 
 mkdir -p script_outputs
 mkdir -p script_outputs/mice
