@@ -28,7 +28,7 @@ adj_type_params=(
   "flexible_block_banded_v2 0 1 6 2 1.5 2.9 0.5 0.9"
 )
 
-# comment
+# comment 1
 
 n_large=1500
 ns=(500 1000 1500)
