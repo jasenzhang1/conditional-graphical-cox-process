@@ -1,3 +1,25 @@
+# ------------------------------------------------------------------------------
+# 
+# GOAL: prepare for full_conditional_estimation_with_no_truth_part1
+#
+#
+# inputs:
+#
+# - ID               (string)    mouse name such as 'Tau1'
+# - y_c_structure    (string)    "week_only" or "time_and_week"
+# - time_scale       (integer)   how many seconds is each replicate? Values may be 1, 2, 5, 10
+# - method           (string)    estimation method, "CPGM"
+# - m                (integer)   time_grid spacing
+# - movement         (integer)   0 (resting) or 1 (moving)
+# - VR               (integer)   0 (off) or 1 (on)
+# - max_processes    (integer)   how many processes should we truncate? 
+#
+# 
+# outputs:
+#
+# 
+# ------------------------------------------------------------------------------
+
 
 library(RhpcBLASctl)
 
@@ -32,12 +54,16 @@ if(model_type == 'mice'){
   data_folder <- 'mice_data'
   if (!dir.exists(data_folder)) dir.create(data_folder)  # /mice_data
   
+  data_folder <- paste0(data_folder, '/', y_c_structure) 
+  if (!dir.exists(data_folder)) dir.create(data_folder)  # /mice_data/week_only
+  
   temp_file_dir <- 'temp_data'
   if (!dir.exists(temp_file_dir)) dir.create(temp_file_dir)  # /temp_data
   
   temp_file_dir <- paste0(temp_file_dir, '/mice')
   if (!dir.exists(temp_file_dir)) dir.create(temp_file_dir)  # temp_data/mice
   mouse <- T
+  X_truth <- F
   
 } else if(model_type == 'simu'){
   
@@ -72,7 +98,8 @@ ncores <- 1
 # ---------------------------
 
 if(mouse){
-  load(paste0('mice_data/', ID, '_', discrete_level, '_t', time_scale, '.RData')) # dataset_k
+  load(paste0(data_folder, '/', ID, '_', discrete_level, '_t', time_scale, '.RData')) # dataset_k
+  dataset_k$Y_continuous_k <- dataset_k$Y_continuous  
 } else{
   load(paste0('simu_data/', adj_type, '_n_', n_large, '.RData')) #dataset --> dataset_k
   
@@ -99,7 +126,7 @@ if(mouse){
   
 
 if(method == 'CPGM'){
-  full_conditional_estimation_with_no_truth_part1(dataset_k, setting_info_list, ncores, temp_file_dir, mouse)
+  full_conditional_estimation_with_no_truth_part1(dataset_k, setting_info_list, ncores, temp_file_dir, mouse, X_truth)
 } else{
   stop('Invalid method. Must be CPGM')
 }
