@@ -201,11 +201,15 @@ full_conditional_estimation_with_no_truth_part1 <- function(dataset, setting_inf
   # GOAL: bundle all relevant parameters into a list called:
   #
   #       temp_data/simu/part1_block_banded_c0_n_100.rds
-  #
+  #       temp_data/mice/part1_Tau1_m0vr0_t5.rds
   #
   # inputs:
   #
-  # - dataset 
+  # - dataset               (list of the following)
+  #   - event_times           (list of vectors)  each vector is named k_i for subject k and process i
+  #   - Y_continuous          (n x q_c matrix)   continuous covariates
+  #   - simulation_params     (list of various parameters)
+  # 
   # - setting_info_list    (list)
   # - ncores               (integer)
   # - temp_file_dir        (string)   'temp_data/simu'
@@ -234,6 +238,7 @@ full_conditional_estimation_with_no_truth_part1 <- function(dataset, setting_inf
   if(mouse){
     time_grid_est <- dataset$simulation_params$time_grid_est
     m_est <- length(time_grid_est) 
+    n <- dataset$simulation_params$n
   } else{
     time_grid_est <- dataset$simulation_params$time_grid_est
     time_grid <- dataset$simulation_params$time_grid
@@ -470,7 +475,7 @@ estimate_intensities_stratum_parallel_with_yc_part0 <- function(temp_file_dirs, 
   #       calculate weights and adj_mat (truth), and store it in:
   #
   #       temp_data/simu/part2_block_banded_c0_n_100_nquery1.rds
-  #
+  #       temp_data/mice/part2_Tau1_m0vr0_t5_nquery1.rds
   # 
   #
   # inputs:
@@ -594,7 +599,10 @@ estimate_intensities_stratum_parallel_with_yc_part1 <- function(temp_file_dir, s
   # 2) solve for rho_i
   
   data_i <- data_df4[feature_id == feature_sel[i], ]
+  kept_subjects <- unique(data_i$subject_num) %>% sort()  # in case any subjects do not have data for process i
   
+  setDT(data_i)
+  data_i[, subject_num := match(subject_num, sort(unique(subject_num)))]
   
   if (nrow(data_i) == 0) { # no events, estimate is the zero intensity
     rho_i <- rep(0, n_time)
@@ -602,7 +610,8 @@ estimate_intensities_stratum_parallel_with_yc_part1 <- function(temp_file_dir, s
     Gamma_i <- data_i[, estimate_density(time, time_grid_est), by = "subject_num"]
     rho_mat <- matrix(Gamma_i$rho_hat, nrow = n_time)
     
-    rho_mat2 <- sweep(rho_mat, 2, weights, `*`) # multiply each 19-dim vec by `weight` which was already filtered for n <= n_large and normalized
+    reweights = weights[kept_subjects] / sum(weights[kept_subjects])  # recalculate weights in case we discard subjects
+    rho_mat2 <- sweep(rho_mat, 2, reweights, `*`) # multiply each 19-dim vec by `weight` which was already filtered for n <= n_large and normalized
     
     rho_i <- apply(rho_mat2, 1, sum) # since these are normalized weights, just add them
   }
@@ -635,8 +644,8 @@ estimate_intensities_stratum_parallel_with_yc_part2 <- function(temp_file_dir, s
   #
   # GOAL: calculate rho_ij for a single i_j pair and save it as 
   #       
-  #       temp_data/simu/step_2_rho_ij_block_banded_v2_n_100_nqueryk_i.rds
-  #
+  #       temp_data/simu/step_2_rho_ij_block_banded_v2_n_100_nquery_cont_ind_k.rds
+  #       temp_data/mice/step_2_rho_ij_Tau1_m0vr0_t5_nquery_cont_ind_k.rds
   # 
   # inputs:
   # 
@@ -710,6 +719,11 @@ estimate_intensities_stratum_parallel_with_yc_part2 <- function(temp_file_dir, s
     times_j <- data_j[, .(event_times_j = list(time)), by = subject_num]  # all of which are for process i
     times_ij <- merge(times_i, times_j, by = "subject_num", all = FALSE)   # now make it 3 columns: subject, process i, and process j
     
+    kept_subjects <- unique(times_ij$subject_num) %>% sort()
+    setDT(times_ij)
+    times_ij[, subject_num := match(subject_num, sort(unique(subject_num)))]
+    
+    
     if(nrow(times_ij) == 0){      # if they don't occur during the same replicates, return the flat bivariate intensity
       rho_ij_mat <- matrix(0, nrow = n_time, ncol = n_time)
     } else{
@@ -719,7 +733,9 @@ estimate_intensities_stratum_parallel_with_yc_part2 <- function(temp_file_dir, s
       
       bivariate_intensity <- matrix(Gamma_ij$V1, nrow = n_time^2)
       
-      bivariate_intensity2 <- sweep(bivariate_intensity, 2, weights, `*`) # multiply each 19-dim vec by `weight` which was already filtered for n <= n_large and normalized   
+      
+      reweights = weights[kept_subjects] / sum(weights[kept_subjects])  # recalculate weights in case we discard subjects
+      bivariate_intensity2 <- sweep(bivariate_intensity, 2, reweights, `*`) # multiply each 19-dim vec by `weight` which was already filtered for n <= n_large and normalized   
 
       rho_ij <- apply(bivariate_intensity2, 1, sum) # since these are normalized weights, just add them
       rho_ij_mat <- matrix(rho_ij, nrow = n_time)
