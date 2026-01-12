@@ -27,10 +27,10 @@ model_type="mice"  # simu or mice
 max_jobs=30
 
 time_scale=10 
-m=20
+m=30
 movement=(0 0 1 1)
 VR=(0 1 0 1)
-max_processes=500
+max_processes=12
 
 function wait_for_slot {
     # Wait until the number of background jobs is strictly less than max_jobs

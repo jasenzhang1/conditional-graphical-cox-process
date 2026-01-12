@@ -34,8 +34,8 @@ beta_truth  <- args[6]
 # beta_truth <- T
 
 
-n_large <- 500
-n <- 500
+n_large <- 1500
+n <- 1000
 
 # 3) heatmaps of certain metrics 
 
