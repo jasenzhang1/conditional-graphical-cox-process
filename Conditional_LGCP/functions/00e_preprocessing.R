@@ -142,6 +142,7 @@ convert_data_for_storage <- function(LGCP_data, y_c_structure, movement_num, vr_
   #
   # GOAL: convert data from the mice pipeline and wraps it in a format ready for estimation
   #
+  #   - re-number replicates if they are discarded due to movement and VR filtering
   #
   # 
   # input:
@@ -157,7 +158,7 @@ convert_data_for_storage <- function(LGCP_data, y_c_structure, movement_num, vr_
   #   - [[2]] (nx3 data.frame with 'movement', 'VR', and 'subject_num')
   #   - [[3]] (nx3 data.frame with 'subject_num', 'age', and 'timestamp')
   #
-  # - y_c_structure
+  # - y_c_structure     (string)      "week_only" or "time_and_week"
   # - movement_num      (0 or 1)
   # - vr_num            (0 or 1)
   # - time_grid_est
@@ -195,11 +196,18 @@ convert_data_for_storage <- function(LGCP_data, y_c_structure, movement_num, vr_
     filter(n() >= min_events) %>%
     ungroup()
   
-  y_d2 <- df$subject_num %>% unique() %>% sort()
+  y_d2 <- df$subject_num %>% unique() %>% sort()  # filter again if we remove subjects due to >= min events
     
   # remap the subject numbers 
   setDT(df) 
   df[, subject_num := match(subject_num, sort(unique(y_d2)))]
+  
+  # remap the process numbers
+  
+  kept_neurons <- unique(df$feature_id) %>% sort()
+  p_og <- max(df$feature_id)
+  setDT(df) 
+  df[, feature_id := as.integer(factor(feature_id))]
   
   # Split data by subject-feature combination
   event_times <- split(df$time, paste0(df$subject_num, "_", df$feature_id))
@@ -207,13 +215,13 @@ convert_data_for_storage <- function(LGCP_data, y_c_structure, movement_num, vr_
   # 2) Y_c_k and y_c_query
   
   if(y_c_structure == 'week_only'){
-    Y_continuous <- LGCP_data[[3]] %>% filter(subject_num %in% y_d) %>% dplyr::pull(age) %>% matrix()
+    Y_continuous <- LGCP_data[[3]] %>% filter(subject_num %in% y_d2) %>% dplyr::pull(age) %>% matrix()
 
     
     y_c_query <- seq(min(LGCP_data[[3]]$age), max(LGCP_data[[3]]$age), 4) %>% matrix()
     
   } else if(y_c_structure == 'time_and_week'){
-    Y_continuous <- as.matrix(LGCP_data[[3]] %>% filter(subject_num %in% y_d) %>% select(age, timestamp), ncol = 2)
+    Y_continuous <- as.matrix(LGCP_data[[3]] %>% filter(subject_num %in% y_d2) %>% select(age, timestamp), ncol = 2)
     
     # y_c_query - every combination of week and time
     y_c_query_week <- seq(min(LGCP_data[[3]]$age), max(LGCP_data[[3]]$age), 4)
@@ -237,7 +245,9 @@ convert_data_for_storage <- function(LGCP_data, y_c_structure, movement_num, vr_
                                                Tmax = 1,
                                                query_y_cs = y_c_query,
                                                time_grid_est = time_grid_est,
-                                               seed = seed))
+                                               seed = seed),
+                      recovery_params = list(kept_neurons = kept_neurons,
+                                             p_og = p_og))
   
   return(output_list)
   
