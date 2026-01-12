@@ -28,8 +28,8 @@ adj_type_params=(
   "flexible_block_banded_v2 0 1 6 2 1.5 2.9 0.5 0.9"
 )
 
-n_large=100
-ns=(100)
+n_large=1500
+ns=(500, 1000, 1500)
 n_group=10
 groups=$(( n_large / n_group ))
 method="CPGM"
@@ -37,7 +37,7 @@ model_type="simu"  # simu or mice
 max_jobs=60
 min_events=10
 max_events=20000
-n_query=1
+n_query=2
 beta_0=4.8
 beta_truth="T"
 X_truth="T"
