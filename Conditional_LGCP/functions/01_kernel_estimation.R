@@ -117,7 +117,8 @@ gaussian_kernel <- function(t_1, t_2, gamma){
 
 estimate_density <- function(t_event, t_seq){
   
-  # -----------------------------------------------
+  # ----------------------------------------------------------------------------
+  # 
   # GOAL: 
   #
   # obtain \Gamma_i^k(t) density estimate and \rho_i^k(t) intensity estimate
@@ -126,6 +127,10 @@ estimate_density <- function(t_event, t_seq){
   #
   # 8/5/2025
   # Need to tune gamma of KDE to be more adaptive to density. KDE is too smooth.
+  #
+  #
+  # 1/12/2026
+  # adapting for mice data, where a given process doesn't necessarily have data from all subjects
   #
   #
   # Input:
@@ -143,7 +148,7 @@ estimate_density <- function(t_event, t_seq){
   #   - denom         (m-dim vector)           denominator 
   #   - gamma         (number)                 KDE gamma parameter, obtained adaptively
   # 
-  # -----------------------------------------------
+  # ----------------------------------------------------------------------------
   
   if (length(t_event) == 0) { # moot case when the density is zero
     return(rep(0, length(t_seq))) 
