@@ -225,10 +225,11 @@ result_heatmap_nonblock_prep <- function(my_list, entry_name, data_format, time_
   #
   # - my_list          (list)     step_x; list of y_c_queries --> g_ij_est etc items
   # - entry_name       (string)   estimate prefix (e.g. rho_ii, g_ij)
-  # - time_grid_est    (vector)   do we substitute indices with timestamps?
   # - data_format      (string)   'full', 'regular', 'list'
+  # - time_grid_est    (vector)   do we substitute indices with timestamps? If so, provide it
   # - rm_diag          (boolean)  do we remove the diag term?
-  #
+  # - palette_ID       (string)
+  # - zmin, zmid, zmax   (values)   do we manually decide on the bordering color values?
   #
   # outputs:
   # 
@@ -294,7 +295,7 @@ result_heatmap_nonblock_prep <- function(my_list, entry_name, data_format, time_
   
   # Convert to factors for proper ordering
   df_all$Type <- factor(df_all$Type)
-  df_all$y_c <- factor(as.numeric(df_all$y_c))
+  df_all$y_c <- factor(df_all$y_c)
   
   # now, df_all has 5 columns:
   #
@@ -374,18 +375,6 @@ result_heatmap_nonblock_prep <- function(my_list, entry_name, data_format, time_
       axis.text.y = element_text()
     )
   
-  g <- ggplot(df_all, aes(x = Col_val, y = Row_val, fill = Value)) +
-    geom_tile(width = 1, height = 1) +
-    scale_x_continuous(expand = c(0, 0)) +
-    scale_y_reverse(expand = c(0, 0)) +
-    scale_fill_gradient2(
-      low = c_low, mid = c_mid, high = c_high,
-      midpoint = zmid,
-      limits = c(zmin, zmax)
-    ) +
-    theme_minimal() +
-    facet_wrap(~ Type + y_c, scales = "free") +
-    labs(x = "t", y = "s", fill = "f(s,t)")
   return(g)
 }
 
@@ -531,17 +520,21 @@ result_histogram_prep <- function(my_list, entry_name, data_format, nbins = 20){
   #
   # - my_list     (list)     step_x; list of y_c_queries --> g_ij_est etc items
   # - entry_name  (string)   estimate prefix (e.g. rho_i)
-  # - X_truth     (boolean)
-  # - beta_truth  (boolean)
-  # - nbins
+  # - data_format (string)   describes how the data is packaged (rho_i_est = matrix), options include 'full', 'regular', 'list', 'vector'
+  # - nbins       (integer)  number of bins
   #
+  #
+  # outputs:
+  #
+  # - ggplot output
+  # 
   # ----------------------------------------------------------------------------  
   
   # 1) borrow from 12z - get suffix names
   suffix_names <- step_00_grab_ID(names(my_list[[1]]), entry_name)
   
   queried_names <- names(my_list[[1]])
-  
+  y_c_names <- names(my_list)
   
   # 2) collect items
   
@@ -576,7 +569,7 @@ result_histogram_prep <- function(my_list, entry_name, data_format, nbins = 20){
       
       df_t <- reshape2::melt(M)
       df_t$Type <- this_type
-      df_t$Matrix <- k
+      df_t$y_c <- y_c_names[k]
       dfs[[length(dfs) + 1]] <- df_t
     }
     
@@ -587,18 +580,16 @@ result_histogram_prep <- function(my_list, entry_name, data_format, nbins = 20){
   
   # 3) padding and graphing
   
-  colnames(df_all)[1:3] <- c("Row", "Col", "Value")
-  
   df_all$Type <- factor(df_all$Type)   
-  df_all$Matrix <- factor(df_all$Matrix)
+  df_all$y_c <- factor(df_all$y_c)
   
-  # Histogram plot instead of heatmap
-  ggplot(df_all, aes(x = Value, fill = Type)) +
+  # Histogram plot
+  ggplot(df_all, aes(x = value, fill = Type)) +
     geom_histogram(bins = nbins, fill = "skyblue", color = "black", position = "identity") +
-    facet_grid(Type ~ Matrix, scales = "free_y") +
+    facet_grid(Type ~ y_c, scales = "free_y") +
     theme_minimal() +
     labs(
-      x = "Matrix Entry Value",
+      x = "Value",
       y = "Count",
       fill = "Type"
     ) +
@@ -745,11 +736,11 @@ result_44_prep <- function(step_3, step_4, p, X_truth){
     g_ii_truth_decomp           <- validate_eigendecomposition_ii(g_ii_truth,          step_4$eigen_decomp_truth)
     g_ii_est_decomp             <- validate_eigendecomposition_ii(g_ii_est,            step_4$eigen_decomp_est) 
     
-    g_list <- list(visualize_histogram(g_ii_truth,          g_ii_truth_decomp,          'Truth',        20),
-                   visualize_histogram(g_ii_est,            g_ii_est_decomp,            'Estimate',     20))
+    # return tensors
+    error_list <- list(error_truth = as.numeric(g_ii_truth - g_ii_truth_decomp),
+                       error_est   = as.numeric(g_ii_est - g_ii_est_decomp))
     
-    
-    return(g_list)
+    return(error_list)
   } else{
     g_ii_truth          <- prep_eigendecomposition_ii(step_3$g_ij_truth, p)
     g_ii_est            <- prep_eigendecomposition_ii(step_3$g_ij_est, p) 
@@ -760,12 +751,13 @@ result_44_prep <- function(step_3, step_4, p, X_truth){
     g_ii_est_decomp             <- validate_eigendecomposition_ii(g_ii_est,            step_4$eigen_decomp_est) 
     g_ii_X_truth_decomp         <- validate_eigendecomposition_ii(g_ii_X_truth,        step_4$eigen_decomp_X_truth) 
     
-    g_list <- list(visualize_histogram(g_ii_truth,          g_ii_truth_decomp,          'Truth',        20),
-                   visualize_histogram(g_ii_X_truth,        g_ii_X_truth_decomp,        'X Truth',      20),
-                   visualize_histogram(g_ii_est,            g_ii_est_decomp,            'Estimate',     20))
+    # return tensors
+    error_list <- list(error_truth   = as.numeric(g_ii_truth - g_ii_truth_decomp),
+                       error_est     = as.numeric(g_ii_est - g_ii_est_decomp),
+                       error_X_truth = as.numeric(g_ii_X_truth - g_ii_X_truth_decomp))
     
     
-    return(g_list)
+    return(error_list)
   }
 }
 
