@@ -1,4 +1,25 @@
-t0 <- Sys.time()
+# ------------------------------------------------------------------------------
+# 
+# GOAL: pre-process the data in data/with_ts to make it look just like "dataset"
+#
+#
+# inputs:
+#
+# - ID               (string)    mouse name such as 'Tau1'
+# - y_c_structure    (string)    "week_only" or "time_and_week"
+# - time_scale       (integer)   how many seconds is each replicate? Values may be 1, 2, 5, 10
+# - method           (string)    estimation method, "CPGM"
+# - m                (integer)   time_grid spacing
+# - movement         (integer)   0 (resting) or 1 (moving)
+# - VR               (integer)   0 (off) or 1 (on)
+# - max_processes    (integer)   how many processes should we truncate? 
+#
+# 
+# outputs:
+#
+# 
+# ------------------------------------------------------------------------------
+
 library(RhpcBLASctl)
 
 # limit threads in BLAS/LAPACK
@@ -8,7 +29,7 @@ omp_set_num_threads(1)    # limit OpenMP
 
 source('functions/00_function_wrapper.R')
 
-# args 
+# 1) load args 
 args <- commandArgs(trailingOnly = TRUE)
 
 ID <- args[1]                       # ID <- 'Tau1'
@@ -20,20 +41,15 @@ movement <- as.numeric(args[6])
 VR <- as.numeric(args[7])
 max_processes <- as.numeric(args[8])
 
-ncores <- 1
 
+# 2) create folder and print settings
 
-data_folder <- 'mice_data'
-if (!dir.exists(data_folder)) dir.create(data_folder)  # /mice_data
+new_data_folder <- 'mice_data'
+if (!dir.exists(new_data_folder)) dir.create(new_data_folder)  # /mice_data
 
-folder_1_name <- 'mice_results'
-if (!dir.exists(folder_1_name)) dir.create(folder_1_name)  # /mice_results
+new_data_folder <- paste0(new_data_folder, "/", y_c_structure)
+if (!dir.exists(new_data_folder)) dir.create(new_data_folder)   # /mice_data/week_only
 
-folder_2_name <- paste0(folder_1_name, "/", y_c_structure)
-if (!dir.exists(folder_2_name)) dir.create(folder_2_name)   # /mice_results/week_only
-
-results_folder_name <- paste0(folder_2_name, "/", method) 
-if (!dir.exists(results_folder_name)) dir.create(results_folder_name)  # /mice_results/week_only/CPGM
 
 print(paste0("mouse: ", ID))
 print(paste0("y_c_structure: ", y_c_structure))
@@ -41,32 +57,27 @@ print(paste0("time_scale: ", time_scale))
 print(paste0("estimation method: ", method))
 print(paste0("num timepoints: ", m))
 
-# load `dataset`
-load(paste0('data/with_ts/', ID, '_t', time_scale, '_data.rda'))
+# 3) load `dataset`
+old_data_folder <- 'data/with_ts'
+load(paste0(old_data_folder, '/', ID, '_t', time_scale, '_data.rda'))
 
 # ------------------------------------------------------------
-# pre-processing to make it look just like "dataset"
+# 4) pre-processing to make it look just like "dataset"
 # ------------------------------------------------------------
 
 
 time_grid_est <- make_time_grid(m)
 
-dataset_k <- convert_data_for_storage(LGCP_data, y_c_structure, movement, VR, time_grid_est, min_events = 5, max_processes = max_processes, seed = NULL) # 00e
+dataset_k <- convert_data_for_storage(LGCP_data, y_c_structure, movement, VR, 
+                                      time_grid_est, min_events = 5, max_processes = max_processes, seed = NULL) # 00e
 
-# store
+# 5) store
 discrete_name <- paste0('m', movement, 'vr', VR)
-file_dir <- paste0('mice_data', '/', ID, '_', discrete_name, '_t', time_scale, '.RData')
+file_dir <- paste0(new_data_folder, '/', ID, '_', discrete_name, '_t', time_scale, '.RData')
 save(dataset_k, file = file_dir)
 
 
-
 print('saved dataset')
-
-
-t1 <- Sys.time()
-
-print(paste0('Time to finish: ', round(as.numeric(t1 - t0, units = "mins"), 2), ' minutes'))  
-print(strrep("-", 50))
 
 
 # ALL WARNINGS
