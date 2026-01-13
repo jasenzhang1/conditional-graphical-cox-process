@@ -596,21 +596,23 @@ estimate_intensities_stratum_parallel_with_yc_part1 <- function(temp_file_dir, s
   n_time <- length(time_grid_est)  # 19
   
   
-  # 2) solve for rho_i
+  # 2) filter process i and update subject ID's in case some don't have process i
   
   data_i <- data_df4[feature_id == feature_sel[i], ]
   kept_subjects <- unique(data_i$subject_num) %>% sort()  # in case any subjects do not have data for process i
+  reweights = weights[kept_subjects] / sum(weights[kept_subjects])  # recalculate weights in case we discard subjects
   
   setDT(data_i)
   data_i[, subject_num := match(subject_num, sort(unique(subject_num)))]
   
+  # 3) estimation
   if (nrow(data_i) == 0) { # no events, estimate is the zero intensity
     rho_i <- rep(0, n_time)
   } else {
     Gamma_i <- data_i[, estimate_density(time, time_grid_est), by = "subject_num"]
     rho_mat <- matrix(Gamma_i$rho_hat, nrow = n_time)
     
-    reweights = weights[kept_subjects] / sum(weights[kept_subjects])  # recalculate weights in case we discard subjects
+    
     rho_mat2 <- sweep(rho_mat, 2, reweights, `*`) # multiply each 19-dim vec by `weight` which was already filtered for n <= n_large and normalized
     
     rho_i <- apply(rho_mat2, 1, sum) # since these are normalized weights, just add them
@@ -620,11 +622,15 @@ estimate_intensities_stratum_parallel_with_yc_part1 <- function(temp_file_dir, s
   
   rho_i_result <- list(rho_i_est = rho_i) 
   
+  # 4) X_truth if requested
+  
   if(X_truth){
-    rho_i_result[['rho_i_X_truth']] = apply(exp(dataset$X_k_truth[i, , ]), 1, mean) # take (12 x 30 x 100), index only the i-th process, then take sample mean across n
+    # take (12 x 30 x 100), index only the i-th process, then take sample mean across n
+    rho_i_result[['rho_i_X_truth']] <- as.vector(exp(dataset$X_k_truth[i, , ]) %*% reweights)
   }
   
   
+  # 5) save
   
   if(mouse){
     rho_i_file_name <- paste0('step_2_rho_i_', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '_', i, '.rds')
@@ -669,7 +675,7 @@ estimate_intensities_stratum_parallel_with_yc_part2 <- function(temp_file_dir, s
   # ----------------------------------------------------------------------------
   
   
-  # 1) retrieve data
+  # 1) load
   
   
   list2env(setting_info_list, envir = environment())
@@ -702,11 +708,9 @@ estimate_intensities_stratum_parallel_with_yc_part2 <- function(temp_file_dir, s
   
   
   
-  # step 3: bivariate case - for just the k-th case
+  # 2) filter process i and update subject ID's in case some don't have process i
   
-  
-  
-  
+
   data_i <- data_df4[feature_id == feature_sel[i], ]
   data_j <- data_df4[feature_id == feature_sel[j], ]
   
@@ -720,9 +724,12 @@ estimate_intensities_stratum_parallel_with_yc_part2 <- function(temp_file_dir, s
     times_ij <- merge(times_i, times_j, by = "subject_num", all = FALSE)   # now make it 3 columns: subject, process i, and process j
     
     kept_subjects <- unique(times_ij$subject_num) %>% sort()
+    reweights = weights[kept_subjects] / sum(weights[kept_subjects])  # recalculate weights in case we discard subjects
+    
     setDT(times_ij)
     times_ij[, subject_num := match(subject_num, sort(unique(subject_num)))]
     
+    # 3) estimation
     
     if(nrow(times_ij) == 0){      # if they don't occur during the same replicates, return the flat bivariate intensity
       rho_ij_mat <- matrix(0, nrow = n_time, ncol = n_time)
@@ -733,8 +740,6 @@ estimate_intensities_stratum_parallel_with_yc_part2 <- function(temp_file_dir, s
       
       bivariate_intensity <- matrix(Gamma_ij$V1, nrow = n_time^2)
       
-      
-      reweights = weights[kept_subjects] / sum(weights[kept_subjects])  # recalculate weights in case we discard subjects
       bivariate_intensity2 <- sweep(bivariate_intensity, 2, reweights, `*`) # multiply each 19-dim vec by `weight` which was already filtered for n <= n_large and normalized   
 
       rho_ij <- apply(bivariate_intensity2, 1, sum) # since these are normalized weights, just add them
@@ -743,16 +748,12 @@ estimate_intensities_stratum_parallel_with_yc_part2 <- function(temp_file_dir, s
   }
   
   # store rho_ij_mat
-  
-  
-  
+
   rho_ij_result <- list(rho_ii_est = rho_ij_mat)
   
+  # 4) X_truth if requested
   if(X_truth){
-    
-    rho_ii_X_truth <- estimate_rho_ij_from_Lambda(dataset$X_k_truth, i, j, weights)
-    
-    rho_ij_result[['rho_ii_X_truth']] <- rho_ii_X_truth
+    rho_ij_result[['rho_ii_X_truth']] <- estimate_rho_ij_from_Lambda(dataset$X_k_truth, i, j, reweights)
   }
   
   if(mouse){
