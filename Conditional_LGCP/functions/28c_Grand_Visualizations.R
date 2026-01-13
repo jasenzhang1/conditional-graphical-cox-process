@@ -102,6 +102,17 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth)
   # input: 
   #
   # - graph_results_i   (list of all step_X's)  --> (list of all y_c_queries) --> (list of 'est' or 'truth' or 'coarse_truth' etc)
+  #
+  #   - step_2, 2b, 3, 4, 5, 5b, 5c, 5d, 9, 9b, 10, 11, 11b, 12, 12b
+  #   - step_1, 1b, 1c, step_0_events
+  #   - true_graphs
+  #   - y_c_query
+  #   - p
+  #   - Y_continuous
+  #   - weights
+  #   - W_y
+  #   - time_grid, time_grid_est, time_grid_both
+  #
   # - graph_ids         (vector of strings)    which graphs do we want?
   # - i
   # - j
@@ -116,23 +127,7 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth)
   # ---------------------------------------------------------------------------- 
   
   
-  # 1) load
-  
-
-  # step_0 <- step_list$step_0 
-  # step_1 <- step_list$step_1 
-  # step_2 <- graph_results_i$step_2
-  # step_3 <- graph_results_i$step_3
-  # step_4 <- graph_results_i$step_4
-  # step_5 <- graph_results_i$step_5
-  # step_6 <- graph_results_i$step_6
-  # step_7 <- graph_results_i$step_7
-  # step_8 <- graph_results_i$step_8 
-  # step_9 <- graph_results_i$step_9
-  # step_10 <- graph_results_i$step_10
-  # step_11 <- graph_results_i$step_11
-  # step_12 <- graph_results_i$step_12 
-  # step_2b <- graph_results_i$step_2b
+  # 1) load everything from graph_results_i
   
   # graph_results_i also contains time_grid, time_grid_est, y_c_query
   list2env(graph_results_i, envir = environment())  # does all of the above in one go
@@ -189,6 +184,12 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth)
                                        visualize_log_intensity(step_1$X_k_both_truth[1:5,,i],     time_grid_both, 'Combined Truth', step_1c$mu_t_both_truth),
                                        textGrob("0. Log Intensity\n of first 5 processes\nof subject 1", gp = gpar(fontsize = 14)),
                                        layout_matrix = arr_mat_6) 
+      
+      step_1_prep <- lapply(step_1, function(x) x[1:5, , i])
+      step_1_prep <- list(y = step_1_prep)
+      
+      graphs[['g_11b']] <- result_line_graph_prep(step_1_prep, 'X_k', time_grid_est, grouping = 'process')
+      
     } else{
       graphs[['g_11']] <- grid.arrange(visualize_log_intensity(step_1$X_k_est[1:5,,i],            time_grid_est,  'Estimate',       step_1c$mu_t_coarse_truth ),
                                        textGrob("0. Log Intensity\n of first 5 processes\nof subject 1", gp = gpar(fontsize = 14)),
@@ -299,21 +300,28 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth)
   # assume we know beta_truths, do their empirical correlations match the actual correlations?
   if('50' %in% graph_ids){
 
-    graphs[['g_50']] <- visualize_beta_corr(step_5d[[1]]$KL_coeffs_truth, 
-                                            true_graphs[[1]]$cov_mat_truth,
-                                            true_graphs[[1]]$cor_mat_truth,
-                                            true_graphs[[1]]$prec_mat_truth,
-                                            graph_type = 'heatmap')
+    graphs[['g_50']] <- lapply(1:length(step_5d), function(i){
+      visualize_beta_corr(step_5d[[i]]$KL_coeffs_truth, 
+                          true_graphs[[i]]$cov_mat_truth,
+                          true_graphs[[i]]$cor_mat_truth,
+                          true_graphs[[i]]$prec_mat_truth,
+                          graph_type = 'heatmap')
+    })
+    names(graphs[['g_50']]) <- y_c_names
   }
   
   # assume we know beta_truths, do their empirical correlations match the actual correlations? With a histogram
   if('51' %in% graph_ids){
     
-    graphs[['g_51']] <- visualize_beta_corr(step_5d[[1]]$KL_coeffs_truth, 
-                                            true_graphs[[1]]$cov_mat_truth,
-                                            true_graphs[[1]]$cor_mat_truth,
-                                            true_graphs[[1]]$prec_mat_truth,
-                                            graph_type = 'histogram')
+    graphs[['g_51']] <- lapply(1:length(step_5d), function(i){
+      visualize_beta_corr(step_5d[[i]]$KL_coeffs_truth, 
+                          true_graphs[[i]]$cov_mat_truth,
+                          true_graphs[[i]]$cor_mat_truth,
+                          true_graphs[[i]]$prec_mat_truth,
+                          graph_type = 'histogram')
+    })
+    
+    names(graphs[['g_51']]) <- y_c_names
   }
   
   # KL_cov of (1, 2) block
@@ -389,7 +397,7 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth)
   
   if('100' %in% graph_ids){
     graphs[['g_100']] <- result_heatmap_ij_prep(step_10, 'P_cond', time_grid_est, i = 1, j = 1, zmid = 0)
-  }  
+  }
   
   # P_Xi_Xj for block (1, 2)
   if('101' %in% graph_ids){
@@ -471,16 +479,16 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth)
     }
     
     # arrange all 70 plots in a 10x7 grid
-    graphs[['113']] <- wrap_plots(all_plots, ncol = length(y_names), nrow = length(x_names), byrow = FALSE) 
+    graphs[['g_113']] <- wrap_plots(all_plots, ncol = length(y_names), nrow = length(x_names), byrow = FALSE) 
     
   }
-  
-  return(graphs)
   
   # Final adj_mat for all pxp blocks
   if('114' %in% graph_ids){
     graphs[['g_114']] <- result_heatmap_nonblock_prep(step_12b, 'adj_mat', data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, zmid = 0)
   }   
+  
+  return(graphs)
   
 }
 
