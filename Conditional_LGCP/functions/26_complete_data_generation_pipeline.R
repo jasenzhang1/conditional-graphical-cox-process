@@ -731,8 +731,8 @@ simulate_finite_basis_cox_data_parts1_and_2 <- function(temp_file_dir, setting_i
   #
   # inputs:
   #
-  # - temp_file_dir
-  # - setting_info_list     (list)
+  # - temp_file_dir         (string)   'temp_data/simu_data'
+  # - setting_info_list     (list)     list of 'n' and 'adj_type'
   # - group_idx             (integer)  batch number
   # - n_group               (integer)  number of processes per group
   # - min_events            (integer)  minimum number of events
