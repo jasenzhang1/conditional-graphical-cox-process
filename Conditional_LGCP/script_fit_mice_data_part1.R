@@ -103,23 +103,37 @@ if(mouse){
 } else{
   load(paste0('simu_data/', adj_type, '_n_', n_large, '.RData')) #dataset --> dataset_k
   
+  # 1) choose indices that thin the sample size
   idx <- round(seq(1, n_large, length.out = n))
   
   dataset_k <- dataset
   
-  # Split strings by "_"
+  # 2) Split strings and extract k and i from event_times
   split_list <- strsplit(names(dataset_k$event_times), "_")
+
+  k_values <- sapply(split_list, function(x) as.numeric(x[1]))
+  i_values <- sapply(split_list, function(x) as.numeric(x[2]))
   
-  # Extract the first part as numeric
-  i_values <- sapply(split_list, function(x) as.numeric(x[1]))
-  selected_event_times <- i_values %in% idx
+  # 3) keep only entries where i is in idx
+  keep <- k_values %in% idx
+  dataset_k$event_times <- dataset_k$event_times[keep]
+  k_values <- k_values[keep]
+  i_values <- i_values[keep]
   
-  dataset_k$event_times <- dataset$event_times[selected_event_times]
+  # 4) Compress k to 1:n (preserving order of appearance)
+  k_map <- match(k_values, unique(k_values))
+  
+  # 5) Rename entries as "newk_i"
+  names(dataset_k$event_times) <- paste0(k_map, "_", i_values)
+  
+  
+  # 6) update the rest of the dataset
   dataset_k$X_k_truth <- dataset$X_k_truth[,,idx]
   dataset_k$X_k_coarse_truth <- dataset$X_k_coarse_truth[,,idx]
   dataset_k$X_k_both_truth <- dataset$X_k_both_truth[,,idx]
   dataset_k$Y_continuous_k <- dataset_k$Y_continuous  
   dataset_k$Y_continuous_k <- matrix(dataset_k$Y_continuous_k[idx,], nrow = length(idx))  # creating filtered Y_c and unfiltered Y_c
+  dataset_k$beta_coeffs <- dataset$beta_coeffs[,,idx]
   dataset_k$simulation_params$n <- length(idx)  
 }
 
