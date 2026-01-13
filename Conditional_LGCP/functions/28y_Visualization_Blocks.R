@@ -129,7 +129,7 @@ result_heatmap_ij_prep <- function(my_list, entry_name, time_grid_est, i, j, pal
   suffix_names <- step_00_grab_ID(names(my_list[[1]]), entry_name)
   
   queried_names <- names(my_list[[1]])
-  
+  y_c_names <- names(my_list)
 
   # 2) colors
   new_palette <- hcl.colors(3, palette = palette_ID)
@@ -162,7 +162,7 @@ result_heatmap_ij_prep <- function(my_list, entry_name, time_grid_est, i, j, pal
       df_t <- reshape2::melt(M)
       
       df_t$Type <- this_type
-      df_t$Matrix <- k
+      df_t$y_c <- y_c_names[k]
       
       dfs[[length(dfs) + 1]] <- df_t
     }
@@ -175,7 +175,7 @@ result_heatmap_ij_prep <- function(my_list, entry_name, time_grid_est, i, j, pal
   
   # Convert to factors for proper ordering
   df_all$Type <- factor(df_all$Type)
-  df_all$Matrix <- factor(df_all$Matrix)
+  df_all$y_c <- factor(df_all$y_c, levels = y_c_names)
   
   if(is.null(zmin)){
     zmin <- min(df_all$Value)
@@ -203,7 +203,7 @@ result_heatmap_ij_prep <- function(my_list, entry_name, time_grid_est, i, j, pal
                          limits = c(zmin, zmax)) +
     coord_fixed() +
     theme_minimal() +
-    facet_grid(Type ~ Matrix, scales = "fixed") +
+    facet_grid(Type ~ y_c, scales = "fixed") +
     labs(x = "t", y = "s", fill = "f(s,t)") +
     theme(
       strip.background = element_rect(fill = "gray90"),
@@ -392,8 +392,8 @@ result_line_graph_prep <- function(my_list, entry_name, time_grid, grouping = 'e
   # - time_grid        (vector)   vector of timepoints
   # - grouping         (string)   'estimand' or 'process' if we group by estimand, different processes will be placed together.
   #                                                       if we group by process, different estimands will be placed together.
-  # - palette_ID
-  # - num_processes
+  # - palette_ID       (string)   preset colors
+  # - num_processes    (integer)  do we want to trim the number of processes?
   #
   #
   # ouptput:
@@ -451,7 +451,7 @@ result_line_graph_prep <- function(my_list, entry_name, time_grid, grouping = 'e
 
   df_all$Type <- factor(df_all$Type)
   df_all$process <- as.factor(df_all$process)
-  df_all$y_c     <- as.factor(as.numeric(df_all$y_c))
+  df_all$y_c     <- as.factor(df_all$y_c)
   
   # now, we have df_all with the following columns:
   #
