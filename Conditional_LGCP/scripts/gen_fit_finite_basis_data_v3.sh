@@ -31,7 +31,7 @@ adj_type_params=(
 # comment 1
 
 n_large=100
-ns=(50 100)
+ns=(50)
 n_group=10
 groups=$(( n_large / n_group ))
 method="CPGM"
