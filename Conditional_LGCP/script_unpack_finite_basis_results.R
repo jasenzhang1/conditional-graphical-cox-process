@@ -28,29 +28,37 @@ beta_truth  <- args[6]
 
 # data_folder <- 'simu_data'
 # base_folder <- 'simu_results'
-# adj_type <- 'flexible_block_banded_c0'
+# adj_type <- 'flexible_block_banded_v2'
 # method <- 'CPGM'
 # X_truth <- T
 # beta_truth <- T
 
 
-n_large <- 100
-n <- 50
+n_large <- 1500
+n <- 1500
 
 # 3) heatmaps of certain metrics 
 
-graph_ids <- c('11', '12',
-               '22',    # rho_i
-               '25',    # rho_ij [1,2]
-               '32',    # g_ij [1,2]
-               '112',   # w_mat  (P_HS)
-               '113')   # roc
+exploratory_ids <- c('01', '02', '22', '23', '29', '41', '44', 
+                     '50', '51' # check on beta_truth
+                     ) 
+
+bivariate_ids <- c('25', '32')  # rho_ij and g_ij
+
+final_ids <- c('58',   # KL_cor assembled
+               '95',   # C_HS 
+               '112',  # w_mat
+               '113',  # roc
+               '114')  # adj_mat
+
 
 truth_file_name <- paste0(data_folder, '/', adj_type, '_n_', n_large, '_truths.RData')
 estimates_file_name <- paste0(base_folder, '/', adj_type, '/', method, '/', adj_type, '_n_', n, '.RData')
 
 # 28e - visualize results over y_c
-g_heatmaps <- visualize_finite_basis(truth_file_name, estimates_file_name, graph_ids, beta_truth, X_truth)
+g_heatmaps_exploratory <- visualize_finite_basis(truth_file_name, estimates_file_name, exploratory_ids, beta_truth, X_truth)
+g_heatmaps_bivariate   <- visualize_finite_basis(truth_file_name, estimates_file_name, bivariate_ids, beta_truth, X_truth)
+g_heatmaps_final       <- visualize_finite_basis(truth_file_name, estimates_file_name, final_ids, beta_truth, X_truth)
 
 # ------------------------------------------------------------------------------
 # 4) convergence of intermediate estimators (28b)
@@ -60,13 +68,15 @@ j <- 2
 results_folder <- paste0(base_folder, '/', adj_type, '/', method)
 metrics_summary <- visualize_metrics_finite_basis(truth_file_name, results_folder, i, j)
 
+# ------------------------------------------------------------------------------
+# 5) print table and figure
 results_folder_2 <- paste0(results_folder, '/export')
 
 if (!dir.exists(results_folder_2)) {
   dir.create(results_folder_2)
 }
 
-# print table and figure
+
 write.csv(metrics_summary$metric_table, paste0(results_folder_2, "/metrics_summary.csv"), row.names = FALSE)
 
 
