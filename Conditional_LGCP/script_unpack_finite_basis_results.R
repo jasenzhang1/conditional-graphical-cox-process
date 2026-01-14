@@ -32,10 +32,10 @@ beta_truth  <- args[6]
 # method <- 'CPGM'
 # X_truth <- T
 # beta_truth <- T
+# eigen_troubleshoot <- T
 
-
-n_large <- 1500
-n <- 1500
+n_large <- 1000
+n <- 1000
 
 # 3) heatmaps of certain metrics 
 
@@ -56,9 +56,9 @@ truth_file_name <- paste0(data_folder, '/', adj_type, '_n_', n_large, '_truths.R
 estimates_file_name <- paste0(base_folder, '/', adj_type, '/', method, '/', adj_type, '_n_', n, '.RData')
 
 # 28e - visualize results over y_c
-g_heatmaps_exploratory <- visualize_finite_basis(truth_file_name, estimates_file_name, exploratory_ids, beta_truth, X_truth)
-g_heatmaps_bivariate   <- visualize_finite_basis(truth_file_name, estimates_file_name, bivariate_ids, beta_truth, X_truth)
-g_heatmaps_final       <- visualize_finite_basis(truth_file_name, estimates_file_name, final_ids, beta_truth, X_truth)
+g_heatmaps_exploratory <- visualize_finite_basis(truth_file_name, estimates_file_name, exploratory_ids, beta_truth, X_truth, eigen_troubleshoot)
+g_heatmaps_bivariate   <- visualize_finite_basis(truth_file_name, estimates_file_name, bivariate_ids,   beta_truth, X_truth, eigen_troubleshoot)
+g_heatmaps_final       <- visualize_finite_basis(truth_file_name, estimates_file_name, final_ids,       beta_truth, X_truth, eigen_troubleshoot)
 
 # ------------------------------------------------------------------------------
 # 4) convergence of intermediate estimators (28b)
