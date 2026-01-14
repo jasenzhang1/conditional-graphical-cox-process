@@ -630,7 +630,7 @@ step_4_eigendecomp_troubleshoot <- function(step_3, p){
   # ----------------------------------------------------------------------------
   
   basis_settings <- c(T, T, F)
-  constant_d_settings <- c(2, NULL, NULL)
+  constant_d_settings <- c(2, NA, NA)
 
   
   result <- list()
@@ -653,7 +653,7 @@ step_4_eigendecomp_troubleshoot <- function(step_3, p){
       temp_var <- prep_eigendecomposition_ii(step_3[[input_names[i]]], p)  # prep
       
       if(is.na(constant_d)){
-        result[[name_i]] <- compute_eigendecomposition_ii(temp_var, same_basis)   
+        result[[name_i]] <- compute_eigendecomposition_ii(temp_var, same_basis, constant_d = NULL)   
       } else{
         result[[name_i]] <- compute_eigendecomposition_ii(temp_var, same_basis, constant_d)     
       }

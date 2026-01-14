@@ -23,8 +23,8 @@ adj_type_params=(
   #"sparse_v2 0 1 2 0.3 -1 2 0.01"
   #"block_banded_v2 0 1 0.4 0.8 2"
   #"block_banded_c0 0.5 0.5 2"
-  "flexible_block_banded_c0 0.5 6 2 2.9 0.9"
-  "flexible_block_banded_c2 0 1 6 2 2.9 0.9"
+  #"flexible_block_banded_c0 0.5 6 2 2.9 0.9"
+  #"flexible_block_banded_c2 0 1 6 2 2.9 0.9"
   "flexible_block_banded_v2 0 1 6 2 1.5 2.9 0.5 0.9"
 )
 
@@ -157,7 +157,9 @@ for entry in "${adj_type_params[@]}"; do
   
   echo "[STEP 2] Fitting dataset..." | tee -a "$outfile"
   echo "" | tee -a "$outfile"
-  echo "Estimating the following sample sizes: ${ns[@]}"
+  echo "Estimating the following sample sizes: ${ns[@]}" | tee -a "$outfile"
+  echo "" | tee -a "$outfile"
+  echo "===================================================" >> "$outfile"
   echo "" | tee -a "$outfile"
   
   # Loop over all subsets of n
@@ -165,7 +167,7 @@ for entry in "${adj_type_params[@]}"; do
   
 
       
-      echo "Part 1 of Estimating n=$n Starting" >> "$outfile"
+      echo "[PART 1] of Estimating n=$n Starting" >> "$outfile"
       
   
       
@@ -184,6 +186,7 @@ for entry in "${adj_type_params[@]}"; do
       
       echo "" | tee -a "$outfile"
       echo "===================================================" >> "$outfile"
+      echo "" | tee -a "$outfile"
       
       
       # Extract n_queries from output
@@ -202,12 +205,15 @@ for entry in "${adj_type_params[@]}"; do
       echo "num pairwise processes=$n_ij" >> "$outfile"
       echo "" | tee -a "$outfile"
       echo "===================================================" >> "$outfile"
+      echo "" | tee -a "$outfile"
       
       # ----------------
       # Part 2 - parallelize each y_c_query
       # ----------------
       
-      echo "Part 2 of Estimating n=$n Starting" >> "$outfile"
+      echo "[PART 2] of Estimating n=$n Starting" >> "$outfile"
+      echo "" | tee -a "$outfile"
+      
       for j in $(seq 1 "$n_queries"); do
   
           echo "Query $j out of $n_queries" >> "$outfile"
