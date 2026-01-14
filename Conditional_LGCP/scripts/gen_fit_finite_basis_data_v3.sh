@@ -24,14 +24,13 @@ adj_type_params=(
   #"block_banded_v2 0 1 0.4 0.8 2"
   #"block_banded_c0 0.5 0.5 2"
   "flexible_block_banded_c0 0.5 6 2 2.9 0.9"
-  #"flexible_block_banded_c2 0 1 6 2 2.9 0.9"
-  #"flexible_block_banded_v2 0 1 6 2 1.5 2.9 0.5 0.9"
+  "flexible_block_banded_c2 0 1 6 2 2.9 0.9"
+  "flexible_block_banded_v2 0 1 6 2 1.5 2.9 0.5 0.9"
 )
 
-# comment 1
 
-n_large=3000
-ns=(3000)
+n_large=1000
+ns=(500 1000)
 n_group=10
 groups=$(( n_large / n_group ))
 method="CPGM"
