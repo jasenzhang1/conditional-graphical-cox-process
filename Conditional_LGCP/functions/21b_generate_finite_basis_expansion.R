@@ -3,40 +3,44 @@ source('functions/00c_block_matrix_arrange.R')
 
 # here are all the functions needed to generate X(t) from a finite basis
 
-trig_basis <- function(d){
-  
+trig_basis <- function(d) {
   # ----------------------------------------------------------------------------
-  #
-  # obtain the basis of trig functions up to d
-  #
-  # (1)  1
-  # (2)  sin(pi t)
-  # (3)  cos(pi t)
-  # (4)  sin(2 pi t)
-  # etc...
-  # 
-  #
-  # inputs:
-  #
-  # - d  (integer)    number of components
-  #
-  #
-  #
-  # output:
-  #
-  # - basis_list   (list)   list of the first d basis functions
-  #
+  # (1) 1
+  # (2) sqrt(2) * sin(2 * 1 * pi * t)
+  # (3) sqrt(2) * cos(2 * 1 * pi * t)
+  # (4) sqrt(2) * sin(2 * 2 * pi * t) ...
   # ----------------------------------------------------------------------------
   
-  basis_list <- list(function(t) rep(1, length(t)))
+  # Initialize with the constant basis function
+  basis_list <- vector("list", d)
+  basis_list[[1]] <- function(t) rep(1, length(t))
+  
   if (d == 1) return(basis_list)
   
-  # Use frequencies 1:(d-1) but actual argument is 2*pi*k*t
-  trig_funcs <- lapply(1:(d-1), function(k) {
-    function(t) sqrt(2) * sin(2 * k * pi * t)
-  })
+  # We fill the list starting from index 2
+  # freq_idx tracks the integer k (1, 2, 3...)
+  for (i in 2:d) {
+    # Frequency k increments every 2 functions (for sin/cos pairs)
+    k <- floor(i / 2)
+    
+    # Use a 'factory' pattern to force the value of k into the function's scope
+    # This prevents the 30th function from "mirroring" the 2nd.
+    if (i %% 2 == 0) {
+      # Even index: Sine
+      basis_list[[i]] <- (function(k_val) {
+        force(k_val)
+        function(t) sqrt(2) * sin(2 * k_val * pi * t)
+      })(k)
+    } else {
+      # Odd index: Cosine
+      basis_list[[i]] <- (function(k_val) {
+        force(k_val)
+        function(t) sqrt(2) * cos(2 * k_val * pi * t)
+      })(k)
+    }
+  }
   
-  basis_list <- c(basis_list, trig_funcs)
+  return(basis_list)
 }
 
 
