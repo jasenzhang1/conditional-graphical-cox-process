@@ -726,9 +726,12 @@ result_43_prep <- function(step_4){
 }
 
 # reconstruction error histogram
-result_44_prep <- function(step_3, step_4, p, X_truth){
+result_44_prep <- function(step_3, step_4, p, X_truth, eigen_troubleshoot){
   
-  if(! X_truth){
+  if(! eigen_troubleshoot){
+    
+  
+    # prep
     g_ii_truth          <- prep_eigendecomposition_ii(step_3$g_ij_truth, p)
     g_ii_est            <- prep_eigendecomposition_ii(step_3$g_ij_est, p) 
     
@@ -736,28 +739,45 @@ result_44_prep <- function(step_3, step_4, p, X_truth){
     g_ii_truth_decomp           <- validate_eigendecomposition_ii(g_ii_truth,          step_4$eigen_decomp_truth)
     g_ii_est_decomp             <- validate_eigendecomposition_ii(g_ii_est,            step_4$eigen_decomp_est) 
     
-    # return tensors
     error_list <- list(error_truth = as.numeric(g_ii_truth - g_ii_truth_decomp),
                        error_est   = as.numeric(g_ii_est - g_ii_est_decomp))
     
+    if(X_truth){
+      #prep and validate X_truth
+      g_ii_X_truth        <- prep_eigendecomposition_ii(step_3$g_ij_X_truth, p) 
+      g_ii_X_truth_decomp         <- validate_eigendecomposition_ii(g_ii_X_truth,        step_4$eigen_decomp_X_truth) 
+      
+      error_list[['error_X_truth']] <- as.numeric(g_ii_X_truth - g_ii_X_truth_decomp)
+    } 
+    
     return(error_list)
   } else{
-    g_ii_truth          <- prep_eigendecomposition_ii(step_3$g_ij_truth, p)
-    g_ii_est            <- prep_eigendecomposition_ii(step_3$g_ij_est, p) 
-    g_ii_X_truth        <- prep_eigendecomposition_ii(step_3$g_ij_X_truth, p) 
+    step_3_names <- names(step_3)
+    step_4_names <- names(step_4)
     
-    # validate
-    g_ii_truth_decomp           <- validate_eigendecomposition_ii(g_ii_truth,          step_4$eigen_decomp_truth)
-    g_ii_est_decomp             <- validate_eigendecomposition_ii(g_ii_est,            step_4$eigen_decomp_est) 
-    g_ii_X_truth_decomp         <- validate_eigendecomposition_ii(g_ii_X_truth,        step_4$eigen_decomp_X_truth) 
+    # do truth first and get it out of the way
+    g_ii_truth         <- prep_eigendecomposition_ii(step_3$g_ij_truth, p)
+    g_ii_truth_decomp  <- validate_eigendecomposition_ii(g_ii_truth,          step_4$eigen_decomp_truth)
+    error_list         <- list(error_truth = as.numeric(g_ii_truth - g_ii_truth_decomp))
     
-    # return tensors
-    error_list <- list(error_truth   = as.numeric(g_ii_truth - g_ii_truth_decomp),
-                       error_est     = as.numeric(g_ii_est - g_ii_est_decomp),
-                       error_X_truth = as.numeric(g_ii_X_truth - g_ii_X_truth_decomp))
+    step_4_names <- setdiff(step_4_names, 'eigen_decomp_truth')
+    step_3_names <- setdiff(step_3_names, 'g_ij_truth')
+    suffix_names <- step_00_grab_ID(step_4_names, prefix = 'eigen_decomp')
     
+    
+    step_3_names <- rep(step_3_names, each = 3) # for each eig1 eig2 eig3
+    
+    for(idx in 1:length(step_3_names)){
+      g_ii_idx         <- prep_eigendecomposition_ii(step_3[[step_3_names[idx]]], p)
+      g_ii_idx_decomp  <- validate_eigendecomposition_ii(g_ii_idx,          step_4[[step_4_names[idx]]])
+      
+      
+      error_name <- paste0('error_', suffix_names[idx])
+      error_list[[error_name]] <- as.numeric(g_ii_idx - g_ii_idx_decomp)
+    }
     
     return(error_list)
+    
   }
 }
 
