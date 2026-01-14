@@ -959,7 +959,8 @@ full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, sett
   
   
   step_4 <- tryCatch({
-    step_4_eigendecomp(step_3, p, same_basis, constant_d)
+    #step_4_eigendecomp(step_3, p, same_basis, constant_d)
+    step_4_eigendecomp_troubleshoot(step_3, p)
   }, error = function(e) {
     cat("Error in step_4, saving dataset...\n")
     save(dataset, file = file.path(temp_file_dir, datafile_error_name))
@@ -969,7 +970,8 @@ full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, sett
   # 3) steps 5: obtain KL_cor and KL_prec
   
 
-  step_5 <- step_5_KL_covariance(step_3, step_4)
+  #step_5 <- step_5_KL_covariance(step_3, step_4)
+  step_5 <- step_5_KL_covariance_eigencases(step_3, step_4)
   step_5b <- step_5b_KL_correlation(step_5, p)
   step_5c <- step_5c_KL_precision(step_5b, p)
   

@@ -599,6 +599,70 @@ step_4_eigendecomp <- function(step_3, p, same_basis, constant_d){
   return(result)
 }
 
+step_4_eigendecomp_troubleshoot <- function(step_3, p){
+  
+  
+  # ----------------------------------------------------------------------------
+  # 
+  # GOAL: copy of 'step_4_eigendecomp', but we calculate all 3 settings:
+  #
+  # 1) same_basis = T, constant_d = 2
+  # 2) same_basis = T, constant_d = NULL
+  # 3) same_basis = F, constant_d = NULL
+  #
+  # inputs:
+  #
+  # - step_3
+  #   - g_ij_suffix                (list of m x m matrices for i_j entries)
+  #
+  # - p                            (scalar)
+  #
+  #
+  # outputs:
+  #
+  # - list of:
+  #   - eigen_decomp_suffix             (list of 3 things)
+  #     - [[1]] eigenvalues            (list of p vectors of eigenvalues)
+  #     - [[2]] eigenvectors           (list of p matrices of m x d_i)
+  #     - [[3]] n_dims                 (list of p integers denoting d_i)
+  #
+  #
+  # ----------------------------------------------------------------------------
+  
+  basis_settings <- c(T, T, F)
+  constant_d_settings <- c(2, NULL, NULL)
+
+  
+  result <- list()
+  
+  # 1) grab names
+  
+  core_names <- step_00_grab_ID(names(step_3), 'g_ij')
+  
+  input_names <- names(step_3)
+  
+  # 2) for each core name `est`, `X_truth` etc... get the resulting name, apply the function on it, and store it
+  for(i in 1:length(core_names)){
+    
+    for(j in 1:length(basis_settings)){
+      same_basis <- basis_settings[j]
+      constant_d <- constant_d_settings[j]
+      
+      name_i <- paste0('eigen_decomp_', core_names[i], '_eig', j)
+      
+      temp_var <- prep_eigendecomposition_ii(step_3[[input_names[i]]], p)  # prep
+      
+      if(is.na(constant_d)){
+        result[[name_i]] <- compute_eigendecomposition_ii(temp_var, same_basis)   
+      } else{
+        result[[name_i]] <- compute_eigendecomposition_ii(temp_var, same_basis, constant_d)     
+      }
+    }
+  }
+  
+  return(result)
+}
+
 step_5_KL_expansion <- function(step_1, step_4, kernel_params, time_grid, time_grid_est, ncores){
 
   
@@ -751,6 +815,59 @@ step_5_KL_covariance <- function(step_3, step_4){
     step_4_i <- input_names_step_4[i]
     
     name_i <- paste0('KL_cov_', core_names[i])
+    
+    result[[name_i]] <- estimate_KL_covariance(step_3[[step_3_i]], step_4[[step_4_i]]$eigenfunctions)     
+    
+  }
+  
+  return(result)
+  
+}
+
+step_5_KL_covariance_eigencases <- function(step_3, step_4){
+  
+  # ----------------------------------------------------------------------------
+  # 
+  # GOAL: step_5_KL_covariance troubleshooting
+  #
+  # inputs:
+  #
+  # - step_3
+  #   - g_ij_suffix                (list of m x m matrices for i_j entries)
+  # 
+  # - step_4
+  #   - eigen_decomp_suffix_eigk               (list of 3 things)
+  #     - [[1]] eigenvalues  (list of p vectors of eigenvalues)
+  #     - [[2]] eigenvectors (list of p matrices of m x d_i)
+  #     - [[3]] n_dims       (list of p integers denoting d_i)
+  #
+  # NOTE: eigk is either eig1, eig2, or eig3
+  #
+  #
+  #
+  # outputs:
+  #
+  # - list of:
+  #   - KL_cov_suffix           (list of d_i x d_j matrices for i_j entries)
+  #
+  # ----------------------------------------------------------------------------
+  
+  result <- list()
+  
+  # 1) grab names
+  
+  core_names_step_4 <- step_00_grab_ID(names(step_4), 'eigen_decomp')
+  
+  input_names_step_3 <- rep(names(step_3), each = 3)
+  input_names_step_4 <- names(step_4)
+  
+  # 2) for each core name `est`, `X_truth` etc... get the resulting name, apply the function on it, and store it
+  for(i in 1:length(core_names_step_4)){
+    
+    step_3_i <- input_names_step_3[i]
+    step_4_i <- input_names_step_4[i]
+    
+    name_i <- paste0('KL_cov_', core_names_step_4[i])
     
     result[[name_i]] <- estimate_KL_covariance(step_3[[step_3_i]], step_4[[step_4_i]]$eigenfunctions)     
     
