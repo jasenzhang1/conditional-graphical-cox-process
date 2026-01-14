@@ -41,11 +41,22 @@ if(model_type == 'mice'){
   method <- args[5]
   X_truth <- as.logical(args[6])
   cont_ind <- as.numeric(args[7])
+  same_basis <- as.logical(args[8])   # do we use the same basis for each process for eigendecomposition?
+  raw_d <- args[9]   # do we use the same amount of eigencomponents for each process? If so, which number. either a number or null
+    
+  # 2. Check if it's the string "NULL", otherwise convert to numeric
+  if (raw_d == "NULL" || is.na(raw_d)) {
+    constant_d <- NULL
+  } else {
+    constant_d <- as.numeric(raw_d)
+  }
   
   setting_info_list <- list(n_large = n_large,
                             n = n,
                             adj_type = adj_type,
-                            method = method)
+                            method = method,
+                            same_basis = same_basis,
+                            constant_d = constant_d)
   
   temp_file_dir <- 'temp_data/simu'
   mouse <- F

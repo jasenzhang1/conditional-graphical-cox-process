@@ -43,6 +43,9 @@ n_query=2
 beta_0=4.8
 beta_truth="T"
 X_truth="T"
+same_basis="T"  # do we use the same trig basis for each process during estimation
+constant_d=2   # a numboer or "NULL"
+
 
 function wait_for_slot {
     # Wait until the number of background jobs is strictly less than max_jobs
@@ -252,7 +255,7 @@ for entry in "${adj_type_params[@]}"; do
           wait_for_slot
           
           # temp_data/simu/part3...
-          Rscript script_fit_mice_data_part2b.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$X_truth" "$j" >> "$outfile" 2>&1
+          Rscript script_fit_mice_data_part2b.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$X_truth" "$j" "$same_basis" "$constant_d" >> "$outfile" 2>&1
           echo "Query $j out of $n_queries [4/4] finished" >> "$outfile"
       done
       
