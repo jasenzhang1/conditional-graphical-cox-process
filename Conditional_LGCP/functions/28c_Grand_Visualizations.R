@@ -90,7 +90,7 @@ rearrange_plots <- function(g_list){
 
 # everything over all query_id
 
-visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth){
+visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth, eigen_troubleshoot){
   
   
   # ----------------------------------------------------------------------------
@@ -286,7 +286,7 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth)
   
   # reconstruction error histogram 
   if('44' %in% graph_ids){ 
-    g_list <- lapply(1:length(step_3), function(i){result_44_prep(step_3[[i]], step_4[[i]], p, X_truth)})
+    g_list <- lapply(1:length(step_3), function(i){result_44_prep(step_3[[i]], step_4[[i]], p, X_truth, eigen_troubleshoot)})
     names(g_list) <- y_c_names
     
     graphs[['g_44']] <- result_histogram_prep(g_list, 'error', data_format = 'regular', nbins = 20)
@@ -421,23 +421,45 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth)
   
   # P_HS (w_mat) for all pxp blocks - delete est and X_truth
   if('112' %in% graph_ids){
+    
+    # group names - truth_names, GIC_names, and est_names
+    step_11_names <- names(step_11[[1]])
+    truth_names   <- step_11_names[grepl("truth$", step_11_names)]
+    step_11_names <- setdiff(step_11_names, truth_names)
+    
+    KL_GIC_est_names  <- step_11_names[grepl("^w_mat_KL_GIC_est", step_11_names)] 
+    KL_GIC_names  <- step_11_names[grepl("^w_mat_KL_GIC", step_11_names)]  
+    est_names <- setdiff(step_11_names, KL_GIC_names)
+
+     
+    
+    # truths
     step_11_v2 <- step_11
     step_11_v2 <- lapply(step_11_v2, function(x) {
-      x[!names(x) %in% c("w_mat_est", "w_mat_X_truth", 'w_mat_KL_X_truth')]
+      x[names(x) %in% truth_names]
     })
     graphs[['g_112b']] <- result_heatmap_nonblock_prep(step_11_v2, 'w_mat', data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, zmid = 0)
     
-    step_11_v3 <- step_11_v2
+    # estimates
+    step_11_v3 <- step_11
     step_11_v3 <- lapply(step_11_v3, function(x) {
-      x[!names(x) %in% c("w_mat_KL_GIC_est", 'w_mat_KL_GIC_X_truth')]
+      x[names(x) %in% est_names]
     })
     graphs[['g_112c']] <- result_heatmap_nonblock_prep(step_11_v3, 'w_mat', data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, zmid = 0)
     
-    step_11_v4 <- step_11_v3
+    # KL_GIC
+    step_11_v4 <- step_11
     step_11_v4 <- lapply(step_11_v4, function(x) {
-      x[!names(x) %in% c("w_mat_KL_est")]
+      x[names(x) %in% KL_GIC_names]
     })
     graphs[['g_112d']] <- result_heatmap_nonblock_prep(step_11_v4, 'w_mat', data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, zmid = 0)
+    
+    # KL_GIC_est
+    step_11_v5 <- step_11
+    step_11_v5 <- lapply(step_11_v5, function(x) {
+      x[names(x) %in% KL_GIC_est_names]
+    })
+    graphs[['g_112e']] <- result_heatmap_nonblock_prep(step_11_v5, 'w_mat', data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, zmid = 0)
   } 
   
   # ROC curves
