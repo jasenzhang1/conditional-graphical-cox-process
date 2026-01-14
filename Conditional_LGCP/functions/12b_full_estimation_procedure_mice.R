@@ -959,7 +959,7 @@ full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, sett
   
   
   step_4 <- tryCatch({
-    step_4_eigendecomp(step_3, p)
+    step_4_eigendecomp(step_3, p, same_basis, constant_d)
   }, error = function(e) {
     cat("Error in step_4, saving dataset...\n")
     save(dataset, file = file.path(temp_file_dir, datafile_error_name))
