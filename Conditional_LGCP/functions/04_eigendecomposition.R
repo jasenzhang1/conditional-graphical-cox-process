@@ -78,8 +78,8 @@ prep_eigendecomposition_ii <- function(G_hat, p){
   #
   # input:
   #
-  # - G_hat (list of i_j entries)
-  # - p     (integer)
+  # - G_hat        (list of i_j entries)
+  # - p            (integer)
   #
   # 
   # output:
@@ -104,7 +104,7 @@ prep_eigendecomposition_ii <- function(G_hat, p){
   return(G_mat)
 }
 
-compute_eigendecomposition_ii <- function(G_hat, var_explained = 0.999) {
+compute_eigendecomposition_ii <- function(G_hat, same_basis, constant_d, var_explained = 0.95) {
   
   # ----------------------------------------------------------------------------
   #
@@ -115,9 +115,10 @@ compute_eigendecomposition_ii <- function(G_hat, var_explained = 0.999) {
   #
   # Input: 
   # 
-  # - G_hat (m x m array) (m x m x p)
-  #                            
-  # - var_explained (percentage)
+  # - G_hat        (m x m x p matrix)
+  # - same_basis   (boolean)            if true, use the trig basis in finite_basis procedure
+  # - constant_d   (integer)            if not null, each process gets d eigencomponents                        
+  # - var_explained (percentage)        used to calculate number of eigencomponents if constant_d = null
   # 
   # 
   # Output: 
@@ -128,68 +129,107 @@ compute_eigendecomposition_ii <- function(G_hat, var_explained = 0.999) {
   #
   # ----------------------------------------------------------------------------
   
+  if(same_basis){
+    source('functions/21b_generate_finite_basis_expansion.R')
+  }
+  
   p <- dim(G_hat)[3]
   m <- dim(G_hat)[1]
-  Delta <- 1/m
+  
+    
+  Delta <- 1/m         # integration constant
+  max_possible_d <- m  # Helper to ensure we don't exceed m components
   
   eigenvalues <- list()
   eigenfunctions <- list()
   eigenfunctions_regular <- list()
   n_dims <- list()
   
+
+  
   for (i in 1:p) {
-    # Extract marginal covariance matrix: m x m
-    G_ii_norm <- G_hat[, , i] / m
+    
+    G_ii <- G_hat[, , i]
 
-    # Ensure symmetry for numerical stability
-    G_ii_norm <- (G_ii_norm + t(G_ii_norm)) / 2
+    # Ensure symmetry
+    G_ii <- (G_ii + t(G_ii)) / 2
     
-    # Compute eigendecomposition
-    # eigen() returns: values (m x 1), vectors (m x m)
-    # eigen_result <- eigen(G_ii, symmetric=TRUE)
-    
-    eigen_result <- tryCatch({
-      eigen(G_ii_norm, symmetric = TRUE)
-    }, error = function(e) {
-      cat("Error occurred in eigen() of compute_eigendecomposition_ii in step 4:\n")
-      print(e$message)
-      cat("\nG_ii contains:\n")
-      print(G_ii_norm)
-      cat("\nSummary of G_ii:\n")
-      print(summary(as.vector(G_ii_norm)))
-      cat("\nAny NA values:", any(is.na(G_ii_norm)), "\n")
-      cat("Any Inf values:", any(is.infinite(G_ii_norm)), "\n")
+    if(same_basis){
+      # ---------------------------------------------------------
+      # SCENARIOS 1 & 2: Fixed Trig Basis Projection
+      # ---------------------------------------------------------
       
-      stop(e)  # Re-throw the error after printing
-    })
-    
-    
-    # store and massage eigendecomposition
-    
-    etas <- eigen_result$vectors    # m x m matrix
-    lambdas <- eigen_result$values  # m x 1 vector
-    lambdas2 <- lambdas
-    lambdas2[lambdas2 < 0] <- 0
-    
-    cum_var <- cumsum(lambdas2) / sum(lambdas2)
-    d_i <- which(cum_var > var_explained)[1]
-    
+      # Determine how many trig functions to generate
+      # If constant_d is NULL, we generate up to max and truncate later
+      d_to_gen <- if(!is.null(constant_d)) constant_d else max_possible_d
+      
+      # Get basis functions from your helper
+      basis_fns <- trig_basis(d_to_gen)
+      
+      # Convert function list to m x d matrix and normalize for the grid
+      time_grid <- make_time_grid(m)
+      Phi <- trig_basis_realization(basis_fns, time_grid) # m x d
 
-    # Keep only top d components
-    
-    eigenvalues[[i]] <- lambdas[1:d_i]        # d x 1 vector
-    
-    if(d_i == 1){
-      eigenfunctions[[i]] <- matrix(etas[, 1:d_i], nrow = m)
+      
+      # We calculate eigenvalues via the quadratic form: lambda_a = phi_a' * G * phi_a * Delta^2
+      # However, since G_hat usually incorporates one Delta in intensity estimation, 
+      # we check the scaling. Standard discrete projection:
+      lambdas_trig <- sapply(1:d_to_gen, function(a) {
+        phi_a <- Phi[, a]
+        as.numeric(t(phi_a) %*% G_ii %*% phi_a) * (Delta^2)
+      })
+      
+      # Scenario 2: If constant_d is NULL, find d_i based on var_explained
+      if (is.null(constant_d)) {
+        lambdas_trig[lambdas_trig < 0] <- 0
+        cum_var <- cumsum(lambdas_trig) / sum(lambdas_trig)
+        d_i <- which(cum_var >= var_explained)[1]
+        if(is.na(d_i)) d_i <- d_to_gen
+      } else {
+        d_i <- constant_d
+      }
+      
+      eigenvalues[[i]] <- lambdas_trig[1:d_i]
+      eigenfunctions[[i]] <- matrix(Phi[, 1:d_i], nrow = m)
+      n_dims[[i]] <- d_i
     } else{
-      eigenfunctions[[i]] <- etas[, 1:d_i]      # m x d matrix
-    }  
-
-    # keep it so that their mangitudes stay the same regardless of m
-    eigenfunctions[[i]] <- eigenfunctions[[i]] / sqrt(Delta)
-
-    
-    n_dims[[i]] <- d_i
+      # ---------------------------------------------------------
+      # SCENARIOS 3 & 4: Empirical PCA (Standard Eigendecomposition)
+      # ---------------------------------------------------------
+      
+      # Standardize G for eigen() to account for discretization
+      G_ii_norm <- G_ii * Delta 
+      
+      eigen_result <- tryCatch({
+        eigen(G_ii_norm, symmetric = TRUE)
+      }, error = function(e) {
+        stop(paste("Eigen error in process", i, ":", e$message))
+      })
+      
+      etas <- eigen_result$vectors    # m x m
+      lambdas <- eigen_result$values  # m x 1
+      lambdas[lambdas < 0] <- 0
+      
+      # Determine truncation point d_i
+      if (!is.null(constant_d)) {
+        # Scenario 4 (Manual Truncation)
+        d_i <- constant_d
+      } else {
+        # Scenario 3 (Variance Explained)
+        cum_var <- cumsum(lambdas) / sum(lambdas)
+        d_i <- which(cum_var >= var_explained)[1]
+      }
+      
+      # Store results
+      eigenvalues[[i]] <- lambdas[1:d_i]
+      
+      # Normalize eigenfunctions so that integral of phi^2 = 1
+      # eigen() vectors have sum(v^2) = 1, so we divide by sqrt(Delta)
+      phi_matrix <- matrix(etas[, 1:d_i], nrow = m) / sqrt(Delta)
+      
+      eigenfunctions[[i]] <- phi_matrix
+      n_dims[[i]] <- d_i
+    }
   }
   
   return(list(eigenvalues = eigenvalues, 
