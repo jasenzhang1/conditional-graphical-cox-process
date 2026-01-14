@@ -549,7 +549,7 @@ step_3_g_ij <- function(step_2, step_2b, i_neq_j){
   
 }
 
-step_4_eigendecomp <- function(step_3, p){
+step_4_eigendecomp <- function(step_3, p, same_basis, constant_d){
   
 
   # ----------------------------------------------------------------------------
@@ -561,9 +561,9 @@ step_4_eigendecomp <- function(step_3, p){
   # - step_3
   #   - g_ij_suffix                (list of m x m matrices for i_j entries)
   #
-  # - p                   (scalar)
-  # - time_grid           (m-dim vector)
-  # - time_grid_est       (m_est-dim vector)
+  # - p                            (scalar)
+  # - same_basis                   (boolean)  does each process use the same basis?
+  # - constant_d                   (integer)  does each process use a constant amount of components, if not null
   #
   #
   # outputs:
@@ -592,7 +592,7 @@ step_4_eigendecomp <- function(step_3, p){
     name_i <- paste0('eigen_decomp_', core_names[i])
     
     temp_var <- prep_eigendecomposition_ii(step_3[[input_names[i]]], p)  # prep
-    result[[name_i]] <- compute_eigendecomposition_ii(temp_var)       # then compute
+    result[[name_i]] <- compute_eigendecomposition_ii(temp_var, same_basis, constant_d)       # then compute
 
   }
   
@@ -709,7 +709,7 @@ step_5_KL_expansion <- function(step_1, step_4, kernel_params, time_grid, time_g
   
 }
 
-step_5_KL_covariance <- function(step_3, step_4, full = T){
+step_5_KL_covariance <- function(step_3, step_4){
   
   # ----------------------------------------------------------------------------
   # 
