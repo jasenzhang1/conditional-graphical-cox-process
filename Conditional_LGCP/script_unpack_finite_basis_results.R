@@ -34,8 +34,8 @@ beta_truth  <- args[6]
 # beta_truth <- T
 # eigen_troubleshoot <- T
 
-n_large <- 1000
-n <- 1000
+n_large <- 1800
+n <- 1800
 
 # 3) heatmaps of certain metrics 
 
