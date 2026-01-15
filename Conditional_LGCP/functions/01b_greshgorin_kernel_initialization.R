@@ -181,7 +181,7 @@ construct_gershgorin_precision_matrix <- function(p, y_c, alpha_functions,
   #   - s               (value)             'sparse' parameter
   #
   # - epsilon           (number)            Minimum absolute value threshold
-  # - delta             (number)           Regularization parameter for spectral adjustment
+  # - delta             (number)            Regularization parameter for spectral adjustment
   #
   #
   # outputs:
