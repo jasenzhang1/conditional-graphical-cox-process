@@ -23,15 +23,16 @@ adj_type_params=(
   #"sparse_v2 0 1 2 0.3 -1 2 0.01"
   #"block_banded_v2 0 1 0.4 0.8 2"
   #"block_banded_c0 0.5 0.5 2"
-  #"flexible_block_banded_c0 0.5 6 2 2.9 0.9"
+  
   "flexible_block_banded_v2 0 1 6 2 1.5 2.9 0.5 0.9"
   "flexible_block_banded_c2 0 1 6 2 2.9 0.9"
+  "flexible_block_banded_c0 0.5 6 2 2.9 0.9"
   
 )
 
 
-n_large=500
-ns=(500)
+n_large=1800
+ns=(600 1200 1800)
 n_group=10
 groups=$(( n_large / n_group ))
 method="CPGM"
