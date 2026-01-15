@@ -77,7 +77,9 @@ trig_basis_prec_mat <- function(d, p, y_c_k, adj_type, adj_params){
   # ----------------------------------------------------------------------------
   #
   #
-  # GOAL: define the precision matrix to generate beta's 
+  # GOAL: define the raw precision matrix to generate beta's 
+  # 
+  #       it doesn't necessarily need to invert to a correlation matrix. It just needs to be invertible
   #
   # inputs:
   #
@@ -90,29 +92,29 @@ trig_basis_prec_mat <- function(d, p, y_c_k, adj_type, adj_params){
   #
   # outputs:
   #
-  # cov_mat   (pd x pd matrix)
+  # - theta_pd   (pd x pd matrix)
   #
   # ----------------------------------------------------------------------------
   
-  if(! adj_type %in% c('block_banded_c0', 
-                       'block_banded_c2', 
-                       'block_banded_v2',
-                       'flexible_block_banded_c0', 
-                       'flexible_block_banded_c2',
-                       'flexible_block_banded_v2')){
+  adj1 <- c('block_banded', 'flexible_block_banded', 'hub_block', 'complete_block')
+  adj2 <- c('c0', 'c2', 'v2', 'j2')
+  valid_adj_types <- paste0(rep(adj1, each = length(adj2)), '_', rep(adj2, length(adj1)))
+  
+  if(! adj_type %in% valid_adj_types){
     stop('Error 21b: adj_type not available')
   }
   if(! length(y_c_k) == 1){
     stop('Error 21b: y_c_k should be a scalar')
   }
   
+  # 1) block_banded
   
-  if(adj_type %in% c('block_banded_v2', 'block_banded_c2', 'block_banded_c0')){
+  if(adj_type %in% paste0('block_banded_', adj2)){
     
     # Theta_{i,i}   = beta_var * I_d 
     # Theta_{i,i+1} = J_2_const * [1 0; 0 -1]
     
-    # calculating J_2_const
+    # 1a) calculating J_2_const
     if(adj_type == 'block_banded_v2'){
       y_c_min <- adj_params[1]
       y_c_max <- adj_params[2]
@@ -129,6 +131,8 @@ trig_basis_prec_mat <- function(d, p, y_c_k, adj_type, adj_params){
       J_2_const <- adj_params[2]
       beta_var  <- adj_params[3] 
     }
+    
+    # 1b) assembling
     
     J_2 <- J_2_const * (-1)^(1 + 1:d)
     off_block <- diag(J_2)
@@ -157,14 +161,14 @@ trig_basis_prec_mat <- function(d, p, y_c_k, adj_type, adj_params){
     return(theta_pd)
   }
   
-    
+  # 2) flexible block_banded
 
-  if(adj_type %in% c('flexible_block_banded_v2', 'flexible_block_banded_c2', 'flexible_block_banded_c0')){
+  if(adj_type %in% paste0('flexible_block_banded_', adj2)){
     
     # Theta_{i,i}   = [c1 0; 0 c2]
     # Theta_{i,i+1} = [c3 0; 0 c4]
 
-    # 1) extract c1, c2, c3, c4 constants
+    # 2a) extract c1, c2, c3, c4 constants
 
     if(adj_type == 'flexible_block_banded_c0'){
       c1 <- adj_params[2]
@@ -190,11 +194,31 @@ trig_basis_prec_mat <- function(d, p, y_c_k, adj_type, adj_params){
       c3 <- c3_min + (c3_max - c3_min) * (y_c_k - y_c_min) / (y_c_max - y_c_min)
       c4 <- c4_min + (c4_max - c4_min) * (y_c_k - y_c_min) / (y_c_max - y_c_min)
       
+    } else if (adj_type == 'flexible_block_banded_j2'){
+      
+      # if y_c_k < jump, then c_3, c_4 = 0
+      # if y_c_k > jump, then c_3, c_4 = nonzero values that we specify
+      
+      y_c_min    <- adj_params[1]
+      y_c_max    <- adj_params[2]
+      y_jump     <- adj_params[3]
+      c1         <- adj_params[4]
+      c2         <- adj_params[5]
+      c3_nonzero <- adj_params[6]
+      c4_nonzero <- adj_params[7]
+      if(y_c_k < y_jump){
+        c_3 <- 0
+        c_4 <- 0
+      } else{
+        c_3 <- c3_nonzero
+        c_4 <- c4_nonzero
+      }
+      
     } else{
       stop('Error 21b: adj_type not available')
     }
       
-    # 2) assemble on and off-block matrics and the pd x pd matrix
+    # 2b) assemble on and off-block matrics and the pd x pd matrix
     
     off_block <- diag(c(c3, c4))
     on_block  <- diag(c(c1, c2))
@@ -221,6 +245,285 @@ trig_basis_prec_mat <- function(d, p, y_c_k, adj_type, adj_params){
     return(theta_pd)
 
   }
+  
+  # 3) sparse_block
+  
+  if(adj_type %in% paste0('sparse_block_', adj2)){
+    
+    
+    # Theta_{i,i}   = [c1 0; 0 c2]
+    # Theta_{i,j}   = [c3 0; 0 c4]
+    
+    # but how do we select (i, j) pairs to be nonzero?
+    
+    # 2a) extract c1, c2, c3, c4 constants
+    
+    if(adj_type == 'flexible_block_banded_c0'){
+      c1 <- adj_params[2]
+      c2 <- adj_params[3]
+      c3 <- adj_params[4] 
+      c4 <- adj_params[5]
+    } else if(adj_type == 'flexible_block_banded_c2'){
+      c1 <- adj_params[3]
+      c2 <- adj_params[4]
+      c3 <- adj_params[5] 
+      c4 <- adj_params[6]
+    } else if(adj_type == 'flexible_block_banded_v2'){
+      y_c_min <- adj_params[1]
+      y_c_max <- adj_params[2]
+      c1      <- adj_params[3]
+      c2      <- adj_params[4]
+      c3_min  <- adj_params[5]
+      c3_max  <- adj_params[6]
+      c4_min  <- adj_params[7]
+      c4_max  <- adj_params[8]
+      
+      # interpolation
+      c3 <- c3_min + (c3_max - c3_min) * (y_c_k - y_c_min) / (y_c_max - y_c_min)
+      c4 <- c4_min + (c4_max - c4_min) * (y_c_k - y_c_min) / (y_c_max - y_c_min)
+      
+    } else if (adj_type == 'flexible_block_banded_j2'){
+      
+      # if y_c_k < jump, then c_3, c_4 = 0
+      # if y_c_k > jump, then c_3, c_4 = nonzero values that we specify
+      
+      y_c_min    <- adj_params[1]
+      y_c_max    <- adj_params[2]
+      y_jump     <- adj_params[3]
+      c1         <- adj_params[4]
+      c2         <- adj_params[5]
+      c3_nonzero <- adj_params[6]
+      c4_nonzero <- adj_params[7]
+      if(y_c_k < y_jump){
+        c_3 <- 0
+        c_4 <- 0
+      } else{
+        c_3 <- c3_nonzero
+        c_4 <- c4_nonzero
+      }
+      
+    } else{
+      stop('Error 21b: adj_type not available')
+    }
+    
+    
+    # adj_params = [y_min, y_max, s, connection_prob, base_strength, covariate_strength, epsilon]
+    
+    s <- adj_params[3] 
+    cp <- adj_params[4] 
+    bs <- adj_params[5]
+    cs <- adj_params[6] 
+    epsilon <- adj_params[7] # 0.04
+    
+    
+    # Sparse structure with s=10 connections per node
+    sparse_params <- list(s = s)
+    alpha_funcs_sparse <- create_sparse_alpha(p, s = s, 
+                                              connection_prob = cp, 
+                                              base_strength = bs,
+                                              covariate_strength = cs)
+    
+    result_sparse <- construct_gershgorin_precision_matrix(
+      p, y_c_k, alpha_funcs_sparse,
+      structure_type = "sparse",
+      structure_params = sparse_params, 
+      epsilon = epsilon
+    )
+    
+    result <- prec_mat_massager(result_sparse$precision_matrix)  
+  }
+  
+  # 4) hub block
+  
+  if(adj_type %in% paste0('hub_block_', adj2)){
+    
+    
+    # Theta_{i,i}   = [c1 0; 0 c2]
+    # Theta_{i,j}   = [c3 0; 0 c4]
+    
+    
+    # 2a) extract c1, c2, c3, c4 constants
+    
+    if(adj_type == 'hub_block_c0'){
+      hub_size <- adj_params[2]
+      c1       <- adj_params[3]
+      c2       <- adj_params[4]
+      c3       <- adj_params[5] 
+      c4       <- adj_params[6]
+    } else if(adj_type == 'hub_block_c2'){
+      hub_size <- adj_params[3]
+      c1       <- adj_params[4]
+      c2       <- adj_params[5]
+      c3       <- adj_params[6] 
+      c4       <- adj_params[7]
+    } else if(adj_type == 'hub_block_v2'){
+      y_c_min  <- adj_params[1]
+      y_c_max  <- adj_params[2]
+      hub_size <- adj_params[3]
+      c1       <- adj_params[4]
+      c2       <- adj_params[5]
+      c3_min   <- adj_params[6]
+      c3_max   <- adj_params[7]
+      c4_min   <- adj_params[8]
+      c4_max   <- adj_params[9]
+      
+      # interpolation
+      c3 <- c3_min + (c3_max - c3_min) * (y_c_k - y_c_min) / (y_c_max - y_c_min)
+      c4 <- c4_min + (c4_max - c4_min) * (y_c_k - y_c_min) / (y_c_max - y_c_min)
+      
+    } else if (adj_type == 'hub_block_j2'){
+      
+      # if y_c_k < jump, then c_3, c_4 = 0
+      # if y_c_k > jump, then c_3, c_4 = nonzero values that we specify
+      
+      y_c_min    <- adj_params[1]
+      y_c_max    <- adj_params[2]
+      hub_size   <- adj_params[3]
+      y_jump     <- adj_params[4]
+      c1         <- adj_params[5]
+      c2         <- adj_params[6]
+      c3_nonzero <- adj_params[7]
+      c4_nonzero <- adj_params[8]
+      if(y_c_k < y_jump){
+        c_3 <- 0
+        c_4 <- 0
+      } else{
+        c_3 <- c3_nonzero
+        c_4 <- c4_nonzero
+      }
+      
+    } else{
+      stop('Error 21b: adj_type not available')
+    }
+    
+    # 4b) assemble the hubs
+    
+    adj_df <- data.frame(1:p, 1:p)
+    for(i in 1:p){
+      if(i %% hub_size == 1){
+        current_hub <- i
+      } else{
+        adj_df <- rbind(adj_df, c(current_hub, i))
+      }
+    }
+
+    theta_pd <- matrix(0, nrow = p*d, ncol = p*d)
+    
+    off_block <- diag(c(c3, c4))
+    on_block  <- diag(c(c1, c2))
+    
+
+    for(idx in 1:nrow(adj_df)){
+      i <- adj_df[idx, 1]
+      j <- adj_df[idx, 2]
+
+      # Compute index ranges for block (i,j)
+      row_idx <- ((i - 1) * d + 1):(i * d)
+      col_idx <- ((j - 1) * d + 1):(j * d)
+      
+      
+      if(i == j){
+        theta_pd[row_idx, col_idx] <- on_block
+      } else{
+        theta_pd[row_idx, col_idx] <- off_block
+        theta_pd[col_idx, row_idx] <- off_block
+      }
+    }
+    
+    return(theta_pd) 
+  }
+  
+  # 5) complete block
+  
+  if(adj_type %in% paste0('complete_block_', adj2)){
+    
+    
+    # Theta_{i,i}   = [c1 0; 0 c2]
+    # Theta_{i,j}   = [c3 0; 0 c4]
+    
+    
+    # 2a) extract c1, c2, c3, c4 constants
+    
+    if(adj_type == 'complete_block_c0'){
+      clique_size <- adj_params[2]
+      c1          <- adj_params[3]
+      c2          <- adj_params[4]
+      c3          <- adj_params[5] 
+      c4          <- adj_params[6]
+    } else if(adj_type == 'complete_block_c2'){
+      clique_size <- adj_params[3]
+      c1          <- adj_params[4]
+      c2          <- adj_params[5]
+      c3          <- adj_params[6] 
+      c4          <- adj_params[7]
+    } else if(adj_type == 'complete_block_v2'){
+      y_c_min     <- adj_params[1]
+      y_c_max     <- adj_params[2]
+      clique_size <- adj_params[3]
+      c1          <- adj_params[4]
+      c2          <- adj_params[5]
+      c3_min      <- adj_params[6]
+      c3_max      <- adj_params[7]
+      c4_min      <- adj_params[8]
+      c4_max      <- adj_params[9]
+      
+      # interpolation
+      c3 <- c3_min + (c3_max - c3_min) * (y_c_k - y_c_min) / (y_c_max - y_c_min)
+      c4 <- c4_min + (c4_max - c4_min) * (y_c_k - y_c_min) / (y_c_max - y_c_min)
+      
+    } else if (adj_type == 'complete_block_j2'){
+      
+      # if y_c_k < jump, then c_3, c_4 = 0
+      # if y_c_k > jump, then c_3, c_4 = nonzero values that we specify
+      
+      y_c_min       <- adj_params[1]
+      y_c_max       <- adj_params[2]
+      clique_size   <- adj_params[3]
+      y_jump        <- adj_params[4]
+      c1            <- adj_params[5]
+      c2            <- adj_params[6]
+      c3_nonzero    <- adj_params[7]
+      c4_nonzero    <- adj_params[8]
+      if(y_c_k < y_jump){
+        c_3 <- 0
+        c_4 <- 0
+      } else{
+        c_3 <- c3_nonzero
+        c_4 <- c4_nonzero
+      }
+      
+    } else{
+      stop('Error 21b: adj_type not available')
+    }
+    
+    # 4b) assemble the hubs
+    
+    clique_id <- rep(1:ceiling(p / clique_size), each = clique_size, length.out = p)
+    
+    
+    theta_pd <- matrix(0, nrow = p*d, ncol = p*d)
+    
+    off_block <- diag(c(c3, c4))
+    on_block  <- diag(c(c1, c2))
+    
+    for(i in 1:p){
+      for(j in 1:p){
+        # Compute index ranges for block (i,j)
+        row_idx <- ((i - 1) * d + 1):(i * d)
+        col_idx <- ((j - 1) * d + 1):(j * d)
+        
+        
+        if(i == j){
+          theta_pd[row_idx, col_idx] <- on_block
+        } else if(clique_id[i] == clique_id[j]){
+          theta_pd[row_idx, col_idx] <- off_block
+        }
+      }
+    }
+    
+    return(theta_pd) 
+  }
+  
 }
 
 # invert prec_mat --> cov_mat
