@@ -36,8 +36,8 @@ adj_params <- as.numeric(args[7:length(args)])
 # beta_truth <- T
 # eigen_troubleshoot <- T
 
-n_large <- 100
-n <- 100
+n_large <- 3000
+n <- 2000
 
 
 # 3) heatmaps of certain metrics 

@@ -28,25 +28,25 @@ adj_type_params=(
   #"block_banded_v2 0 1 0.4 0.8 2"
   #"block_banded_c0 0.5 0.5 2"
   
-  #"flexible_block_banded_v2 0 1 6 2 1.5 2.9 0.5 0.9"
-  #"flexible_block_banded_c2 0 1 6 2 2.9 0.9"
-  #"flexible_block_banded_c0 0.5 6 2 2.9 0.9"
-  
-  
   "hub_block_v2 0 1 4 2 2 0.5 0.9 0.5 0.9"
   "hub_block_c2 0 1 4 2 2 0.7 0.7"
   "hub_block_c0 0.5 4 2 2 0.7 0.7"
   "hub_block_j2 0 1 4 0.5 2 2 0.7 0.7"
   
-  #"complete_block_c0 0.5 4 2 2 0.7 0.7"
-  #"complete_block_c2 0 1 4 2 2 0.7 0.7"
-  #"complete_block_v2 0 1 4 2 2 0.5 0.9 0.5 0.9"
-  #"complete_block_j2 0 1 4 0.5 2 2 0.7 0.7"
+  "complete_block_c0 0.5 4 2 2 0.7 0.7"
+  "complete_block_c2 0 1 4 2 2 0.7 0.7"
+  "complete_block_v2 0 1 4 2 2 0.5 0.9 0.5 0.9"
+  "complete_block_j2 0 1 4 0.5 2 2 0.7 0.7"
+  
+  "flexible_block_banded_v2 0 1 2 2 0.5 0.9 0.5 0.9"
+  "flexible_block_banded_c2 0 1 2 2 0.7 0.7"
+  "flexible_block_banded_c0 0.5 2 2 0.7 0.7"  
+  "flexible_block_banded_j2 0 1 0.5 2 2 0.7 0.7"
 )
 
 
-n_large=3000
-ns=(1000 2000 3000)
+n_large=1000
+ns=(1000)
 n_group=10
 groups=$(( n_large / n_group ))
 method="CPGM"
@@ -54,7 +54,7 @@ model_type="simu"  # simu or mice
 max_jobs=60
 min_events=10
 max_events=20000
-n_query=2
+n_query=8
 beta_0=5.4
 beta_truth="T"
 X_truth="T"
