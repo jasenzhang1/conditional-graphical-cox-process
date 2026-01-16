@@ -196,8 +196,8 @@ trig_basis_prec_mat <- function(d, p, y_c_k, adj_type, adj_params){
       
     } else if (adj_type == 'flexible_block_banded_j2'){
       
-      # if y_c_k < jump, then c_3, c_4 = 0
-      # if y_c_k > jump, then c_3, c_4 = nonzero values that we specify
+      # if y_c_k < jump, then c3, c4 = 0
+      # if y_c_k > jump, then c3, c4 = nonzero values that we specify
       
       y_c_min    <- adj_params[1]
       y_c_max    <- adj_params[2]
@@ -207,11 +207,11 @@ trig_basis_prec_mat <- function(d, p, y_c_k, adj_type, adj_params){
       c3_nonzero <- adj_params[6]
       c4_nonzero <- adj_params[7]
       if(y_c_k < y_jump){
-        c_3 <- 0
-        c_4 <- 0
+        c3 <- 0
+        c4 <- 0
       } else{
-        c_3 <- c3_nonzero
-        c_4 <- c4_nonzero
+        c3 <- c3_nonzero
+        c4 <- c4_nonzero
       }
       
     } else{
@@ -284,8 +284,8 @@ trig_basis_prec_mat <- function(d, p, y_c_k, adj_type, adj_params){
       
     } else if (adj_type == 'flexible_block_banded_j2'){
       
-      # if y_c_k < jump, then c_3, c_4 = 0
-      # if y_c_k > jump, then c_3, c_4 = nonzero values that we specify
+      # if y_c_k < jump, then c3, c4 = 0
+      # if y_c_k > jump, then c3, c4 = nonzero values that we specify
       
       y_c_min    <- adj_params[1]
       y_c_max    <- adj_params[2]
@@ -295,11 +295,11 @@ trig_basis_prec_mat <- function(d, p, y_c_k, adj_type, adj_params){
       c3_nonzero <- adj_params[6]
       c4_nonzero <- adj_params[7]
       if(y_c_k < y_jump){
-        c_3 <- 0
-        c_4 <- 0
+        c3 <- 0
+        c4 <- 0
       } else{
-        c_3 <- c3_nonzero
-        c_4 <- c4_nonzero
+        c3 <- c3_nonzero
+        c4 <- c4_nonzero
       }
       
     } else{
@@ -373,8 +373,8 @@ trig_basis_prec_mat <- function(d, p, y_c_k, adj_type, adj_params){
       
     } else if (adj_type == 'hub_block_j2'){
       
-      # if y_c_k < jump, then c_3, c_4 = 0
-      # if y_c_k > jump, then c_3, c_4 = nonzero values that we specify
+      # if y_c_k < jump, then c3, c4 = 0
+      # if y_c_k > jump, then c3, c4 = nonzero values that we specify
       
       y_c_min    <- adj_params[1]
       y_c_max    <- adj_params[2]
@@ -385,11 +385,11 @@ trig_basis_prec_mat <- function(d, p, y_c_k, adj_type, adj_params){
       c3_nonzero <- adj_params[7]
       c4_nonzero <- adj_params[8]
       if(y_c_k < y_jump){
-        c_3 <- 0
-        c_4 <- 0
+        c3 <- 0
+        c4 <- 0
       } else{
-        c_3 <- c3_nonzero
-        c_4 <- c4_nonzero
+        c3 <- c3_nonzero
+        c4 <- c4_nonzero
       }
       
     } else{
@@ -473,8 +473,8 @@ trig_basis_prec_mat <- function(d, p, y_c_k, adj_type, adj_params){
       
     } else if (adj_type == 'complete_block_j2'){
       
-      # if y_c_k < jump, then c_3, c_4 = 0
-      # if y_c_k > jump, then c_3, c_4 = nonzero values that we specify
+      # if y_c_k < jump, then c3, c4 = 0
+      # if y_c_k > jump, then c3, c4 = nonzero values that we specify
       
       y_c_min       <- adj_params[1]
       y_c_max       <- adj_params[2]
@@ -485,11 +485,11 @@ trig_basis_prec_mat <- function(d, p, y_c_k, adj_type, adj_params){
       c3_nonzero    <- adj_params[7]
       c4_nonzero    <- adj_params[8]
       if(y_c_k < y_jump){
-        c_3 <- 0
-        c_4 <- 0
+        c3 <- 0
+        c4 <- 0
       } else{
-        c_3 <- c3_nonzero
-        c_4 <- c4_nonzero
+        c3 <- c3_nonzero
+        c4 <- c4_nonzero
       }
       
     } else{
