@@ -135,14 +135,28 @@ for entry in "${adj_type_params[@]}"; do
   wait
   
   echo "[STEP 1] Finished generating events" | tee -a "$outfile"
+  echo "" | tee -a "$outfile"
+  echo "===================================================" >> "$outfile"
+  echo "" | tee -a "$outfile"
+  
   
   # temp_data/simu_data/dataset...
+  echo "[STEP 1] Starting merging events" | tee -a "$outfile"
+  echo "" | tee -a "$outfile"
+  
   Rscript script_generate_finite_basis_data_part3.R "$n_large" "$adj_type" "$groups" >> "$outfile" 2>&1
+  
   echo "[STEP 1] Finished merging events" | tee -a "$outfile"
+  echo "" | tee -a "$outfile"
+  echo "===================================================" >> "$outfile"
+  echo "" | tee -a "$outfile"
   
   # ---------------------------------------------------
   # Step 1b: Get truths for each cont_ind query
   # ---------------------------------------------------
+  
+  echo "[STEP 1] Getting truths" | tee -a "$outfile"
+  echo "" | tee -a "$outfile"
   
   for cont_ind in $(seq 1 "$n_query"); do
       print_bar "$cont_ind" "$n_query"   # ← live bar on screen

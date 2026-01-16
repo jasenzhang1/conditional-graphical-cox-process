@@ -19,12 +19,14 @@ source('functions/28e_Finite_Basis_Visualization.R')
 
 args <- commandArgs(trailingOnly = TRUE)
 
-data_folder <- args[1]    # data_folder <- 'simu_data'
-base_folder <- args[2]    # base_folder <- 'simu_results'
-adj_type    <- args[3]    # adj_type <- 'block_banded_v2'
-method      <- args[4]    # method <- 'CPGM'
-X_truth     <- args[5]
-beta_truth  <- args[6]
+data_folder <- args[1]    
+base_folder <- args[2]  
+method      <- args[3]    
+X_truth     <- args[4]
+beta_truth  <- args[5]
+adj_type    <- args[6]
+adj_params <- as.numeric(args[7:length(args)])
+
 
 # data_folder <- 'simu_data'
 # base_folder <- 'simu_results'
@@ -36,6 +38,7 @@ beta_truth  <- args[6]
 
 n_large <- 1800
 n <- 1800
+
 
 # 3) heatmaps of certain metrics 
 
@@ -53,19 +56,23 @@ final_ids <- c('58',   # KL_cor assembled
 
 
 truth_file_name <- paste0(data_folder, '/', adj_type, '_n_', n_large, '_truths.RData')
-estimates_file_name <- paste0(base_folder, '/', adj_type, '/', method, '/', adj_type, '_n_', n, '.RData')
+results_folder <- paste0(base_folder, '/', adj_type, '/', method)
+estimates_file_name <- paste0(results_folder, '/', adj_type, '_n_', n, '.RData')
 
 # 28e - visualize results over y_c
 g_heatmaps_exploratory <- visualize_finite_basis(truth_file_name, estimates_file_name, exploratory_ids, beta_truth, X_truth, eigen_troubleshoot)
 g_heatmaps_bivariate   <- visualize_finite_basis(truth_file_name, estimates_file_name, bivariate_ids,   beta_truth, X_truth, eigen_troubleshoot)
 g_heatmaps_final       <- visualize_finite_basis(truth_file_name, estimates_file_name, final_ids,       beta_truth, X_truth, eigen_troubleshoot)
 
+# 3b) gif
+
+g_gif <- visualize_precision_gif(data_folder, p, d, adj_type, adj_params, nframes = 50, fps = 5)
+
 # ------------------------------------------------------------------------------
 # 4) convergence of intermediate estimators (28b)
 
 i <- 1
 j <- 2
-results_folder <- paste0(base_folder, '/', adj_type, '/', method)
 metrics_summary <- visualize_metrics_finite_basis(truth_file_name, results_folder, i, j)
 
 # ------------------------------------------------------------------------------
