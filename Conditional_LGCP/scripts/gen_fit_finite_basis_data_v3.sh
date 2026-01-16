@@ -33,9 +33,9 @@ adj_type_params=(
   #"flexible_block_banded_c0 0.5 6 2 2.9 0.9"
   
   
-  "hub_block_c0 0.5 4 2 2 0.7 0.7"
-  "hub_block_c2 0 1 4 2 2 0.7 0.7"
-  "hub_block_v2 0 1 4 2 2 0.5 0.9 0.5 0.9"
+  #"hub_block_c0 0.5 4 2 2 0.7 0.7"
+  #"hub_block_c2 0 1 4 2 2 0.7 0.7"
+  #"hub_block_v2 0 1 4 2 2 0.5 0.9 0.5 0.9"
   "hub_block_j2 0 1 4 0.5 2 2 0.7 0.7"
   
   #"complete_block_c0 0.5 4 2 2 0.7 0.7"
