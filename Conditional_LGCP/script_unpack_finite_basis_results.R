@@ -30,14 +30,14 @@ adj_params <- as.numeric(args[7:length(args)])
 
 # data_folder <- 'simu_data'
 # base_folder <- 'simu_results'
-# adj_type <- 'flexible_block_banded_v2'
+# adj_type <- 'hub_block_c0'
 # method <- 'CPGM'
 # X_truth <- T
 # beta_truth <- T
 # eigen_troubleshoot <- T
 
-n_large <- 1800
-n <- 1800
+n_large <- 100
+n <- 100
 
 
 # 3) heatmaps of certain metrics 
@@ -48,7 +48,7 @@ exploratory_ids <- c('01', '02', '22', '23', '29', '41', '44',
 
 bivariate_ids <- c('25', '32')  # rho_ij and g_ij
 
-final_ids <- c('58',   # KL_cor assembled
+final_ids <- c('58',   # KL_cor assembled, 58b = KL_cov
                '95',   # C_HS 
                '112',  # w_mat
                '113',  # roc

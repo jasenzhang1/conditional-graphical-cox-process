@@ -823,6 +823,80 @@ result_45_prep <- function(step_4){
   
 }
 
+result_46_prep <- function(step_3, step_4){
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: For each process, check if Phi_a %*% G_ii %*% Phi_b = 0 for a \neq b
+  # 
+  #       We want to check if the covariance between different eigencomponents of the same process is indeed 0
+  #
+  # inputs:
+  #
+  # - step_3    (list) list of g_ij_suffix
+  #   - (list of m x m matrices for i_j entries)
+  # 
+  # - step_4    (list) list of eigen_decomp_suffix with the following 3 entries
+  #     - [[1]] eigenvalues  (list of p vectors of eigenvalues)
+  #     - [[2]] eigenvectors (list of p matrices of m x d_i)
+  #     - [[3]] n_dims       (list of p integers denoting d_i)
+  # 
+  # ----------------------------------------------------------------------------
+  
+  # 1) arrange names due to eig_k
+  step_3_sub <- step_3[names(step_3) != "g_ij_truth"]
+  s3_names <- rep(names(step_3_sub), each = 3)
+  s3_names <- c('g_ij_truth', s3_names)
+  
+  s4_names <- names(step_4)
+  
+  # 2) iterate 
+  results_list <- list()
+  off_diag_values <- c()
+  
+  # Iterate through the aligned scenarios
+  for (idx in seq_along(s4_names)) {
+    
+    s3_key <- s3_names[idx]
+    s4_key <- s4_names[idx]
+    
+    G_list <- step_3[[s3_key]]        # List of all i_j matrices (m x m)
+    E_list <- step_4[[s4_key]][[2]]   # List of p matrices (m x d_i)
+    p <- length(step_4[[s4_key]][[1]])
+    
+    # Store off-diagonal checks for each process i
+    process_checks <- list()
+    
+    for (i in 1:p) {
+      G_ii <- G_list[[paste0(i, "_", i)]]
+      Phi  <- E_list[[i]] # m x d_i
+      
+      # The Quadratic Form: d_i x d_i matrix
+      # Represents <Phi_a, G Phi_b>
+      quad_form <- t(Phi) %*% G_ii %*% Phi
+      
+      # Extract off-diagonal elements
+      if (ncol(quad_form) > 1) {
+        off_diag_vals <- quad_form[row(quad_form) != col(quad_form)]
+        max_off_diag  <- max(abs(off_diag_vals))
+      } else {
+        max_off_diag  <- 0 # Only one component, no off-diagonals to check
+      }
+      
+      process_checks[[i]] <- list(
+        matrix_check = quad_form,
+        max_error = max_off_diag,
+        is_near_zero = all.equal(max_off_diag, 0, tolerance = 1e-8)
+      )
+    }
+    
+    results_list[[s4_key]] <- process_checks
+  }
+  
+  return(results_list)
+  
+}
+
 # plot the (dxd) KL covariance values of the (i, j) block
 result_55_prep <- function(step_5, i, j){
   
@@ -892,6 +966,45 @@ result_57_prep <- function(step_5c, i, j){
   for(i in 1:length(suffix_names)){
     
     g_list[[length(g_list) + 1]] <- visualize_matrix_heatmap(step_5c[[queried_names[i]]][[key]], g_title = suffix_names[i], zmid = 0)
+    
+    
+  }
+  
+  return(g_list)
+  
+}
+
+# plot the assembled KL covariance values of all blocks
+result_58_cov_prep <- function(step_5, p){
+  
+  g_list <- list()
+  
+  # 0) borrow from 12z - get suffix names
+  suffix_names <- step_00_grab_ID(names(step_5), 'KL_cov')
+  
+  
+  queried_names <- names(step_5)
+  
+  # 1) global max and min
+  vals <- unlist(step_5, recursive = TRUE, use.names = FALSE)
+  
+  global_min <- min(vals, na.rm = TRUE)
+  global_max <- max(vals, na.rm = TRUE)
+  
+  # 2) for each suffix name, do it 
+  for(i in 1:length(suffix_names)){
+    
+    assembled_items <- assemble_block_matrix_irregular(step_5[[queried_names[i]]], p)
+    
+    assembled_cor <- assembled_items$block_matrix
+    
+    
+    
+    g_list[[length(g_list) + 1]] <- visualize_matrix_heatmap(assembled_items$block_matrix, 
+                                                             g_title = suffix_names[i], 
+                                                             x_max_borders = assembled_items$col_borders,
+                                                             y_max_borders = assembled_items$row_borders,
+                                                             zmid = 0)
     
     
   }
