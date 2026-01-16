@@ -406,7 +406,7 @@ block_matrix_HS <- function(pm_mat, p){
 # visualize how a precision matrix changes over time using a gif
 # such as for banded_trig
 
-visualize_precision_gif <- function(temp_file_dir, p, d, adj_type, adj_params, ncores){
+visualize_precision_gif <- function(save_dir, p, d, adj_type, adj_params, nframes, fps){
   
   # ----------------------------------------------------------------------------
   #
@@ -417,11 +417,13 @@ visualize_precision_gif <- function(temp_file_dir, p, d, adj_type, adj_params, n
   #
   # input:
   #
-  # - temp_file_dir (str)      simu_results/flexible_block_banded_c0/CPGM
+  # - save_dir      (string)   where to save the gif, such as simu_results/flexible_block_banded_c0/CPGM
   # - p             (integer)  number of processes
   # - d             (integer)  number of eigencomponents in simulation
   # - adj_type      (string)
   # - adj_params    (vector)
+  # - nframes       (number)   number of frames
+  # - fps           (number)   frames per second
   #
   #
   # output:
@@ -434,14 +436,13 @@ visualize_precision_gif <- function(temp_file_dir, p, d, adj_type, adj_params, n
   
   # 0) extract suffix from adj_type
   
-  last_char <- substr(adj_type, nchar(adj_type), nchar(adj_type))               # number denoting how y_c varies
-  second_last_char <- substr(adj_type, nchar(adj_type)-1, nchar(adj_type)-1)    # letter denoting how the graph varies
+  # last_char <- substr(adj_type, nchar(adj_type), nchar(adj_type))               # number denoting how y_c varies
+  # second_last_char <- substr(adj_type, nchar(adj_type)-1, nchar(adj_type)-1)    # letter denoting how the graph varies
   
   # 1) generate precision and correlation (pxp) matrices
   
-  n_times <- 30
-  fps <- 10
-  query_y_cs <- generate_y_c_adj_type(n_times, adj_type, adj_params, seed = NULL)
+
+  query_y_cs <- generate_y_c_adj_type(nframes, adj_type, adj_params, seed = NULL)  # function 22
   
 
     
@@ -450,7 +451,7 @@ visualize_precision_gif <- function(temp_file_dir, p, d, adj_type, adj_params, n
     y_c_k <- query_y_cs[k,]
     
     #prec_mats <- generate_sparse_precision_matrix(y_c_k, p, adj_type, adj_params) 
-    prec_mat             <- trig_basis_prec_mat(d, p, y_c_k, adj_type, adj_params)
+    prec_mat             <- trig_basis_prec_mat(d, p, y_c_k, adj_type, adj_params)  # 21b
     cov_mat              <- trig_basis_cov_mat(d, p, y_c_k, adj_type, adj_params)
     adj_mat              <- trig_basis_adj_mat(d, p, y_c_k, adj_type, adj_params)
     cor_mat              <- trig_basis_cor_mat(d, p, y_c_k, adj_type, adj_params)
@@ -538,12 +539,12 @@ visualize_precision_gif <- function(temp_file_dir, p, d, adj_type, adj_params, n
   
   # save
   # Ensure directory exists
-  if(!dir.exists(temp_file_dir)){
-    dir.create(temp_file_dir, recursive = TRUE)
+  if(!dir.exists(save_dir)){
+    dir.create(save_dir, recursive = TRUE)
   }
   
   # Use file.path to construct path
-  gif_name <- file.path(temp_file_dir, paste0(adj_type, "_animation.gif"))
+  gif_name <- file.path(save_dir, paste0(adj_type, "_animation.gif"))
   
   # Write the GIF
   image_write(animation, path = gif_name) 
