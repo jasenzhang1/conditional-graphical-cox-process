@@ -297,6 +297,14 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth,
     graphs[['g_45']] <- rearrange_plots(g_list) 
   }
   
+  # orthogonality - check if phi_a %*% G_ii %*% phi_b = 0 for each process
+  if('46' %in% graph_ids){
+    g_list <- lapply(1:length(step_3), function(i){
+      result_46_prep(step_3[[i]], step_4[[i]])
+    })
+    graphs[['g_45']] <- rearrange_plots(g_list) 
+  }
+  
   # assume we know beta_truths, do their empirical correlations match the actual correlations?
   if('50' %in% graph_ids){
 
@@ -342,13 +350,17 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth,
     graphs[['g_57']] <- rearrange_plots(g_list) 
   }
   
-  # KL_cor entire matrix
+
+  
+  # KL_cor entire matrix + KL_cov 
   if('58' %in% graph_ids){
     g_list <- lapply(step_5b, function(x) result_58_prep(x, p))
     graphs[['g_58']] <- rearrange_plots(g_list) 
     
+    g_list <- lapply(step_5, function(x) result_58_cov_prep(x, p))
+    graphs[['g_58b']] <- rearrange_plots(g_list) 
     
-    # graphs[['g_58']] <- result_heatmap_nonblock_prep(step_5b, 'KL_cor', data_format = 'regular', rm_diag = F, zmid = 0, zmax = 1, zmin = -1)
+    
   }
   
   # KL_prec entire matrix
