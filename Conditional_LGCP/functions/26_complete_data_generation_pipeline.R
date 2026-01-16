@@ -266,10 +266,23 @@ package_simulation_results <- function(event_times_list, n, p, T_max, query_y_cs
   total_events <- sum(sapply(event_times_list, length))
   avg_events_per_process <- total_events / (n * p)
   
+  # distribution of event counts
+  
+  over_10000 <- sum(sapply(event_times_list, function(x) length(x) > 10000))
+  over_5000 <- sum(sapply(event_times_list, function(x) length(x) > 5000))
+  under_10 <- sum(sapply(event_times_list, function(x) length(x) < 10))
+  
+  event_summary <- summary(sapply(event_times_list, length))
+  
   cat("Data generation completed.\n")
   cat("  Total events:", total_events, "\n")
   cat("  Total replicates:", n, "\n")
   cat("  Total processes:", p, "\n")
+  cat("  Total times over 10000:", over_10000, "\n")
+  cat("  Total times over 5000:", over_5000, "\n")
+  cat("  Total times under 10:", under_10, "\n")
+  cat("  Event Count Summary:", names(event_summary), "\n")
+  cat("  Event Count Summary:", event_summary, "\n")
   cat("  Average events per replicate per process:", round(avg_events_per_process, 2), "\n")
   
   
@@ -753,6 +766,7 @@ simulate_finite_basis_cox_data_parts1_and_2 <- function(temp_file_dir, setting_i
   #   - log_intensities_est       (p x m_est x n_group matrix)
   #   - log_intensities           (p x m x n_group matrix)
   #   - beta_coeffs               (p x d x n_group matrix)
+  #   - counter                   (integer)  how many times did we draw?
   #
   #
   # ----------------------------------------------------------------------------
@@ -813,7 +827,6 @@ simulate_finite_basis_cox_data_parts1_and_2 <- function(temp_file_dir, setting_i
     min_events_obs <- min(sapply(events, function(i) min(i$event_counts)))
     
     counter <- counter + 1
-    print(paste0('group: ', group_idx, ',\tattempt number: ', counter))
   }
   
   # package
@@ -823,7 +836,8 @@ simulate_finite_basis_cox_data_parts1_and_2 <- function(temp_file_dir, setting_i
                   log_intensities_both = log_intensities_both,
                   log_intensities_est = log_intensities_est,
                   log_intensities = log_intensities,
-                  beta_coeffs = beta_coeffs
+                  beta_coeffs = beta_coeffs,
+                  counter = counter
                   )
   
   # save 
@@ -899,8 +913,12 @@ simulate_finite_basis_cox_data_part3 <- function(temp_file_dir, setting_info_lis
   log_intensities_est  <- abind(lapply(all_parts_1_and_2_loaded, `[[`, "log_intensities_est"), along = 3)
   log_intensities      <- abind(lapply(all_parts_1_and_2_loaded, `[[`, "log_intensities"), along = 3)
   beta_coeffs          <- abind(lapply(all_parts_1_and_2_loaded, `[[`, "beta_coeffs"), along = 3)  
+  total_counter        <- sum(sapply(all_parts_1_and_2_loaded, function(x) x$counter))
   
-  
+  cat(paste0('Total Simulation Attempts / Total Groups: ', total_counter, ' / ', group_nums))
+  cat('\n')
+      
+
   # ------------------------
   # resume regular function
   # ------------------------
@@ -922,7 +940,9 @@ simulate_finite_basis_cox_data_part3 <- function(temp_file_dir, setting_info_lis
                                         log_intensities, log_intensities_est, log_intensities_both, Y_c, beta_coeffs)
                                        
   part_3_info_list <- paste0('dataset_', adj_type, '_n_', n, '.rds')
-  saveRDS(dataset, file = file.path(temp_file_dir, part_3_info_list))    
+  saveRDS(dataset, file = file.path(temp_file_dir, part_3_info_list))  
+  
+
 
 }
 
