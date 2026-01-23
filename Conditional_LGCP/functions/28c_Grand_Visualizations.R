@@ -442,7 +442,7 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth,
     KL_GIC_est_names  <- step_11_names[grepl("^w_mat_KL_GIC_est", step_11_names)] 
     KL_GIC_names  <- step_11_names[grepl("^w_mat_KL_GIC", step_11_names)]  
     est_names <- setdiff(step_11_names, KL_GIC_names)
-
+    KL_est_names <- est_names[startsWith(est_names, "w_mat_KL_est")]
      
     
     # truths
@@ -472,6 +472,14 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth,
       x[names(x) %in% KL_GIC_est_names]
     })
     graphs[['g_112e']] <- result_heatmap_nonblock_prep(step_11_v5, 'w_mat', data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, zmid = 0)
+    
+    # KL_est
+    step_11_v6 <- step_11
+    step_11_v6 <- lapply(step_11_v6, function(x) {
+      x[names(x) %in% KL_est_names]
+    })
+    graphs[['g_112f']] <- result_heatmap_nonblock_prep(step_11_v6, 'w_mat', data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, zmid = 0)
+    
   } 
   
   # ROC curves
