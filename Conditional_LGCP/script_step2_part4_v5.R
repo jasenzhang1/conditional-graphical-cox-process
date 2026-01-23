@@ -36,11 +36,10 @@ if(model_type == 'mice'){
 } else if(model_type == 'simu'){
   
   n_large <- as.numeric(args[2])
-  n <- as.numeric(args[3])
+  n <- as.numeric(args[3])      # which sub sample size  
   adj_type <- args[4]
   method <- args[5]
-  n_keys_univariate <- as.numeric(args[6])       # 12   
-  n_keys_bivariate  <- as.numeric(args[7])       # 78
+  cont_ind <- as.numeric(args[6])       # which y_c query
   
   setting_info_list <- list(n_large = n_large,
                             n = n,
@@ -62,7 +61,7 @@ if(model_type == 'mice'){
 # ---------------------------
 
 if(method == 'CPGM'){
-  estimate_intensities_stratum_parallel_with_yc_part3_v5(temp_file_dir, setting_info_list, n_keys_univariate, n_keys_bivariate, mouse)
+  estimate_intensities_stratum_parallel_with_yc_part4_v5(temp_file_dir, setting_info_list, cont_ind, mouse)
 } else{
   stop('Invalid method. Must be CPGM')
 }

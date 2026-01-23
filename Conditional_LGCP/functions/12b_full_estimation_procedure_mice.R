@@ -1093,6 +1093,255 @@ estimate_intensities_stratum_parallel_with_yc_part3 <- function(temp_file_dir, s
   
 }
 
+estimate_intensities_stratum_parallel_with_yc_part3_v5 <- function(temp_file_dir, setting_info_list, n_keys_univariate, n_keys_bivariate, mouse) {
+  
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: putting the rho_i, rho_ii, and rho_list results together
+  #       used in script_step2_part3
+  #
+  #       output file:
+  #
+  #       step_2_v5_rho_list_block_banded_c0_n_100_nquery1.rds
+  #
+  # 
+  # inputs
+  #
+  # - temp_file_dir         'temp_data/simu'
+  # - setting_info_list
+  # - n_keys_univariate     (integer)   p = 12
+  # - n_keys_bivariate      (integer)   pc2 + p = 78
+  # - mouse                 (boolean)   is it a mouse?
+  #
+  # 
+  # outputs:
+  #
+  # - result  --> 'step_2_v5_rho_list_block_banded_v2_n_1000.rds'
+  # 
+  #   - step_2_raw    (list, each item is a m x n matrix)  rho_i_est
+  #   - step_2b_raw   (list, each item is a m^2 x n matrix)   rho_ii_est
+  # 
+  # ----------------------------------------------------------------------------
+  
+  
+  
+  # 1) retrieve data
+  
+  list2env(setting_info_list, envir = environment())
+  
+  if(mouse){
+    # keys_univariate = vector of c(1, 2, 3, ..., p)
+    # keys_bivariate = vector of c('1_1', '1_2', ..., 'p_p')
+    rho_i_file_names  <- paste0(temp_file_dir, '/step_2_v5_rho_i_',  ID, '_', discrete_level, '_t', time_scale, '_', 1:n_keys_univariate, '.rds')
+    rho_ij_file_names <- paste0(temp_file_dir, '/step_2_v5_rho_ij_', ID, '_', discrete_level, '_t', time_scale, '_', 1:n_keys_bivariate, '.rds') 
+    part2_file_name   <- paste0('part1_', ID, '_', discrete_level, '_t', time_scale, '.rds')
+  } else{
+    rho_i_file_names  <- paste0(temp_file_dir, "/step_2_v5_rho_i_",  adj_type, '_n_', n, '_', 1:n_keys_univariate, '.rds')
+    rho_ij_file_names <- paste0(temp_file_dir, "/step_2_v5_rho_ij_", adj_type, '_n_', n, '_', 1:n_keys_bivariate, '.rds')
+    part2_file_name   <- paste0('part1_', adj_type, '_n_', n, '.rds')
+  }
+  
+  results <- readRDS(file.path(temp_file_dir, part2_file_name))
+  keys <- results$keys
+
+  
+  # 2) Load all rho_i files into a list + reorganize them
+  
+  step_2_raw <- lapply(rho_i_file_names, readRDS)  # list of p items --> `rho_i_est` `rho_i_X_truth` etc...   
+  # each is (m x n)
+  names(step_2_raw) <- 1:n_keys_univariate
+  
+  
+  # 3) Load all rho_ij files into a list + organize them
+  
+  
+  step_2b_raw <- lapply(rho_ij_file_names, readRDS) # list of p items --> `rho_ii_est`, `rho_ii_X_truth` etc...
+  # we wish to create step_2b --> `rho_ii_est` = list of mxm matrices, `rho_ii_X_truth` = list of mxm matrices
+  
+  names(step_2b_raw) <- keys
+  
+
+  # 4) store them
+  
+  
+  result <- list(step_2_raw = step_2_raw,
+                 step_2b_raw = step_2b_raw)
+  
+  if(mouse){
+    rho_list_name <- paste0('step_2_v5_raw_rho_list_', ID, '_', discrete_level, '_t', time_scale, '.rds')
+  } else{
+    rho_list_name <- paste0('step_2_v5_raw_rho_list_', adj_type, '_n_', n, '.rds')
+  }
+  
+  # delete files
+  
+  # file.remove(rho_i_file_names)
+  # file.remove(rho_ij_file_names)
+  
+  saveRDS(result, file = file.path(temp_file_dir, rho_list_name))  
+  
+}
+
+estimate_intensities_stratum_parallel_with_yc_part4_v5 <- function(temp_file_dirs, setting_info_list, cont_ind, mouse) {
+  
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: filtering which subjects at which weights to allocate to get step_2 and step_2b
+  #
+  #       output file:
+  #
+  #       step_2_rho_list_block_banded_c0_n_100_nquery1.rds
+  #
+  # 
+  # inputs
+  #
+  # - temp_file_dirs         'temp_data/simu' and 'temp_data/simu_data'
+  # - setting_info_list
+  # - cont_ind              (integer)   which query ID
+  # - mouse                 (boolean)   is it a mouse?
+  #
+  # 
+  # outputs:
+  #
+  # - result  --> 'step_2_v5_rho_list_block_banded_v2_n_1000.rds'
+  # 
+  #   - step_2        (list, each item pxm matrix)  rho_i_est
+  #   - step_2b       (list, each item denotes i_j pair and is a mxm matrix)   rho_ii_est
+  # 
+  # ----------------------------------------------------------------------------
+  
+  
+  
+  # 1) retrieve data
+  
+  list2env(setting_info_list, envir = environment())
+  
+  if(mouse){
+    rho_ij_file_names <- paste0(temp_file_dir, '/step_2_v5_rho_ij_', ID, '_', discrete_level, '_t', time_scale, '_', 1:n_keys_bivariate, '.rds') 
+    part2_file_name   <- paste0('part1_', ID, '_', discrete_level, '_t', time_scale, '.rds')
+  } else{
+    rho_list_name     <- paste0('step_2_v5_raw_rho_list_', adj_type, '_n_', n_large, '.rds')
+    part1_file_name   <- paste0('part1_', adj_type, '_n_', n_large, '.rds')
+  }
+  
+  results <- readRDS(file.path(temp_file_dirs[1], part1_file_name))  # query_y_cs, y_c_strata_full
+  list2env(results, envir = environment())
+  
+  rho_list <- readRDS(file.path(temp_file_dirs[1], rho_list_name))
+  
+  # 2) for this n and cont_ind, find a vector of dim n_large that assigns weights
+  
+
+  idx <- round(seq(1, n_large, length.out = n))
+  
+  
+  y_c_query <- query_y_cs[cont_ind,]
+  
+  weights <- apply(y_c_strata, 1, function(row) {
+    step_6_kernel(as.numeric(row), y_c_query, gamma_c) 
+  })  
+  
+  weights[!(1:n_large %in% idx)] <- 0
+  
+  W_y <- sum(weights)
+  weights2 <- weights / W_y # normalize
+  
+  results[['weights']] <- weights2
+  results[['W_y']] <- W_y 
+  
+  
+  # 2b) get the ground truth adj_mat
+  
+  if(! mouse){
+    truth_data_name <- paste0('truths_', adj_type, '_n_', n_large, '_nquery', cont_ind, '.rds')
+    truths <- readRDS(file.path(temp_file_dirs[2], truth_data_name))
+    
+    results[['adj_mat_i']] <- truths$true_graphs$adj_mat_truth
+  }
+  
+  
+  # 2c) save
+  
+  if(mouse){
+    datafile_name <- paste0('part2_', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '.rds')
+  } else{
+    datafile_name <- paste0('part2_', adj_type, '_n_', n, '_nquery', cont_ind, '.rds')
+  }
+  
+  saveRDS(results, file = file.path(temp_file_dirs[1], datafile_name))  
+  
+  
+  # 3) calculate weighted means of rho_i
+  
+  step_2_raw <- rho_list$step_2_raw
+  vec_names <- names(step_2_raw[[1]])
+  
+
+  step_2 <- lapply(vec_names, function(nm) {
+
+    list_of_vectors <- lapply(step_2_raw, function(sub) {
+      mat <- sub[[nm]]  # This is the m x n matrix
+
+      as.vector(mat %*% weights) 
+    })
+
+    do.call(rbind, list_of_vectors)
+  })
+  
+
+  names(step_2) <- vec_names
+  
+  m <- dim(step_2[[1]])[2]
+  
+  # 3b) and rho_ij
+  
+  step_2b_raw <- rho_list$step_2b_raw
+  vec_names <- names(step_2b_raw[[1]])
+  
+  
+
+  step_2b <- lapply(step_2b_raw, function(sub) {
+    
+    # Transform each (m^2 x n) matrix into an (m x m) matrix
+    transformed_sub <- lapply(vec_names, function(nm) {
+      m_sq_x_n <- sub[[nm]]
+      
+      # 1. Row-weighted mean: (m^2 x n) %*% (n x 1) = (m^2 x 1)
+      m_sq_vector <- as.vector(m_sq_x_n %*% weights)
+      
+      # 2. Reshape the m^2 vector into an (m x m) matrix
+      return(matrix(m_sq_vector, nrow = m))
+    })
+    
+    # Name the internal list elements back to their original keys
+    names(transformed_sub) <- vec_names
+    return(transformed_sub)
+  })
+  
+  
+  # 3c) store them
+  
+  
+  result_2 <- list(step_2 = step_2,
+                   step_2b = step_2b)
+  
+  if(mouse){
+    rho_list_name <- paste0('step_2_rho_list_', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '.rds')
+  } else{
+    rho_list_name <- paste0('step_2_rho_list_', adj_type, '_n_', n, '_nquery', cont_ind, '.rds')
+  }
+  
+  # delete files
+  
+  # file.remove(rho_i_file_names)
+  # file.remove(rho_ij_file_names)
+  
+  saveRDS(result, file = file.path(temp_file_dir, rho_list_name))  
+  
+}
+
 full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, setting_info_list, cont_ind, mouse, X_truth){
   
   # ----------------------------------------------------------------------------

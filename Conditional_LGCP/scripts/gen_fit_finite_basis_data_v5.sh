@@ -31,19 +31,19 @@ adj_type_params=(
   #"block_banded_c0 0.5 0.5 2"
   
   "hub_block_v2 0 1 4 2 2 0.5 0.9 0.5 0.9"
-  "hub_block_c2 0 1 4 2 2 0.7 0.7"
-  "hub_block_c0 0.5 4 2 2 0.7 0.7"
-  "hub_block_j2 0 1 4 0.5 2 2 0.7 0.7"
+  #"hub_block_c2 0 1 4 2 2 0.7 0.7"
+  #"hub_block_c0 0.5 4 2 2 0.7 0.7"
+  #"hub_block_j2 0 1 4 0.5 2 2 0.7 0.7"
   
-  "complete_block_c0 0.5 4 2 2 0.7 0.7"
-  "complete_block_c2 0 1 4 2 2 0.7 0.7"
-  "complete_block_v2 0 1 4 2 2 0.5 0.9 0.5 0.9"
-  "complete_block_j2 0 1 4 0.5 2 2 0.7 0.7"
+  #"complete_block_c0 0.5 4 2 2 0.7 0.7"
+  #"complete_block_c2 0 1 4 2 2 0.7 0.7"
+  #"complete_block_v2 0 1 4 2 2 0.5 0.9 0.5 0.9"
+  #"complete_block_j2 0 1 4 0.5 2 2 0.7 0.7"
   
-  "flexible_block_banded_v2 0 1 2 2 0.5 0.9 0.5 0.9"
-  "flexible_block_banded_c2 0 1 2 2 0.7 0.7"
-  "flexible_block_banded_c0 0.5 2 2 0.7 0.7"  
-  "flexible_block_banded_j2 0 1 0.5 2 2 0.7 0.7"
+  #"flexible_block_banded_v2 0 1 2 2 0.5 0.9 0.5 0.9"
+  #"flexible_block_banded_c2 0 1 2 2 0.7 0.7"
+  #"flexible_block_banded_c0 0.5 2 2 0.7 0.7"  
+  #"flexible_block_banded_j2 0 1 0.5 2 2 0.7 0.7"
 )
 
 
@@ -116,9 +116,7 @@ for entry in "${adj_type_params[@]}"; do
   # -------------------
   # Step 1: Generate
   # -------------------
-  echo "[STEP 1] Generating dataset ..." | tee -a "$outfile"
-  echo "" | tee -a "$outfile"
-  
+  echo "[STEP 1] Generating dataset..." | tee -a "$outfile"
   step1_start=$(date +%s)
 
   # temp_data/simu_data/part0...
@@ -138,19 +136,19 @@ for entry in "${adj_type_params[@]}"; do
   done  
   wait
   
-
+  echo "[STEP 1] Finished generating events" | tee -a "$outfile"
   echo "" | tee -a "$outfile"
   echo "===================================================" >> "$outfile"
   echo "" | tee -a "$outfile"
   
   
   # temp_data/simu_data/dataset...
-  echo "Merging events ..." | tee -a "$outfile"
+  echo "[STEP 1] Starting merging events" | tee -a "$outfile"
   echo "" | tee -a "$outfile"
   
   Rscript script_generate_finite_basis_data_part3.R "$n_large" "$adj_type" "$groups" >> "$outfile" 2>&1
   
-
+  echo "[STEP 1] Finished merging events" | tee -a "$outfile"
   echo "" | tee -a "$outfile"
   echo "===================================================" >> "$outfile"
   echo "" | tee -a "$outfile"
@@ -159,7 +157,7 @@ for entry in "${adj_type_params[@]}"; do
   # Step 1b: Get truths for each cont_ind query
   # ---------------------------------------------------
   
-  echo "Getting truths ..." | tee -a "$outfile"
+  echo "[STEP 1] Getting truths" | tee -a "$outfile"
   echo "" | tee -a "$outfile"
   
   for cont_ind in $(seq 1 "$n_query"); do
@@ -178,13 +176,8 @@ for entry in "${adj_type_params[@]}"; do
   # simu_data/adj_type_n_truths.RData
   Rscript script_generate_finite_basis_data_part5.R "$n_large" "$adj_type" "$n_query" "$groups" >> "$outfile" 2>&1
   
-  echo "" | tee -a "$outfile"
-  echo "===================================================" >> "$outfile"
-  
   step1_end=$(date +%s)
   step1_elapsed=$(( step1_end - step1_start ))
-  
-  echo "" | tee -a "$outfile"
   echo "[DONE] Generation complete. Elapsed: ${step1_elapsed}s" | tee -a "$outfile"
   echo "" | tee -a "$outfile"
   echo "===================================================" >> "$outfile"
@@ -206,13 +199,12 @@ for entry in "${adj_type_params[@]}"; do
   
   echo "[PART 1] Collecting parameters ..." >> "$outfile"
   
-  wait_for_slot
-  
+
   # temp_data/simu/part1...
   output=$(Rscript script_fit_mice_data_part1.R \
             "$model_type" "$n_large" "$n_large" "$adj_type" "$method" "$X_truth" \
             2>&1 | tee -a "$outfile")
-  wait
+
   
   echo "" | tee -a "$outfile"
   echo "===================================================" >> "$outfile"
@@ -264,59 +256,44 @@ for entry in "${adj_type_params[@]}"; do
   echo "" | tee -a "$outfile"
   
   
+  # temp_data/simu/step_2_v5_raw_rho_list...
+  Rscript script_step2_part3_v5.R "$model_type" "$n_large" "$n_large" "$adj_type" "$method" "$n_i" "$n_ij" >> "$outfile" 2>&1
   
-  echo "" | tee -a "$outfile"
   echo "===================================================" >> "$outfile"
+  echo "" | tee -a "$outfile"
+  echo "[PART 5] Downstream estimation for all sub_n and y_c values ..." >> "$outfile"
+  echo "" | tee -a "$outfile"
   
-  for j in $(seq 1 "$n_query"); do
-
-      
-      # ----------------
-      # Part 2a - within each fitting procedure, do rho_i and rho_ij estimation all together, and then collect
-      # ----------------       
-      
-
-      
-
-      echo "Query $j out of $n_query [2/4] done with rho_ij" >> "$outfile"
-
-      wait_for_slot
-      
-      # temp_data/simu/step_2_rho_list...
-      Rscript script_step2_part3.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$X_truth" "$j" "$n_i" "$n_ij" >> "$outfile" 2>&1
-      echo "Query $j out of $n_query [3/4] done with merger" >> "$outfile"
-      
-      # ----------------
-      # Part 2b - now continue for the rest of the estimation
-      # ---------------- 
-      
-      wait_for_slot
-      
-      # temp_data/simu/part3...
-      Rscript script_fit_mice_data_part2b.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$X_truth" "$j" "$same_basis" "$constant_d" >> "$outfile" 2>&1
-      echo "Query $j out of $n_query [4/4] finished" >> "$outfile"
-  done
+  echo "All n: ${ns[*]}"
+  echo "Number of queries: $n_query"
   
   # Loop over all subsets of n
   for n in "${ns[@]}"; do
-  
+      for j in $(seq 1 "$n_query"); do
+          echo "[START] n = $n, $n_query = $j"
 
+          wait_for_slot
+          (
+              # gets weights and pads rho_i and rho_ii
+              # temp_data/simu/step_2_v5_rho_list...
+              Rscript script_step2_part4_v5.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$j" >> "$outfile" 2>&1
+              
+    
+              # estimation from step3 onwards
+              # temp_data/simu/part3...
+              Rscript script_fit_mice_data_part2b.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$X_truth" "$j" "$same_basis" "$constant_d" >> "$outfile" 2>&1
+              
+              echo "[END] $n out of ${ns[*]}, $j out of $n_query"
+          ) &
       
-
+          
+          
+      done
       
-
-      
-      wait
-      
-      echo "" | tee -a "$outfile"
-      echo "===================================================" >> "$outfile"
-      
-      
+      wait 
       # ----------------
       # Part 3- when all part 2's are done, do part 3
       # ----------------
-      
-      echo "Part 3 of Estimating n=$n Starting" >> "$outfile"
       
       wait_for_slot
       
@@ -324,9 +301,10 @@ for entry in "${adj_type_params[@]}"; do
       Rscript script_fit_mice_data_part3.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$n_query" >> "$outfile" 2>&1
       
       echo "[DONE] Estimating n=$n" >> "$outfile"
-  
+      
+      
   done
-  
+
   wait
   
   # ============================================================
