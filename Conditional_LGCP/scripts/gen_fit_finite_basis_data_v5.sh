@@ -256,7 +256,7 @@ for entry in "${adj_type_params[@]}"; do
       wait_for_slot
       
       # temp_data/simu/step_2_rho_ij...
-      Rscript script_step2_part2_v5.R "$model_type" "$n_large" "$n_large" "$adj_type" "$method" "$X_truth" "$j" "$kl" >> "$outfile" 2>&1 &
+      Rscript script_step2_part2_v5.R "$model_type" "$n_large" "$n_large" "$adj_type" "$method" "$X_truth" "$kl" >> "$outfile" 2>&1 &
   done
   wait  
   
