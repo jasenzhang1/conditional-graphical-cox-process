@@ -406,29 +406,31 @@ block_matrix_HS <- function(pm_mat, p){
 # visualize how a precision matrix changes over time using a gif
 # such as for banded_trig
 
-visualize_precision_gif <- function(save_dir, p, d, adj_type, adj_params, nframes, fps){
+visualize_precision_gif <- function(save_dir, p, d, adj_type_list, adj_params_list, matrix_type, nframes, fps){
   
   # ----------------------------------------------------------------------------
   #
   # GOAL: visualize how the partial correlation matrix changes over time with a gif
   #
   # - note that adj_params[1:2] denote the min and max y_c value
-  # 
+  # - note that the structure of adj_type_list denotes where the heatmap is placed
+  #   - adj_type_list[[1]][[2]] denotes the setting of the (1, 2) heatmap, in matrix notation.
   #
   # input:
   #
-  # - save_dir      (string)   where to save the gif, such as simu_results/flexible_block_banded_c0/CPGM
-  # - p             (integer)  number of processes
-  # - d             (integer)  number of eigencomponents in simulation
-  # - adj_type      (string)
-  # - adj_params    (vector)
-  # - nframes       (number)   number of frames
-  # - fps           (number)   frames per second
+  # - save_dir           (string)                      where to save the gif, such as simu_results/flexible_block_banded_c0/CPGM
+  # - p                  (integer)                     number of processes
+  # - d                  (integer)                     number of eigencomponents in simulation
+  # - adj_type_list      (list of lists of strings)    can take multiple adj_types
+  # - adj_params_list    (list of lists of vectors)    can take multiple adj_params
+  # - matrix_types       (string)                      which type of matrix to present: 'prec', 'cov', 'adj', 'cor', or 'prec_norm'
+  # - nframes            (number)                      number of frames
+  # - fps                (number)                      frames per second
   #
   #
   # output:
   #
-  # - animated gif
+  # - a grid of animated gifs
   #
   # ----------------------------------------------------------------------------
   
@@ -549,5 +551,286 @@ visualize_precision_gif <- function(save_dir, p, d, adj_type, adj_params, nframe
   # Write the GIF
   image_write(animation, path = gif_name) 
   
+}
+
+visualize_precision_grid_gif <- function(save_dir, p, d, adj_type_list, adj_params_list, matrix_type, nframes, fps) {
+  
+  # ----------------------------------------------------------------------------
+  # GOAL: Create a 2D grid of animated heatmaps based on a matrix of settings
+  # matrix_type: 'prec', 'cov', 'adj', 'cor', or 'prec_norm'
+  # ----------------------------------------------------------------------------
+  
+  library(magick)
+  library(purrr) # for easier list manipulation
+  
+  n_rows <- length(adj_type_list)
+  n_cols <- length(adj_type_list[[1]])
+  
+  # 1) PRE-GENERATION: Compute all matrices for all settings across all frames
+  # We store this in a nested structure: [row][col][frame]
+  grid_data <- lapply(1:n_rows, function(r) {
+    lapply(1:n_cols, function(c) {
+      
+      type_rc <- adj_type_list[[r]][[c]]
+      params_rc <- adj_params_list[[r]][[c]]
+      
+      # Generate time-varying parameters for this specific grid cell
+      query_y_cs <- generate_y_c_adj_type(nframes, type_rc, params_rc, seed = NULL)
+      
+      # Generate the specific matrix type requested for each frame
+      lapply(1:nframes, function(k) {
+        y_c_k <- query_y_cs[k, ]
+        
+        mat <- switch(matrix_type,
+                      'prec'      = trig_basis_prec_mat(d, p, y_c_k, type_rc, params_rc),
+                      'cov'       = trig_basis_cov_mat(d, p, y_c_k, type_rc, params_rc),
+                      'adj'       = trig_basis_adj_mat(d, p, y_c_k, type_rc, params_rc),
+                      'cor'       = trig_basis_cor_mat(d, p, y_c_k, type_rc, params_rc),
+                      'prec_norm' = trig_basis_prec_mat_normalized(d, p, y_c_k, type_rc, params_rc)
+        )
+        list(matrix = mat, y_c = y_c_k)
+      })
+    })
+  })
+  
+  # 2) SCALE CONSISTENCY: Find global min/max across the entire grid for the color bar
+  all_values <- unlist(lapply(grid_data, function(r) lapply(r, function(c) lapply(c, function(f) as.numeric(f$matrix)))))
+  z_min <- min(all_values)
+  z_max <- max(all_values)
+  z_mid <- 0 # Assuming partial correlations/precisions center at 0
+  
+  if(matrix_type == "cor") { z_min <- -1; z_max <- 1 }
+  if(matrix_type == "adj") { z_min <- 0; z_max <- 1 }
+  
+  # 3) ANIMATION: Loop through frames, assemble the grid for each frame
+  frame_imgs <- list()
+  
+  for (f in 1:nframes) {
+    row_strips <- list()
+    
+    for (r in 1:n_rows) {
+      col_imgs <- list()
+      
+      for (c in 1:n_cols) {
+        cell_data <- grid_data[[r]][[c]][[f]]
+        
+        tmp_file <- tempfile(fileext = ".png")
+        png(tmp_file, width = 400, height = 400)
+        
+        # Label each heatmap with its specific settings and current y_c
+        cell_title <- paste0(adj_type_list[[r]][[c]], "\n y_c: ", round(cell_data$y_c, 2))
+        
+        visualize_matrix_heatmap(
+          cell_data$matrix,
+          g_title = cell_title,
+          zmin = z_min, zmid = z_mid, zmax = z_max
+        ) %>% print()
+        
+        dev.off()
+        col_imgs[[c]] <- image_read(tmp_file)
+      }
+      # Join columns horizontally to create a row
+      row_strips[[r]] <- image_append(image_join(col_imgs), stack = FALSE)
+    }
+    
+    # Join rows vertically to create the final grid for this frame
+    frame_imgs[[f]] <- image_append(image_join(row_strips), stack = TRUE)
+  }
+  
+  # 4) FINALIZING: Compile and Save
+  animation <- image_animate(image_join(frame_imgs), fps = fps)
+  
+  if(!dir.exists(save_dir)) dir.create(save_dir, recursive = TRUE)
+  
+  # Construct filename based on the matrix type and dimension
+  gif_name <- file.path(save_dir, paste0("grid_", matrix_type, "_p", p, "_animation.gif"))
+  image_write(animation, path = gif_name)
+  
+  message("Animation saved to: ", gif_name)
+}
+
+visualize_precision_grid_gif_v2 <- function(save_dir, p, d, adj_type_list, adj_params_list, matrix_type, nframes, fps) {
+  library(magick)
+  
+  n_rows <- length(adj_type_list)
+  n_cols <- length(adj_type_list[[1]])
+  
+  # 1) Setup: Create a temp directory for frames to avoid RAM bloat
+  frame_dir <- file.path(tempdir(), "gif_frames")
+  if(!dir.exists(frame_dir)) dir.create(frame_dir)
+  
+  # 2) Pre-calculate the time-varying y_c for every cell to keep timing consistent
+  # This is a small numeric matrix, so it's safe to keep in memory
+  y_c_schedules <- lapply(1:n_rows, function(r) {
+    lapply(1:n_cols, function(c) {
+      generate_y_c_adj_type(nframes, adj_type_list[[r]][[c]], adj_params_list[[r]][[c]], seed = NULL)
+    })
+  })
+  
+  message("Starting frame generation...")
+  
+  # 3) Loop through frames
+  for (f in 1:nframes) {
+    row_imgs <- list()
+    
+    for (r in 1:n_rows) {
+      col_imgs <- list()
+      
+      for (c in 1:n_cols) {
+        # --- GENERATE MATRIX ON THE FLY ---
+        type_rc <- adj_type_list[[r]][[c]]
+        params_rc <- adj_params_list[[r]][[c]]
+        y_c_f <- y_c_schedules[[r]][[c]][f, ]
+        
+        # Calculate the specific matrix for this frame only
+        mat <- switch(matrix_type,
+                      'prec'      = trig_basis_prec_mat(d, p, y_c_f, type_rc, params_rc),
+                      'cov'       = trig_basis_cov_mat(d, p, y_c_f, type_rc, params_rc),
+                      'adj'       = trig_basis_adj_mat(d, p, y_c_f, type_rc, params_rc),
+                      'cor'       = trig_basis_cor_mat(d, p, y_c_f, type_rc, params_rc),
+                      'prec_norm' = trig_basis_prec_mat_normalized(d, p, y_c_f, type_rc, params_rc))
+        
+        # Plot to a temporary PNG
+        tmp_p <- tempfile(fileext = ".png")
+        # Reducing resolution to 300x300 significantly saves memory
+        png(tmp_p, width = 300, height = 300)
+        
+        visualize_matrix_heatmap(
+          mat, 
+          g_title = paste0(type_rc, "\n y_c: ", round(y_c_f, 2)),
+          # Note: For global z-limits, you may need to pre-calculate 
+          # range or hardcode them (e.g., -1 to 1 for correlation)
+          zmin = -1, zmid = 0, zmax = 1 
+        ) %>% print()
+        
+        dev.off()
+        
+        col_imgs[[c]] <- image_read(tmp_p)
+        file.remove(tmp_p) # Clear disk immediately
+      }
+      
+      # Combine columns into a row strip
+      row_imgs[[r]] <- image_append(image_join(col_imgs), stack = FALSE)
+      rm(col_imgs) # Clear individual images from RAM
+    }
+    
+    # Combine rows into a full grid frame
+    final_frame <- image_append(image_join(row_imgs), stack = TRUE)
+    
+    # Write this specific frame to disk
+    image_write(final_frame, path = file.path(frame_dir, sprintf("frame_%04d.png", f)))
+    
+    # Clean up RAM for this frame
+    rm(row_imgs, final_frame)
+    if(f %% 5 == 0) {
+      gc() # Force garbage collection every 5 frames
+      message(paste("Frame", f, "of", nframes, "completed"))
+    }
+  }
+  
+  # 4) Read all frames back and animate
+  message("Compiling GIF (this may take a moment)...")
+  all_files <- list.files(frame_dir, full.names = TRUE)
+  animation <- image_animate(image_read(all_files), fps = fps)
+  
+  if(!dir.exists(save_dir)) dir.create(save_dir, recursive = TRUE)
+  out_path <- file.path(save_dir, paste0("grid_", matrix_type, ".gif"))
+  image_write(animation, path = out_path)
+  
+  # Cleanup temp directory
+  unlink(frame_dir, recursive = TRUE)
+  message("Done!")
+}
+
+
+visualize_precision_matrix_facet <- function(save_dir, p, d, adj_type_list, adj_params_list, 
+                                             matrix_type, nframes, fps, 
+                                             x_lab_vec, y_lab_vec) {
+  library(ggplot2)
+  library(gganimate)
+  library(dplyr)
+  library(tidyr)
+  
+  plot_data <- list()
+  
+  # 1. Data Generation
+  for (r in 1:3) {
+    for (c in 1:3) {
+      type_rc <- adj_type_list[[r]][[c]]
+      params_rc <- adj_params_list[[r]][[c]]
+      y_c_sch <- generate_y_c_adj_type(nframes, type_rc, params_rc, seed = NULL)
+      
+      for (f in 1:nframes) {
+        y_c_f <- y_c_sch[f, ]
+        mat <- switch(matrix_type,
+                      'prec'      = trig_basis_prec_mat(d, p, y_c_f, type_rc, params_rc),
+                      'cov'       = trig_basis_cov_mat(d, p, y_c_f, type_rc, params_rc),
+                      'adj'       = trig_basis_adj_mat(d, p, y_c_f, type_rc, params_rc),
+                      'cor'       = trig_basis_cor_mat(d, p, y_c_f, type_rc, params_rc),
+                      'prec_norm' = trig_basis_prec_mat_normalized(d, p, y_c_f, type_rc, params_rc))
+        
+        # Convert to long format
+        mat_df <- as.data.frame(mat) %>%
+          mutate(row_idx = row_number()) %>%
+          pivot_longer(-row_idx, names_to = "col_idx", values_to = "value") %>%
+          mutate(
+            col_idx = as.numeric(gsub("V", "", col_idx)),
+            frame = f,
+            row_label = factor(y_lab_vec[r], levels = y_lab_vec),
+            col_label = factor(x_lab_vec[c], levels = x_lab_vec)
+          )
+        plot_data[[length(plot_data) + 1]] <- mat_df
+      }
+    }
+  }
+  
+  final_df <- bind_rows(plot_data)
+  
+
+  
+  # 2. Plotting
+  p_anim <- ggplot(final_df, aes(x = col_idx, y = row_idx, fill = value)) +
+    geom_tile() +
+    facet_grid(row_label ~ col_label) +
+
+    scale_y_reverse() + 
+    scale_x_continuous() +
+    scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0) +
+    labs(x = NULL, y = NULL, 
+         subtitle = "Frame: {frame}") +
+    theme_bw() + 
+    theme(
+      legend.position = "right",
+      panel.grid = element_blank(),
+      axis.text = element_text(size = 8), 
+      axis.ticks = element_line(size = 0.5),
+      strip.background = element_rect(fill = "gray92"),
+      strip.text = element_text(face = "bold", size = 10)
+    ) +
+    transition_manual(frame)
+  
+  # 3. Save
+  if(!dir.exists(save_dir)) dir.create(save_dir, recursive = TRUE)
+  
+  # Create a specific directory for the PNG frames
+  frames_path <- file.path(save_dir, "frames")
+  if(!dir.exists(frames_path)) dir.create(frames_path, recursive = TRUE)
+  
+  # 3a. Save the GIF
+  # We use the default renderer here
+  anim_save(file.path(save_dir, paste0("matrix_grid_", matrix_type, ".gif")), 
+            animation = p_anim, nframes = nframes, fps = fps, 
+            width = 1000, height = 950, res = 100)
+  
+  # 3b. Save the series of PNG files
+  # We use the file_renderer to export each frame individually
+  animate(p_anim, 
+          nframes = nframes, 
+          device = "png",
+          width = 1000, height = 950, res = 100,
+          renderer = file_renderer(dir = frames_path, prefix = "frame_", overwrite = TRUE))
+  
+  message("GIF saved to: ", save_dir)
+  message("Individual frames saved to: ", frames_path)
 }
 
