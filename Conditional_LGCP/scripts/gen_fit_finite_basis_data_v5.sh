@@ -116,7 +116,9 @@ for entry in "${adj_type_params[@]}"; do
   # -------------------
   # Step 1: Generate
   # -------------------
-  echo "[STEP 1] Generating dataset..." | tee -a "$outfile"
+  echo "[STEP 1] Generating dataset ..." | tee -a "$outfile"
+  echo "" | tee -a "$outfile"
+  
   step1_start=$(date +%s)
 
   # temp_data/simu_data/part0...
@@ -136,19 +138,19 @@ for entry in "${adj_type_params[@]}"; do
   done  
   wait
   
-  echo "[STEP 1] Finished generating events" | tee -a "$outfile"
+
   echo "" | tee -a "$outfile"
   echo "===================================================" >> "$outfile"
   echo "" | tee -a "$outfile"
   
   
   # temp_data/simu_data/dataset...
-  echo "[STEP 1] Starting merging events" | tee -a "$outfile"
+  echo "Merging events ..." | tee -a "$outfile"
   echo "" | tee -a "$outfile"
   
   Rscript script_generate_finite_basis_data_part3.R "$n_large" "$adj_type" "$groups" >> "$outfile" 2>&1
   
-  echo "[STEP 1] Finished merging events" | tee -a "$outfile"
+
   echo "" | tee -a "$outfile"
   echo "===================================================" >> "$outfile"
   echo "" | tee -a "$outfile"
@@ -157,7 +159,7 @@ for entry in "${adj_type_params[@]}"; do
   # Step 1b: Get truths for each cont_ind query
   # ---------------------------------------------------
   
-  echo "[STEP 1] Getting truths" | tee -a "$outfile"
+  echo "Getting truths ..." | tee -a "$outfile"
   echo "" | tee -a "$outfile"
   
   for cont_ind in $(seq 1 "$n_query"); do
@@ -176,8 +178,13 @@ for entry in "${adj_type_params[@]}"; do
   # simu_data/adj_type_n_truths.RData
   Rscript script_generate_finite_basis_data_part5.R "$n_large" "$adj_type" "$n_query" "$groups" >> "$outfile" 2>&1
   
+  echo "" | tee -a "$outfile"
+  echo "===================================================" >> "$outfile"
+  
   step1_end=$(date +%s)
   step1_elapsed=$(( step1_end - step1_start ))
+  
+  echo "" | tee -a "$outfile"
   echo "[DONE] Generation complete. Elapsed: ${step1_elapsed}s" | tee -a "$outfile"
   echo "" | tee -a "$outfile"
   echo "===================================================" >> "$outfile"
@@ -188,7 +195,7 @@ for entry in "${adj_type_params[@]}"; do
   # ============================================================================
 
   
-  echo "[STEP 2] Fitting dataset..." | tee -a "$outfile"
+  echo "[STEP 2] Fitting dataset ..." | tee -a "$outfile"
   echo "" | tee -a "$outfile"
   echo "===================================================" >> "$outfile"
   echo "" | tee -a "$outfile"
@@ -197,7 +204,7 @@ for entry in "${adj_type_params[@]}"; do
   # Part 1 - get all outer products before re-weighting by y_c and n
   # ----------------
   
-  echo "[PART 1] Starting..." >> "$outfile"
+  echo "[PART 1] Collecting parameters ..." >> "$outfile"
   
   wait_for_slot
   
@@ -230,7 +237,7 @@ for entry in "${adj_type_params[@]}"; do
   # Part 2 - getting raw rho_i, rho_ij values without weighing 
   # ----------------
   
-  echo "[PART 2] Calculating Rho_i Starting..." >> "$outfile"
+  echo "[PART 2] Calculating Rho_i ..." >> "$outfile"
   echo "" | tee -a "$outfile"
 
 
@@ -242,18 +249,18 @@ for entry in "${adj_type_params[@]}"; do
   done
 
 
-  echo "[PART 3] Calculating Rho_ij Starting..." >> "$outfile"
+  echo "[PART 3] Calculating Rho_ij ..." >> "$outfile"
   echo "" | tee -a "$outfile"
 
   for kl in $(seq 1 "$n_ij"); do
       wait_for_slot
       
       # temp_data/simu/step_2_rho_ij...
-      Rscript script_step2_part2_v5.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$X_truth" "$j" "$kl" >> "$outfile" 2>&1 &
+      Rscript script_step2_part2_v5.R "$model_type" "$n_large" "$n_large" "$adj_type" "$method" "$X_truth" "$j" "$kl" >> "$outfile" 2>&1 &
   done
   wait  
   
-  echo "[PART 4] Merging all Rho_i and Rho_ij Starting..." >> "$outfile"
+  echo "[PART 4] Merging all Rho_i and Rho_ij ..." >> "$outfile"
   echo "" | tee -a "$outfile"
   
   
