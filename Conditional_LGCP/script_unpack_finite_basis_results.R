@@ -36,8 +36,8 @@ adj_params <- as.numeric(args[7:length(args)])
 # beta_truth <- T
 # eigen_troubleshoot <- T
 
-n_large <- 3000
-n <- 2000
+n_large <- 1000
+n <- 1000
 
 
 # 3) heatmaps of certain metrics 
@@ -66,8 +66,34 @@ g_heatmaps_final       <- visualize_finite_basis(truth_file_name, estimates_file
 
 # 3b) gif
 
+adj_suffixes <- c('c2', 'v2', 'j2')
+adj_1 <- as.list(paste0('flexible_block_banded_', adj_suffixes))
+adj_2 <- as.list(paste0('hub_block_', adj_suffixes))
+adj_3 <- as.list(paste0('complete_block_', adj_suffixes))
+adj_type_list <- list(adj_1, adj_2, adj_3)
+
+adj_params_1 <- list(c(0, 1, 2, 2, 0.7, 0.7),
+                     c(0, 1, 2, 2, 0.5, 0.9, 0.5, 0.9),
+                     c(0, 1, 0.5, 2, 2, 0.7, 0.7))
+adj_params_2 <- list(c(0, 1, 4, 2, 2, 0.7, 0.7),
+                     c(0, 1, 4, 2, 2, 0.5, 0.9, 0.5, 0.9),
+                     c(0, 1, 4, 0.5, 2, 2, 0.7, 0.7))
+adj_params_3 <- list(c(0, 1, 4, 2, 2, 0.7, 0.7),
+                     c(0, 1, 4, 2, 2, 0.5, 0.9, 0.5, 0.9),
+                     c(0, 1, 4, 0.5, 2, 2, 0.7, 0.7))
+
+adj_params_list <- list(adj_params_1, adj_params_2, adj_params_3)
+matrix_type <- 'prec_norm'
+p <- 12
+d <- 2
+
+x_lab_vec <- c('Constant', 'Linear', 'Jump')
+y_lab_vec <- c('Banded', 'Hub', 'Complete')
+
 g_gif <- visualize_precision_gif(data_folder, p, d, adj_type, adj_params, nframes = 50, fps = 5)
 
+g_grid_gif <-       visualize_precision_grid_gif(data_folder, p, d, adj_type_list, adj_params_list, matrix_type, nframes = 50, fps = 5)
+g_grid_gif_v2 <- visualize_precision_grid_gif_v2(data_folder, p, d, adj_type_list, adj_params_list, matrix_type, nframes = 10, fps = 2)
 # ------------------------------------------------------------------------------
 # 4) convergence of intermediate estimators (28b)
 
