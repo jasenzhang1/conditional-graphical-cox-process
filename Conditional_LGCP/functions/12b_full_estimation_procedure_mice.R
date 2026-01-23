@@ -642,6 +642,95 @@ estimate_intensities_stratum_parallel_with_yc_part1 <- function(temp_file_dir, s
   
 }
 
+# rho_i without weights
+estimate_intensities_stratum_parallel_with_yc_part1_v5 <- function(temp_file_dir, setting_info_list, i, mouse, X_truth) {
+  
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: calculate rho_i for a single i and save it as
+  #       
+  #       temp_data/simu/step_2_v5_rho_i_block_banded_v2_n_100_nqueryk_i.rds'
+  #
+  # 
+  # inputs:
+  # 
+  #
+  # - temp_file_dir         (string)    'temp_data/simu'
+  # - setting_info_list     (list)
+  # - i                     (integer)   process_id from 1 to p
+  # - mouse                 (boolean)   mouse (T) or simulation (F)
+  # - X_truth               (boolean)   do we want to do estimation from true log-intensities?
+  #
+  #
+  # outputs:
+  #
+  # - rho_i_result          (list)
+  #
+  #   - rho_i_est           (m x n matrix)  rho_i_est for each subject
+  #   - rho_i_X_truth       (m x n matrix)  only computed if we have X_truth = T
+  #
+  # ----------------------------------------------------------------------------
+  
+  list2env(setting_info_list, envir = environment())
+  
+  # 1) load
+  
+  if(mouse){
+    step_2_info_list <- paste0('part1_', ID, '_', discrete_level, '_t', time_scale, '.rds')
+  } else{
+    step_2_info_list <- paste0('part1_', adj_type, '_n_', n, '.rds')
+  }
+  
+  
+  # load `dataset$X_k_truth`, `weights`, `data_df4`
+  results <- readRDS(file.path(temp_file_dir, step_2_info_list))
+  list2env(results, envir = environment())
+  
+  n_time <- length(time_grid_est)  # 19
+  
+  
+  # 2) filter process i and update subject ID's in case some don't have process i
+  
+  data_i <- data_df4[feature_id == feature_sel[i], ]
+  kept_subjects <- unique(data_i$subject_num) %>% sort()  # in case any subjects do not have data for process i
+
+  
+  setDT(data_i)
+  data_i[, subject_num := match(subject_num, sort(unique(subject_num)))]
+  
+  # 3) estimation
+  if (nrow(data_i) == 0) { # no events, estimate is the zero intensity
+    rho_mat <- matrix(0, nrow = n_time, ncol = n)
+  } else {
+    Gamma_i <- data_i[, estimate_density(time, time_grid_est), by = "subject_num"]
+    rho_mat <- matrix(Gamma_i$rho_hat, nrow = n_time)  # m x n
+  }
+  
+  # store rho_i
+  
+  rho_i_result <- list(rho_i_est = rho_mat) 
+  
+  # 4) X_truth if requested
+  
+  if(X_truth){
+    # take (12 x 30 x 100), index only the i-th process, then take sample mean across n
+    rho_i_result[['rho_i_X_truth']] <- exp(dataset$X_k_truth[i, , ])
+  }
+  
+  
+  # 5) save
+  
+  if(mouse){
+    rho_i_file_name <- paste0('step_2_v5_rho_i_', ID, '_', discrete_level, '_t', time_scale, '_', i, '.rds')
+  } else{
+    rho_i_file_name <- paste0('step_2_v5_rho_i_', adj_type, '_n_', n, '_', i, '.rds')
+  }
+  
+  saveRDS(rho_i_result, file = file.path(temp_file_dir, rho_i_file_name))  
+  
+}
+
 # key_k
 estimate_intensities_stratum_parallel_with_yc_part2 <- function(temp_file_dir, setting_info_list, cont_ind, k, mouse, X_truth) {
   
@@ -760,6 +849,126 @@ estimate_intensities_stratum_parallel_with_yc_part2 <- function(temp_file_dir, s
     rho_ij_file_name <- paste0('step_2_rho_ij_', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '_', k, '.rds')
   } else{
     rho_ij_file_name <- paste0("step_2_rho_ij_", adj_type, '_n_', n, '_nquery', cont_ind, '_', k, '.rds')
+  }
+  
+  saveRDS(rho_ij_result, file = file.path(temp_file_dir, rho_ij_file_name))  
+  
+}
+
+estimate_intensities_stratum_parallel_with_yc_part2_v5 <- function(temp_file_dir, setting_info_list, k, mouse, X_truth) {
+  
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: calculate rho_ij for a single i_j pair and save it as 
+  #       
+  #       temp_data/simu/step_2_rho_ij_block_banded_v2_n_100_nquery_cont_ind_k.rds
+  #       temp_data/mice/step_2_rho_ij_Tau1_m0vr0_t5_nquery_cont_ind_k.rds
+  # 
+  # inputs:
+  # 
+  #
+  # - temp_file_dir         (string)
+  # - setting_info_list     (list)
+  # - cont_ind              (integer)   which n_query index
+  # - k                     (integer)   index number corresponding to a i_j pair
+  # - mouse                 (boolean)   mouse (T) or simulation (F)
+  # - X_truth               (boolean)   do we want X_truth?
+  #
+  #
+  # outputs:
+  #
+  # - rho_ij_result       (list)
+  # 
+  #   - rho_ii_est        (m^2 x n matrix)
+  #   - rho_ii_X_truth    (m^2 x n matrix)  only calcualted when X_truth = T
+  #
+  #
+  # ----------------------------------------------------------------------------
+  
+  
+  # 1) load
+  
+  
+  list2env(setting_info_list, envir = environment())
+  
+  
+  if(mouse){
+    step_2_info_list <- paste0("part1_", ID, '_', discrete_level, '_t', time_scale, '.rds')
+  } else{
+    step_2_info_list <- paste0("part1_", adj_type, '_n_', n, '.rds')
+  }
+  
+  # load `dataset`
+  results <- readRDS(file.path(temp_file_dir, step_2_info_list))
+  list2env(results, envir = environment())
+  
+  
+  key_ij <- keys[k]
+  key_split <- strsplit(key_ij, "_")[[1]]
+  
+  i <- as.numeric(key_split[1])
+  j <- as.numeric(key_split[2])
+  
+  # 2) prep
+  
+  t_seq <- time_grid_est
+  
+  p <- length(feature_sel) # 249
+  n_time <- length(t_seq)  # 19
+  
+  
+  
+  
+  # 2) filter process i and update subject ID's in case some don't have process i
+  
+  
+  data_i <- data_df4[feature_id == feature_sel[i], ]
+  data_j <- data_df4[feature_id == feature_sel[j], ]
+  
+  
+  # fitting
+  if (nrow(data_j) == 0 || nrow(data_i) == 0) { # if any entry has nothing, return the flat bivariate intensity
+    rho_ij_mat <- matrix(0, nrow = n_time, ncol = n_time)
+  } else {
+    times_i <- data_i[, .(event_times_i = list(time)), by = subject_num]  # dataframe where first col = subject, 2nd col = vector of observations 
+    times_j <- data_j[, .(event_times_j = list(time)), by = subject_num]  # all of which are for process i
+    times_ij <- merge(times_i, times_j, by = "subject_num", all = FALSE)   # now make it 3 columns: subject, process i, and process j
+    
+    kept_subjects <- unique(times_ij$subject_num) %>% sort()
+
+    
+    setDT(times_ij)
+    times_ij[, subject_num := match(subject_num, sort(unique(subject_num)))]
+    
+    # 3) estimation
+    
+    if(nrow(times_ij) == 0){      # if they don't occur during the same replicates, return the flat bivariate intensity
+      rho_ij_mat <- matrix(0, nrow = n_time, ncol = n_time)
+    } else{
+      Gamma_ij <- times_ij[, estimate_bivariate_density(
+        event_times_i[[1]], event_times_j[[1]],
+        t_seq, t_seq, 'i'), by = 'subject_num']
+      
+      bivariate_intensity <- matrix(Gamma_ij$V1, nrow = n_time^2) # m^2 x n
+      
+
+    }
+  }
+  
+  # store rho_ij_mat
+  
+  rho_ij_result <- list(rho_ii_est = bivariate_intensity)
+  
+  # 4) X_truth if requested
+  if(X_truth){
+    rho_ij_result[['rho_ii_X_truth']] <- estimate_rho_ij_from_Lambda_v5(dataset$X_k_truth, i, j)
+  }
+  
+  if(mouse){
+    rho_ij_file_name <- paste0('step_2_v5_rho_ij_', ID, '_', discrete_level, '_t', time_scale, '_', k, '.rds')
+  } else{
+    rho_ij_file_name <- paste0("step_2_v5_rho_ij_", adj_type, '_n_', n, '_', k, '.rds')
   }
   
   saveRDS(rho_ij_result, file = file.path(temp_file_dir, rho_ij_file_name))  
