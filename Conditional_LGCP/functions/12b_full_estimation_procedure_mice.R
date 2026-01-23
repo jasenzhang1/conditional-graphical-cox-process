@@ -929,11 +929,12 @@ estimate_intensities_stratum_parallel_with_yc_part2_v5 <- function(temp_file_dir
   
   # fitting
   if (nrow(data_j) == 0 || nrow(data_i) == 0) { # if any entry has nothing, return the flat bivariate intensity
-    rho_ij_mat <- matrix(0, nrow = n_time, ncol = n_time)
+    rho_ij_mat <- matrix(0, nrow = n_time^2, ncol = n)
   } else {
     times_i <- data_i[, .(event_times_i = list(time)), by = subject_num]  # dataframe where first col = subject, 2nd col = vector of observations 
     times_j <- data_j[, .(event_times_j = list(time)), by = subject_num]  # all of which are for process i
-    times_ij <- merge(times_i, times_j, by = "subject_num", all = FALSE)   # now make it 3 columns: subject, process i, and process j
+    times_ij <- merge(times_i, times_j, by = "subject_num", all = FALSE)  # now make it 3 columns: subject, process i, and process j
+                                                                          # this is an inner join. If a subject in process i has no events but has events in process j, delete it
     
     kept_subjects <- unique(times_ij$subject_num) %>% sort()
 
@@ -944,13 +945,13 @@ estimate_intensities_stratum_parallel_with_yc_part2_v5 <- function(temp_file_dir
     # 3) estimation
     
     if(nrow(times_ij) == 0){      # if they don't occur during the same replicates, return the flat bivariate intensity
-      rho_ij_mat <- matrix(0, nrow = n_time, ncol = n_time)
+      rho_ij_mat <- matrix(0, nrow = n_time^2, ncol = n)
     } else{
       Gamma_ij <- times_ij[, estimate_bivariate_density(
         event_times_i[[1]], event_times_j[[1]],
         t_seq, t_seq, 'i'), by = 'subject_num']
       
-      bivariate_intensity <- matrix(Gamma_ij$V1, nrow = n_time^2) # m^2 x n
+      rho_ij_mat <- matrix(Gamma_ij$V1, nrow = n_time^2) # m^2 x n
       
 
     }
@@ -958,7 +959,7 @@ estimate_intensities_stratum_parallel_with_yc_part2_v5 <- function(temp_file_dir
   
   # store rho_ij_mat
   
-  rho_ij_result <- list(rho_ii_est = bivariate_intensity)
+  rho_ij_result <- list(rho_ii_est = rho_ij_mat)
   
   # 4) X_truth if requested
   if(X_truth){

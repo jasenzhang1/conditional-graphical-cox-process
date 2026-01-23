@@ -318,8 +318,6 @@ estimate_rho_ij_from_Lambda_v5 <- function(X_mat, i, j){
   #
   # ----------------------------------------------------------------------------
   
-  weights2 <- weights / sum(weights)
-  weight_mat <- diag(weights2)      # (n x n matrix)
   
   Lambda_i <- exp(X_mat[i,,])       # (m x n)
   Lambda_j <- exp(X_mat[j,,])       # (m x n)
