@@ -1183,6 +1183,107 @@ estimate_intensities_stratum_parallel_with_yc_part3_v5 <- function(temp_file_dir
   
 }
 
+estimate_intensities_stratum_parallel_with_yc_part4_helper <- function(results, n_large, n, cont_ind){
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: with results, trim everything from n_large to n
+  #
+  #
+  # inputs:
+  #
+  # - results
+  # - n_large
+  # - n 
+  # - cont_ind
+  #
+  #
+  # outputs:
+  #
+  # - list(results = results, 
+  #        weight_vec = weight_vec)
+  #
+  # ----------------------------------------------------------------------------
+  
+  # 1) choose indices that thin the sample size
+  #    and downsize the weight vector
+  
+  idx <- round(seq(1, n_large, length.out = n))
+  
+  y_c_query <- results$query_y_cs[cont_ind,]
+  
+  
+  weights <- apply(results$y_c_strata, 1, function(row) {
+    step_6_kernel(as.numeric(row), y_c_query, results$gamma_c) 
+  })  
+  
+  weights[!(1:n_large %in% idx)] <- 0
+  W_y <- sum(weights)
+  weights <- weights / W_y
+  
+  weights2 <- weights[1:n_large %in% idx]
+
+  
+  
+  
+  results[['weights']] <- weights2
+  results[['W_y']] <- W_y 
+  
+  # 2) work on dataset
+  
+  dataset_k <- results$dataset
+  
+  # 2a) Split strings and extract k and i from event_times
+  split_list <- strsplit(names(dataset_k$event_times), "_")
+  
+  k_values <- sapply(split_list, function(x) as.numeric(x[1]))
+  i_values <- sapply(split_list, function(x) as.numeric(x[2]))
+  
+  # 2b) keep only entries where i is in idx
+  keep <- k_values %in% idx
+  dataset_k$event_times <- dataset_k$event_times[keep]
+  k_values <- k_values[keep]
+  i_values <- i_values[keep]
+  
+  # 2c) Compress k to 1:n (preserving order of appearance)
+  k_map <- match(k_values, unique(k_values))
+  
+  # 2d) Rename entries as "newk_i"
+  names(dataset_k$event_times) <- paste0(k_map, "_", i_values)
+  
+  
+  # 2e) update the rest of the dataset
+  dataset_k$X_k_truth <- dataset$X_k_truth[,,idx]
+  dataset_k$X_k_coarse_truth <- dataset$X_k_coarse_truth[,,idx]
+  dataset_k$X_k_both_truth <- dataset$X_k_both_truth[,,idx]
+  dataset_k$Y_continuous_k <- dataset_k$Y_continuous  
+  dataset_k$Y_continuous_k <- matrix(dataset_k$Y_continuous_k[idx,], nrow = length(idx))  # creating filtered Y_c and unfiltered Y_c
+  dataset_k$beta_coeffs <- dataset$beta_coeffs[,,idx]
+  dataset_k$simulation_params$n <- length(idx)   
+  
+  results$dataset <- dataset_k
+  
+  # 3) update the rest
+  
+  results$y_c_strata <- dataset_k$Y_continuous_k
+  results$patient_sel <- 1:n
+  results$n <- n
+  
+  if('X_k_coarse_truth' %in% names(results)){
+    results[['X_k_coarse_truth']] <- results[['X_k_coarse_truth']][,,idx]
+  }
+  if('X_k_truth' %in% names(results)){
+    results[['X_k_truth']] <- results[['X_k_truth']][,,idx]
+  }
+  if('X_k_both_truth' %in% names(results)){
+    results[['X_k_both_truth']] <- results[['X_k_both_truth']][,,idx]
+  }
+  
+  return(list(results = results,
+              weight_vec = weights))
+  
+}
+
 estimate_intensities_stratum_parallel_with_yc_part4_v5 <- function(temp_file_dirs, setting_info_list, cont_ind, mouse) {
   
   
@@ -1232,27 +1333,13 @@ estimate_intensities_stratum_parallel_with_yc_part4_v5 <- function(temp_file_dir
   rho_list <- readRDS(file.path(temp_file_dirs[1], rho_list_name))
   
   # 2) for this n and cont_ind, find a vector of dim n_large that assigns weights
+  #    also trim everything about "results" to accommodate smaller n
   
-
-  idx <- round(seq(1, n_large, length.out = n))
+  helper_result <- estimate_intensities_stratum_parallel_with_yc_part4_helper(results, n_large, n, cont_ind)
+  results <- helper_result[[1]]
+  weights2 <- helper_result[[2]] # dim n_large, sum = 1, excluded elements = 0
   
-  
-  y_c_query <- query_y_cs[cont_ind,]
-  
-  weights <- apply(y_c_strata, 1, function(row) {
-    step_6_kernel(as.numeric(row), y_c_query, gamma_c) 
-  })  
-  
-  weights[!(1:n_large %in% idx)] <- 0
-  
-  W_y <- sum(weights)
-  weights2 <- weights / W_y # normalize
-  
-  results[['weights']] <- weights2
-  results[['W_y']] <- W_y 
-  
-  
-  # 2b) get the ground truth adj_mat
+  # 2c) get the ground truth adj_mat
   
   if(! mouse){
     truth_data_name <- paste0('truths_', adj_type, '_n_', n_large, '_nquery', cont_ind, '.rds')
@@ -1262,7 +1349,7 @@ estimate_intensities_stratum_parallel_with_yc_part4_v5 <- function(temp_file_dir
   }
   
   
-  # 2c) save
+  # 2d) save results as part2_
   
   if(mouse){
     datafile_name <- paste0('part2_', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '.rds')
