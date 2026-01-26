@@ -47,8 +47,8 @@ adj_type_params=(
 )
 
 
-n_large=100
-ns=(50 100)
+n_large=200
+ns=(50 100 150 200)
 n_group=10
 groups=$(( n_large / n_group ))
 method="CPGM"
@@ -259,8 +259,7 @@ for entry in "${adj_type_params[@]}"; do
   # temp_data/simu/step_2_v5_raw_rho_list...
   Rscript script_step2_part3_v5.R "$model_type" "$n_large" "$n_large" "$adj_type" "$method" "$n_i" "$n_ij" >> "$outfile" 2>&1
   
-  echo "===================================================" >> "$outfile"
-  echo "" | tee -a "$outfile"
+
   echo "[PART 5] Downstream estimation for all sub_n and y_c values ..." >> "$outfile"
   echo "" | tee -a "$outfile"
   
@@ -275,7 +274,7 @@ for entry in "${adj_type_params[@]}"; do
           wait_for_slot
           (
               # gets weights and pads rho_i and rho_ii
-              # temp_data/simu/step_2_v5_rho_list...
+              # temp_data/simu/step_2_rho_list...
               Rscript script_step2_part4_v5.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$j" >> "$outfile" 2>&1
               
     
