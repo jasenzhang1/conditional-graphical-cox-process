@@ -1284,7 +1284,7 @@ estimate_intensities_stratum_parallel_with_yc_part4_v5 <- function(temp_file_dir
     list_of_vectors <- lapply(step_2_raw, function(sub) {
       mat <- sub[[nm]]  # This is the m x n matrix
 
-      as.vector(mat %*% weights) 
+      as.vector(mat %*% weights2) 
     })
 
     do.call(rbind, list_of_vectors)
@@ -1297,28 +1297,23 @@ estimate_intensities_stratum_parallel_with_yc_part4_v5 <- function(temp_file_dir
   
   # 3b) and rho_ij
   
-  step_2b_raw <- rho_list$step_2b_raw
-  vec_names <- names(step_2b_raw[[1]])
   
-  
-
-  step_2b <- lapply(step_2b_raw, function(sub) {
-    
-    # Transform each (m^2 x n) matrix into an (m x m) matrix
-    transformed_sub <- lapply(vec_names, function(nm) {
-      m_sq_x_n <- sub[[nm]]
-      
-      # 1. Row-weighted mean: (m^2 x n) %*% (n x 1) = (m^2 x 1)
-      m_sq_vector <- as.vector(m_sq_x_n %*% weights)
-      
-      # 2. Reshape the m^2 vector into an (m x m) matrix
-      return(matrix(m_sq_vector, nrow = m))
+  step_2b_calculated <- lapply(rho_list$step_2b_raw, function(sub) {
+    lapply(sub, function(m_sq_x_n) {
+      m_sq_vector <- as.vector(m_sq_x_n %*% weights2)
+      matrix(m_sq_vector, nrow = m)
     })
-    
-    # Name the internal list elements back to their original keys
-    names(transformed_sub) <- vec_names
-    return(transformed_sub)
   })
+  
+  # 2. Pivot the list structure
+  var_names <- names(step_2b_calculated[[1]])
+  
+  step_2b <- lapply(var_names, function(nm) {
+    # For each variable name, reach into every i_j pair and grab that specific matrix
+    lapply(step_2b_calculated, `[[`, nm)
+  })
+  
+  names(step_2b) <- var_names
   
   
   # 3c) store them
@@ -1338,7 +1333,7 @@ estimate_intensities_stratum_parallel_with_yc_part4_v5 <- function(temp_file_dir
   # file.remove(rho_i_file_names)
   # file.remove(rho_ij_file_names)
   
-  saveRDS(result, file = file.path(temp_file_dir, rho_list_name))  
+  saveRDS(result_2, file = file.path(temp_file_dirs[1], rho_list_name))  
   
 }
 
@@ -1448,25 +1443,25 @@ full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, sett
   
   # 4) step 9: Construct mxm object from KL correlation + get precision operator
   
-  step_9 <- step_9_C_cond_from_KL_cor(step_4, step_5b)
-  step_9b <- step_9b_eigenfunction_outers(step_4)
+  # step_9 <- step_9_C_cond_from_KL_cor(step_4, step_5b)
+  # step_9b <- step_9b_eigenfunction_outers(step_4)
+  # 
+  # 
+  # block <- F
+  # MP <- F
+  # step_10 <- tryCatch({
+  #   step_10_P_cond(step_9, p, block, MP)
+  # }, error = function(e) {
+  #   cat("Error occurred in step_10, saving dataset...\n")
+  #   save(dataset, file = file.path(temp_file_dir, datafile_error_name))
+  #   cat("Dataset saved to dataset.RData\n")
+  #   stop(e)  # Re-throw the error
+  # })
+  
 
+  # 5) estimate C_HS, w_mat from pxp without thresh - regular w_mat and C_HS, no KL 
   
-  block <- F
-  MP <- F
-  step_10 <- tryCatch({
-    step_10_P_cond(step_9, p, block, MP)
-  }, error = function(e) {
-    cat("Error occurred in step_10, saving dataset...\n")
-    save(dataset, file = file.path(temp_file_dir, datafile_error_name))
-    cat("Dataset saved to dataset.RData\n")
-    stop(e)  # Re-throw the error
-  })
-  
-
-  # 5) estimate C_HS, w_mat from pxp without thresh
-  
-  step_11_mxm_no_thresh_bundle <- step_11_HS_norms(step_9, step_10, p)
+  # step_11_mxm_no_thresh_bundle <- step_11_HS_norms(step_9, step_10, p)
   
   # 6) estiamte C_HS, w_mat from pxp WITH thresh
 
@@ -1479,27 +1474,35 @@ full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, sett
   # 7) collect all of 11 and 11b results
   
   step_11 <- c(step_11_KL_no_thresh,
-               step_11_KL_yes_thresh,
-               step_11_mxm_no_thresh_bundle$step_11)
+               step_11_KL_yes_thresh)
+               # step_11_mxm_no_thresh_bundle$step_11)
   
   step_11b <- c(step_11b_KL_no_thresh,
-                step_11b_KL_yes_thresh,
-                step_11_mxm_no_thresh_bundle$step_11b)
+                step_11b_KL_yes_thresh)
+                #step_11_mxm_no_thresh_bundle$step_11b)
   
   
   if(! mouse){
     step_12 <- step_12_ROC(step_11, adj_mat_i)
+    step_12b <- step_12b_adj_mat(step_11)
+    
+    estimated_graphs <- list(step_2 = step_2, step_2b = step_2b, step_3 = step_3,
+                             step_4 = step_4, step_5 = step_5, step_5b = step_5b, step_5c = step_5c, 
+                             #step_9 = step_9, step_9b = step_9b, step_10 = step_10, 
+                             step_11 = step_11, step_11b = step_11b, 
+                             step_12 = step_12, step_12b = step_12b)
+  } else{
+    step_12b <- step_12b_adj_mat(step_11)
+    
+    estimated_graphs <- list(step_2 = step_2, step_2b = step_2b, step_3 = step_3,
+                             step_4 = step_4, step_5 = step_5, step_5b = step_5b, step_5c = step_5c, 
+                             #step_9 = step_9, step_9b = step_9b, step_10 = step_10, 
+                             step_11 = step_11, step_11b = step_11b, 
+                             step_12b = step_12b)
   }
   
-  step_12b <- step_12b_adj_mat(step_11)
   
-  estimated_graphs <- list(step_2 = step_2, step_2b = step_2b, step_3 = step_3,
-                           step_4 = step_4, step_5 = step_5, step_5b = step_5b, step_5c = step_5c, 
-                           step_9 = step_9, step_9b = step_9b, step_10 = step_10, 
-                           step_11 = step_11, step_11b = step_11b, 
-                           step_12 = step_12, step_12b = step_12b)
-  
-  
+
 
   if(mouse){
     file_name <- paste0('part3_', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '.rds')
