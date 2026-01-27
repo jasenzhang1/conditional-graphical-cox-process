@@ -263,13 +263,14 @@ for entry in "${adj_type_params[@]}"; do
   echo "[PART 5] Downstream estimation for all sub_n and y_c values ..." >> "$outfile"
   echo "" | tee -a "$outfile"
   
-  echo "All n: ${ns[*]}"
-  echo "Number of queries: $n_query"
+  echo "All n: ${ns[*]}" >> "$outfile"
+  echo "Number of queries: $n_query" >> "$outfile"
+  echo "" | tee -a "$outfile"
   
   # Loop over all subsets of n
   for n in "${ns[@]}"; do
       for j in $(seq 1 "$n_query"); do
-          echo "[START] n = $n, $n_query = $j"
+          echo "[START] n = $n, $n_query = $j" >> "$outfile"
 
           wait_for_slot
           (
@@ -282,7 +283,7 @@ for entry in "${adj_type_params[@]}"; do
               # temp_data/simu/part3...
               Rscript script_fit_mice_data_part2b.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$X_truth" "$j" "$same_basis" "$constant_d" >> "$outfile" 2>&1
               
-              echo "[END] $n out of ${ns[*]}, $j out of $n_query"
+              echo "[END] $n out of ${ns[*]}, $j out of $n_query" >> "$outfile"
           ) &
       
           
@@ -299,6 +300,7 @@ for entry in "${adj_type_params[@]}"; do
       # simu_results/adj_type/CPGM/... .RData
       Rscript script_fit_mice_data_part3.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$n_query" >> "$outfile" 2>&1
       
+      echo "" | tee -a "$outfile"
       echo "[DONE] Estimating n=$n" >> "$outfile"
       
       

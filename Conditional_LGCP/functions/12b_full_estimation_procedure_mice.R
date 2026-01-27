@@ -1475,8 +1475,6 @@ full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, sett
   
   # 0) load 
   
-  print(paste0('starting part 2b, cont_ind = ', cont_ind))
-  
   list2env(setting_info_list, envir = environment())
   
   # load everything from step_1
