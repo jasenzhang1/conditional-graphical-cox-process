@@ -1727,11 +1727,11 @@ full_conditional_estimation_with_no_truth_part3 <- function(temp_file_dir, setti
   estimated_graphs[['W_y']] <- all_W_y
   
   if(mouse){
-    estimated_graphs$time_grid_est <- time_grid_est
+    estimated_graphs$time_grid_est <- step_2_all_data[[1]]$time_grid_est
   } else{
-    estimated_graphs$time_grid <- time_grid
-    estimated_graphs$time_grid_est <- time_grid_est
-    estimated_graphs$time_grid_both <- time_grid_both    
+    estimated_graphs$time_grid <- step_2_all_data[[1]]$time_grid
+    estimated_graphs$time_grid_est <- step_2_all_data[[1]]$time_grid_est
+    estimated_graphs$time_grid_both <- step_2_all_data[[1]]$time_grid_both    
   }
 
   
