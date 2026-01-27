@@ -1699,6 +1699,8 @@ full_conditional_estimation_with_no_truth_part3 <- function(temp_file_dir, setti
   step_2_all_data <- lapply(step_2_list_names, readRDS)
   
   query_y_cs <- step_2_all_data[[1]]$query_y_cs
+  p <- step_2_all_data[[1]]$p
+  keys <- step_2_all_data[[1]]$keys
   
   # 2b) label the sublists with their respective query_y_cs
   
@@ -1713,7 +1715,7 @@ full_conditional_estimation_with_no_truth_part3 <- function(temp_file_dir, setti
   estimated_graphs[['step_1']] <- step_2_all_data[[1]]$step_1
   estimated_graphs[['step_1b']] <- step_2_all_data[[1]]$step_1b
   estimated_graphs$y_c_query <- query_y_cs
-  estimated_graphs$p <- step_2_all_data[[1]]$p
+  estimated_graphs$p <- p
   estimated_graphs$Y_continuous <- step_2_all_data[[1]]$y_c_strata
   
   # 2d) get weights and W_y, which do vary across y_c
