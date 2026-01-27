@@ -1253,15 +1253,25 @@ estimate_intensities_stratum_parallel_with_yc_part4_helper <- function(results, 
   
   
   # 2e) update the rest of the dataset
-  dataset_k$X_k_truth <- dataset$X_k_truth[,,idx]
-  dataset_k$X_k_coarse_truth <- dataset$X_k_coarse_truth[,,idx]
-  dataset_k$X_k_both_truth <- dataset$X_k_both_truth[,,idx]
+  dataset_k$X_k_truth <- dataset_k$X_k_truth[,,idx]
+  dataset_k$X_k_coarse_truth <- dataset_k$X_k_coarse_truth[,,idx]
+  dataset_k$X_k_both_truth <- dataset_k$X_k_both_truth[,,idx]
   dataset_k$Y_continuous_k <- dataset_k$Y_continuous  
   dataset_k$Y_continuous_k <- matrix(dataset_k$Y_continuous_k[idx,], nrow = length(idx))  # creating filtered Y_c and unfiltered Y_c
-  dataset_k$beta_coeffs <- dataset$beta_coeffs[,,idx]
+  dataset_k$beta_coeffs <- dataset_k$beta_coeffs[,,idx]
   dataset_k$simulation_params$n <- length(idx)   
   
   results$dataset <- dataset_k
+  
+  # 3) update step_0_events
+  
+  results$step_0_events <- dataset_k$event_times
+  results$step_1$X_k_est <- results$step_1$X_k_est[,,idx]
+  results$step_1b$Lambda_k_est <- results$step_1b$Lambda_k_est[,,idx]
+  results$data_df4 <- results$data_df4[results$data_df4$subject_num %in% idx, ]
+  
+  new_idx <- 1:n
+  results$data_df4$subject_num <- new_idx[match(results$data_df4$subject_num, idx)]
   
   # 3) update the rest
   
@@ -1317,8 +1327,7 @@ estimate_intensities_stratum_parallel_with_yc_part4_v5 <- function(temp_file_dir
   
   # 1) retrieve data
   
-  list2env(setting_info_list, envir = environment())
-  
+
   if(mouse){
     rho_ij_file_names <- paste0(temp_file_dir, '/step_2_v5_rho_ij_', ID, '_', discrete_level, '_t', time_scale, '_', 1:n_keys_bivariate, '.rds') 
     part2_file_name   <- paste0('part1_', ID, '_', discrete_level, '_t', time_scale, '.rds')
@@ -1329,6 +1338,9 @@ estimate_intensities_stratum_parallel_with_yc_part4_v5 <- function(temp_file_dir
   
   results <- readRDS(file.path(temp_file_dirs[1], part1_file_name))  # query_y_cs, y_c_strata_full
   list2env(results, envir = environment())
+  
+  
+  list2env(setting_info_list, envir = environment()) # n overrides n from results
   
   rho_list <- readRDS(file.path(temp_file_dirs[1], rho_list_name))
   
