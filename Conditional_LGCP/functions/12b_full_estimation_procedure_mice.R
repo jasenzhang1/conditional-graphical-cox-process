@@ -1686,33 +1686,9 @@ full_conditional_estimation_with_no_truth_part3 <- function(temp_file_dir, setti
   }), step_names)
   
 
- 
-  
-  # load step 1 and keep important items in `estimated_graphs`
-  if(mouse){
-    step_1_list_name <- paste0('part1_', ID, '_', discrete_level, '_t', time_scale, '.rds')
-  } else{
-    step_1_list_name <- paste0('part1_', adj_type, '_n_', n, '.rds')
-  }
-  
-  results <- readRDS(file.path(temp_file_dir, step_1_list_name))
-  list2env(results, envir = environment())
-  
-  # label the sublists with their respective query_y_cs
-  
-  estimated_graphs <- lapply(estimated_graphs, function(x) {
-    names(x) <- round(query_y_cs[,1], 3)
-    x
-  })
 
-  estimated_graphs[['step_0_events']] <- step_0_events
-  estimated_graphs[['step_1']] <- step_1
-  estimated_graphs[['step_1b']] <- step_1b
-  estimated_graphs$y_c_query <- query_y_cs
-  estimated_graphs$p <- p
-  estimated_graphs$Y_continuous <- y_c_strata
   
-  # load step 2 and keep weights in step_2
+  # 2) load all y_c_query entries for part_2
   
   if(mouse){
     step_2_list_names <- paste0(temp_file_dir, '/part2_', ID, '_', discrete_level, '_t', time_scale, '_nquery', 1:cont_inds, '.rds')
@@ -1721,6 +1697,26 @@ full_conditional_estimation_with_no_truth_part3 <- function(temp_file_dir, setti
   }
   
   step_2_all_data <- lapply(step_2_list_names, readRDS)
+  
+  query_y_cs <- step_2_all_data[[1]]$query_y_cs
+  
+  # 2b) label the sublists with their respective query_y_cs
+  
+  estimated_graphs <- lapply(estimated_graphs, function(x) {
+    names(x) <- round(query_y_cs[,1], 3)
+    x
+  })
+  
+  # 2c) attach items that are constant throughout each y_c
+  
+  estimated_graphs[['step_0_events']] <- step_2_all_data[[1]]$step_0_events
+  estimated_graphs[['step_1']] <- step_2_all_data[[1]]$step_1
+  estimated_graphs[['step_1b']] <- step_2_all_data[[1]]$step_1b
+  estimated_graphs$y_c_query <- query_y_cs
+  estimated_graphs$p <- step_2_all_data[[1]]$p
+  estimated_graphs$Y_continuous <- step_2_all_data[[1]]$y_c_strata
+  
+  # 2d) get weights and W_y, which do vary across y_c
   
   all_weights <- lapply(step_2_all_data, `[[`, "weights")
   names(all_weights) <- round(query_y_cs[,1], 3)
