@@ -47,8 +47,8 @@ adj_type_params=(
 )
 
 
-n_large=5000
-ns=(1000 3000 5000)
+n_large=1000
+ns=(500 1000)
 n_group=10
 groups=$(( n_large / n_group ))
 method="CPGM"
