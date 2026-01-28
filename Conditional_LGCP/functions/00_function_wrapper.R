@@ -1,5 +1,5 @@
 packages <- c("dplyr", "data.table", "pROC", "grid", "abind", "future.apply", "pbmcapply",
-              "Matrix", "ggplot2", "reshape2", "gridExtra", "viridis", "MASS")
+              "Matrix", "ggplot2", "reshape2", "gridExtra", "viridis", "MASS", 'igraph')
 
 for (package in packages) {
   suppressPackageStartupMessages(library(package, character.only = TRUE))
