@@ -12,6 +12,7 @@
 # - m                (integer)   time_grid spacing
 # - movement         (integer)   0 (resting) or 1 (moving)
 # - VR               (integer)   0 (off) or 1 (on)
+# - min_events       (integer)   what is the minimum number of events in subject's neuron to be included?
 # - max_processes    (integer)   how many processes should we truncate? 
 #
 # 
@@ -39,8 +40,20 @@ method <- args[4]                   # method <- 'CPGM'
 m <- as.numeric(args[5])            # m <- 20
 movement <- as.numeric(args[6])
 VR <- as.numeric(args[7])
-max_processes <- as.numeric(args[8])
+min_events <- as.numeric(args[8])
+max_processes <- as.numeric(args[9])
+n_weeks <- as.numeric(args[10])
 
+# ID <- 'Tau1'
+# y_c_structure <- 'week_only'
+# time_scale <- 10
+# method <- 'CPGM'
+# m <- 30
+# movement <- 0
+# VR <- 0
+# min_events <- 5
+# max_processes <- 12
+# n_query <- 5
 
 # 2) create folder and print settings
 
@@ -48,7 +61,7 @@ new_data_folder <- 'mice_data'
 if (!dir.exists(new_data_folder)) dir.create(new_data_folder)  # /mice_data
 
 new_data_folder <- paste0(new_data_folder, "/", y_c_structure)
-if (!dir.exists(new_data_folder)) dir.create(new_data_folder)   # /mice_data/week_only
+if (!dir.exists(new_data_folder)) dir.create(new_data_folder)   # /mice_data/week_only OR /mice_data/time_and_week
 
 
 print(paste0("mouse: ", ID))
@@ -69,7 +82,7 @@ load(paste0(old_data_folder, '/', ID, '_t', time_scale, '_data.rda'))
 time_grid_est <- make_time_grid(m)
 
 dataset_k <- convert_data_for_storage(LGCP_data, y_c_structure, movement, VR, 
-                                      time_grid_est, min_events = 5, max_processes = max_processes, seed = NULL) # 00e
+                                      time_grid_est, min_events, n_weeks, max_processes = max_processes, seed = NULL) # 00e
 
 # 5) store
 discrete_name <- paste0('m', movement, 'vr', VR)
