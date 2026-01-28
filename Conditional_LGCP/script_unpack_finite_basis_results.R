@@ -30,14 +30,14 @@ adj_params <- as.numeric(args[7:length(args)])
 
 # data_folder <- 'simu_data'
 # base_folder <- 'simu_results'
-# adj_type <- 'hub_block_c0'
-# method <- 'CPGM'
+# adj_type <- 'hub_block_v2'
+# method <- 'CPGM2'
 # X_truth <- T
 # beta_truth <- T
 # eigen_troubleshoot <- T
 
-n_large <- 1000
-n <- 1000
+n_large <- 5000
+n <- 5000
 
 
 # 3) heatmaps of certain metrics 
@@ -49,7 +49,9 @@ exploratory_ids <- c('01', '02', '22', '23', '29', '41', '44',
 bivariate_ids <- c('25', '32')  # rho_ij and g_ij
 
 final_ids <- c('58',   # KL_cor assembled, 58b = KL_cov
-               '95',   # C_HS 
+               '59',   # KL_prec
+               '95',   # C_HS, 95b = specific entries only
+               '111',  # w_mat
                '112',  # w_mat
                '113',  # roc
                '114')  # adj_mat
@@ -60,9 +62,9 @@ results_folder <- paste0(base_folder, '/', adj_type, '/', method)
 estimates_file_name <- paste0(results_folder, '/', adj_type, '_n_', n, '.RData')
 
 # 28e - visualize results over y_c
-g_heatmaps_exploratory <- visualize_finite_basis(truth_file_name, estimates_file_name, exploratory_ids, beta_truth, X_truth, eigen_troubleshoot)
-g_heatmaps_bivariate   <- visualize_finite_basis(truth_file_name, estimates_file_name, bivariate_ids,   beta_truth, X_truth, eigen_troubleshoot)
-g_heatmaps_final       <- visualize_finite_basis(truth_file_name, estimates_file_name, final_ids,       beta_truth, X_truth, eigen_troubleshoot)
+g_exploratory <- visualize_finite_basis(truth_file_name, estimates_file_name, exploratory_ids, beta_truth, X_truth, eigen_troubleshoot)
+g_bivariate   <- visualize_finite_basis(truth_file_name, estimates_file_name, bivariate_ids,   beta_truth, X_truth, eigen_troubleshoot)
+g_final       <- visualize_finite_basis(truth_file_name, estimates_file_name, final_ids,       beta_truth, X_truth, eigen_troubleshoot)
 
 # 3b) gif
 

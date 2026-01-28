@@ -47,8 +47,8 @@ adj_type_params=(
 )
 
 
-n_large=3000
-ns=(1000 2000 3000)
+n_large=90
+ns=(45)
 n_group=10
 groups=$(( n_large / n_group ))
 method="CPGM"
@@ -305,7 +305,14 @@ for entry in "${adj_type_params[@]}"; do
                 
             done
             
-            wait 
+            wait
+            
+            # ----------------
+            # Part 2c - joint calculation of tau_c and tau_p across all timepoints
+            # ----------------
+            
+            
+            
             # ----------------
             # Part 3- when all part 2's are done, do part 3
             # ----------------
