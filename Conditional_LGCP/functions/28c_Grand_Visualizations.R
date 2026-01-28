@@ -398,6 +398,23 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth,
   # C_HS for all pxp blocks
   if('95' %in% graph_ids){
     graphs[['g_95']] <- result_heatmap_nonblock_prep(step_11b, 'C_HS', data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, zmid = 0)
+    
+    step_11b_names <- names(step_11b[[1]])
+    kept_names  <- c('C_HS_truth', 'C_HS_KL_est_eig1', 'C_HS_KL_GIC_est_eig1')
+    new_names <-   c('Truth', 'Est', 'Thresh + Est')
+    name_map <- setNames(new_names, kept_names)
+    
+    step_11b_v2 <- step_11b
+    step_11b_v2 <- lapply(step_11b, function(x) {
+      # Filter to kept names
+      x <- x[names(x) %in% kept_names]
+      
+      # Rename based on the map
+      names(x) <- name_map[names(x)]
+      return(x)
+    })
+    
+    graphs[['g_95b']] <- result_heatmap_nonblock_prep(step_11b_v2, NULL, data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, zmid = 0)
   }
   
   # distribution of C_HS
@@ -427,8 +444,30 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth,
   } 
   
   # P_HS (w_mat) for all pxp blocks
-  if('112' %in% graph_ids){
-    graphs[['g_112']] <- result_heatmap_nonblock_prep(step_11, 'w_mat', data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, zmid = 0)
+  if('111' %in% graph_ids){
+    graphs[['g_111']] <- result_heatmap_nonblock_prep(step_11, 'w_mat', data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, zmid = 0)
+    
+    step_11_names <- names(step_11[[1]])
+    kept_names  <- c('w_mat_truth', 'w_mat_KL_est_eig1', 'w_mat_KL_GIC_est_eig1')
+    new_names <-   c('Truth', 'Est', 'Thresh + Est')
+    name_map <- setNames(new_names, kept_names)
+    
+    step_11_v2 <- step_11
+    step_11_v2 <- lapply(step_11, function(x) {
+      # Filter to kept names
+      x <- x[names(x) %in% kept_names]
+      
+      # Rename based on the map
+      names(x) <- name_map[names(x)]
+      return(x)
+    })
+    
+    graphs[['g_111b']] <- result_heatmap_nonblock_prep(step_11_v2, NULL, data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, zmid = 0)
+    
+    kept_weeks <- 2:6
+    step_11_v3 <- step_11_v2[kept_weeks]
+    
+    graphs[['g_111c']] <- result_heatmap_nonblock_prep(step_11_v3, NULL, data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, zmid = 0)
   }  
   
   # P_HS (w_mat) for all pxp blocks - delete est and X_truth
@@ -523,6 +562,9 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth,
     # arrange all 70 plots in a 10x7 grid
     graphs[['g_113']] <- wrap_plots(all_plots, ncol = length(y_names), nrow = length(x_names), byrow = FALSE) 
     
+    
+    graphs[['g_113']] <- result_ROC_prep(step_12, NULL, NULL)
+    graphs[['g_113b']] <- result_ROC_prep(step_12, c('truth', 'KL_est_eig1', 'KL_GIC_est_eig1'), NULL)
   }
   
   # Final adj_mat for all pxp blocks
