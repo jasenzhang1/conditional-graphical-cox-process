@@ -60,9 +60,7 @@ n_query=8
 beta_0=5.4
 beta_truth="T"
 X_truth="T"
-same_basis="T"  # do we use the same trig basis for each process during estimation
-constant_d=2   # a numboer or "NULL"
-
+eigen_setting="trig_and_joint" #only_joint, trig_and_joint
 
 function wait_for_slot {
     # Wait until the number of background jobs is strictly less than max_jobs
@@ -283,7 +281,7 @@ for entry in "${adj_type_params[@]}"; do
           
                     # estimation from step3 onwards
                     # temp_data/simu/part3...
-                    Rscript script_fit_mice_data_part2b.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$X_truth" "$j" "$same_basis" "$constant_d" >> "$outfile" 2>&1
+                    Rscript script_fit_mice_data_part2b.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$X_truth" "$j" "$eigen_setting" >> "$outfile" 2>&1
                     
                     echo "[END] n = $n, y_c = $j" >> "$outfile"
                 ) &
