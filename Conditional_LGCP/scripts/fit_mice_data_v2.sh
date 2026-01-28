@@ -54,8 +54,8 @@ eigen_setting="only_joint"  #only_joint, trig_and_joint
 
 function wait_for_slot {
     while true; do
-        # Counts every process named 'Rscript' owned by jasen
-        running=$(pgrep -u jasen -f "Rscript" | wc -l)
+        # Count any process named 'R' or 'Rscript' owned by you
+        running=$(pgrep -u jasen -x "R" | wc -l)
         if (( running < max_jobs )); then
             break
         fi
