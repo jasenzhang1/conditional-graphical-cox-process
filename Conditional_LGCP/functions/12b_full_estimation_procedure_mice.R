@@ -694,22 +694,20 @@ estimate_intensities_stratum_parallel_with_yc_part1_v5 <- function(temp_file_dir
   
   data_i <- data_df4[feature_id == feature_sel[i], ]
   kept_subjects <- unique(data_i$subject_num) %>% sort()  # in case any subjects do not have data for process i
-
-  
-  setDT(data_i)
-  data_i[, subject_num := match(subject_num, sort(unique(subject_num)))]
   
   # 3) estimation
   if (nrow(data_i) == 0) { # no events, estimate is the zero intensity
     rho_mat <- matrix(0, nrow = n_time, ncol = n)
   } else {
     Gamma_i <- data_i[, estimate_density(time, time_grid_est), by = "subject_num"]
-    rho_mat <- matrix(Gamma_i$rho_hat, nrow = n_time)  # m x n
+    rho_mat <- matrix(0, nrow = n_time, ncol = n)
+    rho_mat[, kept_subjects] <- Gamma_i$rho_hat  # m x n (if some subjects are 0, still include them)
   }
   
   # store rho_i
   
-  rho_i_result <- list(rho_i_est = rho_mat) 
+  rho_i_result <- list(rho_i_est = rho_mat,
+                       kept_subjects = kept_subjects) 
   
   # 4) X_truth if requested
   
@@ -937,10 +935,6 @@ estimate_intensities_stratum_parallel_with_yc_part2_v5 <- function(temp_file_dir
                                                                           # this is an inner join. If a subject in process i has no events but has events in process j, delete it
     
     kept_subjects <- unique(times_ij$subject_num) %>% sort()
-
-    
-    setDT(times_ij)
-    times_ij[, subject_num := match(subject_num, sort(unique(subject_num)))]
     
     # 3) estimation
     
@@ -951,7 +945,9 @@ estimate_intensities_stratum_parallel_with_yc_part2_v5 <- function(temp_file_dir
         event_times_i[[1]], event_times_j[[1]],
         t_seq, t_seq, 'i'), by = 'subject_num']
       
-      rho_ij_mat <- matrix(Gamma_ij$V1, nrow = n_time^2) # m^2 x n
+      rho_ij_mat <- matrix(0, nrow = n_time^2, ncol = n)
+      rho_ij_mat[, kept_subjects] <- Gamma_ij$V1     # m^2 x n (if some subjects are 0, still include them)
+
       
 
     }
@@ -959,7 +955,8 @@ estimate_intensities_stratum_parallel_with_yc_part2_v5 <- function(temp_file_dir
   
   # store rho_ij_mat
   
-  rho_ij_result <- list(rho_ii_est = rho_ij_mat)
+  rho_ij_result <- list(rho_ii_est = rho_ij_mat,
+                        kept_subjects = kept_subjects)
   
   # 4) X_truth if requested
   if(X_truth){
@@ -1329,8 +1326,8 @@ estimate_intensities_stratum_parallel_with_yc_part4_v5 <- function(temp_file_dir
   
 
   if(mouse){
-    rho_ij_file_names <- paste0(temp_file_dir, '/step_2_v5_rho_ij_', ID, '_', discrete_level, '_t', time_scale, '_', 1:n_keys_bivariate, '.rds') 
-    part2_file_name   <- paste0('part1_', ID, '_', discrete_level, '_t', time_scale, '.rds')
+    rho_list_name     <- paste0('step_2_v5_raw_rho_list_', ID, '_', discrete_level, '_t', time_scale, '.rds') 
+    part1_file_name   <- paste0('part1_', ID, '_', discrete_level, '_t', time_scale, '.rds')
   } else{
     rho_list_name     <- paste0('step_2_v5_raw_rho_list_', adj_type, '_n_', n_large, '.rds')
     part1_file_name   <- paste0('part1_', adj_type, '_n_', n_large, '.rds')
@@ -1347,9 +1344,15 @@ estimate_intensities_stratum_parallel_with_yc_part4_v5 <- function(temp_file_dir
   # 2) for this n and cont_ind, find a vector of dim n_large that assigns weights
   #    also trim everything about "results" to accommodate smaller n
   
+  if(mouse){
+    n_large <- results$n
+    n <- results$n
+  }
+
   helper_result <- estimate_intensities_stratum_parallel_with_yc_part4_helper(results, n_large, n, cont_ind)
   results <- helper_result[[1]]
   weights2 <- helper_result[[2]] # dim n_large, sum = 1, excluded elements = 0
+
   
   # 2c) get the ground truth adj_mat
   
@@ -1372,24 +1375,43 @@ estimate_intensities_stratum_parallel_with_yc_part4_v5 <- function(temp_file_dir
   saveRDS(results, file = file.path(temp_file_dirs[1], datafile_name))  
   
   
-  # 3) calculate weighted means of rho_i
+  # 3) calculate weighted means of rho_i - utilize kept_subjects
   
   step_2_raw <- rho_list$step_2_raw
-  vec_names <- names(step_2_raw[[1]])
+  vec_names <- setdiff(names(step_2_raw[[1]]), 'kept_subjects')
   
 
   step_2 <- lapply(vec_names, function(nm) {
-
+    
     list_of_vectors <- lapply(step_2_raw, function(sub) {
-      mat <- sub[[nm]]  # This is the m x n matrix
-
-      as.vector(mat %*% weights2) 
+      # 1. Get the matrix
+      mat <- sub[[nm]] # m x n
+      
+      # 2. Identify which subjects are kept (indices)
+      kept <- sub[['kept_subjects']]
+      
+      # 3. Create a local copy of weights and zero out missing subjects
+      # Assuming weights2 is length n, same as ncol(mat)
+      local_weights <- weights2
+      
+      # Identify indices to zero out (all indices NOT in kept)
+      missing_indices <- setdiff(1:length(local_weights), kept)
+      local_weights[missing_indices] <- 0
+      
+      # 4. Re-normalize so they sum to 1
+      # Check sum to avoid division by zero if a list is empty
+      sum_w <- sum(local_weights)
+      if(sum_w > 0) {
+        local_weights <- local_weights / sum_w
+      }
+      
+      # 5. Perform the multiplication
+      as.vector(mat %*% local_weights) 
     })
-
+    
     do.call(rbind, list_of_vectors)
   })
   
-
   names(step_2) <- vec_names
   
   m <- dim(step_2[[1]])[2]
@@ -1398,8 +1420,26 @@ estimate_intensities_stratum_parallel_with_yc_part4_v5 <- function(temp_file_dir
   
   
   step_2b_calculated <- lapply(rho_list$step_2b_raw, function(sub) {
-    lapply(sub, function(m_sq_x_n) {
-      m_sq_vector <- as.vector(m_sq_x_n %*% weights2)
+    
+    # 1. Extract kept_subjects for this specific sub-item
+    kept <- sub[['kept_subjects']]
+    
+    # 2. Re-normalize weights2 based on kept_subjects
+    local_weights <- numeric(length(weights2))
+    local_weights[kept] <- weights2[kept]
+    
+    sum_w <- sum(local_weights)
+    if(sum_w > 0) {
+      local_weights <- local_weights / sum_w
+    }
+    
+    # 3. Iterate over the matrices in this sub-item
+    # We exclude 'kept_subjects' from the names we iterate over
+    mat_names <- setdiff(names(sub), "kept_subjects")
+    
+    lapply(sub[mat_names], function(m_sq_x_n) {
+      # Perform multiplication with the locally re-normalized weights
+      m_sq_vector <- as.vector(m_sq_x_n %*% local_weights)
       matrix(m_sq_vector, nrow = m)
     })
   })
@@ -1408,7 +1448,7 @@ estimate_intensities_stratum_parallel_with_yc_part4_v5 <- function(temp_file_dir
   var_names <- names(step_2b_calculated[[1]])
   
   step_2b <- lapply(var_names, function(nm) {
-    # For each variable name, reach into every i_j pair and grab that specific matrix
+    # For each variable name, reach into every sub-item and grab that matrix
     lapply(step_2b_calculated, `[[`, nm)
   })
   
@@ -1436,7 +1476,7 @@ estimate_intensities_stratum_parallel_with_yc_part4_v5 <- function(temp_file_dir
   
 }
 
-full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, setting_info_list, cont_ind, mouse, X_truth){
+full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, setting_info_list, cont_ind, mouse, X_truth, eigen_setting){
   
   # ----------------------------------------------------------------------------
   #
@@ -1454,6 +1494,7 @@ full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, sett
   # - setting_info_list
   # - cont_ind              (integer)   n_query id
   # - mouse                 (boolean)   is it a mouse?
+  # - eigen_setting         (string)   'only_joint', 'trig_and_joint'
   #
   # 
   # loading
@@ -1508,15 +1549,30 @@ full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, sett
   step_3  <- step_3_g_ij(step_2, step_2b, i_neq_j)
   
   
-  
-  step_4 <- tryCatch({
-    #step_4_eigendecomp(step_3, p, same_basis, constant_d)
-    step_4_eigendecomp_troubleshoot(step_3, p)
-  }, error = function(e) {
-    cat("Error in step_4, saving dataset...\n")
-    save(dataset, file = file.path(temp_file_dir, datafile_error_name))
-    stop(e)
-  })
+  if(eigen_setting == 'only_joint'){
+    
+    step_4 <- tryCatch({
+      step_4_eigendecomp(step_3, p, F, NULL)
+    }, error = function(e) {
+      cat("Error in step_4, saving dataset...\n")
+      save(dataset, file = file.path(temp_file_dir, datafile_error_name))
+      stop(e)
+      
+    })
+  } else if (eigen_setting == 'trig_and_joint'){
+    
+    step_4 <- tryCatch({
+      step_4_eigendecomp_troubleshoot(step_3, p)
+    }, error = function(e) {
+      cat("Error in step_4, saving dataset...\n")
+      save(dataset, file = file.path(temp_file_dir, datafile_error_name))
+      stop(e)
+    })
+    
+  } else{
+    stop('12b ERROR: eigen_setting not available')
+  }
+
   
   # 3) steps 5: obtain KL_cor and KL_prec
   
