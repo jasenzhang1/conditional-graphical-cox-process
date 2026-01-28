@@ -37,7 +37,7 @@ m=30
 movement=(0 0 1 1)
 VR=(0 1 0 1)
 min_events=5
-max_processes=12
+max_processes=1000
 n_weeks=5
 eigen_setting="only_joint"  #only_joint, trig_and_joint
 
