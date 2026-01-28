@@ -140,6 +140,7 @@ estimate_KL_correlation <- function(KL_cov, p){
   #
   # GOAL: estimate cor(alpha_i^a, alpha_j^b) between processes i and j and eigencomponents a and b
   #
+  #       if i == j, correlation is the identity no matter what
   #
   # inputs:
   #
@@ -158,17 +159,27 @@ estimate_KL_correlation <- function(KL_cov, p){
   
   for(i in 1:p){
     for(j in i:p){
+      
       key <- paste0(i, '_', j)
-      
       cov_ij <- KL_cov[[key]]
-      var_i  <- diag(KL_cov[[paste0(i, '_', i)]])
-      var_j  <- diag(KL_cov[[paste0(j, '_', j)]])
       
-      # Outer product of std deviations
-      denom <- sqrt(outer(var_i, var_j))
-      cor_ij <- cov_ij / denom
-      
-      KL_cor[[key]] <- cor_ij
+      if(i == j){ # if i == j, make the identity
+        
+        d <- dim(cov_ij)[1]
+        KL_cor[[key]] <- diag(d)
+        
+      } else{
+        
+        var_i  <- diag(KL_cov[[paste0(i, '_', i)]])
+        var_j  <- diag(KL_cov[[paste0(j, '_', j)]])
+        
+        # Outer product of std deviations
+        denom <- sqrt(outer(var_i, var_j))
+        cor_ij <- cov_ij / denom
+        
+        KL_cor[[key]] <- cor_ij
+        
+      }
     }
   }
   
