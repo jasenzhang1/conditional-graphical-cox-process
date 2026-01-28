@@ -41,14 +41,25 @@ max_processes=12
 n_weeks=5
 eigen_setting="only_joint"  #only_joint, trig_and_joint
 
+# function wait_for_slot {
+#     # Wait until the number of background jobs is strictly less than max_jobs
+#     while true; do
+#         running=$(jobs -rp | wc -l)
+#         if (( running < max_jobs )); then
+#             break
+#         fi
+#         sleep 0.5
+#     done
+# }
+
 function wait_for_slot {
-    # Wait until the number of background jobs is strictly less than max_jobs
     while true; do
-        running=$(jobs -rp | wc -l)
+        # Counts every process named 'Rscript' owned by jasen
+        running=$(pgrep -u jasen -f "Rscript" | wc -l)
         if (( running < max_jobs )); then
             break
         fi
-        sleep 0.5
+        sleep 1
     done
 }
 
