@@ -19,7 +19,9 @@ if(model_type == 'mice'){
   method <- args[5]                   # method <- 'CPGM'
   movement <- as.numeric(args[6])     # movement <- 0
   VR <- as.numeric(args[7])           # VR <- 0
-  ij <- as.numeric(args[9])           # ij <- 1
+  ij <- as.numeric(args[8])           # ij <- 1
+  
+  X_truth <- F
   
   discrete_level <- paste0('m', movement, 'vr', VR)
   

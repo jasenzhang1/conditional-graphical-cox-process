@@ -21,6 +21,8 @@ if(model_type == 'mice'){
   VR <- as.numeric(args[7])           # VR <- 0
   i <- as.numeric(args[8])            # i <- 1
   
+  X_truth <- F
+  
   discrete_level <- paste0('m', movement, 'vr', VR)
   
   setting_info_list <- list(ID = ID,
