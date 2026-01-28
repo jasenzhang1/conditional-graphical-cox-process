@@ -62,14 +62,28 @@ beta_truth="T"
 X_truth="T"
 eigen_setting="trig_and_joint" #only_joint, trig_and_joint
 
+# function wait_for_slot {
+#     # Wait until the number of background jobs is strictly less than max_jobs
+#     while true; do
+#         running=$(jobs -rp | wc -l)
+#         if (( running < max_jobs )); then
+#             break
+#         fi
+#         sleep 0.5
+#     done
+# }
+
 function wait_for_slot {
-    # Wait until the number of background jobs is strictly less than max_jobs
+    # 1. Use pgrep to find processes named exactly "R" owned by the current user
+    # 2. This creates a global throttle across all subshells
     while true; do
-        running=$(jobs -rp | wc -l)
+        # Count R and Rscript processes
+        running=$(pgrep -u "$USER" -x "R|Rscript" | wc -l)
+        
         if (( running < max_jobs )); then
             break
         fi
-        sleep 0.5
+        sleep 1
     done
 }
 
@@ -94,13 +108,14 @@ mkdir -p script_outputs/simu
 
 for entry in "${adj_type_params[@]}"; do
 
+    read -r -a fields <<< "$entry"
+  
+    adj_type="${fields[0]}"         # first field
+    adj_params=("${fields[@]:1}")   # all fields after the first
+
     wait_for_slot
     (
-        read -r -a fields <<< "$entry"
-      
-        adj_type="${fields[0]}"         # first field
-        adj_params=("${fields[@]:1}")   # all fields after the first
-        
+
         outfile="script_outputs/simu/${adj_type}_n_${n_large}.log"
         rm -f "$outfile"   # delete old log if it exists
       
