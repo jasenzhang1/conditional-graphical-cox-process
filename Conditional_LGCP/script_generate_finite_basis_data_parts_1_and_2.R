@@ -7,14 +7,14 @@ omp_set_num_threads(1)    # limit OpenMP
 
 args <- commandArgs(trailingOnly = TRUE)
 
-n <- as.numeric(args[1])
+n_large <- as.numeric(args[1])
 adj_type <- args[2]
 group_idx <- as.numeric(args[3])
 n_group <- as.numeric(args[4])
 min_events <- as.numeric(args[5])
 max_events <- as.numeric(args[6])
 
-setting_info_list <- list(n = n,
+setting_info_list <- list(n = n_large,
                           adj_type = adj_type)
 
 source('functions/00_function_wrapper.R')

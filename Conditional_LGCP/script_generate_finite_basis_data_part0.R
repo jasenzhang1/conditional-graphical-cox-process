@@ -7,7 +7,7 @@ omp_set_num_threads(1)    # limit OpenMP
 
 args <- commandArgs(trailingOnly = TRUE)
 
-n <- as.numeric(args[1])
+n_large <- as.numeric(args[1])
 n_query <- as.numeric(args[2])
 beta_0 <- as.numeric(args[3])
 adj_type <- args[4]
@@ -18,7 +18,7 @@ source('functions/00_function_wrapper.R')
 source('functions/20_simulation_function_wrapper.R')
 
 
-# n <- 100
+# n_large <- 100
 # adj_type <- 'block_banded_v2'
 # adj_params <- c(0, 1, 0.4, 0.8, 2)
 # adj_type <- 'block_banded_c0'
@@ -49,7 +49,7 @@ ncores = 1
 
 # 0) preprocessing
 
-Y_c <- generate_y_c_adj_type(n, adj_type, adj_params, seed = NULL)
+Y_c <- generate_y_c_adj_type(n_large, adj_type, adj_params, seed = NULL)
 basis_list <- trig_basis(d)
 mean_vec <- rep(0, p*d) # mean for generating beta
 
@@ -64,7 +64,7 @@ mu_t_coarse <- rep(beta_0, m_est)
 param_list <- list(
   Y_c = Y_c,                     # (n x q_c matrix)
   basis_list = basis_list,       # (d-dim list)
-  n = n,                         # integer
+  n = n_large,                   # integer
   d = d,                         # integer
   p = p,                         # integer
   m = m,                         # integer
@@ -93,7 +93,7 @@ if (!dir.exists(temp_file_dir)) dir.create(temp_file_dir)  # temp_data/simu_data
 
 # save data
 
-datafile_name <- paste0("part0_", adj_type, '_n_', n, '.rds')
+datafile_name <- paste0("part0_", adj_type, '_n_', n_large, '.rds')
 
 saveRDS(param_list, file = file.path(temp_file_dir, datafile_name)) 
                                           
