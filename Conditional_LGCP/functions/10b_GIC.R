@@ -614,3 +614,126 @@ GIC_algorithm <- function(C_cond, p, W_y){
   return(result)
   
 }
+
+GIC_joint_algorithm <- function(C_cond_list, p, W_y_list) {
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: gridsearch across (tau_c, tau_p) for minimum summed GIC for all n graphs
+  #
+  #
+  # Input: 
+  #
+  # - C_cond_list   (list of i_j list of any sized matrix, d_i x d_j or m x m)
+  # - p             (scalar)
+  # - W_y           (list of scalars) effective sample size
+  #
+  # 
+  # Output: 
+  #
+  # - list of the following metrics:
+  #
+  #   - tau_c   (scalar)    threshold where if your HS norm is less than this, you are zeroed out 
+  #   - tau_p   (scalar) 
+  #
+  # ----------------------------------------------------------------------------
+  
+  n_datasets <- length(C_cond_list)
+  
+  # 0) Prep all datasets (Diagonal to Identity)
+  C_cond_list <- lapply(C_cond_list, GIC_set_CXX_diag_identity)
+  
+  # 1) Generate Global Threshold Candidates for tau_c
+  # We collect all HS values from all datasets to ensure a comprehensive grid
+  all_tau_c_candidates <- unique(sort(unlist(lapply(C_cond_list, function(C) {
+    GIC_get_thresholds(C)$hs_vals
+  }))))
+  
+  best_tau_c <- NA
+  best_tau_p <- NA
+  lowest_total_GIC <- Inf
+  
+  # 2) Grid Search over Global tau_c
+  for (tau_c in all_tau_c_candidates) {
+    
+    current_Theta_cond_list <- list()
+    current_C_cond_full_list <- list()
+    
+    # Apply tau_c threshold to ALL datasets
+    for (i in 1:n_datasets) {
+      C_thresh <- C_cond_list[[i]]
+      # Zero out blocks where HS norm < tau_c
+      # Note: Assuming GIC_get_thresholds logic; alternatively use a direct HS check
+      C_HS_mat <- hilbert_schmidt_norm_list_to_mat(C_thresh, p)
+      
+      # Logic: if HS norm < tau_c, zero the block
+      for (idx in 1:length(C_thresh)) {
+        # You may need to map idx back to i,j to check against C_HS_mat 
+        # Or more simply, check the norm of the specific block:
+        if (norm(C_thresh[[idx]], "F") < tau_c) {
+          C_thresh[[idx]] <- matrix(0, nrow(C_thresh[[idx]]), ncol(C_thresh[[idx]]))
+        }
+      }
+      
+      C_full <- assemble_block_matrix_irregular(C_thresh, p)
+      Theta_full <- ginv(C_full$block_matrix)
+      
+      current_C_cond_full_list[[i]] <- C_full
+      current_Theta_cond_list[[i]] <- extract_block_matrix_irregular(Theta_full, C_full$row_borders, C_full$col_borders)
+    }
+    
+    # 3) Generate Global Threshold Candidates for tau_p based on current Thetas
+    all_tau_p_candidates <- unique(sort(unlist(lapply(current_Theta_cond_list, function(Th) {
+      GIC_get_thresholds(Th)$hs_vals
+    }))))
+    
+    # 4) Grid Search over Global tau_p
+    for (tau_p in all_tau_p_candidates) {
+      total_GIC_at_pair <- 0
+      
+      for (i in 1:n_datasets) {
+        Th_cond <- current_Theta_cond_list[[i]]
+        
+        # Apply tau_p threshold
+        for (idx in 1:length(Th_cond)) {
+          if (norm(Th_cond[[idx]], "F") < tau_p) {
+            Th_cond[[idx]] <- matrix(0, nrow(Th_cond[[idx]]), ncol(Th_cond[[idx]]))
+          }
+        }
+        
+        Th_full <- assemble_block_matrix_irregular(Th_cond, p)
+        n_edges <- GIC_edge_count(Th_cond, p)
+        
+        # Evaluate individual GIC and add to sum
+        val_GIC <- GIC_evalulation(current_C_cond_full_list[[i]]$block_matrix, 
+                                   Th_full$block_matrix, 
+                                   W_y_list[[i]], 
+                                   n_edges)
+        total_GIC_at_pair <- total_GIC_at_pair + val_GIC
+      }
+      
+      # 5) Track global minimum
+      if (total_GIC_at_pair < lowest_total_GIC) {
+        lowest_total_GIC <- total_GIC_at_pair
+        best_tau_c <- tau_c
+        best_tau_p <- tau_p
+      }
+    }
+  }
+  
+  # ------------------------------------------------
+  # 6) Final Pass: Generate outputs using best_tau_c and best_tau_p
+  # ------------------------------------------------
+  # (This would involve looping one last time through C_cond_list to 
+  # create the final result list for each dataset)
+  
+  final_results <- list(
+    joint_tau_c = best_tau_c,
+    joint_tau_p = best_tau_p,
+    total_min_GIC = lowest_total_GIC
+  )
+  
+  return(final_results)
+}
+
+
