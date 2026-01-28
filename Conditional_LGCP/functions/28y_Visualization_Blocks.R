@@ -239,7 +239,12 @@ result_heatmap_nonblock_prep <- function(my_list, entry_name, data_format, time_
   
   # 1) obtain `queried_names` and `value_names`
   
-  suffix_names <- step_00_grab_ID(names(my_list[[1]]), entry_name)
+  if (!is.null(entry_name)){
+    suffix_names <- step_00_grab_ID(names(my_list[[1]]), entry_name)
+  } else{
+    suffix_names <- names(my_list[[1]])
+  }
+  
   
   queried_names <- names(my_list[[1]])
   
@@ -597,6 +602,60 @@ result_histogram_prep <- function(my_list, entry_name, data_format, nbins = 20){
       strip.background = element_rect(fill = "gray90"),
       strip.text = element_text(face = "bold")
     )
+  
+}
+
+result_ROC_prep <- function(step_12, kept_suffix, kept_time_idx){
+  
+  if(! is.null(kept_suffix)){
+    kept_names <- paste0('roc_', kept_suffix)
+    
+    step_12 <- lapply(step_12, function(x) {
+      x[names(x) %in% kept_names]
+    })
+  }
+  
+  if(! is.null(kept_time_idx)){
+    step_12 <- step_12[kept_time_idx]
+  }
+
+  
+  y_names <- names(step_12)
+  x_names <- names(step_12[[1]])
+  
+  all_plots <- list()
+  
+  for (i in seq_along(step_12)) {
+    for (j in seq_along(step_12[[i]])) {
+      
+      roc_entry       <- step_12[[i]][[j]]
+      roc_df          <- roc_entry$roc_df
+      ideal_spec      <- roc_entry$specificity
+      ideal_sens      <- roc_entry$sensitivity
+      ideal_threshold <- roc_entry$threshold
+      auc_value       <- roc_entry$auc
+      
+      p <- ggplot(roc_df, aes(x = FPR, y = TPR)) +
+        geom_step(direction = "vh", color = "blue", size = 1) +
+        geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "grey") +
+        labs(
+          title = paste('y=', y_names[i], ', ', x_names[j]),
+          x = "False Positive Rate", y = "True Positive Rate"
+        ) +
+        annotate("point", x = 1 - ideal_spec, y = ideal_sens, color = "red", size = 3) +
+        annotate("text", x = 1 - ideal_spec, y = ideal_sens,
+                 label = paste0("thr=", round(ideal_threshold, 3)),
+                 hjust = -0.1, vjust = -0.5, color = "red") +
+        annotate("text", x = 0.6, y = 0.2,
+                 label = paste0("AUC=", round(auc_value, 3)),
+                 color = "darkgreen", size = 5) +
+        theme_minimal(base_size = 10)
+      
+      all_plots[[length(all_plots) + 1]] <- p
+    }
+  }
+
+  return(wrap_plots(all_plots, ncol = length(y_names), nrow = length(x_names), byrow = FALSE))
   
 }
 
