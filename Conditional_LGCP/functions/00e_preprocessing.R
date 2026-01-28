@@ -134,8 +134,66 @@ convert_data_for_estimation_event_times <- function(event_times){
   
 }
 
+convert_data_adj_check <- function(process_ids, subject_ids){
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: in preparation for bivariate estimation, there must be at least one subject_ID connecting each pair of process IDs
+  # 
+  #       so we create a maximal clique by deleting processes that do not connect with everyone
+  # 
+  #
+  # inputs:
+  #
+  # - process_ids   (vector)   vector of process ID's 
+  # - subject_ids   (vector)   vector of subject ID's 
+  #
+  # outputs:
+  #
+  # - nodes_to_keep  (vector)    which vertices to keep of process_ids
+  #
+  # ----------------------------------------------------------------------------
+  
+  # part 1) obtain an adjacency matrix
+  
+  # 1. Create the incidence matrix (Binary: Process vs Subject)
+  incidence_matrix <- table(process_ids, subject_ids)
+  incidence_matrix[incidence_matrix > 1] <- 1  # Ensure it is binary
+  
+  # 2. Matrix Multiplication (P x S) * (S x P) = (P x P)
+  adj_matrix <- incidence_matrix %*% t(incidence_matrix)
+  
+  # 3. Final touch: Binary adjacency (1 if shared, 0 otherwise)
+  adj_matrix[adj_matrix > 0] <- 1
+  
 
-convert_data_for_storage <- function(LGCP_data, y_c_structure, movement_num, vr_num, time_grid_est, min_events = 0, max_processes = Inf, seed = NULL){
+  diag(adj_matrix) <- 0
+  
+
+  # part 2) choose which vertices to delete, if any 
+  
+  # 1. Create the graph from your adjacency matrix
+  g <- graph_from_adjacency_matrix(adj_matrix, mode = "undirected", diag = FALSE)
+  
+  # 2. Find the Maximum Clique (the largest fully connected subset)
+  max_clique_list <- largest_cliques(g)
+  
+  # 3. Get the names of the processes to KEEP
+  nodes_to_keep <- names(V(g)[max_clique_list[[1]]])
+  
+  # 4. Identify which to DELETE
+  all_nodes <- V(g)$name
+  nodes_to_delete <- setdiff(all_nodes, nodes_to_keep)
+  
+  print(paste("Keep:", paste(nodes_to_keep, collapse=", ")))
+  print(paste("Delete:", paste(nodes_to_delete, collapse=", ")))
+  
+  return(sort(as.numeric(nodes_to_keep)))
+  
+}
+
+convert_data_for_storage <- function(LGCP_data, y_c_structure, movement_num, vr_num, 
+                                     time_grid_est, min_events, n_weeks, max_processes = Inf, seed = NULL){
   
   # ----------------------------------------------------------------------------
   #
@@ -163,6 +221,7 @@ convert_data_for_storage <- function(LGCP_data, y_c_structure, movement_num, vr_
   # - vr_num            (0 or 1)
   # - time_grid_est
   # - min_events        (integer)     minimum number of spikes for a replicate-process to be included
+  # - n_weeks           (integer)     how many weeks do we want?
   # - max_processes     (integer)     how many neurons to look at 
   # - seed              (integer) 
   #
@@ -177,79 +236,115 @@ convert_data_for_storage <- function(LGCP_data, y_c_structure, movement_num, vr_
   #
   # ----------------------------------------------------------------------------
   
-
-  # 0) subject_nums of this discrete strata
+  # --- 1) Initial Extraction and Filtering ---
+  p_og <- max(LGCP_data[[1]]$feature_id)
   
-  y_d <- LGCP_data[[2]] %>% filter(movement == movement_num) %>% 
-    filter(VR == vr_num) %>% 
-    dplyr::pull(subject_num) %>% 
-    sort()
+  # Get valid subject pool based on Movement and VR
+  valid_subjects <- LGCP_data[[2]] %>% 
+    filter(movement == movement_num, VR == vr_num) %>% 
+    pull(subject_num)
   
+  # Initial subset of the main data
+  dt <- as.data.table(LGCP_data[[1]])
+  dt <- dt[subject_num %in% valid_subjects & feature_id <= max_processes]
   
-  # 1) event_times
+  # --- 2) Iterative Pruning (The While Loop) ---
+  # We loop until the set of subjects and processes stabilizes
+  converged <- FALSE
   
-  # Ensure input is a data.table
-  df <- as.data.table(LGCP_data[[1]]) %>% 
-    filter(feature_id <= max_processes) %>%      # only first p-processes 
-    filter(subject_num %in% y_d) %>%             # only subjects in discrete layer
-    group_by(feature_id, subject_num) %>%        # only include items with >= min_events
-    filter(n() >= min_events) %>%
-    ungroup()
-  
-  y_d2 <- df$subject_num %>% unique() %>% sort()  # filter again if we remove subjects due to >= min events
+  while (!converged) {
+    n_start <- nrow(dt)
     
-  # remap the subject numbers 
-  setDT(df) 
-  df[, subject_num := match(subject_num, sort(unique(y_d2)))]
-  
-  # remap the process numbers
-  
-  kept_neurons <- unique(df$feature_id) %>% sort()
-  p_og <- max(df$feature_id)
-  setDT(df) 
-  df[, feature_id := as.integer(factor(feature_id))]
-  
-  # Split data by subject-feature combination
-  event_times <- split(df$time, paste0(df$subject_num, "_", df$feature_id))
-
-  # 2) Y_c_k and y_c_query
-  
-  if(y_c_structure == 'week_only'){
-    Y_continuous <- LGCP_data[[3]] %>% filter(subject_num %in% y_d2) %>% dplyr::pull(age) %>% matrix()
-
+    # A) Constraint: Minimum events per (Process x Subject)
+    dt <- dt[, n_spikes := .N, by = .(feature_id, subject_num)][n_spikes >= min_events]
+    dt[, n_spikes := NULL]
     
-    y_c_query <- seq(min(LGCP_data[[3]]$age), max(LGCP_data[[3]]$age), 4) %>% matrix()
+    # B) Constraint: Subject must have events on at least one process
+    # (Automatically handled by data.table row removal, but we ensure subject pool is fresh)
+    current_subjects <- unique(dt$subject_num)
     
-  } else if(y_c_structure == 'time_and_week'){
-    Y_continuous <- as.matrix(LGCP_data[[3]] %>% filter(subject_num %in% y_d2) %>% select(age, timestamp), ncol = 2)
+    # C) Constraint: Pairwise Connectivity (Maximum Clique)
+    # Build adjacency: Processes connected by shared subjects
+    if (nrow(dt) > 0) {
+      incidence <- table(dt$feature_id, dt$subject_num)
+      incidence[incidence > 1] <- 1
+      adj_matrix <- incidence %*% t(incidence)
+      diag(adj_matrix) <- 0
+      adj_matrix[adj_matrix > 0] <- 1
+      
+      # Find the largest subset of processes that are all mutually connected
+      g <- graph_from_adjacency_matrix(adj_matrix, mode = "undirected")
+      cliques <- largest_cliques(g)
+      
+      if (length(cliques) > 0) {
+        # Keep the first largest clique found
+        kept_features <- as.numeric(names(V(g)[cliques[[1]]]))
+        dt <- dt[feature_id %in% kept_features]
+      } else {
+        dt <- dt[0] # Empty if no cliques
+      }
+    }
     
-    # y_c_query - every combination of week and time
-    y_c_query_week <- seq(min(LGCP_data[[3]]$age), max(LGCP_data[[3]]$age), 4)
+    # Check if any rows were removed in this iteration
+    if (nrow(dt) == n_start) {
+      converged <- TRUE
+    }
     
+    if (nrow(dt) == 0) break
+  }
+  
+  if (nrow(dt) == 0) stop("No data left after filtering constraints.")
+  
+  # --- 3) Remapping and Formatting ---
+  
+  # Final IDs for recovery
+  final_subjects <- sort(unique(dt$subject_num))
+  final_features <- sort(unique(dt$feature_id))
+  
+  # Remap to continuous integers (1...n, 1...p)
+  dt[, subject_num_map := match(subject_num, final_subjects)]
+  dt[, feature_id_map := match(feature_id, final_features)]
+  
+  # Create event_times list: named "k_i" (Subject_Process)
+  event_times <- split(dt$time, paste0(dt$subject_num_map, "_", dt$feature_id_map))
+  
+  # --- 4) Y_continuous processing ---
+  y_cont_raw <- as.data.table(LGCP_data[[3]])[subject_num %in% final_subjects]
+  # Ensure Y_continuous order matches the mapped subject_num_map
+  y_cont_raw <- y_cont_raw[order(match(subject_num, final_subjects))]
+  
+  if (y_c_structure == 'week_only') {
+    Y_continuous <- matrix(y_cont_raw$age)
+    y_c_query <- matrix(seq(min(LGCP_data[[3]]$age), max(LGCP_data[[3]]$age), n_weeks))
+  } else {
+    Y_continuous <- as.matrix(y_cont_raw[, .(age, timestamp)])
+    y_c_query_week <- seq(min(LGCP_data[[3]]$age), max(LGCP_data[[3]]$age), n_weeks)
     max_time <- max(LGCP_data[[3]]$timestamp)
-    last <- 120 + floor((max_time - 120) / 240) * 240
-    y_c_query_time <- seq(120, last, by = 240)
-    
+    last_t <- 120 + floor((max_time - 120) / 240) * 240
+    y_c_query_time <- seq(120, last_t, by = 240)              # time is every 2 minutes
     y_c_query <- expand.grid(v1 = y_c_query_week, v2 = y_c_query_time)
-    
   }
   
   
-
-  
-  
-  output_list <- list(event_times = event_times,
-                      Y_continuous = Y_continuous,
-                      simulation_params = list(n = nrow(Y_continuous),
-                                               p = max(df$feature_id),
-                                               Tmax = 1,
-                                               query_y_cs = y_c_query,
-                                               time_grid_est = time_grid_est,
-                                               seed = seed),
-                      recovery_params = list(kept_neurons = kept_neurons,
-                                             p_og = p_og))
-  
-  return(output_list)
+  # --- 5) Output ---
+  list(
+    event_times = event_times,
+    Y_continuous = Y_continuous,
+    simulation_params = list(
+      n = nrow(Y_continuous),
+      p = length(final_features),
+      Tmax = 1,
+      query_y_cs = y_c_query,
+      n_query = nrow(y_c_query),
+      time_grid_est = time_grid_est,
+      seed = seed
+    ),
+    recovery_params = list(
+      p_og = p_og,
+      kept_neurons = final_features,
+      kept_subjects = final_subjects
+    )
+  )
   
 }
 
