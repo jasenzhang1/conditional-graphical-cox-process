@@ -32,7 +32,7 @@ adj_type_params=(
   
   "hub_block_v2 0 1 4 2 2 0.5 0.9 0.5 0.9"
   #"hub_block_c2 0 1 4 2 2 0.7 0.7"
-  "hub_block_c0 0.5 4 2 2 0.7 0.7"
+  #"hub_block_c0 0.5 4 2 2 0.7 0.7"
   #"hub_block_j2 0 1 4 0.5 2 2 0.7 0.7"
   
   #"complete_block_c0 0.5 4 2 2 0.7 0.7"
@@ -47,8 +47,8 @@ adj_type_params=(
 )
 
 
-n_large=90
-ns=(45)
+n_large=250
+ns=(190)
 n_group=10
 groups=$(( n_large / n_group ))
 method="CPGM"
@@ -311,7 +311,9 @@ for entry in "${adj_type_params[@]}"; do
             # Part 2c - joint calculation of tau_c and tau_p across all timepoints
             # ----------------
             
+            wait_for_slot 
             
+            Rscript script_fit_mice_data_part2c.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$n_query" >> "$outfile" 2>&1
             
             # ----------------
             # Part 3- when all part 2's are done, do part 3
