@@ -27,7 +27,8 @@ GIC_pseudo_logdet <- function(A, tol = 1e-8) {
     return(-Inf)
   }
   
-  sum(log(ev_pos))
+  return(sum(log(ev_pos)))
+  
 }
 
 GIC_local_loss <- function(C_mat, Theta){
@@ -75,15 +76,15 @@ GIC_local_loss <- function(C_mat, Theta){
   
   # Check for invalid log det
   if (!is.finite(log_det_val)) {
-    stop("10b GIC_local_loss: log_det(Theta) is not finite (matrix may be singular or not positive definite).")
+    return(Inf)
   }
   
   # Final check
   local_loss <- tr_val - log_det_val
   
-  if (!is.finite(local_loss)) {
-    stop("10b GIC_local_loss: Local loss is not finite.")
-  }
+  # if (!is.finite(local_loss)) {
+  #   stop("10b GIC_local_loss: Local loss is not finite.")
+  # }
   
   return(local_loss)
   
@@ -230,6 +231,7 @@ GIC_get_thresholds <- function(M_list) {
   #
   # GOAL: get thresholds that go from zeroing nothing to zeroing all off-diagonals
   #
+  #       verified to not keep indices of on-diagonals
   #
   # inputs:
   #
@@ -640,8 +642,19 @@ GIC_joint_algorithm <- function(C_cond_list, p, W_y_list) {
   
   n_datasets <- length(C_cond_list)
   
+  # 0) get off-diagonal indices
+  block_names <- names(C_cond_list[[2]])
+  is_off_diagonal <- sapply(strsplit(block_names, "_"), function(x) x[1] != x[2])
+  off_diagonal_indices <- which(is_off_diagonal)
+  
+  
   # 0) Prep all datasets (Diagonal to Identity)
   C_cond_list <- lapply(C_cond_list, GIC_set_CXX_diag_identity)
+  
+  # 0b) Pre-calculate HS norms for C blocks to avoid repeated norm() calls
+  C_norms_list <- lapply(C_cond_list, function(dataset) {
+    lapply(dataset, function(block) hilbert_schmidt_norm(block))
+  })
   
   # 1) Generate Global Threshold Candidates for tau_c
   # We collect all HS values from all datasets to ensure a comprehensive grid
@@ -649,66 +662,91 @@ GIC_joint_algorithm <- function(C_cond_list, p, W_y_list) {
     GIC_get_thresholds(C)$hs_vals
   }))))
   
+  
+  
   best_tau_c <- NA
   best_tau_p <- NA
   lowest_total_GIC <- Inf
   
+  if(length(all_tau_c_candidates) == 0) return(NULL) # in case we cannot threshold
+  
   # 2) Grid Search over Global tau_c
   for (tau_c in all_tau_c_candidates) {
+    print(tau_c)
     
     current_Theta_cond_list <- list()
-    current_C_cond_full_list <- list()
+    current_C_full_matrices <- list()
     
-    # Apply tau_c threshold to ALL datasets
+    # 2a) Apply tau_c threshold to ALL datasets
     for (i in 1:n_datasets) {
       C_thresh <- C_cond_list[[i]]
-      # Zero out blocks where HS norm < tau_c
-      # Note: Assuming GIC_get_thresholds logic; alternatively use a direct HS check
-      C_HS_mat <- hilbert_schmidt_norm_list_to_mat(C_thresh, p)
+      dataset_norms <- C_norms_list[[i]]
       
-      # Logic: if HS norm < tau_c, zero the block
-      for (idx in 1:length(C_thresh)) {
-        # You may need to map idx back to i,j to check against C_HS_mat 
-        # Or more simply, check the norm of the specific block:
-        if (norm(C_thresh[[idx]], "F") < tau_c) {
-          C_thresh[[idx]] <- matrix(0, nrow(C_thresh[[idx]]), ncol(C_thresh[[idx]]))
+      # efficient zeroing of only the off-diagonal indices
+      for (idx in off_diagonal_indices) {
+        if (dataset_norms[[idx]] < tau_c) {
+          C_thresh[[idx]][] <- 0 # Keeps matrix dimensions/type intact
         }
       }
       
-      C_full <- assemble_block_matrix_irregular(C_thresh, p)
-      Theta_full <- ginv(C_full$block_matrix)
+      # assemble and store
+      res <- assemble_block_matrix_irregular(C_thresh, p)
+      current_C_full_matrices[[i]] <- res$block_matrix
       
-      current_C_cond_full_list[[i]] <- C_full
-      current_Theta_cond_list[[i]] <- extract_block_matrix_irregular(Theta_full, C_full$row_borders, C_full$col_borders)
+      # Compute Theta with ginv and store
+      Theta_full <- ginv(res$block_matrix)
+      current_Theta_cond_list[[i]] <- extract_block_matrix_irregular(Theta_full, res$row_borders, res$col_borders)
+      
+
     }
     
     # 3) Generate Global Threshold Candidates for tau_p based on current Thetas
+    
     all_tau_p_candidates <- unique(sort(unlist(lapply(current_Theta_cond_list, function(Th) {
       GIC_get_thresholds(Th)$hs_vals
     }))))
     
+    # 3b) OPTIMIZATION: Ensure tau_p doesn't zero out an entire dataset
+    # Find the maximum HS norm present in each dataset
+    max_hs_per_dataset <- sapply(current_Theta_cond_list, function(Th) {
+      # Get the max HS norm among all blocks for this specific dataset
+      norms <- sapply(Th, function(block) norm(block, "F"))
+      return(max(norms))
+    })
+    
+    # Any tau_p >= the smallest of these maxes will delete at least one full graph
+    upper_bound_tau_p <- min(max_hs_per_dataset)
+    
+    # Filter the candidates to keep only those that preserve at least one block per dataset
+    all_tau_p_candidates <- all_tau_p_candidates[all_tau_p_candidates < upper_bound_tau_p]
+    
+    
     # 4) Grid Search over Global tau_p
     for (tau_p in all_tau_p_candidates) {
+      print(tau_p)
       total_GIC_at_pair <- 0
       
       for (i in 1:n_datasets) {
         Th_cond <- current_Theta_cond_list[[i]]
         
+
+        
         # Apply tau_p threshold
-        for (idx in 1:length(Th_cond)) {
+        for (idx in off_diagonal_indices) {
           if (norm(Th_cond[[idx]], "F") < tau_p) {
-            Th_cond[[idx]] <- matrix(0, nrow(Th_cond[[idx]]), ncol(Th_cond[[idx]]))
+            Th_cond[[idx]][] <- 0
           }
         }
         
-        Th_full <- assemble_block_matrix_irregular(Th_cond, p)
+        TH_assembled <- assemble_block_matrix_irregular(Th_cond, p)$block_matrix
         n_edges <- GIC_edge_count(Th_cond, p)
         
         # Evaluate individual GIC and add to sum
-        val_GIC <- GIC_evalulation(current_C_cond_full_list[[i]]$block_matrix, 
-                                   Th_full$block_matrix, 
+        val_GIC <- GIC_evalulation(current_C_full_matrices[[i]], 
+                                   TH_assembled, 
                                    W_y_list[[i]], 
                                    n_edges)
+        
         total_GIC_at_pair <- total_GIC_at_pair + val_GIC
       }
       
@@ -727,13 +765,43 @@ GIC_joint_algorithm <- function(C_cond_list, p, W_y_list) {
   # (This would involve looping one last time through C_cond_list to 
   # create the final result list for each dataset)
   
-  final_results <- list(
+  final_Theta_list <- list()
+  final_C_list <- list()
+  
+  for (i in 1:n_datasets) {
+    # 6a) Apply best tau_c
+    C_final <- C_cond_list[[i]]
+    dataset_norms <- C_norms_list[[i]]
+    for (idx in seq_along(C_final)) {
+      if (dataset_norms[[idx]] < best_tau_c) C_final[[idx]][] <- 0
+    }
+    
+    # 6b) Invert
+    res_final <- assemble_block_matrix_irregular(C_final, p)
+    Theta_full_raw <- ginv(res_final$block_matrix)
+    Th_cond_final <- extract_block_matrix_irregular(Theta_full_raw, res_final$row_borders, res_final$col_borders)
+    
+    # 6c) Apply best tau_p
+    for (idx in seq_along(Th_cond_final)) {
+      if (norm(Th_cond_final[[idx]], "F") < best_tau_p) Th_cond_final[[idx]][] <- 0
+    }
+    
+    final_C_list[[i]] <- C_final
+    final_Theta_list[[i]] <- Th_cond_final
+    
+  }
+  
+  return(list(
     joint_tau_c = best_tau_c,
     joint_tau_p = best_tau_p,
-    total_min_GIC = lowest_total_GIC
-  )
+    total_min_GIC = lowest_total_GIC,
+    Theta_list = final_Theta_list,  # The actual estimated graphs
+    Cond_list = final_C_list,
+    w_mat = hilbert_schmidt_norm_list_to_mat(final_Theta_list, p),
+    C_HS = hilbert_schmidt_norm_list_to_mat(Cond_list, p)
+  ))
   
-  return(final_results)
+
 }
 
 
