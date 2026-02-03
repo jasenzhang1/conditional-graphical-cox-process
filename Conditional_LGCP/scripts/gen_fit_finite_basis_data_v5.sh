@@ -61,6 +61,7 @@ beta_0=5.4
 beta_truth="T"
 X_truth="T"
 eigen_setting="trig_and_joint" #only_joint, trig_and_joint
+global_thresh_method="both" #both, joint, tau_c, neither   both = do joint and tau_c
 
 # function wait_for_slot {
 #     # Wait until the number of background jobs is strictly less than max_jobs
@@ -308,12 +309,16 @@ for entry in "${adj_type_params[@]}"; do
             wait
             
             # ----------------
-            # Part 2c - joint calculation of tau_c and tau_p across all timepoints
+            # Part 2c - joint calculation of tau_c and tau_p across all timepoints                      
+            #           
+            #           AND/OR
+            #
+            #         - joint calculation of global tau_c and individual tau_p across all timepoints
             # ----------------
             
             wait_for_slot 
             
-            Rscript script_fit_mice_data_part2c.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$n_query" >> "$outfile" 2>&1
+            Rscript script_fit_mice_data_part2c.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$n_query" "$global_thresh_method" >> "$outfile" 2>&1
             
             # ----------------
             # Part 3- when all part 2's are done, do part 3
