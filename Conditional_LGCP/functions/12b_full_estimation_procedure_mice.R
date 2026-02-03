@@ -1669,7 +1669,7 @@ full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, sett
 }
 
 # 2c: optional estimation that involves finding a global tau_c and global tau_p across all y_c_query values
-full_conditional_estimation_with_no_truth_part2c <- function(temp_file_dir, setting_info_list, cont_inds, mouse, X_truth){
+full_conditional_estimation_with_no_truth_part2c <- function(temp_file_dir, setting_info_list, cont_inds, mouse){
   
   # ----------------------------------------------------------------------------
   #
@@ -1691,7 +1691,6 @@ full_conditional_estimation_with_no_truth_part2c <- function(temp_file_dir, sett
   # - setting_info_list
   # - cont_inds             (integer)   how many y_c_querys are there
   # - mouse                 (boolean)   is it a mouse?
-  # - X_truth               (boolean)   do we have X_truth?
   #
   # 
   # loading
@@ -1718,150 +1717,46 @@ full_conditional_estimation_with_no_truth_part2c <- function(temp_file_dir, sett
   # load everything from step_1
   if(mouse){
     step_3_info_list <- paste0(temp_file_dir, '/part3_', ID, '_', discrete_level, '_t', time_scale, '_nquery', 1:cont_inds, '.rds')
+    step_2_list_names <- paste0(temp_file_dir, '/part2_', ID, '_', discrete_level, '_t', time_scale, '_nquery', 1:cont_inds, '.rds')
   } else{
     step_3_info_list <- paste0(temp_file_dir, '/part3_', adj_type, '_n_', n, '_nquery', 1:cont_inds, '.rds')
+    step_2_list_names <- paste0(temp_file_dir, '/part2_', adj_type, '_n_', n, '_nquery', 1:cont_inds, '.rds')
   }
   
-
+  step_2_all_data <- lapply(step_2_list_names, readRDS)
+  W_y_list <- lapply(step_2_all_data, `[[`, "W_y")
+  p <- step_2_all_data[[1]]$p
+  
   results <- lapply(step_3_info_list, readRDS)
   
+  # KL_cor_est_eig1, etc...
+  est_names <- names(results[[1]]$step_5b)
   
+  for(est_name in est_names){
   
-
-  p <- results$p
-  W_y <- results$W_y
-  adj_mat_i <- results$adj_mat_i
-  #list2env(results, envir = environment())
-  steps_2_and_2b <- readRDS(file.path(temp_file_dir, rho_list_name))
-  
-  step_2 <- steps_2_and_2b$step_2
-  step_2b <- steps_2_and_2b$step_2b
-  
-  # ------------------
-  # Step 2b onward
-  # ------------------
-  
-  i_neq_j <- T
-  
-  step_3  <- step_3_g_ij(step_2, step_2b, i_neq_j)
-  
-  
-  if(eigen_setting == 'only_joint'){
-    
-    step_4 <- tryCatch({
-      step_4_eigendecomp(step_3, p, F, NULL)
-    }, error = function(e) {
-      cat("Error in step_4, saving dataset...\n")
-      save(dataset, file = file.path(temp_file_dir, datafile_error_name))
-      stop(e)
-      
-    })
-  } else if (eigen_setting == 'trig_and_joint'){
-    
-    step_4 <- tryCatch({
-      step_4_eigendecomp_troubleshoot(step_3, p)
-    }, error = function(e) {
-      cat("Error in step_4, saving dataset...\n")
-      save(dataset, file = file.path(temp_file_dir, datafile_error_name))
-      stop(e)
+    KL_cor_list <- lapply(results, function(res) {
+      res$step_5b[[est_name]]
     })
     
-  } else{
-    stop('12b ERROR: eigen_setting not available')
-  }
-  
-  
-  # 3) steps 5: obtain KL_cor and KL_prec
-  
-  
-  #step_5 <- step_5_KL_covariance(step_3, step_4)
-  step_5 <- step_5_KL_covariance_eigencases(step_3, step_4)
-  step_5b <- step_5b_KL_correlation(step_5, p)
-  step_5c <- step_5c_KL_precision(step_5b, p)
-  
-  # estimate C_HS, w_mat from KL without thresh 
-  
-  step_11_KL_no_thresh  <- step_11_HS_norms_from_KL(step_5c, p)
-  step_11b_KL_no_thresh <- step_11b_HS_norms_from_KL(step_5b, p)
-  
-  # estimate C_HS, w_mat from KL WITH thresh
-  
-  step_11_GIC_bundle <- steps_10_11_GIC_from_KL(step_5b, p, W_y)
-  
-  step_11_KL_yes_thresh  <- step_11_HS_norms_from_KL_GIC(step_11_GIC_bundle)
-  step_11b_KL_yes_thresh <- step_11b_HS_norms_from_KL_GIC(step_11_GIC_bundle)
-  
-  # 4) step 9: Construct mxm object from KL correlation + get precision operator
-  
-  # step_9 <- step_9_C_cond_from_KL_cor(step_4, step_5b)
-  # step_9b <- step_9b_eigenfunction_outers(step_4)
-  # 
-  # 
-  # block <- F
-  # MP <- F
-  # step_10 <- tryCatch({
-  #   step_10_P_cond(step_9, p, block, MP)
-  # }, error = function(e) {
-  #   cat("Error occurred in step_10, saving dataset...\n")
-  #   save(dataset, file = file.path(temp_file_dir, datafile_error_name))
-  #   cat("Dataset saved to dataset.RData\n")
-  #   stop(e)  # Re-throw the error
-  # })
-  
-  
-  # 5) estimate C_HS, w_mat from pxp without thresh - regular w_mat and C_HS, no KL 
-  
-  # step_11_mxm_no_thresh_bundle <- step_11_HS_norms(step_9, step_10, p)
-  
-  # 6) estiamte C_HS, w_mat from pxp WITH thresh
-  
-  # step_11_mxm_GIC_bundle <- steps_10_11_GIC(step_9, p, W_y)
-  # 
-  # step_11_KL_yes_thresh  <- step_11_HS_norms_from_KL_GIC(step_11_mxm_GIC_bundle)
-  # step_11b_KL_yes_thresh <- step_11b_HS_norms_from_KL_GIC(step_11_mxm_GIC_bundle)
-  
-  
-  # 7) collect all of 11 and 11b results
-  
-  step_11 <- c(step_11_KL_no_thresh,
-               step_11_KL_yes_thresh)
-  # step_11_mxm_no_thresh_bundle$step_11)
-  
-  step_11b <- c(step_11b_KL_no_thresh,
-                step_11b_KL_yes_thresh)
-  #step_11_mxm_no_thresh_bundle$step_11b)
-  
-  
-  if(! mouse){
-    step_12 <- step_12_ROC(step_11, adj_mat_i)
-    step_12b <- step_12b_adj_mat(step_11)
+    tau_joint <- GIC_joint_algorithm(KL_cor_list, p, W_y_list)  # STILL WORKING ON IT
     
-    estimated_graphs <- list(step_2 = step_2, step_2b = step_2b, step_3 = step_3,
-                             step_4 = step_4, step_5 = step_5, step_5b = step_5b, step_5c = step_5c, 
-                             #step_9 = step_9, step_9b = step_9b, step_10 = step_10, 
-                             step_11 = step_11, step_11b = step_11b, 
-                             step_12 = step_12, step_12b = step_12b)
-  } else{
-    step_12b <- step_12b_adj_mat(step_11)
+    # store 
+    suffix <- sub("^KL_cor_", "", est_name)  #est_eig1
+    new_P_HS_name <- paste0('w_mat_KL_GIC_global_', suffix)
+    new_C_HS_name <- paste0('C_HS_KL_GIC_global_', suffix)
     
-    estimated_graphs <- list(step_2 = step_2, step_2b = step_2b, step_3 = step_3,
-                             step_4 = step_4, step_5 = step_5, step_5b = step_5b, step_5c = step_5c, 
-                             #step_9 = step_9, step_9b = step_9b, step_10 = step_10, 
-                             step_11 = step_11, step_11b = step_11b, 
-                             step_12b = step_12b)
+    for(i in 1:cont_inds){
+      results[[i]]$step_11[[new_P_HS_name]] <- tau_joint$w_mat
+      results[[i]]$step_11[[new_C_HS_name]] <- tau_joint$C_HS
+      results[[i]][['step_11c']][['global_tau_c']] <- tau_joint$joint_tau_c
+      results[[i]][['step_11c']][['global_tau_p']] <- tau_joint$joint_tau_p
+    }
   }
   
   
+  # save the same step_3_info_list
   
-  
-  if(mouse){
-    file_name <- paste0('part3_', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '.rds')
-  } else{
-    estimated_graphs[['step_12']] <- step_12
-    file_name <- paste0("part3_", adj_type, '_n_', n, '_nquery', cont_ind, '.rds')
-  }
-  
-  saveRDS(estimated_graphs, file = file.path(temp_file_dir, file_name))  
+  saveRDS(results, file = file.path(temp_file_dir, step_3_info_list))  
   
 }
 
