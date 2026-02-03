@@ -20,10 +20,8 @@ if(model_type == 'mice'){
   method <- args[5]                   # method <- 'CPGM'
   movement <- as.numeric(args[6])     # movement <- 0
   VR <- as.numeric(args[7])           # VR <- 0
-  cont_ind <- as.numeric(args[8])     # cont_ind <- 1  
-  eigen_setting <- args[9]
+  cont_inds <- as.numeric(args[8])    # cont_ind <- 1  
   
-  X_truth <- F
   
   discrete_level <- paste0('m', movement, 'vr', VR)
   
@@ -42,8 +40,7 @@ if(model_type == 'mice'){
   n <- as.numeric(args[3])
   adj_type <- args[4]
   method <- args[5]
-  X_truth <- as.logical(args[6])
-  cont_inds <- as.numeric(args[7])
+  cont_inds <- as.numeric(args[6])
   
   setting_info_list <- list(n_large = n_large,
                             n = n,
@@ -62,7 +59,7 @@ if(model_type == 'mice'){
 # estimation - update the file called 'part_3....rds' in /temp_data/simu
 # ---------------------------
 
-full_conditional_estimation_with_no_truth_part2c(temp_file_dir, setting_info_list, cont_inds, mouse, X_truth)
+full_conditional_estimation_with_no_truth_part2c(temp_file_dir, setting_info_list, cont_inds, mouse)
 
 
 
