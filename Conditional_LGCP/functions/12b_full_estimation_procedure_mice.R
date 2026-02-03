@@ -1669,7 +1669,7 @@ full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, sett
 }
 
 # 2c: optional estimation that involves finding a global tau_c and global tau_p across all y_c_query values
-full_conditional_estimation_with_no_truth_part2c <- function(temp_file_dir, setting_info_list, cont_inds, mouse){
+full_conditional_estimation_with_no_truth_part2c <- function(temp_file_dir, setting_info_list, cont_inds, mouse, global_thresh_method){
   
   # ----------------------------------------------------------------------------
   #
@@ -1691,6 +1691,7 @@ full_conditional_estimation_with_no_truth_part2c <- function(temp_file_dir, sett
   # - setting_info_list
   # - cont_inds             (integer)   how many y_c_querys are there
   # - mouse                 (boolean)   is it a mouse?
+  # - global_thresh_method  (string)    'both', 'joint', 'tau_c', 'neither'
   #
   # 
   # loading
@@ -1738,18 +1739,40 @@ full_conditional_estimation_with_no_truth_part2c <- function(temp_file_dir, sett
       res$step_5b[[est_name]]
     })
     
-    tau_joint <- GIC_joint_algorithm(KL_cor_list, p, W_y_list)  # STILL WORKING ON IT
+    # global estimation
+    if(global_thresh_method %in% c('both', 'joint')){
+
+      tau_joint <- GIC_joint_algorithm(KL_cor_list, p, W_y_list) 
+      
+      # store 
+      suffix <- sub("^KL_cor_", "", est_name)  #est_eig1
+      new_P_HS_name <- paste0('w_mat_KL_GIC_global_', suffix)
+      new_C_HS_name <- paste0('C_HS_KL_GIC_global_', suffix)
+      
+      for(i in 1:cont_inds){
+        results[[i]]$step_11[[new_P_HS_name]] <- tau_joint$w_mat
+        results[[i]]$step_11[[new_C_HS_name]] <- tau_joint$C_HS
+        results[[i]][['step_11c']][['global_tau_c']] <- tau_joint$joint_tau_c
+        results[[i]][['step_11c']][['global_tau_p']] <- tau_joint$joint_tau_p
+      }
+    }
     
-    # store 
-    suffix <- sub("^KL_cor_", "", est_name)  #est_eig1
-    new_P_HS_name <- paste0('w_mat_KL_GIC_global_', suffix)
-    new_C_HS_name <- paste0('C_HS_KL_GIC_global_', suffix)
-    
-    for(i in 1:cont_inds){
-      results[[i]]$step_11[[new_P_HS_name]] <- tau_joint$w_mat
-      results[[i]]$step_11[[new_C_HS_name]] <- tau_joint$C_HS
-      results[[i]][['step_11c']][['global_tau_c']] <- tau_joint$joint_tau_c
-      results[[i]][['step_11c']][['global_tau_p']] <- tau_joint$joint_tau_p
+    # global estimation of tau_c but tau_p individual for each timepoint
+    if(global_thresh_method %in% c('both', 'tau_c')){
+      
+      tau_joint <- GIC_joint_tau_c_local_tau_p_algorithm(KL_cor_list, p, W_y_list)  # STILL WORKING ON IT
+      
+      # store 
+      suffix <- sub("^KL_cor_", "", est_name)  #est_eig1
+      new_P_HS_name <- paste0('w_mat_KL_GIC_outer_', suffix)
+      new_C_HS_name <- paste0('C_HS_KL_GIC_outer_', suffix)
+      
+      for(i in 1:cont_inds){
+        results[[i]]$step_11[[new_P_HS_name]] <- tau_joint$w_mat
+        results[[i]]$step_11[[new_C_HS_name]] <- tau_joint$C_HS
+        results[[i]][['step_11c']][['outer_tau_c']] <- tau_joint$joint_tau_c
+        results[[i]][['step_11c']][['outer_tau_p']] <- tau_joint$joint_tau_p
+      }
     }
   }
   
