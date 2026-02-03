@@ -672,8 +672,7 @@ GIC_joint_algorithm <- function(C_cond_list, p, W_y_list) {
   
   # 2) Grid Search over Global tau_c
   for (tau_c in all_tau_c_candidates) {
-    print(tau_c)
-    
+
     current_Theta_cond_list <- list()
     current_C_full_matrices <- list()
     
@@ -723,7 +722,7 @@ GIC_joint_algorithm <- function(C_cond_list, p, W_y_list) {
     
     # 4) Grid Search over Global tau_p
     for (tau_p in all_tau_p_candidates) {
-      print(tau_p)
+      
       total_GIC_at_pair <- 0
       
       for (i in 1:n_datasets) {
@@ -797,8 +796,8 @@ GIC_joint_algorithm <- function(C_cond_list, p, W_y_list) {
     total_min_GIC = lowest_total_GIC,
     Theta_list = final_Theta_list,  # The actual estimated graphs
     Cond_list = final_C_list,
-    w_mat = hilbert_schmidt_norm_list_to_mat(final_Theta_list, p),
-    C_HS = hilbert_schmidt_norm_list_to_mat(Cond_list, p)
+    w_mat = lapply(final_Theta_list, function(m) hilbert_schmidt_norm_list_to_mat(m, p)),  # apply for each timepoint
+    C_HS  = lapply(final_C_list, function(m) hilbert_schmidt_norm_list_to_mat(m, p))
   ))
   
 
