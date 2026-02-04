@@ -680,7 +680,10 @@ GIC_joint_algorithm <- function(C_cond_list, p, W_y_list) {
   if(length(all_tau_c_candidates) == 0) return(NULL) # in case we cannot threshold
   
   # 2) Grid Search over Global tau_c
-  for (tau_c in all_tau_c_candidates) {
+  for (k in seq_along(all_tau_c_candidates)) {
+    tau_c <- all_tau_c_candidates[k]
+
+    print(paste0('joint method: ', k, ' out of ', length(all_tau_c_candidates)))
 
     current_Theta_cond_list <- list()
     current_C_full_matrices <- list()
@@ -855,7 +858,10 @@ GIC_joint_tau_c_local_tau_p_algorithm <- function(C_cond_list, p, W_y_list) {
   lowest_total_GIC <- Inf
   
   # 2) Loop over global tau_c candidates
-  for (tau_c in all_tau_c_candidates) {
+  for (k in seq_along(all_tau_c_candidates)) {
+    tau_c <- all_tau_c_candidates[k]
+    
+    print(paste0('tau_c method: ', k, ' out of ', length(all_tau_c_candidates)))
     
     current_total_GIC_for_this_tau_c <- 0
     current_tau_p_winners <- rep(NA, n_datasets)
