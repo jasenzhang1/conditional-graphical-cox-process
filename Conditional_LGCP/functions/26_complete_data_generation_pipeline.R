@@ -828,7 +828,7 @@ simulate_finite_basis_cox_data_parts1_and_2 <- function(temp_file_dir, setting_i
     
     counter <- counter + 1
     
-    print(paste0('counter: ', counter, ', min: ', min_events_obs, ', max: ', max_events_obs))
+    print(paste0('group: ', group_idx, ', counter: ', counter, ', min: ', min_events_obs, ', max: ', max_events_obs))
     
   }
   
