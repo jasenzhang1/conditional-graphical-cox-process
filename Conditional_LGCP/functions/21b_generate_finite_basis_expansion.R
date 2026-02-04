@@ -171,25 +171,28 @@ trig_basis_prec_mat <- function(d, p, y_c_k, adj_type, adj_params){
     # 2a) extract c1, c2, c3, c4 constants
 
     if(adj_type == 'flexible_block_banded_c0'){
-      c1 <- adj_params[2]
-      c2 <- adj_params[3]
-      c3 <- adj_params[4] 
-      c4 <- adj_params[5]
+      band_size <- adj_params[2]
+      c1        <- adj_params[3]
+      c2        <- adj_params[4]
+      c3        <- adj_params[5] 
+      c4        <- adj_params[6]
     } else if(adj_type == 'flexible_block_banded_c2'){
-      c1 <- adj_params[3]
-      c2 <- adj_params[4]
-      c3 <- adj_params[5] 
-      c4 <- adj_params[6]
+      band_size <- adj_params[3]
+      c1        <- adj_params[4]
+      c2        <- adj_params[5]
+      c3        <- adj_params[6] 
+      c4        <- adj_params[7]
     } else if(adj_type == 'flexible_block_banded_v2'){
-      y_c_min <- adj_params[1]
-      y_c_max <- adj_params[2]
-      c1      <- adj_params[3]
-      c2      <- adj_params[4]
-      c3_min  <- adj_params[5]
-      c3_max  <- adj_params[6]
-      c4_min  <- adj_params[7]
-      c4_max  <- adj_params[8]
-
+      y_c_min   <- adj_params[1]
+      y_c_max   <- adj_params[2]
+      band_size <- adj_params[3]
+      c1        <- adj_params[4]
+      c2        <- adj_params[5]
+      c3_min    <- adj_params[6]
+      c3_max    <- adj_params[7]
+      c4_min    <- adj_params[8]
+      c4_max    <- adj_params[9]
+      
       # interpolation
       c3 <- c3_min + (c3_max - c3_min) * (y_c_k - y_c_min) / (y_c_max - y_c_min)
       c4 <- c4_min + (c4_max - c4_min) * (y_c_k - y_c_min) / (y_c_max - y_c_min)
@@ -199,13 +202,14 @@ trig_basis_prec_mat <- function(d, p, y_c_k, adj_type, adj_params){
       # if y_c_k < jump, then c3, c4 = 0
       # if y_c_k > jump, then c3, c4 = nonzero values that we specify
       
-      y_c_min    <- adj_params[1]
-      y_c_max    <- adj_params[2]
-      y_jump     <- adj_params[3]
-      c1         <- adj_params[4]
-      c2         <- adj_params[5]
-      c3_nonzero <- adj_params[6]
-      c4_nonzero <- adj_params[7]
+      y_c_min     <- adj_params[1]
+      y_c_max     <- adj_params[2]
+      band_size   <- adj_params[3]
+      y_jump      <- adj_params[4]
+      c1          <- adj_params[5]
+      c2          <- adj_params[6]
+      c3_nonzero  <- adj_params[7]
+      c4_nonzero  <- adj_params[8]
       if(y_c_k < y_jump){
         c3 <- 0
         c4 <- 0
@@ -220,25 +224,35 @@ trig_basis_prec_mat <- function(d, p, y_c_k, adj_type, adj_params){
       
     # 2b) assemble on and off-block matrics and the pd x pd matrix
     
+    adj_df <- data.frame(1:p, 1:p)
+    
+    for (i in 1:(p - 1)) {
+      # Check if i and the next node (i + 1) belong to the same block of 4
+      # (i-1)%/%4 handles the 1-4, 5-8 logic correctly
+      if ((i - 1) %/% 4 == (i %/% 4)) {
+        adj_df <- rbind(adj_df, c(i, i + 1))
+      }
+    }
+    
     off_block <- diag(c(c3, c4))
     on_block  <- diag(c(c1, c2))
     
     theta_pd <- matrix(0, nrow = p*d, ncol = p*d)
     
-    for(i in 1:p){
-      for(j in 1:p){
-        # Compute index ranges for block (i,j)
-        row_idx <- ((i - 1) * d + 1):(i * d)
-        col_idx <- ((j - 1) * d + 1):(j * d)
-        
-        
-        if(i == j){
-          theta_pd[row_idx, col_idx] <- on_block
-        }
-        
-        if(abs(i-j) == 1){
-          theta_pd[row_idx, col_idx] <- off_block
-        }
+    for(idx in 1:nrow(adj_df)){
+      i <- adj_df[idx, 1]
+      j <- adj_df[idx, 2]
+      
+      # Compute index ranges for block (i,j)
+      row_idx <- ((i - 1) * d + 1):(i * d)
+      col_idx <- ((j - 1) * d + 1):(j * d)
+      
+      
+      if(i == j){
+        theta_pd[row_idx, col_idx] <- on_block
+      } else{
+        theta_pd[row_idx, col_idx] <- off_block
+        theta_pd[col_idx, row_idx] <- off_block
       }
     }
     
