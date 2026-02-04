@@ -1777,9 +1777,14 @@ full_conditional_estimation_with_no_truth_part2c <- function(temp_file_dir, sett
   }
   
   
-  # save the same step_3_info_list
-  
-  saveRDS(results, file = file.path(temp_file_dir, step_3_info_list))  
+
+  # 7) Save each dataset's result back to its corresponding file
+  for (i in 1:cont_inds) {
+    
+    single_result <- results[[i]]
+    saveRDS(single_result, file = step_3_info_list[i])
+    
+  }
   
 }
 
