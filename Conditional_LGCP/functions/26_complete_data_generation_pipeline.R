@@ -827,6 +827,9 @@ simulate_finite_basis_cox_data_parts1_and_2 <- function(temp_file_dir, setting_i
     min_events_obs <- min(sapply(events, function(i) min(i$event_counts)))
     
     counter <- counter + 1
+    
+    print(paste0('counter: ', counter, ', min: ', min_events_obs, ', max: ', max_events_obs))
+    
   }
   
   # package
