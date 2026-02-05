@@ -1692,6 +1692,56 @@ step_11b_HS_norms_from_KL_GIC <- function(step_11_GIC_bundle){
   
 }
 
+step_11x_HS_norms_from_KL_GIC <- function(step_11_GIC_bundle){
+  
+  
+  # ----------------------------------------------------------------------------  
+  #
+  # GOAL: obtain tau_c and tau_p from the GIC bundle
+  #
+  # 
+  # inputs:
+  #
+  # - step_11_GIC_bundle
+  #   - GIC_KL_suffix                        (list of items)  
+  #
+  #
+  # outputs:
+  #
+  # - list of:
+  #   - step_11x
+  #     - tau_c_local_est
+  #     - tau_p_local_est
+  #     - tau_c_local_X_truth etc...
+  #
+  # ----------------------------------------------------------------------------
+  
+  step_11x <- list()
+  
+  # 1) grab names
+  
+  core_names <- step_00_grab_ID(names(step_11_GIC_bundle), 'GIC_KL')
+  
+  input_names <- names(step_11_GIC_bundle)
+  
+  # 2) for each core name `est`, `X_truth` etc... get the resulting name, apply the function on it, and store it
+  for(i in 1:length(core_names)){
+    
+    # obtain tau_c and tau_p from the entry
+    
+    name_i_tau_c <- paste0('tau_c_local_', core_names[i])
+    name_i_tau_p <- paste0('tau_p_local_', core_names[i])
+    
+    step_11x[[name_i_tau_c]] <- step_11_GIC_bundle[[input_names[i]]][['tau_c']]
+    step_11x[[name_i_tau_p]] <- step_11_GIC_bundle[[input_names[i]]][['tau_p']]
+    
+  }
+  
+  return(step_11x)
+  
+  
+}
+
 step_12_ROC <- function(step_11, adj_mat_i){
   
   # ----------------------------------------------------------------------------
