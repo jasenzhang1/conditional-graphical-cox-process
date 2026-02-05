@@ -7,6 +7,15 @@ make_time_grid <- function(m){
   return((2*(1:m) - 1) / (2 * m))
 }
 
+make_y_c_grid <- function(m){
+  
+  # make m bins from 0 to 1 including the borders
+  # 
+  # ex: m = 10 --> (0, 1/9, 2/9, ... , 9/9)
+  
+  return(seq(0, 1, length.out = m))
+}
+
 convert_data_for_estimation <- function(subject_list, Tmax){
   
   # ----------------------------------------------------------------------------
