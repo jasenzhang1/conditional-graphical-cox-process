@@ -1,21 +1,9 @@
 # main script to unpack finite basis results
 
-# 1) packages and functions 
 
-# library(grid)
-# library(gridExtra)
-# library(dplyr)
-# library(patchwork)
-# library(ggplot2)
-# library(tidyr)
-# library(knitr)
 
 source('functions/00_function_wrapper.R')
-source('functions/28_Simulation_Visualization.R')
-source('functions/28b_Simulation_Visualization_2.R')
-source('functions/28c_Grand_Visualizations.R')
-source('functions/00d_debugging.R')
-source('functions/28e_Finite_Basis_Visualization.R')
+source('functions/20_simulation_function_wrapper.R')
 
 # 2) arguments for simulation settings
 
