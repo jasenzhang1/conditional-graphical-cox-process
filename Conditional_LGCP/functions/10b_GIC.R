@@ -210,7 +210,7 @@ GIC_threshold_block_matrix <- function(M, thresh) {
     # Only threshold if i != j
     if (i != j) {
       hs <- hilbert_schmidt_norm(block)
-      if (hs < thresh) {
+      if (hs thresh) {
         return(matrix(0, nrow(block), ncol(block)))
       }
     }
@@ -432,7 +432,7 @@ GIC_edge_count <- function(M_list, p){
 
 
 
-GIC_get_percentile_info <- function(current_list, indices, n_quantiles = 100) {
+GIC_get_percentile_info <- function(current_list, indices) {
   
   # ----------------------------------------------------------------------------
   # 
@@ -456,11 +456,20 @@ GIC_get_percentile_info <- function(current_list, indices, n_quantiles = 100) {
   hs_norms <- sapply(indices, function(idx) norm(current_list[[idx]], type = "F"))
   
   # Create 101 percentiles (0, 0.01, ..., 1.00)
-  step_size = 1/n_quantiles
+  step_size = 1/100
   probs <- seq(0, 1, by = step_size)
-  tau_levels <- quantile(hs_norms, probs = probs)
+  raw_quantiles <- quantile(hs_norms, probs = probs)
   
-  # For each tau, find which indices in 'indices' are <= that tau
+  # 3) CRITICAL: Keep only unique threshold values
+  # This prevents "subscript out of bounds" when you have few blocks
+  tau_levels <- unique(raw_quantiles)
+  
+  # If the smallest threshold is > 0, prepend 0 to allow a 'keep all' state
+  if(min(tau_levels) > 0) {
+    tau_levels <- c(0, tau_levels)
+  }
+  
+  # 4) Map the path based on unique thresholds
   path <- lapply(tau_levels, function(t) indices[hs_norms <= t])
   
   return(list(hs_vals = as.numeric(tau_levels), index_path = path))
@@ -507,6 +516,9 @@ GIC_algorithm <- function(C_cond, p, W_y){
   
   best_k <- NA
   best_l <- NA
+  best_tau_c <- NA
+  best_tau_p <- NA
+  best_tau_p_levels <- NULL # Store levels associated with the best tau_c
   lowest_GIC <- Inf
   df_GIC <- data.frame(C_thresh_pct = integer(0),
                        Theta_thresh_pct = integer(0),
@@ -515,9 +527,13 @@ GIC_algorithm <- function(C_cond, p, W_y){
   
   # 2) begin grid search on C_cond
   
-  for(k in 1:length(threshold_list$index_path)){
+  for(k in seq_along(threshold_list$index_path)){
     
-    print(paste0('local method: ', k, ' out of ', length(threshold_list$index_path)))
+    if(k %% 20 == 0){
+      print(paste0('local method: ', k, ' out of ', length(threshold_list$index_path)))
+    }
+    
+    
     
     excluded_indices <- threshold_list$index_path[[k]]
     tau_c <- threshold_list$hs_vals[k]
@@ -542,7 +558,7 @@ GIC_algorithm <- function(C_cond, p, W_y){
     # 7) thresholding for tau_p
     threshold_list_2 <- GIC_get_percentile_info(Theta_cond, off_diag_indices)
     
-    for(l in 1:length(threshold_list_2$index_path)){
+    for(l in seq_along(threshold_list_2$index_path)){
       
       excluded_indies_2 <- threshold_list_2$index_path[[l]]
       tau_p <- threshold_list_2$hs_vals[l]
@@ -563,16 +579,19 @@ GIC_algorithm <- function(C_cond, p, W_y){
       
       # 10) update best GIC and indices
       
-      df_kl <- data.frame(C_thresh_index = k-1,     # 1st item is 0th percentile, 101th item is 100th percentile
-                          Theta_thresh_index = l-1,
+      df_kl <- data.frame(C_thresh_pct = k-1,     # 1st item is 0th percentile, 101th item is 100th percentile
+                          Theta_thresh_pct = l-1,
                           GIC = GIC)
       
       df_GIC <- rbind(df_GIC, df_kl)
       
-      if(GIC < lowest_GIC){
+      if(!is.na(GIC) && GIC < lowest_GIC){
         lowest_GIC <- GIC
         best_k <- k
         best_l <- l
+        best_tau_c <- tau_c
+        best_tau_p <- tau_p
+        best_tau_p_levels <- threshold_list_2$hs_vals
       }
     }
   } # end grid search
@@ -583,18 +602,20 @@ GIC_algorithm <- function(C_cond, p, W_y){
   # repeat but use best settings
   # ------------------------------------------------
   
-  # 2) obtain best adjacency outcome
+  # 1) obtain best adjacency outcome
   
-  excluded_indices <- threshold_list$index_path[[best_k]]
-  tau_c_final <- threshold_list$hs_vals[best_k]
+  print('using best settings')
+  
+  # 2) Reconstruction of C_cond with best_tau_c
   C_cond_thresh_final <- C_cond
-  
-  
-  # 3) zero out select matrices
-  for (idx in excluded_indices) {
-    block <- C_cond_thresh_final[[idx]]
-    C_cond_thresh_final[[idx]] <- matrix(0, nrow(block), ncol(block))
+  for (idx in off_diag_indices) {
+    # If the norm is less than or equal to our best threshold, zero it
+    if (norm(C_cond_thresh_final[[idx]], "F") <= best_tau_c) {
+      C_cond_thresh_final[[idx]][] <- 0
+    }
   }
+  
+
   
   # 4) assemble this pd x pd matrix whose entries may not be all squares
   
@@ -606,18 +627,12 @@ GIC_algorithm <- function(C_cond, p, W_y){
   # 6) make into a list again
   Theta_cond_final <- extract_block_matrix_irregular(Theta_full_final, C_cond_full_final$row_borders, C_cond_full_final$col_borders)
   
-  # 7) thresholding for tau_p
-  threshold_list_2 <- GIC_get_thresholds(Theta_cond_final)
-  
-  # use best_l
-  excluded_indies_2 <- threshold_list_2$index_path[[best_l]]
-  tau_p_final <- threshold_list_2$hs_vals[best_l]
+  # 8) Reconstruction of Theta_cond with best_tau_p
   Theta_cond_thresh_final <- Theta_cond_final
-  
-  # 8) zero out select matrices
-  for (idx in excluded_indies_2) {
-    block <- Theta_cond_thresh_final[[idx]]
-    Theta_cond_thresh_final[[idx]] <- matrix(0, nrow(block), ncol(block))
+  for (idx in off_diag_indices) {
+    if (norm(Theta_cond_thresh_final[[idx]], "F") <= best_tau_p) {
+      Theta_cond_thresh_final[[idx]][] <- 0
+    }
   }
   
   # 9) evalulate GIC + get number of edges
@@ -633,10 +648,10 @@ GIC_algorithm <- function(C_cond, p, W_y){
   
   
   result <- list(# thresholds
-                 tau_c = tau_c_final,                      
-                 tau_p = tau_p_final,
+                 tau_c = best_tau_c,                      
+                 tau_p = best_tau_p,
                  tau_c_levels = threshold_list$hs_vals,
-                 tau_p_levels = threshold_list_2$hs_vals,
+                 tau_p_levels = best_tau_p_levels,
                  # operators in list form
                  C_cond = C_cond_thresh_final,                    
                  Theta_cond = Theta_cond_thresh_final,
@@ -682,33 +697,39 @@ GIC_joint_algorithm <- function(C_cond_list, p, W_y_list) {
   # 0) get off-diagonal indices
   
   n_datasets <- length(C_cond_list)
-  block_names <- names(C_cond_list[[2]])
+  block_names <- names(C_cond_list[[1]])
   off_diag_indices <- which(sapply(strsplit(block_names, "_"), function(x) x[1] != x[2]))
   
-  # 0) Prep all datasets (Diagonal to Identity)
   C_cond_list <- lapply(C_cond_list, GIC_set_CXX_diag_identity)
   
-  # 0b) Pre-calculate HS norms for C blocks to avoid repeated norm() calls
+  # Pre-calculate norms once to save CPU time
+  C_norms_list <- lapply(C_cond_list, function(dataset) {
+    lapply(dataset, function(block) hilbert_schmidt_norm(block))
+  })
+  
+  # 1) Generate Global unique tau_c candidates
   all_c_norms <- unlist(lapply(C_cond_list, function(dataset) {
     sapply(off_diag_indices, function(idx) norm(dataset[[idx]], "F"))
   }))
-  
-  probs <- seq(0, 1, by = 0.01)
-  tau_c_levels <- quantile(all_c_norms, probs = probs)
-  
-  
+  tau_c_levels <- unique(quantile(all_c_norms, probs = seq(0, 1, by = 0.01)))
+  # Ensure "keep all" is a candidate
+  if(length(tau_c_levels) > 0 && min(tau_c_levels) > 0) tau_c_levels <- c(0, tau_c_levels)
   
   best_tau_c <- NA
   best_tau_p <- NA
   lowest_total_GIC <- Inf
   
-  if(length(all_tau_c_candidates) == 0) return(NULL) # in case we cannot threshold
+  if(length(tau_c_levels) == 0) return(NULL) # in case we cannot threshold
   
   # 2) Grid Search over Global tau_c
   for (k in seq_along(tau_c_levels)) {
     tau_c <- tau_c_levels[k]
+    
+    if(k %% 20 == 0){
+      print(paste0('joint method: ', k, ' out of ', length(tau_c_levels)))
+    }
 
-    print(paste0('joint method: ', k, ' out of ', length(tau_c_levels)))
+    
 
     current_Theta_cond_list <- list()
     current_C_full_matrices <- list()
@@ -720,7 +741,7 @@ GIC_joint_algorithm <- function(C_cond_list, p, W_y_list) {
       
       # efficient zeroing of only the off-diagonal indices
       for (idx in off_diag_indices) {
-        if (dataset_norms[[idx]] < tau_c) {
+        if (dataset_norms[[idx]] <= tau_c) {
           C_thresh[[idx]][] <- 0 # Keeps matrix dimensions/type intact
         }
       }
@@ -743,8 +764,9 @@ GIC_joint_algorithm <- function(C_cond_list, p, W_y_list) {
     }))
     
     # We use the same 0-100% logic
-    tau_p_levels <- quantile(all_p_norms, probs = probs)
-    
+    tau_p_levels <- unique(quantile(all_p_norms, probs = seq(0, 1, by = 0.01)))
+    # keep all is ready
+    if(length(tau_p_levels) > 0 && min(tau_p_levels) > 0) tau_p_levels <- c(0, tau_p_levels)
     
     # 4) Grid Search over Global tau_p
     for (l in seq_along(tau_p_levels)) {
@@ -753,19 +775,20 @@ GIC_joint_algorithm <- function(C_cond_list, p, W_y_list) {
       total_GIC_at_pair <- 0
       
       for (i in 1:n_datasets) {
-        Th_cond <- current_Theta_cond_list[[i]]
-        
+        Th_cond_base <- current_Theta_cond_list[[i]]  # fresh copy for each l
 
+        Th_test <- Th_cond_base  # copy to edit
         
         # Apply tau_p threshold
         for (idx in off_diag_indices) {
-          if (norm(Th_cond[[idx]], "F") < tau_p) {
-            Th_cond[[idx]][] <- 0
+          if (norm(Th_test[[idx]], "F") <= tau_p) {
+            block <- Th_test[[idx]]
+            Th_test[[idx]] <- matrix(0, nrow(block), ncol(block))
           }
         }
         
-        TH_assembled <- assemble_block_matrix_irregular(Th_cond, p)$block_matrix
-        n_edges <- GIC_edge_count(Th_cond, p)
+        TH_assembled <- assemble_block_matrix_irregular(Th_test, p)$block_matrix
+        n_edges <- GIC_edge_count(Th_test, p)
         
         # Evaluate individual GIC and add to sum
         val_GIC <- GIC_evalulation(current_C_full_matrices[[i]], 
@@ -777,7 +800,7 @@ GIC_joint_algorithm <- function(C_cond_list, p, W_y_list) {
       }
       
       # 5) Track global minimum
-      if (total_GIC_at_pair < lowest_total_GIC) {
+      if (!is.na(total_GIC_at_pair) && total_GIC_at_pair < lowest_total_GIC) {
         lowest_total_GIC <- total_GIC_at_pair
         best_tau_c <- tau_c
         best_tau_p <- tau_p
@@ -798,8 +821,8 @@ GIC_joint_algorithm <- function(C_cond_list, p, W_y_list) {
     # 6a) Apply best tau_c
     C_final <- C_cond_list[[i]]
     dataset_norms <- C_norms_list[[i]]
-    for (idx in seq_along(C_final)) {
-      if (dataset_norms[[idx]] < best_tau_c) C_final[[idx]][] <- 0
+    for (idx in off_diag_indices) {
+      if (dataset_norms[[idx]] <= best_tau_c) C_final[[idx]][] <- 0
     }
     
     # 6b) Invert
@@ -865,14 +888,14 @@ GIC_joint_tau_c_local_tau_p_algorithm <- function(C_cond_list, p, W_y_list) {
   })
   
   
-  probs <- seq(0, 1, by = 0.01)
+
   
   # 1) Generate Global Quantile Thresholds for tau_c
   all_c_norms <- unlist(lapply(C_cond_list, function(dataset) {
     sapply(off_diag_indices, function(idx) norm(dataset[[idx]], "F"))
   }))
-  tau_c_levels <- quantile(all_c_norms, probs = probs)
-  
+  tau_c_levels <- unique(quantile(all_c_norms, probs = seq(0, 1, by = 0.01)))
+  if(length(tau_c_levels) > 0 && min(tau_c_levels) > 0) tau_c_levels <- c(0, tau_c_levels)
   
   # prep
   best_tau_c <- NA
@@ -883,7 +906,11 @@ GIC_joint_tau_c_local_tau_p_algorithm <- function(C_cond_list, p, W_y_list) {
   for (k in seq_along(tau_c_levels)) {
     tau_c <- tau_c_levels[k]
     
-    print(paste0('tau_c method: ', k, ' out of ', length(all_tau_c_candidates)))
+    if(k %% 20 == 0){
+      print(paste0('hybrid method: ', k, ' out of ', length(tau_c_levels)))
+    }
+    
+    
     
     current_GIC_sum <- 0
     temp_tau_p_vec <- rep(NA, n_datasets)
@@ -894,7 +921,7 @@ GIC_joint_tau_c_local_tau_p_algorithm <- function(C_cond_list, p, W_y_list) {
       dataset_norms <- C_norms_list[[i]]
       
       for (idx in off_diag_indices) {
-        if (dataset_norms[[idx]] < tau_c) C_thresh[[idx]][] <- 0
+        if (dataset_norms[[idx]] <= tau_c) C_thresh[[idx]][] <- 0
       }
       
       res <- assemble_block_matrix_irregular(C_thresh, p)
@@ -904,7 +931,8 @@ GIC_joint_tau_c_local_tau_p_algorithm <- function(C_cond_list, p, W_y_list) {
       # 3) Local Search: Find best tau_p for this specific dataset 'i'
       # create quantiles for each y_c_query 
       p_norms <- sapply(off_diag_indices, function(idx) norm(Theta_cond[[idx]], "F"))
-      tau_p_levels <- quantile(p_norms, probs = probs)
+      tau_p_levels <- unique(quantile(p_norms, probs = seq(0, 1, by = 0.01)))
+      if(length(tau_p_levels) > 0 && min(tau_p_levels) > 0) tau_p_levels <- c(0, tau_p_levels)
       
       best_local_GIC <- Inf
       best_local_tau_p <- NA
@@ -912,16 +940,19 @@ GIC_joint_tau_c_local_tau_p_algorithm <- function(C_cond_list, p, W_y_list) {
       for (tau_p in tau_p_levels) {
         
         # Temporary thresholding for GIC eval
-        Th_cond_test <- Theta_cond
+        Th_test <- Theta_cond
         for (idx in off_diag_indices) {
-          if (norm(Th_cond_test[[idx]], "F") <= tau_p) Th_cond_test[[idx]][] <- 0
+          if (norm(Th_test[[idx]], "F") <= tau_p){
+            m_dim <- dim(Th_test[[idx]])
+            Th_test[[idx]] <- matrix(0, m_dim[1], m_dim[2])
+          }
         }
         
-        TH_assembled <- assemble_block_matrix_irregular(Theta_cond_temp, p)$block_matrix
-        n_edges <- GIC_edge_count(Theta_cond_temp, p)
+        TH_assembled <- assemble_block_matrix_irregular(Th_test, p)$block_matrix
+        n_edges <- GIC_edge_count(Th_test, p)
         val_GIC <- GIC_evalulation(res$block_matrix, TH_assembled, W_y_list[[i]], n_edges)
         
-        if (val_GIC < best_local_GIC) {
+        if (!is.na(val_GIC) && val_GIC < best_local_GIC) {
           best_local_GIC <- val_GIC
           best_local_tau_p <- tau_p
         }
@@ -933,7 +964,7 @@ GIC_joint_tau_c_local_tau_p_algorithm <- function(C_cond_list, p, W_y_list) {
     }
     
     # 4) If this global tau_c is the best so far, save it and the corresponding tau_p vector
-    if (current_GIC_sum < lowest_total_GIC) {
+    if (!is.na(current_GIC_sum) && current_GIC_sum < lowest_total_GIC) {
       lowest_total_GIC <- current_GIC_sum
       best_tau_c <- tau_c
       best_tau_p_vec <- temp_tau_p_vec
@@ -947,8 +978,8 @@ GIC_joint_tau_c_local_tau_p_algorithm <- function(C_cond_list, p, W_y_list) {
   for (i in 1:n_datasets) {
     C_final <- C_cond_list[[i]]
     dataset_norms <- C_norms_list[[i]]
-    for (idx in off_diagonal_indices) {
-      if (dataset_norms[[idx]] < best_tau_c) C_final[[idx]][] <- 0
+    for (idx in off_diag_indices) {
+      if (dataset_norms[[idx]] <= best_tau_c) C_final[[idx]][] <- 0
     }
     
     res_f <- assemble_block_matrix_irregular(C_final, p)
