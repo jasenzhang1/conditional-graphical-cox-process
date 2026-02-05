@@ -30,49 +30,45 @@ adj_type_params=(
   #"block_banded_v2 0 1 0.4 0.8 2"
   #"block_banded_c0 0.5 0.5 2"
   
-  #"hub_block_v2 0 1 4 4 3 0.1 2 0.1 1.5"
+  "hub_block_v2 0 1 4 4 3 0.1 1.5 0.1 1"
   #"hub_block_c2 0 1 4 2 2 0.7 0.7"
   #"hub_block_c0 0.5 4 2 2 0.7 0.7"
   #"hub_block_j2 0 1 4 0.5 2 2 0.7 0.7"
   
   #"complete_block_c0 0.5 4 2 2 0.7 0.7"
   #"complete_block_c2 0 1 4 2 2 0.7 0.7"
-  "complete_block_v2 0 1 4 4 3 0.1 3.5 0.1 2.7"
+  #"complete_block_v2 0 1 4 4 3 0.1 3.5 0.1 2.7"
   #"complete_block_j2 0 1 4 0.5 2 2 0.7 0.7"
   
-  "flexible_block_banded_v2 0 1 4 4 3 0.1 2.2 0.1 1.7"
+  #"flexible_block_banded_v2 0 1 4 4 3 0.1 2.2 0.1 1.7"
   #"flexible_block_banded_c2 0 1 4 2 2 0.7 0.7"
   #"flexible_block_banded_c0 0.5 4 2 2 0.7 0.7"  
   #"flexible_block_banded_j2 0 1 4 0.5 2 2 0.7 0.7"
 )
 
 
-n_large=20000
-ns=(100 250 500 1000 2500 5000 10000 20000)
+n_large=5000
+ns=(100 250 500 1000 2500 5000)
+
 n_group=10
 groups=$(( n_large / n_group ))
+
 method="CPGM"
 model_type="simu"  # simu or mice
 max_jobs=60
 min_events=10
 max_events=5000
+
+p=12
+d=2
 n_query=12
 beta_0=4.7
 beta_truth="T"
 X_truth="T"
 eigen_setting="trig_and_joint" #only_joint, trig_and_joint
-global_thresh_method="neither" #both, joint, tau_c, neither   both = do joint and tau_c
+global_thresh_method="both" #both, joint, tau_c, neither   both = do joint and tau_c
 
-# function wait_for_slot {
-#     # Wait until the number of background jobs is strictly less than max_jobs
-#     while true; do
-#         running=$(jobs -rp | wc -l)
-#         if (( running < max_jobs )); then
-#             break
-#         fi
-#         sleep 0.5
-#     done
-# }
+
 
 function wait_for_slot {
     # 1. Use pgrep to find processes named exactly "R" owned by the current user
@@ -136,7 +132,7 @@ for entry in "${adj_type_params[@]}"; do
         step1_start=$(date +%s)
       
         # temp_data/simu_data/part0...
-        Rscript script_generate_finite_basis_data_part0.R "$n_large" "$n_query" "$beta_0" "$adj_type" "${adj_params[@]}" >> "$outfile" 2>&1
+        Rscript script_generate_finite_basis_data_part0.R "$p" "$d" "$n_large" "$n_query" "$beta_0" "$adj_type" "${adj_params[@]}" >> "$outfile" 2>&1
         
         for group_idx in $(seq 1 "$groups"); do
             print_bar "$group_idx" "$groups"   # ← live bar on screen
