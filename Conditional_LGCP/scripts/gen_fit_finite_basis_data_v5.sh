@@ -30,7 +30,7 @@ adj_type_params=(
   #"block_banded_v2 0 1 0.4 0.8 2"
   #"block_banded_c0 0.5 0.5 2"
   
-  "hub_block_v2 0 1 4 4 3 0.1 1 0.1 1"
+  "hub_block_v2 0 1 4 4 3 0.1 2 0.1 1.5"
   #"hub_block_c2 0 1 4 2 2 0.7 0.7"
   #"hub_block_c0 0.5 4 2 2 0.7 0.7"
   #"hub_block_j2 0 1 4 0.5 2 2 0.7 0.7"
@@ -40,15 +40,15 @@ adj_type_params=(
   #"complete_block_v2 0 1 4 2 2 0.5 0.9 0.5 0.9"
   #"complete_block_j2 0 1 4 0.5 2 2 0.7 0.7"
   
-  #"flexible_block_banded_v2 0 1 4 2 2 0.5 0.9 0.5 0.9"
+  #"flexible_block_banded_v2 0 1 4 4 3 0.1 1 0.1 1"
   #"flexible_block_banded_c2 0 1 4 2 2 0.7 0.7"
   #"flexible_block_banded_c0 0.5 4 2 2 0.7 0.7"  
   #"flexible_block_banded_j2 0 1 4 0.5 2 2 0.7 0.7"
 )
 
 
-n_large=10000
-ns=(100 250 500 1000 2500 5000 10000)
+n_large=20000
+ns=(100 250 500 1000 2500 5000 10000 20000)
 n_group=10
 groups=$(( n_large / n_group ))
 method="CPGM"
@@ -334,7 +334,24 @@ for entry in "${adj_type_params[@]}"; do
             
             
         done
-      
+        
+        wait
+        
+        # ----------------
+        # Last step - visualize results
+        # ----------------
+        
+        echo "" | tee -a "$outfile"
+        echo "===================================================" >> "$outfile"
+        echo "" | tee -a "$outfile"
+        echo "[STEP 3] Graphing results... " >> "$outfile"
+        echo "" | tee -a "$outfile"
+        
+        wait_for_slot
+    
+        # temp_data/simu/step_2_v5_rho_i...
+        Rscript script_unpack_finite_basis_results.R "$n_large" "${ns[*]}" "$method" "$X_truth" "$beta_truth" "$eigen_setting" "$adj_type" "${adj_params[@]}" >> "$outfile" 2>&1
+        
         wait
         
         # ============================================================
@@ -350,8 +367,13 @@ for entry in "${adj_type_params[@]}"; do
         
         echo "Pipeline finished at: $(date)" >> "$outfile"
         echo "Total runtime: ${runtime} seconds (~$((runtime/60)) minutes)." >> "$outfile"
+      
+
         
     ) &
+    
+
+    
 done
 
 wait
