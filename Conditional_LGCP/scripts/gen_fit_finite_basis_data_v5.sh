@@ -30,17 +30,17 @@ adj_type_params=(
   #"block_banded_v2 0 1 0.4 0.8 2"
   #"block_banded_c0 0.5 0.5 2"
   
-  "hub_block_v2 0 1 4 4 3 0.1 2 0.1 1.5"
+  #"hub_block_v2 0 1 4 4 3 0.1 2 0.1 1.5"
   #"hub_block_c2 0 1 4 2 2 0.7 0.7"
   #"hub_block_c0 0.5 4 2 2 0.7 0.7"
   #"hub_block_j2 0 1 4 0.5 2 2 0.7 0.7"
   
   #"complete_block_c0 0.5 4 2 2 0.7 0.7"
   #"complete_block_c2 0 1 4 2 2 0.7 0.7"
-  #"complete_block_v2 0 1 4 2 2 0.5 0.9 0.5 0.9"
+  "complete_block_v2 0 1 4 4 3 0.1 3.5 0.1 2.7"
   #"complete_block_j2 0 1 4 0.5 2 2 0.7 0.7"
   
-  #"flexible_block_banded_v2 0 1 4 4 3 0.1 1 0.1 1"
+  "flexible_block_banded_v2 0 1 4 4 3 0.1 2.2 0.1 1.7"
   #"flexible_block_banded_c2 0 1 4 2 2 0.7 0.7"
   #"flexible_block_banded_c0 0.5 4 2 2 0.7 0.7"  
   #"flexible_block_banded_j2 0 1 4 0.5 2 2 0.7 0.7"
@@ -56,7 +56,7 @@ model_type="simu"  # simu or mice
 max_jobs=60
 min_events=10
 max_events=5000
-n_query=4
+n_query=12
 beta_0=4.7
 beta_truth="T"
 X_truth="T"

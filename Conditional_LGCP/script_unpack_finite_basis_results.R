@@ -2,13 +2,13 @@
 
 # 1) packages and functions 
 
-library(grid)
-library(gridExtra)
-library(dplyr)
-library(patchwork)
-library(ggplot2)
-library(tidyr)
-library(knitr)
+# library(grid)
+# library(gridExtra)
+# library(dplyr)
+# library(patchwork)
+# library(ggplot2)
+# library(tidyr)
+# library(knitr)
 
 source('functions/00_function_wrapper.R')
 source('functions/28_Simulation_Visualization.R')
