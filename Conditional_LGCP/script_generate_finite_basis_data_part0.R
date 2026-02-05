@@ -7,17 +7,20 @@ omp_set_num_threads(1)    # limit OpenMP
 
 args <- commandArgs(trailingOnly = TRUE)
 
-n_large <- as.numeric(args[1])
-n_query <- as.numeric(args[2])
-beta_0 <- as.numeric(args[3])
-adj_type <- args[4]
-adj_params <- as.numeric(args[5:length(args)])
+p        <- as.numeric(args[1])
+d        <- as.numeric(args[2])
+n_large  <- as.numeric(args[3])
+n_query  <- as.numeric(args[4])
+beta_0   <- as.numeric(args[5])
+adj_type <- args[6]
+adj_params <- as.numeric(args[7:length(args)])
 
 
 source('functions/00_function_wrapper.R')
 source('functions/20_simulation_function_wrapper.R')
 
-
+# p <- 12
+# d <- 2
 # n_large <- 100
 # adj_type <- 'block_banded_v2'
 # adj_params <- c(0, 1, 0.4, 0.8, 2)
@@ -25,8 +28,7 @@ source('functions/20_simulation_function_wrapper.R')
 # adj_params <- c(0.5, 0.5, 2)
 
 # 1) intermediate parameters
-d <- 2
-p <- 12
+
 m <- 30
 m_est <- 30
 T_max <- 1
