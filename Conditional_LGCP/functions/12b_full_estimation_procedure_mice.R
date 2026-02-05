@@ -1594,6 +1594,9 @@ full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, sett
   step_11_KL_yes_thresh  <- step_11_HS_norms_from_KL_GIC(step_11_GIC_bundle)
   step_11b_KL_yes_thresh <- step_11b_HS_norms_from_KL_GIC(step_11_GIC_bundle)
   
+  # step_11x = tau_c and tau_p
+  step_11x <- step_11x_HS_norms_from_KL_GIC(step_11_GIC_bundle)
+  
   # 4) step 9: Construct mxm object from KL correlation + get precision operator
   
   # step_9 <- step_9_C_cond_from_KL_cor(step_4, step_5b)
@@ -1643,6 +1646,7 @@ full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, sett
                              step_4 = step_4, step_5 = step_5, step_5b = step_5b, step_5c = step_5c, 
                              #step_9 = step_9, step_9b = step_9b, step_10 = step_10, 
                              step_11 = step_11, step_11b = step_11b, 
+                             step_11x = step_11x,
                              step_12 = step_12, step_12b = step_12b)
   } else{
     step_12b <- step_12b_adj_mat(step_11)
@@ -1651,6 +1655,7 @@ full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, sett
                              step_4 = step_4, step_5 = step_5, step_5b = step_5b, step_5c = step_5c, 
                              #step_9 = step_9, step_9b = step_9b, step_10 = step_10, 
                              step_11 = step_11, step_11b = step_11b, 
+                             step_11x = step_11x,
                              step_12b = step_12b)
   }
   
@@ -1748,12 +1753,15 @@ full_conditional_estimation_with_no_truth_part2c <- function(temp_file_dir, sett
       suffix <- sub("^KL_cor_", "", est_name)  #est_eig1
       new_P_HS_name <- paste0('w_mat_KL_GIC_global_', suffix)
       new_C_HS_name <- paste0('C_HS_KL_GIC_global_', suffix)
+    
+      new_tau_c_name <- paste0('tau_c_global_', suffix)
+      new_tau_p_name <- paste0('tau_p_global_', suffix)
       
       for(i in 1:cont_inds){
         results[[i]]$step_11[[new_P_HS_name]] <- tau_joint$w_mat
         results[[i]]$step_11[[new_C_HS_name]] <- tau_joint$C_HS
-        results[[i]][['step_11c']][['global_tau_c']] <- tau_joint$joint_tau_c
-        results[[i]][['step_11c']][['global_tau_p']] <- tau_joint$joint_tau_p
+        results[[i]][['step_11x']][[new_tau_c_name]] <- tau_joint$joint_tau_c
+        results[[i]][['step_11x']][[new_tau_p_name]] <- tau_joint$joint_tau_p
       }
     }
     
@@ -1767,11 +1775,14 @@ full_conditional_estimation_with_no_truth_part2c <- function(temp_file_dir, sett
       new_P_HS_name <- paste0('w_mat_KL_GIC_outer_', suffix)
       new_C_HS_name <- paste0('C_HS_KL_GIC_outer_', suffix)
       
+      new_tau_c_name <- paste0('tau_c_hybrid_', suffix)
+      new_tau_p_name <- paste0('tau_p_hybrid_', suffix)
+      
       for(i in 1:cont_inds){
         results[[i]]$step_11[[new_P_HS_name]] <- tau_joint$w_mat
         results[[i]]$step_11[[new_C_HS_name]] <- tau_joint$C_HS
-        results[[i]][['step_11c']][['outer_tau_c']] <- tau_joint$joint_tau_c
-        results[[i]][['step_11c']][['outer_tau_p']] <- tau_joint$joint_tau_p
+        results[[i]][['step_11x']][[new_tau_c_name]] <- tau_joint$joint_tau_c
+        results[[i]][['step_11x']][[new_tau_p_name]] <- tau_joint$joint_tau_p
       }
     }
   }
