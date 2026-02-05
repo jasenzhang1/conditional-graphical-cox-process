@@ -40,7 +40,7 @@ time_grid_both <- sort(union(time_grid, time_grid_est))
 m_both <- length(time_grid_both)
 
 
-y_c_query <- make_time_grid(n_query) %>% matrix(nrow = n_query)
+y_c_query <- make_y_c_grid(n_query) %>% matrix(nrow = n_query)
 
 
 

@@ -61,7 +61,7 @@ max_events=5000
 
 p=12
 d=2
-n_query=12
+n_query=6
 beta_0=4.7
 beta_truth="T"
 X_truth="T"
