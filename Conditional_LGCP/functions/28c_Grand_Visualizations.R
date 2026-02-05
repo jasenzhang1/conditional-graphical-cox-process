@@ -443,9 +443,16 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth,
     graphs[['g_103']] <- result_heatmap_nonblock_prep(step_10, 'P_cond', data_format = 'list', time_grid_est = time_grid_est, rm_diag = T, zmid = 0)
   } 
   
+  
+  
   # P_HS (w_mat) for all pxp blocks
+  # 110 = don't remove diagonals
+  # 111 = remove diagonals
+  
   if('111' %in% graph_ids){
+    graphs[['g_110']] <- result_heatmap_nonblock_prep(step_11, 'w_mat', data_format = 'regular', time_grid_est = time_grid_est, rm_diag = F, zmid = 0)
     graphs[['g_111']] <- result_heatmap_nonblock_prep(step_11, 'w_mat', data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, zmid = 0)
+    
     
     step_11_names <- names(step_11[[1]])
     kept_names  <- c('w_mat_truth', 'w_mat_KL_est_eig1', 'w_mat_KL_GIC_est_eig1')
@@ -462,12 +469,13 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth,
       return(x)
     })
     
+    graphs[['g_110b']] <- result_heatmap_nonblock_prep(step_11_v2, NULL, data_format = 'regular', time_grid_est = time_grid_est, rm_diag = F, zmid = 0)
     graphs[['g_111b']] <- result_heatmap_nonblock_prep(step_11_v2, NULL, data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, zmid = 0)
     
-    kept_weeks <- 2:6
-    step_11_v3 <- step_11_v2[kept_weeks]
-    
-    graphs[['g_111c']] <- result_heatmap_nonblock_prep(step_11_v3, NULL, data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, zmid = 0)
+    # kept_weeks <- 2:6
+    # step_11_v3 <- step_11_v2[kept_weeks]
+    # 
+    # graphs[['g_111c']] <- result_heatmap_nonblock_prep(step_11_v3, NULL, data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, zmid = 0)
   }  
   
   # P_HS (w_mat) for all pxp blocks - delete est and X_truth
