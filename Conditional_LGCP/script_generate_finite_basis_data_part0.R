@@ -1,5 +1,7 @@
 
 library(RhpcBLASctl)
+source('functions/00_function_wrapper.R')
+source('functions/20_simulation_function_wrapper.R')
 
 # limit threads in BLAS/LAPACK
 blas_set_num_threads(1)   # limit BLAS
@@ -16,8 +18,7 @@ adj_type <- args[6]
 adj_params <- as.numeric(args[7:length(args)])
 
 
-source('functions/00_function_wrapper.R')
-source('functions/20_simulation_function_wrapper.R')
+
 
 # p <- 12
 # d <- 2
