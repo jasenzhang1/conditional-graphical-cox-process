@@ -814,7 +814,8 @@ convergence_metrics_part2 <- function(merged, k, i, j){
         data.frame(
           sublist    = sub_name,
           process  = seq_along(eig_list),
-          value  = sapply(eig_list, `[[`, n_comp),
+          #value  = sapply(eig_list, `[[`, n_comp),
+          value = sapply(eig_list, function(x) if(length(x) >= n_comp) x[n_comp] else NA),
           eval_id = n_comp,
           row.names  = NULL
         )
@@ -993,8 +994,11 @@ visualize_metrics_finite_basis <- function(truth_file_name, results_folder, i, j
   
   # 0) find all results file names
   
-  estimate_files <- list.files(results_folder, full.names = TRUE)
-  ns <- get_ns(results_folder)
+  estimate_files <- list.files(results_folder, 
+                               pattern = "\\.RData$", 
+                               full.names = TRUE)
+  
+  ns <- sort(get_ns(results_folder)) 
   
   results_df <- data.frame()
   evals_df <- data.frame()
@@ -1064,12 +1068,26 @@ visualize_metrics_finite_basis <- function(truth_file_name, results_folder, i, j
     
   }
   
-  # 4) pad n and vector_name (est, X_truth, beta_truth) as factors
+  # 4) factorize n
   results_df$n <- factor(results_df$n)
   evals_df$n <- factor(evals_df$n)
+  
+  # 4b) remove truth, beta_truth, X_truth and factorize vector_name
+  results_df <- results_df %>% 
+    filter(!grepl("truth|eig2|eig3", vector_name)) %>% 
+    mutate(
+      # Rename specific estimate names
+      vector_name = as.character(vector_name), # Convert from factor to modify
+      vector_name = case_when(
+        vector_name == "KL_est_eig1"     ~ "est",
+        vector_name == "KL_GIC_est_eig1" ~ "GIC",
+        TRUE                             ~ vector_name # Keep everything else as is
+      )
+    )
+  
   results_df$vector_name <- factor(results_df$vector_name)
   
-  
+  # 4c) factorize the metrics 
   metric_hierarchy <-  c('rho_i_dist',
                          'rho_ii_dist',
                          'g_ij_dist',
@@ -1080,6 +1098,9 @@ visualize_metrics_finite_basis <- function(truth_file_name, results_folder, i, j
                          'sens', 'spec',
                          'auc', 'accuracy')
   results_df$point_metric <- factor(results_df$point_metric, levels = metric_hierarchy)
+  
+
+  
   
   # ----------------------------------------------------------------------------
   # 5) point estimates graph
@@ -1093,43 +1114,43 @@ visualize_metrics_finite_basis <- function(truth_file_name, results_folder, i, j
   
   # create the graph of point estimates
   
-  shape_vals <- c(0, 1, 2, 3, 4, 5, 6, 7, 8)
+
   
   g_point_estimates <- ggplot(
     results_df,
     aes(
       x = y_c_query,
       y = value,
-      group = interaction(n, vector_name),
+      # Updated group to include linetype for consistency
+      group = interaction(n, vector_name, linetype = vector_name), 
       color = n,
-      shape = vector_name
+      linetype = vector_name  # Added linetype mapping here
     )
   ) +
     geom_line() +
     geom_point() +
-    scale_shape_manual(values = shape_vals) +
     facet_wrap(~ point_metric, scales = "free_y") +
     theme_bw()
   
   
-  # 5b) simpler graph with just est
+  # 5b) simpler graph with just est + KL_est_eig1 + 
   
-  results_df2 <- results_df %>% filter(vector_name %in% c('est', 'KL_est', 'truth', 'KL_truth'))
-  g_point_estimates2 <- ggplot(
-    results_df2,
-    aes(
-      x = y_c_query,
-      y = value,
-      group = interaction(n, vector_name),
-      color = n,
-      shape = vector_name
-    )
-  ) +
-    geom_line() +
-    geom_point() +
-    scale_shape_manual(values = shape_vals) +
-    facet_wrap(~ point_metric, scales = "free_y") +
-    theme_bw()
+  # results_df2 <- results_df %>% filter(vector_name %in% c('est', 'KL_est', 'truth', 'KL_truth'))
+  # g_point_estimates2 <- ggplot(
+  #   results_df2,
+  #   aes(
+  #     x = y_c_query,
+  #     y = value,
+  #     group = interaction(n, vector_name),
+  #     color = n,
+  #     shape = vector_name
+  #   )
+  # ) +
+  #   geom_line() +
+  #   geom_point() +
+  #   scale_shape_manual(values = shape_vals) +
+  #   facet_wrap(~ point_metric, scales = "free_y") +
+  #   theme_bw()
   
   
   # ----------------------------------------------------------------------------
@@ -1165,15 +1186,72 @@ visualize_metrics_finite_basis <- function(truth_file_name, results_folder, i, j
     facet_grid(eval_id ~ y_c_query, scales = "free_y") +  # rows = eval_id, columns = y_c_query
     theme_bw()
   
+  # ----------------------------------------------------------------------------
+  # 6) point estimates table
+  
+  
+  ### 1. Pre-processing the data
+  # Ensure y_c_query is sorted numerically for the columns
+  # also rename 'KL_est_eig1' to just 'est', and rename 'KL_GIC_est_eig1' to 'GIC'
+  results_df_clean <- results_df %>%
+    mutate(
+      y_c_query = as.numeric(as.character(y_c_query))
+    ) %>% 
+    
+    arrange(point_metric, n, vector_name, y_c_query)
+  
+  ### 2. Define a function to create a "pretty" grouped table per metric
+  create_pretty_table <- function(metric_name, data) {
+    
+    table_data <- data %>%
+      dplyr::filter(point_metric == metric_name) %>%
+      dplyr::select(n, vector_name, y_c_query, value) %>%
+      # Round the values before pivoting
+      dplyr::mutate(value = round(value, 3)) %>% 
+      tidyr::pivot_wider(names_from = y_c_query, values_from = value) %>%
+      dplyr::arrange(n, vector_name) %>%
+      dplyr::mutate(n = as.character(n)) %>%
+      dplyr::mutate(n = ifelse(duplicated(n), "", n)) %>%
+      dplyr::rename("Sample Size (n)" = n, "Estimate" = vector_name)
+    
+    knitr::kable(
+      table_data, 
+      digits = 3,  # Rounds to thousandths
+      format = "simple",
+      caption = paste("Metric Analysis:", metric_name)
+    )
+  }
+  
+  ### 3. Generate and display tables for every unique statistic
+  unique_metrics <- levels(results_df_clean$point_metric)
+  
+  # Loop through and store each table
+  
+  table_list <- list()
+  for(met in unique_metrics) {
+    
+    # Filter data for this specific metric
+    metric_subset <- results_df_clean %>% 
+      dplyr::filter(point_metric == met)
+    
+    if(nrow(metric_subset) > 0) {
+      # Store the table in the list using the metric name as the key
+      table_list[[met]] <- create_pretty_table(met, results_df_clean)
+    }
+  }
   
   # Display it
-  return(list(point_metrics_graph = g_point_estimates,
-              point_metrics_graph_2 = g_point_estimates2,   # only estimates shown
-              eval_metrics_graph = g_eval,
-              metric_table = results_df))
+  return(list(point_metrics_graph = g_point_estimates,       # metrics displayed in graphical fashion
+              metric_tables = table_list,                    # metrics displayed in tabular fashion
+              #point_metrics_graph_2 = g_point_estimates2,   # only estimates shown
+              eval_metrics_graph = g_eval,                   # eigenvalue graphs
+              metric_df = results_df)                        # raw dataframe of metrics
+              
+         )
   
   
 }
+
 
 
 visualize_truths_from_est <- function(folder_name, n, graph_ids, cl, time_grid, time_grid_est, time_grid_both, p, y_c_id = NULL){
