@@ -210,7 +210,7 @@ GIC_threshold_block_matrix <- function(M, thresh) {
     # Only threshold if i != j
     if (i != j) {
       hs <- hilbert_schmidt_norm(block)
-      if (hs thresh) {
+      if (hs <= thresh) {
         return(matrix(0, nrow(block), ncol(block)))
       }
     }
