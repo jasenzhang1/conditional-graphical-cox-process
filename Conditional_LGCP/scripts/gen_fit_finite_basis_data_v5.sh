@@ -47,8 +47,8 @@ adj_type_params=(
 )
 
 
-n_large=5000
-ns=(100 250 500 1000 2500 5000)
+n_large=100
+ns=(100)
 
 n_group=10
 groups=$(( n_large / n_group ))
@@ -61,7 +61,7 @@ max_events=5000
 
 p=12
 d=2
-n_query=6
+n_query=4
 beta_0=4.7
 beta_truth="T"
 X_truth="T"
