@@ -30,17 +30,18 @@ adj_type_params=(
   #"block_banded_v2 0 1 0.4 0.8 2"
   #"block_banded_c0 0.5 0.5 2"
   
-  "hub_block_v2 0 1 4 4 3 0.1 1.5 0.1 1"
+  #"hub_block_v2 0 1 4 4 3 0.1 1.5 0.1 1"
   #"hub_block_c2 0 1 4 2 2 0.7 0.7"
   #"hub_block_c0 0.5 4 2 2 0.7 0.7"
   #"hub_block_j2 0 1 4 0.5 2 2 0.7 0.7"
   
+  
+  "complete_block_v2 0 1 4 4 3 0.1 1.1 0.1 0.8"         # for complete, c3 < c1/3, c4 < c2/3 [0.1, 1.1] and [0.1, 0.8]
   #"complete_block_c0 0.5 4 2 2 0.7 0.7"
   #"complete_block_c2 0 1 4 2 2 0.7 0.7"
-  #"complete_block_v2 0 1 4 4 3 0.1 3.5 0.1 2.7"
   #"complete_block_j2 0 1 4 0.5 2 2 0.7 0.7"
   
-  #"flexible_block_banded_v2 0 1 4 4 3 0.1 2.2 0.1 1.7"
+  "flexible_block_banded_v2 0 1 4 4 3 0.1 2.2 0.1 1.7"   # for flexible, a bit more chill [0.1, 2.2] and [0.1, 1.7]
   #"flexible_block_banded_c2 0 1 4 2 2 0.7 0.7"
   #"flexible_block_banded_c0 0.5 4 2 2 0.7 0.7"  
   #"flexible_block_banded_j2 0 1 4 0.5 2 2 0.7 0.7"
