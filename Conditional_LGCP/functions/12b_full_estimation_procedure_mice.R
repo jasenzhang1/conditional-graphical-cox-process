@@ -1595,7 +1595,7 @@ full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, sett
   step_11b_KL_yes_thresh <- step_11b_HS_norms_from_KL_GIC(step_11_GIC_bundle)
   
   # step_11x = tau_c and tau_p
-  steps_11xy <- step_11x_HS_norms_from_KL_GIC(step_11_GIC_bundle)
+  steps_11xy <- step_11xy_HS_norms_from_KL_GIC(step_11_GIC_bundle)
   step_11x <- steps_11xy$step_11x
   step_11y <- steps_11xy$step_11y
   
