@@ -41,7 +41,7 @@ adj_type_params=(
   #"complete_block_c2 0 1 4 2 2 0.7 0.7"
   #"complete_block_j2 0 1 4 0.5 2 2 0.7 0.7"
   
-  "flexible_block_banded_v2 0 1 4 4 3 0.1 2.2 0.1 1.7"   # for flexible, a bit more chill [0.1, 2.2] and [0.1, 1.7]
+  "flexible_block_banded_v2 0 1 4 4 3 0.1 1.6 0.1 1.2"   # for flexible, a bit more chill [0.1, 1.6] and [0.1, 1.2]
   #"flexible_block_banded_c2 0 1 4 2 2 0.7 0.7"
   #"flexible_block_banded_c0 0.5 4 2 2 0.7 0.7"  
   #"flexible_block_banded_j2 0 1 4 0.5 2 2 0.7 0.7"
