@@ -1692,7 +1692,7 @@ step_11b_HS_norms_from_KL_GIC <- function(step_11_GIC_bundle){
   
 }
 
-step_11x_HS_norms_from_KL_GIC <- function(step_11_GIC_bundle){
+step_11xy_HS_norms_from_KL_GIC <- function(step_11_GIC_bundle){
   
   
   # ----------------------------------------------------------------------------  
@@ -1717,6 +1717,7 @@ step_11x_HS_norms_from_KL_GIC <- function(step_11_GIC_bundle){
   # ----------------------------------------------------------------------------
   
   step_11x <- list()
+  step_11y <- list()
   
   # 1) grab names
   
@@ -1733,11 +1734,11 @@ step_11x_HS_norms_from_KL_GIC <- function(step_11_GIC_bundle){
     name_i_tau_p <- paste0('tau_p_local_', core_names[i])
     
     step_11x[[name_i_tau_c]] <- step_11_GIC_bundle[[input_names[i]]][['tau_c']]
-    step_11x[[name_i_tau_p]] <- step_11_GIC_bundle[[input_names[i]]][['tau_p']]
+    step_11y[[name_i_tau_p]] <- step_11_GIC_bundle[[input_names[i]]][['tau_p']]
     
   }
   
-  return(step_11x)
+  return(list(step_11x, step_11y))
   
   
 }
