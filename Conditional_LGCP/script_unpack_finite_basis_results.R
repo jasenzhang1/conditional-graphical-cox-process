@@ -66,6 +66,8 @@ if (!dir.exists(results_folder_2)) {
 # ------------------------------------------------------------------------------
 # 28e - visualize results over y_c
 
+print('Plotting 28e Figures')
+
 for(n in ns){
   
 
@@ -209,6 +211,8 @@ if(make_gif){
 
 # ------------------------------------------------------------------------------
 # 4) convergence of intermediate estimators (28b)
+
+print('Plotting Convergences')
 
 i <- 1
 j <- 2
