@@ -1763,8 +1763,8 @@ full_conditional_estimation_with_no_truth_part2c <- function(temp_file_dir, sett
       for(i in 1:cont_inds){
         results[[i]]$step_11[[new_P_HS_name]]   <- tau_joint$w_mat[[i]]
         results[[i]]$step_11b[[new_C_HS_name]]  <- tau_joint$C_HS[[i]]
-        results[[i]][['step_11x']][[new_tau_c_name]] <- tau_joint$joint_tau_c[[i]]
-        results[[i]][['step_11y']][[new_tau_p_name]] <- tau_joint$joint_tau_p[[i]]
+        results[[i]]$step_11x[[new_tau_c_name]] <- tau_joint$joint_tau_c
+        results[[i]]$step_11y[[new_tau_p_name]] <- tau_joint$joint_tau_p
       }  
       
     }
@@ -1772,7 +1772,7 @@ full_conditional_estimation_with_no_truth_part2c <- function(temp_file_dir, sett
     # global estimation of tau_c but tau_p individual for each timepoint
     if(global_thresh_method %in% c('both', 'tau_c')){
       
-      tau_joint <- GIC_joint_tau_c_local_tau_p_algorithm(KL_cor_list, p, W_y_list)  # STILL WORKING ON IT
+      tau_hybrid <- GIC_joint_tau_c_local_tau_p_algorithm(KL_cor_list, p, W_y_list)
       
       # store 
       suffix <- sub("^KL_cor_", "", est_name)  #est_eig1
@@ -1783,10 +1783,10 @@ full_conditional_estimation_with_no_truth_part2c <- function(temp_file_dir, sett
       new_tau_p_name <- paste0('tau_p_hybrid_', suffix)
       
       for(i in 1:cont_inds){
-        results[[i]]$step_11[[new_P_HS_name]] <- tau_joint$w_mat[[i]]
-        results[[i]]$step_11b[[new_C_HS_name]] <- tau_joint$C_HS[[i]]
-        results[[i]][['step_11x']][[new_tau_c_name]] <- tau_joint$joint_tau_c[[i]]
-        results[[i]][['step_11y']][[new_tau_p_name]] <- tau_joint$joint_tau_p[[i]]
+        results[[i]]$step_11[[new_P_HS_name]] <- tau_hybrid$w_mat[[i]]
+        results[[i]]$step_11b[[new_C_HS_name]] <- tau_hybrid$C_HS[[i]]
+        results[[i]]$step_11x[[new_tau_c_name]] <- tau_hybrid$joint_tau_c
+        results[[i]]$step_11y[[new_tau_p_name]] <- tau_hybrid$tau_p_vector[i]
       }
     }
   }
