@@ -48,11 +48,8 @@ adj_type_params=(
 )
 
 
-#n_large=20000
-#ns=(100 250 500 1000 2500 5000 10000 20000)
-
-n_large=100
-ns=(100)
+n_large=20000
+ns=(100 250 500 1000 2500 5000 10000 20000)
 
 n_group=10
 groups=$(( n_large / n_group ))
