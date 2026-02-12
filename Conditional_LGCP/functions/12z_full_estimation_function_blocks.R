@@ -1711,8 +1711,11 @@ step_11xy_HS_norms_from_KL_GIC <- function(step_11_GIC_bundle){
   # - list of:
   #   - step_11x
   #     - tau_c_local_est
-  #     - tau_p_local_est
   #     - tau_c_local_X_truth etc...
+  #
+  #   - step_11y
+  #     - tau_p_local_est
+  #     - tau_p_local_X_truth etc...
   #
   # ----------------------------------------------------------------------------
   
@@ -1738,7 +1741,8 @@ step_11xy_HS_norms_from_KL_GIC <- function(step_11_GIC_bundle){
     
   }
   
-  return(list(step_11x, step_11y))
+  return(list(step_11x = step_11x, 
+              step_11y = step_11y))
   
   
 }
