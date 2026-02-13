@@ -41,15 +41,17 @@ adj_type_params=(
   #"complete_block_c2 0 1 4 2 2 0.7 0.7"
   #"complete_block_j2 0 1 4 0.5 2 2 0.7 0.7"
   
-  "flexible_block_banded_v2 0 1 4 4 3 0.1 1.6 0.1 1.2"   # for flexible, a bit more chill [0.1, 1.6] and [0.1, 1.2]
+  #"flexible_block_banded_v2 0 1 4 4 3 0.1 1.6 0.1 1.2"   # for flexible, a bit more chill [0.1, 1.6] and [0.1, 1.2]
   #"flexible_block_banded_c2 0 1 4 2 2 0.7 0.7"
   #"flexible_block_banded_c0 0.5 4 2 2 0.7 0.7"  
   #"flexible_block_banded_j2 0 1 4 0.5 2 2 0.7 0.7"
 )
 
+n_large=100
+ns=(100)
 
-n_large=20000
-ns=(100 250 500 1000 2500 5000 10000 20000)
+#n_large=20000
+#ns=(100 250 500 1000 2500 5000 10000 20000)
 
 n_group=10
 groups=$(( n_large / n_group ))
@@ -316,6 +318,15 @@ for entry in "${adj_type_params[@]}"; do
             wait_for_slot 
             
             Rscript script_fit_mice_data_part2c.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$n_query" "$global_thresh_method" >> "$outfile" 2>&1
+            
+            wait_for_slot
+            
+            # ----------------
+            # Part 2d - get step_12 and step_12b, ROC and edge set after all w_mats have been calculated                     
+            # ----------------
+            
+            
+            Rscript script_fit_mice_data_part2d.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$n_query" "$global_thresh_method" >> "$outfile" 2>&1
             
             # ----------------
             # Part 3- when all part 2's are done, do part 3

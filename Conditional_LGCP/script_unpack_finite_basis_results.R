@@ -221,6 +221,7 @@ metrics_summary <- visualize_metrics_finite_basis(truth_file_name, results_folde
 
 # 4b) print table and figure
 
+print('Saving Results')
 
 write.csv(metrics_summary$metric_df, paste0(results_folder_2, "/metrics_summary.csv"), row.names = FALSE)  # the dataframe
 
