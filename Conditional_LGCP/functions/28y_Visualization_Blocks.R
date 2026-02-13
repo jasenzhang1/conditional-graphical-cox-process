@@ -213,7 +213,7 @@ result_heatmap_ij_prep <- function(my_list, entry_name, time_grid_est, i, j, pal
     )
 }
 
-result_heatmap_nonblock_prep <- function(my_list, entry_name, data_format, time_grid_est = NULL, rm_diag = F, palette_ID = 'Blue-Red 2', zmin = NULL, zmid = NULL, zmax = NULL){
+result_heatmap_nonblock_prep <- function(my_list, entry_name, data_format, time_grid_est = NULL, rm_diag = F, palette_ID = 'Blue-Red 2', graph_title = NULL, zmin = NULL, zmid = NULL, zmax = NULL){
   
   # ----------------------------------------------------------------------------
   #
@@ -229,6 +229,7 @@ result_heatmap_nonblock_prep <- function(my_list, entry_name, data_format, time_
   # - time_grid_est    (vector)   do we substitute indices with timestamps? If so, provide it
   # - rm_diag          (boolean)  do we remove the diag term?
   # - palette_ID       (string)
+  # - graph_title      (string)   overall graph title
   # - zmin, zmid, zmax   (values)   do we manually decide on the bordering color values?
   #
   # outputs:
@@ -378,7 +379,8 @@ result_heatmap_nonblock_prep <- function(my_list, entry_name, data_format, time_
       strip.text = element_text(face = "bold"),
       axis.text.x = element_text(angle = 90),
       axis.text.y = element_text()
-    )
+    ) + 
+    ggtitle(graph_title)
   
   return(g)
 }
