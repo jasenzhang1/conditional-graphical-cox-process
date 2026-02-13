@@ -254,7 +254,7 @@ roc_for_raw_w_mat <- function(w_mat, adj_mat) {
   
   # 2) Compute ROC and AUC
   roc_obj   <- roc(labels_factor, scores, quiet = TRUE)
-  auc_value <- auc(roc_obj)   
+  auc_value <- as.numeric(auc(roc_obj))
   
   # 3) Identify ideal threshold using Youden's J
   coords_df <- coords(roc_obj, x = "all", ret = c("threshold", "sensitivity", "specificity"))
