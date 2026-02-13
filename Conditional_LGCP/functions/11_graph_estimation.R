@@ -129,9 +129,84 @@ select_threshold_by_stability <- function(P_conditional, p) {
 
 
 
+roc_for_thresholded_w_mat <- function(w_mat, adj_mat) {
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: for a w_mat that's thresholded already, report ROC metrics
+  #
+  #
+  # inputs:
+  #
+  # - w_mat    (p x p matrix) matrix of 0's and nonzero values
+  # - adj_mat  (p x p matrix) matrix of 0's and 1's with 0's on the diagonal
+  #
+  # ----------------------------------------------------------------------------
+  
+  
+  # 1) Extract upper triangle to avoid double-counting or diagonal bias
+  scores <- w_mat[upper.tri(w_mat, diag = FALSE)]
+  labels <- adj_mat[upper.tri(adj_mat, diag = FALSE)]
+  
+  # 2) Convert to binary predictions (Already zeroed out -> Non-zero is 1)
+  predicted <- ifelse(scores != 0, 1, 0)
+  true      <- as.numeric(as.character(labels))
+  
+  # 3) Tally Confusion Matrix components
+  TP <- sum(predicted == 1 & true == 1)
+  FP <- sum(predicted == 1 & true == 0)
+  TN <- sum(predicted == 0 & true == 0)
+  FN <- sum(predicted == 0 & true == 1)
+  
+  # 4) Calculate Metrics with NA handling 
+  
+  # Accuracy: (TP + TN) / Total
+  accuracy <- (TP + TN) / length(true)
+  
+  # Sensitivity (Recall / TPR): TP / (TP + FN)
+  # NA if truth has no positives (no edges)
+  sensitivity <- if ((TP + FN) > 0) TP / (TP + FN) else NA
+  
+  # Specificity (TNR): TN / (TN + FP)
+  # NA if truth has no negatives (fully connected)
+  specificity <- if ((TN + FP) > 0) TN / (TN + FP) else NA
+  
+  # PPV (Positive Predictive Value / Precision): TP / (TP + FP)
+  # NA if we predicted zero edges
+  ppv <- if ((TP + FP) > 0) TP / (TP + FP) else NA
+  
+  # NPV (Negative Predictive Value): TN / (TN + FN)
+  # NA if we predicted everything is an edge
+  npv <- if ((TN + FN) > 0) TN / (TN + FN) else NA
+  
+  # F1 Score: 2 * (Precision * Recall) / (Precision + Recall)
+  f1 <- if (!is.na(ppv) && !is.na(sensitivity) && (ppv + sensitivity) > 0) {
+    2 * (ppv * sensitivity) / (ppv + sensitivity)
+  } else {
+    NA
+  }
+  
 
+  
+  # Note: AUC is usually not sensible for a single fixed threshold 
+  # but some define it as the area under the single-point 'curve'.
+  # Here we return NA for AUC as the 'ranking' info is lost.
+  
+  return(list(
+    threshold   = NA,
+    accuracy    = accuracy,
+    f1_score    = f1,
+    sensitivity = sensitivity,
+    specificity = specificity,
+    ppv         = ppv,
+    npv         = npv,
+    auc         = NA,
+    roc_df      = NA,
+    counts      = list(TP = TP, FP = FP, TN = TN, FN = FN)
+  ))
+}
 
-roc_with_threshold <- function(w_mat, adj_mat, g_title = NULL) {
+roc_for_raw_w_mat <- function(w_mat, adj_mat) {
   
   # ----------------------------------------------------------------------------
   #
@@ -168,71 +243,72 @@ roc_with_threshold <- function(w_mat, adj_mat, g_title = NULL) {
   # scores: numeric vector of predicted probabilities or scores
   
   # Ensure labels are binary factors
-  labels <- as.factor(labels)
-  if (length(levels(labels)) != 2){
+  labels_factor <- as.factor(labels)
+  if (length(levels(labels_factor)) != 2){
     return(list(
-      threshold = NA,
-      sensitivity = NA,
-      specificity = NA,
-      auc = NA,
-      accuracy = NA,
-      roc_df = NA
-      # plot = p
+      threshold = NA, sensitivity = NA, specificity = NA,
+      ppv = NA, npv = NA, f1_score = NA,
+      auc = NA, accuracy = NA, roc_df = NA, counts = NA
     ))
   }
   
-  # Compute ROC
-  roc_obj <- roc(labels, scores, quiet = TRUE)
+  # 2) Compute ROC and AUC
+  roc_obj   <- roc(labels_factor, scores, quiet = TRUE)
   auc_value <- auc(roc_obj)   
   
-  # Get thresholds, sensitivities, specificities
+  # 3) Identify ideal threshold using Youden's J
   coords_df <- coords(roc_obj, x = "all", ret = c("threshold", "sensitivity", "specificity"))
-  
-  # Compute Youden's J statistic
-  youden <- coords_df$sensitivity + coords_df$specificity - 1
-  best_idx <- which.max(youden)
+  youden    <- coords_df$sensitivity + coords_df$specificity - 1
+  best_idx  <- which.max(youden)
   
   ideal_threshold <- coords_df$threshold[best_idx]
-  ideal_sens <- coords_df$sensitivity[best_idx]
-  ideal_spec <- coords_df$specificity[best_idx]
+  ideal_sens      <- coords_df$sensitivity[best_idx]
+  ideal_spec      <- coords_df$specificity[best_idx]
   
-  # Accuracy 
+  # 4) Calculate binary metrics based on the ideal threshold
   predicted <- ifelse(scores >= ideal_threshold, 1, 0)
-  true <- as.numeric(as.character(labels))  # convert factor to numeric 0/1
-  accuracy <- mean(predicted == true)  
+  true      <- as.numeric(as.character(labels_factor))
   
-  # Create data frame for ggplot
+  TP <- sum(predicted == 1 & true == 1)
+  FP <- sum(predicted == 1 & true == 0)
+  TN <- sum(predicted == 0 & true == 0)
+  FN <- sum(predicted == 0 & true == 1)
+  
+  # Accuracy
+  accuracy <- mean(predicted == true)
+  
+  # PPV (Precision)
+  ppv <- if ((TP + FP) > 0) TP / (TP + FP) else NA
+  
+  # NPV
+  npv <- if ((TN + FN) > 0) TN / (TN + FN) else NA
+  
+  # F1 Score
+  f1 <- if (!is.na(ppv) && !is.na(ideal_sens) && (ppv + ideal_sens) > 0) {
+    2 * (ppv * ideal_sens) / (ppv + ideal_sens)
+  } else {
+    NA
+  }
+  
+  # 5) Create data frame for ggplot
   roc_df <- data.frame(
     FPR = 1 - roc_obj$specificities,
     TPR = roc_obj$sensitivities
   )
-  
   roc_df <- roc_df[order(roc_df$FPR, roc_df$TPR), ]
   
-  # ROC plot
-  # p <- ggplot(roc_df, aes(x = FPR, y = TPR)) +
-  #   geom_step(direction = "vh", color = "blue", size = 1) +
-  #   geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "grey") +
-  #   labs(title = "ROC Curve", x = "False Positive Rate", y = "True Positive Rate") +
-  #   annotate("point", x = 1 - ideal_spec, y = ideal_sens, color = "red", size = 3) +
-  #   annotate("text", x = 1 - ideal_spec, y = ideal_sens, 
-  #            label = paste0("Threshold=", round(ideal_threshold, 3)),
-  #            hjust = -0.1, vjust = -0.5, color = "red") +
-  #   
-  #   annotate("text", x = 0.6, y = 0.2,            # position for AUC label
-  #            label = paste0("AUC = ", round(auc_value, 3)),
-  #            color = "darkgreen", size = 5) +    
-  #   theme_minimal() + 
-  #   ggtitle(g_title)
-  
+  # Return identical structure to roc_for_thresholded_w_mat
   return(list(
-    threshold = ideal_threshold,
+    threshold   = ideal_threshold,
+    accuracy    = accuracy,
+    f1_score    = f1,
     sensitivity = ideal_sens,
     specificity = ideal_spec,
-    auc = auc_value,
-    accuracy = accuracy,
-    roc_df = roc_df
-    # plot = p
+    ppv         = ppv,
+    npv         = npv,
+    auc         = auc_value,
+    roc_df      = roc_df,
+    counts      = list(TP = TP, FP = FP, TN = TN, FN = FN)
   ))
 }
 
