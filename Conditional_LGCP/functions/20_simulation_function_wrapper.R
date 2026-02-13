@@ -1,6 +1,6 @@
 
 
-packages <- c("dplyr", "tidyr", "knitr",
+packages <- c("dplyr", "tidyr", 
               "data.table", "gridExtra", "grid", "ggplot2", "patchwork",
               "Matrix", "mvtnorm", "igraph", "MASS", "abind", "reshape2",
               "parallel", "purrr", "pracma")
