@@ -69,7 +69,7 @@ beta_0=4.7
 beta_truth="T"
 X_truth="T"
 eigen_setting="trig_and_joint" #only_joint, trig_and_joint
-global_thresh_method="both" #both, joint, tau_c, neither   both = do joint and tau_c
+global_thresh_method="tau_c" #both, joint, tau_c, neither   both = do joint and tau_c
 
 
 
