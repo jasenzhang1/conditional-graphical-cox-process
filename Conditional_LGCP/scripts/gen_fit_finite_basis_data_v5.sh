@@ -359,7 +359,7 @@ for entry in "${adj_type_params[@]}"; do
         
         wait_for_slot
     
-        # temp_data/simu/step_2_v5_rho_i...
+
         Rscript script_unpack_finite_basis_results.R "$n_large" "${ns[*]}" "$method" "$X_truth" "$beta_truth" "$eigen_setting" "$adj_type" "${adj_params[@]}" >> "$outfile" 2>&1
         
         wait
