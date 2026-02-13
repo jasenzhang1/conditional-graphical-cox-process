@@ -319,14 +319,13 @@ for entry in "${adj_type_params[@]}"; do
             
             Rscript script_fit_mice_data_part2c.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$n_query" "$global_thresh_method" >> "$outfile" 2>&1
             
-            wait_for_slot
-            
             # ----------------
             # Part 2d - get step_12 and step_12b, ROC and edge set after all w_mats have been calculated                     
             # ----------------
             
+            wait_for_slot
             
-            Rscript script_fit_mice_data_part2d.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$n_query" "$global_thresh_method" >> "$outfile" 2>&1
+            Rscript script_fit_mice_data_part2d.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$n_query" >> "$outfile" 2>&1
             
             # ----------------
             # Part 3- when all part 2's are done, do part 3
