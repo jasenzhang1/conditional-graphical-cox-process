@@ -1639,35 +1639,17 @@ full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, sett
                 step_11b_KL_yes_thresh)
                 #step_11_mxm_no_thresh_bundle$step_11b)
   
-  
-  if(! mouse){
-    step_12 <- step_12_ROC(step_11, adj_mat_i)
-    step_12b <- step_12b_adj_mat(step_11)
-    
-    estimated_graphs <- list(step_2 = step_2, step_2b = step_2b, step_3 = step_3,
-                             step_4 = step_4, step_5 = step_5, step_5b = step_5b, step_5c = step_5c, 
-                             #step_9 = step_9, step_9b = step_9b, step_10 = step_10, 
-                             step_11 = step_11, step_11b = step_11b, 
-                             step_11x = step_11x, step_11y = step_11y,
-                             step_12 = step_12, step_12b = step_12b)
-  } else{
-    step_12b <- step_12b_adj_mat(step_11)
-    
-    estimated_graphs <- list(step_2 = step_2, step_2b = step_2b, step_3 = step_3,
-                             step_4 = step_4, step_5 = step_5, step_5b = step_5b, step_5c = step_5c, 
-                             #step_9 = step_9, step_9b = step_9b, step_10 = step_10, 
-                             step_11 = step_11, step_11b = step_11b, 
-                             step_11x = step_11x,
-                             step_12b = step_12b)
-  }
-  
+  # save 
+  estimated_graphs <- list(step_2 = step_2, step_2b = step_2b, step_3 = step_3,
+                           step_4 = step_4, step_5 = step_5, step_5b = step_5b, step_5c = step_5c, 
+                           step_11 = step_11, step_11b = step_11b, 
+                           step_11x = step_11x, step_11y = step_11y)
   
 
 
   if(mouse){
     file_name <- paste0('part3_', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '.rds')
   } else{
-    estimated_graphs[['step_12']] <- step_12
     file_name <- paste0("part3_", adj_type, '_n_', n, '_nquery', cont_ind, '.rds')
   }
   
@@ -1765,7 +1747,11 @@ full_conditional_estimation_with_no_truth_part2c <- function(temp_file_dir, sett
         results[[i]]$step_11b[[new_C_HS_name]]  <- tau_joint$C_HS[[i]]
         results[[i]]$step_11x[[new_tau_c_name]] <- tau_joint$joint_tau_c
         results[[i]]$step_11y[[new_tau_p_name]] <- tau_joint$joint_tau_p
-      }  
+      }
+      
+
+      
+      
       
     }
     
@@ -1803,6 +1789,58 @@ full_conditional_estimation_with_no_truth_part2c <- function(temp_file_dir, sett
   
 }
 
+# 2d: collecting all ROC's and edge sets after w_mat has been calculated
+full_conditional_estimation_with_no_truth_part2d <- function(temp_file_dir, setting_info_list, cont_ind, mouse, X_truth, eigen_setting){
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: get ROC and edge sets
+  # 
+  # 
+  # inputs
+  #
+  #
+  # 
+  # loading
+  #
+  # 
+  # outputs:
+  #
+  # 
+  # ----------------------------------------------------------------------------
+  
+  
+  
+  
+  # 0) load 
+  
+  list2env(setting_info_list, envir = environment())
+  
+  # load everything from step_1
+  if(mouse){
+    step_3_info_list <- paste0(temp_file_dir, '/part3_', ID, '_', discrete_level, '_t', time_scale, '_nquery', 1:cont_inds, '.rds')
+    step_2_list_names <- paste0(temp_file_dir, '/part2_', ID, '_', discrete_level, '_t', time_scale, '_nquery', 1:cont_inds, '.rds')
+  } else{
+    step_3_info_list <- paste0(temp_file_dir, '/part3_', adj_type, '_n_', n, '_nquery', 1:cont_inds, '.rds')
+    step_2_list_names <- paste0(temp_file_dir, '/part2_', adj_type, '_n_', n, '_nquery', 1:cont_inds, '.rds')
+  }
+  
+  step_2_all_data <- lapply(step_2_list_names, readRDS)
+  W_y_list <- lapply(step_2_all_data, `[[`, "W_y")
+  p <- step_2_all_data[[1]]$p
+  
+  results <- lapply(step_3_info_list, readRDS)
+  
+
+  # # 7) Save each dataset's result back to its corresponding file
+  # for (i in 1:cont_inds) {
+  #   
+  #   single_result <- results[[i]]
+  #   saveRDS(single_result, file = step_3_info_list[i])
+  #   
+  # }
+  
+}
 
 full_conditional_estimation_with_no_truth_part3 <- function(temp_file_dir, setting_info_list, cont_inds, mouse){
   
