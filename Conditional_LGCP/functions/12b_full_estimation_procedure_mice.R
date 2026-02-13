@@ -1690,11 +1690,7 @@ full_conditional_estimation_with_no_truth_part2c <- function(temp_file_dir, sett
   # 
   # outputs:
   #
-  # - estimated_graphs  (list of steps 2 and later, each of these differs based on y_c_query)
-  # 
-  # estimated_graphs <- list(step_2 = step_2, step_2b = step_2b, step_3 = step_3,
-  #                          step_4 = step_4, step_5 = step_5, step_5b = step_5b, step_9 = step_9, step_9b = step_9b,
-  #                          step_10 = step_10, step_11 = step_11)
+  # - infuse step_11 step_11b step_11x and step_11y with hybrid or global results
   # 
   # ----------------------------------------------------------------------------
   
@@ -1790,18 +1786,23 @@ full_conditional_estimation_with_no_truth_part2c <- function(temp_file_dir, sett
 }
 
 # 2d: collecting all ROC's and edge sets after w_mat has been calculated
-full_conditional_estimation_with_no_truth_part2d <- function(temp_file_dir, setting_info_list, cont_ind, mouse, X_truth, eigen_setting){
+full_conditional_estimation_with_no_truth_part2d <- function(temp_file_dir, setting_info_list, cont_inds, mouse){
   
   # ----------------------------------------------------------------------------
   #
   # GOAL: get ROC and edge sets
+  #
+  #   retrieve part3 and add step_12 (if not mouse) and step_12b. 
   # 
   # 
   # inputs
   #
+  # - temp_file_dir   (string)    temp_data/simu
+  # - setting_info_list (list)
+  # - cont_inds         (integer)   number of y_queries
+  # - mouse             (boolean)
   #
   # 
-  # loading
   #
   # 
   # outputs:
@@ -1809,9 +1810,7 @@ full_conditional_estimation_with_no_truth_part2d <- function(temp_file_dir, sett
   # 
   # ----------------------------------------------------------------------------
   
-  
-  
-  
+
   # 0) load 
   
   list2env(setting_info_list, envir = environment())
@@ -1826,19 +1825,28 @@ full_conditional_estimation_with_no_truth_part2d <- function(temp_file_dir, sett
   }
   
   step_2_all_data <- lapply(step_2_list_names, readRDS)
-  W_y_list <- lapply(step_2_all_data, `[[`, "W_y")
-  p <- step_2_all_data[[1]]$p
-  
   results <- lapply(step_3_info_list, readRDS)
+  
+  
+  # 1) perform step_12 and step_12b on all y_c_queries
+  
+  
+  for(i in 1:cont_inds){
+    
+    step_12b_i <- step_12b_adj_mat(results[[i]]$step_11)
+    results[[i]][['step_12b']] <- step_12b_i
+    if(! mouse){
+      step_12_i <- step_12_ROC(results[[i]]$step_11, step_2_all_data[[i]]$adj_mat_i)
+      results[[i]][['step_12']] <- step_12_i
+    }
+  }
+  
   
 
   # # 7) Save each dataset's result back to its corresponding file
-  # for (i in 1:cont_inds) {
-  #   
-  #   single_result <- results[[i]]
-  #   saveRDS(single_result, file = step_3_info_list[i])
-  #   
-  # }
+  for (i in 1:cont_inds) {
+    saveRDS(results[[i]], file = step_3_info_list[i])
+  }
   
 }
 
