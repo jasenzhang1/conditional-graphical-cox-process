@@ -1005,7 +1005,10 @@ visualize_metrics_finite_basis <- function(truth_file_name, results_folder, i, j
   
   
   for(l in 1:length(ns)){ # for each sample size:
+    
     n <- ns[l]
+    print(n)
+    
     estimates_file_name <- estimate_files[l]
 
     # 1) merge truths and estimates
@@ -1080,7 +1083,9 @@ visualize_metrics_finite_basis <- function(truth_file_name, results_folder, i, j
       vector_name = as.character(vector_name), # Convert from factor to modify
       vector_name = case_when(
         vector_name == "KL_est_eig1"     ~ "est",
-        vector_name == "KL_GIC_est_eig1" ~ "GIC",
+        vector_name == "KL_GIC_est_eig1" ~ "GIC_local",
+        vector_name == "KL_GIC_global_est_eig1" ~ "GIC_global",
+        vector_name == "KL_GIC_hybrid_est_eig1" ~ "GIC_hybrid",
         TRUE                             ~ vector_name # Keep everything else as is
       )
     )
@@ -1175,7 +1180,7 @@ visualize_metrics_finite_basis <- function(truth_file_name, results_folder, i, j
       y = value,
       group = interaction(n, sublist),
       color = n,
-      shape = sublist
+      linetype = sublist
     )
   ) +
     geom_line() +
@@ -1186,6 +1191,38 @@ visualize_metrics_finite_basis <- function(truth_file_name, results_folder, i, j
     facet_grid(eval_id ~ y_c_query, scales = "free_y") +  # rows = eval_id, columns = y_c_query
     theme_bw()
   
+  unique_n <- evals_df$n %>% unique()
+  evals_df_truth <- evals_df %>% filter(sublist %in% c('eigen_decomp_truth')) %>% filter(n == unique_n[1]) # get one set of truths
+  evals_df2 <- evals_df %>% filter(sublist %in% c('eigen_decomp_est_eig1'))
+  
+  # 6.1) g_eval but with much less stuff
+  
+  g_eval2 <- ggplot() +
+    geom_line(data = evals_df2,
+              aes(
+                x = process,
+                y = value,
+                group = interaction(n, sublist),
+                color = n
+              )) +
+    geom_line(data = evals_df_truth,
+              aes(
+                x = process,
+                y = value
+              )) +
+    geom_point(data = evals_df2,
+               aes(
+                 x = process,
+                 y = value,
+                 group = interaction(n, sublist),
+                 color = n
+               )) +
+    ylab('Eigenvalue') +
+    xlab("Process") +
+    ggtitle('Eval Convergence between PCs, eig_est1 only') + 
+    facet_grid(eval_id ~ y_c_query, scales = "free_y") +  # rows = eval_id, columns = y_c_query
+    theme_bw()
+  
   # ----------------------------------------------------------------------------
   # 6) point estimates table
   
@@ -1193,58 +1230,54 @@ visualize_metrics_finite_basis <- function(truth_file_name, results_folder, i, j
   ### 1. Pre-processing the data
   # Ensure y_c_query is sorted numerically for the columns
   # also rename 'KL_est_eig1' to just 'est', and rename 'KL_GIC_est_eig1' to 'GIC'
+  # ----------------------------------------------------------------------------
+  # 6) point estimates table (Dataframe Version)
+  
+  ### 1. Pre-processing and Renaming
+  # Replacing 'KL_est_eig1' with 'est' and 'KL_GIC_est_eig1' with 'GIC'
   results_df_clean <- results_df %>%
     mutate(
       y_c_query = as.numeric(as.character(y_c_query))
     ) %>% 
-    
     arrange(point_metric, n, vector_name, y_c_query)
   
-  ### 2. Define a function to create a "pretty" grouped table per metric
-  create_pretty_table <- function(metric_name, data) {
-    
-    table_data <- data %>%
-      dplyr::filter(point_metric == metric_name) %>%
-      dplyr::select(n, vector_name, y_c_query, value) %>%
-      # Round the values before pivoting
-      dplyr::mutate(value = round(value, 3)) %>% 
-      tidyr::pivot_wider(names_from = y_c_query, values_from = value) %>%
-      dplyr::arrange(n, vector_name) %>%
-      dplyr::mutate(n = as.character(n)) %>%
-      dplyr::mutate(n = ifelse(duplicated(n), "", n)) %>%
-      dplyr::rename("Sample Size (n)" = n, "Estimate" = vector_name)
-    
-    knitr::kable(
-      table_data, 
-      digits = 3,  # Rounds to thousandths
-      format = "simple",
-      caption = paste("Metric Analysis:", metric_name)
+  ### 2. Pivot to Wide Format
+  # This creates the columns for each y_c_query value
+  table_df_wide <- results_df_clean %>%
+    mutate(value = round(value, 3)) %>%
+    pivot_wider(
+      names_from = y_c_query, 
+      values_from = value
+    ) %>%
+    arrange(point_metric, n, vector_name)
+  
+  ### 3. Final Formatting (Row and Subrow logic)
+  # We create a clean dataframe where the labels only appear once
+  final_estimates_table <- table_df_wide %>%
+    mutate(
+      # Column 1: Row Group (Metric)
+      row_metric = as.character(point_metric),
+      row_metric = ifelse(duplicated(row_metric), "", row_metric),
+      
+      # Column 2: Sub-row Group (Sample Size)
+      # We only show 'n' for the first instance within its metric group
+      subrow_n = as.character(n),
+      subrow_n = ifelse(duplicated(paste0(point_metric, n)), "", subrow_n)
+    ) %>%
+    dplyr::select(
+      row_metric, 
+      subrow_n, 
+      Estimate = vector_name, 
+      everything(), 
+      -point_metric, -n  # Remove the original raw columns
     )
-  }
-  
-  ### 3. Generate and display tables for every unique statistic
-  unique_metrics <- levels(results_df_clean$point_metric)
-  
-  # Loop through and store each table
-  
-  table_list <- list()
-  for(met in unique_metrics) {
-    
-    # Filter data for this specific metric
-    metric_subset <- results_df_clean %>% 
-      dplyr::filter(point_metric == met)
-    
-    if(nrow(metric_subset) > 0) {
-      # Store the table in the list using the metric name as the key
-      table_list[[met]] <- create_pretty_table(met, results_df_clean)
-    }
-  }
   
   # Display it
   return(list(point_metrics_graph = g_point_estimates,       # metrics displayed in graphical fashion
               metric_tables = table_list,                    # metrics displayed in tabular fashion
               #point_metrics_graph_2 = g_point_estimates2,   # only estimates shown
               eval_metrics_graph = g_eval,                   # eigenvalue graphs
+              eval_metrics_graph2 = g_eval2,                   # eigenvalue graphs
               metric_df = results_df)                        # raw dataframe of metrics
               
          )
