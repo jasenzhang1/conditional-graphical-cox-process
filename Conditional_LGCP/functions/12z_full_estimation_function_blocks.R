@@ -1751,7 +1751,7 @@ step_12_ROC <- function(step_11, adj_mat_i){
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: estiamte ROC curves
+  # GOAL: estimate ROC curves
   #
   # inputs:
   #
@@ -1782,8 +1782,11 @@ step_12_ROC <- function(step_11, adj_mat_i){
     
     name_i <- paste0('roc_', core_names[i])
     
-    result[[name_i]]  <- roc_with_threshold(step_11[[input_names[i]]], adj_mat_i, core_names[i])
-
+    if(grepl("GIC", core_names[i])){
+      result[[name_i]]  <- roc_for_thresholded_w_mat(step_11[[input_names[i]]], adj_mat_i)   # one procedure for w_mat that's zeroed out       (don't do ROC)
+    } else{
+      result[[name_i]]  <- roc_for_raw_w_mat(step_11[[input_names[i]]], adj_mat_i)          # one procedure for w_mat that's not zeroed out   (do ROC)
+    }
   }
   
   return(result)
