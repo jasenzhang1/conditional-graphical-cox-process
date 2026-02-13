@@ -1638,7 +1638,7 @@ step_11_HS_norms_from_KL_GIC <- function(step_11_GIC_bundle){
     
     # obtain w_mat from the entry
     
-    name_i <- paste0('w_mat_KL_GIC_', core_names[i])
+    name_i <- paste0('w_mat_KL_GIC_local_', core_names[i])
     
     result[[name_i]] <- step_11_GIC_bundle[[input_names[i]]][['w_mat']]
     
@@ -1682,7 +1682,7 @@ step_11b_HS_norms_from_KL_GIC <- function(step_11_GIC_bundle){
     
     # obtain w_mat from the entry
     
-    name_i <- paste0('C_HS_KL_GIC_', core_names[i])
+    name_i <- paste0('C_HS_KL_GIC_local_', core_names[i])
     
     result[[name_i]] <- step_11_GIC_bundle[[input_names[i]]][['C_HS']]
     
