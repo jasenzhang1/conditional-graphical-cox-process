@@ -42,7 +42,6 @@ if(model_type == 'mice'){
   adj_type <- args[4]
   method <- args[5]
   cont_inds <- as.numeric(args[6])
-  global_thresh_method <- args[7]  # both, joint, tau_c, neither
   
   setting_info_list <- list(n_large = n_large,
                             n = n,
@@ -62,7 +61,7 @@ if(model_type == 'mice'){
 # ---------------------------
 
 
-full_conditional_estimation_with_no_truth_part2d(temp_file_dir, setting_info_list, cont_inds, mouse, global_thresh_method)
+full_conditional_estimation_with_no_truth_part2d(temp_file_dir, setting_info_list, cont_inds, mouse)
 
 
 
