@@ -585,53 +585,94 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth,
   # ROC curves
   if('113' %in% graph_ids){
     
-    y_names <- names(graph_results_i$step_12)
-    x_names <- names(graph_results_i$step_12[[1]])
+
+    # groups
+    # 1) truth_names     -  truths
+    # 2) GIC_names       -  KL_GIC est and X_truth
+    # 3) GIC_est_names   -  KL_GIC est 
+    # 4) est_names       -  est and X_truth
+    # 5) KL_est_names    -  just est
     
-    all_plots <- list()
-    
-    for (i in seq_along(graph_results_i$step_12)) {
-      for (j in seq_along(graph_results_i$step_12[[i]])) {
-        
-        roc_entry       <- graph_results_i$step_12[[i]][[j]]
-        roc_df          <- roc_entry$roc_df
-        ideal_spec      <- roc_entry$specificity
-        ideal_sens      <- roc_entry$sensitivity
-        ideal_threshold <- roc_entry$threshold
-        auc_value       <- roc_entry$auc
-        
-        p <- ggplot(roc_df, aes(x = FPR, y = TPR)) +
-          geom_step(direction = "vh", color = "blue", size = 1) +
-          geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "grey") +
-          labs(
-            title = paste('y=', y_names[i], ', ', x_names[j]),
-            x = "False Positive Rate", y = "True Positive Rate"
-          ) +
-          annotate("point", x = 1 - ideal_spec, y = ideal_sens, color = "red", size = 3) +
-          annotate("text", x = 1 - ideal_spec, y = ideal_sens,
-                   label = paste0("thr=", round(ideal_threshold, 3)),
-                   hjust = -0.1, vjust = -0.5, color = "red") +
-          annotate("text", x = 0.6, y = 0.2,
-                   label = paste0("AUC=", round(auc_value, 3)),
-                   color = "darkgreen", size = 5) +
-          theme_minimal(base_size = 10)
-        
-        all_plots[[length(all_plots) + 1]] <- p
-      }
-    }
-    
-    # arrange all 70 plots in a 10x7 grid
-    graphs[['g_113']] <- wrap_plots(all_plots, ncol = length(y_names), nrow = length(x_names), byrow = FALSE) 
+    step_12_names <- names(step_12[[1]])
+    truth_names   <- step_12_names[grepl("truth$", step_12_names)]
+    step_12_names <- setdiff(step_12_names, truth_names)
     
     
-    graphs[['g_113']] <- result_ROC_prep(step_12, NULL, NULL)
-    graphs[['g_113b']] <- result_ROC_prep(step_12, c('truth', 'KL_est_eig1', 'KL_GIC_est_eig1'), NULL)
+    KL_GIC_names  <- step_12_names[grepl("^roc_KL_GIC", step_12_names)]  
+    KL_GIC_est_names <- grep("_est_", KL_GIC_names, value = TRUE)
+    est_names <- setdiff(step_12_names, KL_GIC_names)
+    KL_est_names <- est_names[startsWith(est_names, "roc_KL_est")]
+    
+    
+    graphs[['g_113']] <- result_ROC_prep(step_12, NULL, NULL)                 # everything
+    graphs[['g_113c']] <- result_ROC_prep(step_12, est_names, NULL)           # all non-threshold results
+    graphs[['g_113d']] <- result_ROC_prep(step_12, KL_est_names, NULL)        # all non-threshold estimates
+    graphs[['g_113e']] <- result_ROC_prep(step_12, KL_GIC_names, NULL)        # all threshold results
+    graphs[['g_113f']] <- result_ROC_prep(step_12, KL_GIC_est_names, NULL)    # all threshold estimates
+    
   }
   
   # Final adj_mat for all pxp blocks
   if('114' %in% graph_ids){
-    graphs[['g_114']] <- result_heatmap_nonblock_prep(step_12b, 'adj_mat', data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, zmid = 0)
+    graphs[['g_114']] <- result_heatmap_nonblock_prep(step_12b, 'adj_mat', data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, graph_title = 'edge sets', zmid = 0)
+    
+    # groups
+    # 1) truth_names     -  truths
+    # 2) GIC_names       -  KL_GIC est and X_truth
+    # 3) GIC_est_names   -  KL_GIC est 
+    # 4) est_names       -  est and X_truth
+    # 5) KL_est_names    -  just est
+    
+    step_12b_names <- names(step_12b[[1]])
+    truth_names   <- step_12b_names[grepl("truth$", step_12b_names)]
+    step_12b_names <- setdiff(step_12b_names, truth_names)
+    
+    
+    KL_GIC_names  <- step_12b_names[grepl("^adj_mat_KL_GIC", step_12b_names)]  
+    KL_GIC_est_names <- grep("_est_", KL_GIC_names, value = TRUE)
+    est_names <- setdiff(step_12b_names, KL_GIC_names)
+    KL_est_names <- est_names[startsWith(est_names, "adj_mat_KL_est")]
+    
+    # truths
+    step_12b_v2 <- step_12b
+    step_12b_v2 <- lapply(step_12b_v2, function(x) {
+      x[names(x) %in% truth_names]
+    })
+    graphs[['g_114b']] <- result_heatmap_nonblock_prep(step_12b_v2, 'adj_mat', data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, graph_title = 'edge set of truths', zmid = 0)
+    
+    # estimates
+    step_12b_v3 <- step_12b
+    step_12b_v3 <- lapply(step_12b_v3, function(x) {
+      x[names(x) %in% est_names]
+    })
+    graphs[['g_114c']] <- result_heatmap_nonblock_prep(step_12b_v3, 'adj_mat', data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, graph_title = 'edge set of non-thresholded results', zmid = 0)
+    
+    # KL_est
+    step_12b_v6 <- step_12b
+    step_12b_v6 <- lapply(step_12b_v6, function(x) {
+      x[names(x) %in% KL_est_names]
+    })
+    graphs[['g_114d']] <- result_heatmap_nonblock_prep(step_12b_v6, 'adj_mat', data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, graph_title = 'edge set of non-thresholded estimates', zmid = 0)
+    
+    # KL_GIC
+    step_12b_v4 <- step_12b
+    step_12b_v4 <- lapply(step_12b_v4, function(x) {
+      x[names(x) %in% KL_GIC_names]
+    })
+    graphs[['g_114e']] <- result_heatmap_nonblock_prep(step_12b_v4, 'adj_mat', data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, graph_title = 'edge set of thresholded results', zmid = 0)
+    
+    # KL_GIC_est
+    step_12b_v5 <- step_12b
+    step_12b_v5 <- lapply(step_12b_v5, function(x) {
+      x[names(x) %in% KL_GIC_est_names]
+    })
+    graphs[['g_114f']] <- result_heatmap_nonblock_prep(step_12b_v5, 'adj_mat', data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, graph_title = 'edge set of thresholded estimates', zmid = 0)
+    
+    
+    
   }   
+  
+  # graphing statistics + tau values if('120')
   
   return(graphs)
   
