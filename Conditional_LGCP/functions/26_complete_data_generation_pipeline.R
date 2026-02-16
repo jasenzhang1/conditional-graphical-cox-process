@@ -1136,8 +1136,8 @@ simulate_finite_basis_cox_data_part4 <- function(temp_file_dir, setting_info_lis
   w_mat_truth     <- eigen_truths$P_HS
   w_mat_KL_truth  <- eigen_truths$P_HS_KL
   
-  step_12 <- list(roc_truth    = roc_with_threshold(w_mat_truth, adj_mat_truth, 'truth'),
-                  roc_KL_truth = roc_with_threshold(w_mat_KL_truth, adj_mat_truth, 'KL_truth'))
+  step_12 <- list(roc_truth    = roc_for_raw_w_mat(w_mat_truth, adj_mat_truth),
+                  roc_KL_truth = roc_for_raw_w_mat(w_mat_KL_truth, adj_mat_truth))
   
   step_12b <- list(adj_mat_truth = adj_mat_truth)
   
@@ -1165,7 +1165,7 @@ simulate_finite_basis_cox_data_part4 <- function(temp_file_dir, setting_info_lis
     step_11b[['C_HS_beta_truth']] <- eigen_beta_truths$C_HS_beta_truth
 
 
-    step_12[['roc_beta_truth']] <- roc_with_threshold(eigen_beta_truths$P_HS_beta_truth, adj_mat_truth, 'Beta Truth')
+    step_12[['roc_beta_truth']] <- roc_for_raw_w_mat(eigen_beta_truths$P_HS_beta_truth, adj_mat_truth)
   }
   
   
