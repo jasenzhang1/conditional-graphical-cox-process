@@ -680,6 +680,92 @@ result_ROC_prep <- function(step_12, kept_names, kept_time_idx){
   
 }
 
+result_step_12_prep <- function(step_12, est_names) {
+  
+  # ----------------------------------------------------------------------------
+  # 
+  # GOAL: with step_12 object, plot a particular metric, stratified by estimation method (est_eig1 etc)
+  #       and x-axis denotes the continuous covariate
+  #
+  # 
+  # inputs:
+  #
+  # - step_12       (list)
+  # - metric_name   (string)
+  # - est_names     (vector of strings of estimation method names we want to keep)
+  #
+  # outputs:
+  #
+  # - graph       (ggplot object)
+  #
+  # ----------------------------------------------------------------------------
+  
+  target_metrics <- c("accuracy", "f1_score", "sensitivity", "specificity", "ppv", "npv", "auc")
+  
+  # 0. Keep est_names that matter
+  
+  step_12 <- lapply(step_12, function(x) {
+    x[names(x) %in% est_names]
+  })
+  
+  # 1. Flatten the nested list into a data frame
+  plot_data <- imap_dfr(step_12, function(roc_list, covariate_val) {
+    
+    imap_dfr(roc_list, function(metrics_list, roc_full_name) {
+      
+      # Extract only the 7 metrics we care about
+      # Using compact() or a filter to ensure we don't grab NULLs
+      available_metrics <- metrics_list[names(metrics_list) %in% target_metrics]
+      
+      # Create a data frame where each metric is a row
+      data.frame(
+        covariate = as.numeric(covariate_val),
+        suffix = gsub("^roc_", "", roc_full_name),
+        metric = names(available_metrics),
+        value = as.numeric(available_metrics),
+        stringsAsFactors = FALSE
+      )
+    })
+  })
+  
+  # Clean up metric names for display
+  plot_data$metric <- tools::toTitleCase(gsub("_", " ", plot_data$metric))
+  
+  facet_order <- c("Accuracy", "Sensitivity", "Specificity", 
+                   "F1 Score", "Ppv", "Npv", 
+                   "Auc")
+  
+  plot_data$metric <- factor(plot_data$metric, levels = facet_order)
+  
+  
+  # 2. Generate the plot
+  g <- ggplot(plot_data, aes(x = covariate, y = value, color = suffix, group = suffix)) +
+    # Added alpha for transparency and used linewidth
+    geom_line(linewidth = 0.8, alpha = 0.7) + 
+    geom_point(size = 1.5, alpha = 0.8) +
+    # Fixed y-axis scale from 0 to 1
+    coord_cartesian(ylim = c(0, 1)) +
+    facet_wrap(~metric, ncol = 3) + 
+    theme_minimal() +
+    theme(
+      legend.position = "bottom",
+      panel.grid.minor = element_blank(), # Cleans up the look
+      strip.background = element_rect(fill = "gray96", color = NA),
+      strip.text = element_text(face = "bold")
+    ) +
+    labs(
+      title = "Model Performance Over Time",
+      x = "Continuous Covariate",
+      y = "Value",
+      color = "Method"
+    ) +
+    scale_x_continuous(breaks = unique(plot_data$covariate)) +
+    # Ensure the y-axis actually shows 0 and 1 clearly
+    scale_y_continuous(labels = scales::label_number(accuracy = 0.1))
+  
+  return(g)
+}
+
 result_29 <- function(weights, y_c_values, y_c_id){
   
   
@@ -1486,5 +1572,102 @@ result_arr_mat <- function(g_list, grob_caption, arr_mat_i){
   return(g)
 }
 
-
+result_121_prep <- function(step_11x, step_11y, suffix_names) {
+  
+  # ----------------------------------------------------------------------------
+  # 
+  # GOAL: with step_11x and step_11y object, plot the tau_c and tau_p values across continuous covariate and stratified by estimate
+  #
+  # 
+  # inputs:
+  #
+  # - step_11x       (list)
+  # - step_11y       (list)
+  # - suffix_names   (vector of strings of estimation method names we want to keep)
+  #
+  # outputs:
+  #
+  # - graph       (ggplot object)
+  #
+  # ----------------------------------------------------------------------------
+  
+  
+  # 0. Prep names and filter lists
+  names_11x <- paste0('tau_c_', suffix_names)
+  names_11y <- paste0('tau_p_', suffix_names)
+  
+  step_11x <- lapply(step_11x, function(x) x[names(x) %in% names_11x])
+  step_11y <- lapply(step_11y, function(x) x[names(x) %in% names_11y])
+  
+  # 1. Processing helper
+  process_to_df <- function(data_list, tau_type) {
+    imap_dfr(data_list, function(suffix_list, covariate_val) {
+      imap_dfr(suffix_list, function(val, full_name) {
+        clean_name <- gsub("^tau_[cp]_", "", full_name)
+        
+        type_val <- "Unknown"; method_val <- "Unknown"
+        if(grepl("local", clean_name)) type_val <- "Local"
+        if(grepl("hybrid", clean_name)) type_val <- "Hybrid"
+        if(grepl("global", clean_name)) type_val <- "Global"
+        if(grepl("est_eig1", clean_name)) method_val <- "Eig 1"
+        if(grepl("est_eig2", clean_name)) method_val <- "Eig 2"
+        if(grepl("est_eig3", clean_name)) method_val <- "Eig 3"
+        
+        data.frame(
+          covariate = as.numeric(covariate_val),
+          type = factor(type_val, levels = c("Local", "Hybrid", "Global")),
+          method = factor(method_val, levels = c("Eig 1", "Eig 2", "Eig 3")),
+          tau_label = tau_type,
+          value = as.numeric(val)
+        )
+      })
+    })
+  }
+  
+  df_x <- process_to_df(step_11x, "tau_c")
+  df_y <- process_to_df(step_11y, "tau_p")
+  
+  # 2. DUAL AXIS LOGIC
+  # Calculate ratio so tau_p is scaled to the range of tau_c
+  # We use a small constant (1e-6) to avoid division by zero
+  max_x <- max(df_x$value, na.rm = TRUE) + 1e-6
+  max_y <- max(df_y$value, na.rm = TRUE) + 1e-6
+  ratio <- max_y / max_x
+  
+  # Scale tau_p down for plotting
+  df_y$value_scaled <- df_y$value / ratio
+  
+  # Combine
+  df_x$value_scaled <- df_x$value # tau_c stays as is
+  plot_data <- rbind(df_x, df_y)
+  
+  # 3. Plotting with Minimal Theme
+  ggplot(plot_data, aes(x = covariate, y = value_scaled, color = tau_label, group = tau_label)) +
+    # Lines and Points with transparency
+    geom_line(linewidth = 0.7, alpha = 0.8) +
+    geom_point(size = 2, alpha = 0.9) +
+    # Secondary Axis Setup
+    scale_y_continuous(
+      name = expression(tau[c]),
+      sec.axis = sec_axis(~ . * ratio, name = expression(tau[p]))
+    ) +
+    facet_grid(type ~ method) +
+    # Minimal Theme Styling
+    theme_minimal(base_size = 12) +
+    theme(
+      legend.position = "bottom",
+      panel.grid.minor = element_blank(),
+      strip.background = element_rect(fill = "gray98", color = "gray90"),
+      strip.text = element_text(face = "bold", color = "gray20"),
+      axis.title.y.right = element_text(angle = 90) # Rotate the secondary title
+    ) +
+    labs(
+      title = "Standardized Comparison of Regional Tau Values",
+      subtitle = "Secondary axis scaled to match data ranges",
+      x = "Continuous Covariate",
+      color = "Metric"
+    ) +
+    scale_x_continuous(breaks = unique(plot_data$covariate)) +
+    scale_color_manual(values = c("tau_c" = "#2C3E50", "tau_p" = "#E74C3C")) # Stronger contrast
+}
 
