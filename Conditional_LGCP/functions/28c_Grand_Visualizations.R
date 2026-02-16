@@ -672,7 +672,42 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth,
     
   }   
   
-  # graphing statistics + tau values if('120')
+  
+  # accuracy/f1/sens/spec/ppv/npv
+  if('120' %in% graph_ids){
+    
+    step_12_names <- names(step_12[[1]])
+    truth_names   <- step_12_names[grepl("truth$", step_12_names)]
+    step_12_names <- setdiff(step_12_names, truth_names)
+    
+    
+    KL_GIC_names  <- step_12_names[grepl("^roc_KL_GIC", step_12_names)]  
+    KL_GIC_est_names <- grep("_est_", KL_GIC_names, value = TRUE)
+    est_names <- setdiff(step_12_names, KL_GIC_names)
+    KL_est_names <- est_names[startsWith(est_names, "roc_KL_est")]
+  
+
+    graphs[['g_120']]  <- result_step_12_prep(step_12, step_12_names)
+    graphs[['g_120c']] <- result_step_12_prep(step_12, est_names)
+    graphs[['g_120d']] <- result_step_12_prep(step_12, KL_est_names)
+    graphs[['g_120e']] <- result_step_12_prep(step_12, KL_GIC_names)
+    graphs[['g_120f']] <- result_step_12_prep(step_12, KL_GIC_est_names)
+    
+
+  }
+  
+  # tau_c and tau_p values
+  if('121' %in% graph_ids){
+    
+    step_11x_names <- names(step_11x[[1]])
+    
+    suffix_names <- gsub("^tau_c_", "", step_11x_names)
+    est_suffix_names <- grep("_est_", suffix_names, value = TRUE)
+    
+
+    graphs[['g_121']]  <- result_121_prep(step_11x, step_11y, est_suffix_names)
+  }
+  
   
   return(graphs)
   
