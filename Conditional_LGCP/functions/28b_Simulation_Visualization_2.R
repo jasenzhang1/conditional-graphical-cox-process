@@ -863,22 +863,55 @@ convergence_metrics_part2 <- function(merged, k, i, j){
   
   for(roc_name_i in roc_names){
     roc_results <- merged$step_12[[k]][[roc_name_i]]
-    df_i <- data.frame(sens = roc_results$sensitivity,
-                       spec = roc_results$specificity,
-                       auc = as.numeric(roc_results$auc),
-                       accuracy = roc_results$accuracy)
+    
+    # Helper: returns the value if it exists, otherwise NA
+    get_val <- function(x, field) {
+      if (is.null(x[[field]])) return(NA) else return(x[[field]])
+    }
+    
+    df_i <- data.frame(
+      accuracy    = get_val(roc_results, "accuracy"),
+      f1_score    = get_val(roc_results, "f1_score"),
+      sensitivity = get_val(roc_results, "sensitivity"),
+      specificity = get_val(roc_results, "specificity"),
+      ppv         = get_val(roc_results, "ppv"),
+      npv         = get_val(roc_results, "npv"),
+      auc         = as.numeric(get_val(roc_results, "auc"))
+    )
+    
     df_i$sublist <- roc_name_i
     df_roc <- rbind(df_roc, df_i)
   }
   
-  sens <- df_roc$sens
-  names(sens) <- df_roc$sublist
-  spec <- df_roc$spec
-  names(spec) <- df_roc$sublist
-  auc <- df_roc$auc
-  names(auc) <- df_roc$sublist
+  # retrieve and rename
+  
   accuracy <- df_roc$accuracy
   names(accuracy) <- df_roc$sublist
+  
+  f1_score <- df_roc$f1_score
+  names(f1_score) <- df_roc$sublist
+  
+  sensitivity <- df_roc$sensitivity
+  names(sensitivity) <- df_roc$sublist
+  
+  specificity <- df_roc$specificity
+  names(specificity) <- df_roc$sublist
+  
+  ppv <- df_roc$ppv
+  names(ppv) <- df_roc$sublist
+  
+  npv <- df_roc$npv
+  names(npv) <- df_roc$sublist
+  
+  auc <- df_roc$auc
+  names(auc) <- df_roc$sublist
+
+  # tau_c and tau_p
+  
+  tau_c <- merged$step_11x[[k]] %>% unlist()
+  tau_p <- merged$step_11y[[k]] %>% unlist()
+
+
   
   # 5) rename by removing the prefixes
   
@@ -889,10 +922,16 @@ convergence_metrics_part2 <- function(merged, k, i, j){
   names(C_HS_dist) <- sub("^C_HS_", "", names(C_HS_dist)) 
   names(w_mat_ij_dist) <- sub("^w_mat_", "", names(w_mat_ij_dist))
   names(w_mat_dist) <- sub("^w_mat_", "", names(w_mat_dist))
-  names(sens) <- sub("^roc_", "", names(sens)) 
-  names(spec) <- sub("^roc_", "", names(spec)) 
-  names(auc) <- sub("^roc_", "", names(auc))
+  
   names(accuracy) <- sub("^roc_", "", names(accuracy))
+  names(f1_score) <- sub("^roc_", "", names(f1_score))
+  names(sensitivity) <- sub("^roc_", "", names(sensitivity)) 
+  names(specificity) <- sub("^roc_", "", names(specificity)) 
+  names(ppv) <- sub("^roc_", "", names(ppv)) 
+  names(npv) <- sub("^roc_", "", names(npv)) 
+  names(auc) <- sub("^roc_", "", names(auc))
+  names(tau_c) <- sub("^tau_c_", "", names(tau_c))
+  names(tau_p) <- sub("^tau_p_", "", names(tau_p))
 
   
   # 6) group metrics
@@ -904,10 +943,15 @@ convergence_metrics_part2 <- function(merged, k, i, j){
                         C_HS_dist = C_HS_dist,
                         w_mat_ij_dist = w_mat_ij_dist,
                         w_mat_dist = w_mat_dist,
-                        sens = sens,
-                        spec = spec,
+                        accuracy = accuracy,
+                        f1_score = f1_score,
+                        sensitivity = sensitivity,
+                        specificity = specificity,
+                        ppv = ppv,
+                        npv = npv,
                         auc = auc,
-                        accuracy = accuracy)
+                        tau_c = tau_c,
+                        tau_p = tau_p)
   
   eval_metrics <- eval_df
                   
@@ -1084,6 +1128,10 @@ visualize_metrics_finite_basis <- function(truth_file_name, results_folder, i, j
       vector_name = case_when(
         vector_name == "KL_est_eig1"     ~ "est",
         vector_name == "KL_GIC_est_eig1" ~ "GIC_local",
+        vector_name == "local_est_eig1" ~ "GIC_local",
+        vector_name == "global_est_eig1" ~ "GIC_global",
+        vector_name == "hybrid_est_eig1" ~ "GIC_hybrid",
+        vector_name == "KL_GIC_local_est_eig1" ~ "GIC_local",
         vector_name == "KL_GIC_global_est_eig1" ~ "GIC_global",
         vector_name == "KL_GIC_hybrid_est_eig1" ~ "GIC_hybrid",
         TRUE                             ~ vector_name # Keep everything else as is
@@ -1100,8 +1148,11 @@ visualize_metrics_finite_basis <- function(truth_file_name, results_folder, i, j
                          'C_HS_dist',
                          'w_mat_ij_dist',
                          'w_mat_dist',
-                         'sens', 'spec',
-                         'auc', 'accuracy')
+                         'accuracy',
+                         'f1_score',
+                         'sensitivity', 'specificity',
+                         'ppv', 'npv', 'auc',
+                         'tau_c', 'tau_p')
   results_df$point_metric <- factor(results_df$point_metric, levels = metric_hierarchy)
   
 
@@ -1274,10 +1325,10 @@ visualize_metrics_finite_basis <- function(truth_file_name, results_folder, i, j
   
   # Display it
   return(list(point_metrics_graph = g_point_estimates,       # metrics displayed in graphical fashion
-              metric_tables = table_list,                    # metrics displayed in tabular fashion
+              metric_tables = final_estimates_table,         # metrics displayed in tabular fashion
               #point_metrics_graph_2 = g_point_estimates2,   # only estimates shown
               eval_metrics_graph = g_eval,                   # eigenvalue graphs
-              eval_metrics_graph2 = g_eval2,                   # eigenvalue graphs
+              eval_metrics_graph2 = g_eval2,                 # eigenvalue graphs
               metric_df = results_df)                        # raw dataframe of metrics
               
          )
