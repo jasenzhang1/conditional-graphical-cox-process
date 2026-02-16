@@ -44,14 +44,19 @@ bivariate_ids <- c('25', '32')  # rho_ij and g_ij
 
 beta_ids <- c('50', '51')
 
-final_ids <- c('58',   # KL_cor assembled, 58b = KL_cov
-               '59',   # KL_prec
-               '95',   # C_HS, 95b = specific entries only
-               '111',  # w_mat
-               '112',  # w_mat
-               '113',  # roc
-               '114')  # adj_mat
+KL_ids <- c('58',   # KL_cor assembled, 58b = KL_cov
+            '59')   # KL_prec
 
+
+HS_ids <- c('95',   # C_HS, 95b = specific entries only
+            '111',  # w_mat
+            '112')  # w_mat
+
+final_ids <- c('113',  # roc
+               '114',  # adj_mat
+               '120')  # performance metrics
+
+tau_ids <- c('121')  # tau_c and tau_p
 
 truth_file_name <- paste0(data_folder, '/', adj_type, '_n_', n_large, '_truths.RData')
 results_folder <- paste0(base_folder, '/', adj_type, '/', method)
@@ -76,17 +81,23 @@ for(n in ns){
   g_exploratory <- visualize_finite_basis(truth_file_name, estimates_file_name, exploratory_ids, beta_truth, X_truth, eigen_troubleshoot)
   g_betas       <- visualize_finite_basis(truth_file_name, estimates_file_name, beta_ids,        beta_truth, X_truth, eigen_troubleshoot)
   g_bivariate   <- visualize_finite_basis(truth_file_name, estimates_file_name, bivariate_ids,   beta_truth, X_truth, eigen_troubleshoot)
+  g_KL          <- visualize_finite_basis(truth_file_name, estimates_file_name, KL_ids,          beta_truth, X_truth, eigen_troubleshoot)
+  g_HS          <- visualize_finite_basis(truth_file_name, estimates_file_name, HS_ids,          beta_truth, X_truth, eigen_troubleshoot)
   g_final       <- visualize_finite_basis(truth_file_name, estimates_file_name, final_ids,       beta_truth, X_truth, eigen_troubleshoot)
+  g_tau         <- visualize_finite_basis(truth_file_name, estimates_file_name, tau_ids,         beta_truth, X_truth, eigen_troubleshoot)
   
   g_name_exploratory <- paste0(results_folder_2, '/', adj_type, '_n_', n, '_exploratory.pdf')
   g_name_betas       <- paste0(results_folder_2, '/', adj_type, '_n_', n, '_betas.pdf')
   g_name_bivariate   <- paste0(results_folder_2, '/', adj_type, '_n_', n, '_bivariate.pdf')
+  g_name_KL          <- paste0(results_folder_2, '/', adj_type, '_n_', n, '_KL.pdf')
+  g_name_HS          <- paste0(results_folder_2, '/', adj_type, '_n_', n, '_HS.pdf')
   g_name_final       <- paste0(results_folder_2, '/', adj_type, '_n_', n, '_final.pdf')
+  g_name_tau         <- paste0(results_folder_2, '/', adj_type, '_n_', n, '_tau.pdf')
   
   # print regular graphs
   
-  reg_graphs <- list(g_exploratory, g_bivariate, g_final)
-  reg_graph_names <- c(g_name_exploratory, g_name_bivariate, g_name_final)
+  reg_graphs <- list(g_exploratory, g_bivariate, g_KL, g_HS, g_final, g_tau)
+  reg_graph_names <- c(g_name_exploratory, g_name_bivariate, g_name_KL, g_name_HS, g_name_final, g_name_tau)
   
   # 1. Use 1:length() to iterate through all lists
   for(k in 1:length(reg_graphs)){
@@ -223,61 +234,31 @@ metrics_summary <- visualize_metrics_finite_basis(truth_file_name, results_folde
 
 print('Saving Results')
 
-write.csv(metrics_summary$metric_df, paste0(results_folder_2, "/metrics_summary.csv"), row.names = FALSE)  # the dataframe
+# raw dataframe
+write.csv(metrics_summary$metric_df, paste0(results_folder_2, "/metrics_raw.csv"), row.names = FALSE)  
 
+# stratified table - rds
+saveRDS(metrics_summary$metric_tables, paste0(results_folder_2,  "/metrics_tabular.rds"))
 
-pdf(paste0(results_folder_2, "/point_metrics_summary.pdf"), width = 8, height = 6)        # open PDF file
+# stratified table - csv
+flat_table <- metrics_summary$metric_tables %>% 
+  unnest(cols = c('row_metric', 'subrow_n')) 
+
+write.csv(flat_table, paste0(results_folder_2, "/metrics_tabular.csv"), row.names = FALSE)
+
+# pdfs 
+pdf(paste0(results_folder_2, "/point_metrics_summary.pdf"), width = 12, height = 9)        # open PDF file
 grid.arrange(metrics_summary$point_metrics_graph)                                 # draw the grob/layout
 dev.off()                                                                         # close the file
 
 pdf(paste0(results_folder_2, "/eval_metrics_summary.pdf"), width = 8, height = 6)        # open PDF file
 grid.arrange(metrics_summary$eval_metrics_graph)                                  # draw the grob/layout
+grid.arrange(metrics_summary$eval_metrics_graph2)                                  
 dev.off()                                                                         # close the file
 
 
 
-# 4c) print kable tables 
 
-
-pdf_filename <- paste0(results_folder_2, "/Metrics_Summary_Tables.pdf")
-
-# 2. Create a temporary R Markdown string
-# We use results='asis' so the kable strings are treated as raw LaTeX/Markdown
-report_content <- c(
-  "---",
-  "title: 'Convergence Metrics Summary'",
-  "author: 'Simulation Results'",
-  "output: pdf_document",
-  "---",
-  "",
-  "```{r setup, include=FALSE}",
-  "knitr::opts_chunk$set(echo = FALSE)",
-  "```",
-  "",
-  "```{r, results='asis'}",
-  "for (table_name in names(metrics_summary$metric_tables)) {",
-  "  # Print the name of the list item as a Header",
-  "  cat('\\n\\n# Metric:', table_name, '\\n\\n')",
-  "  ",
-  "  # Print the kable object",
-  "  print(metrics_summary$metric_tables[[table_name]])",
-  "  ",
-  "  # Add a page break after each table (optional)",
-  "  cat('\\n\\n\\\\newpage\\n\\n')",
-  "}",
-  "```"
-)
-
-# 3. Write to a temporary file and render
-temp_rmd <- tempfile(fileext = ".Rmd")
-writeLines(report_content, temp_rmd)
-
-render(temp_rmd, 
-       output_file = "Metrics_Summary_Tables.pdf", # Just the name
-       output_dir = results_folder_2)               # Explicitly set the destination
-
-# Optional: Clean up the temp file
-unlink(temp_rmd)
 
   
   
