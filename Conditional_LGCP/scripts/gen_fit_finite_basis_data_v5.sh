@@ -61,18 +61,18 @@ groups=$(( n_large / n_group ))
 
 method="CPGM"
 model_type="simu"  # simu or mice
-max_jobs=30
+max_jobs=60
 min_events=10
 max_events=5000
 
 p=12
 d=2
-n_query=4
+n_query=6
 beta_0=4.7
 beta_truth="T"
 X_truth="T"
 eigen_setting="trig_and_joint" #only_joint, trig_and_joint
-global_thresh_method="tau_c" #both, joint, tau_c, neither   both = do joint and tau_c
+global_thresh_method="both" #both, joint, tau_c, neither   both = do joint and tau_c
 
 
 
