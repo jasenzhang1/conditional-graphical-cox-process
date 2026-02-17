@@ -37,8 +37,8 @@ adj_type_params=(
   
   
   
-  #"complete_block_v2 0 1 4 4 3 0 1.1 0 0.8"             # for complete, c3 < c1/3, c4 < c2/3 [0, 1.1] and [0, 0.8]
-  #"complete_block_j2 0 1 4 0.5 4 3 0 0.8 0 0.6"         # for jump                           [0, 0.8] and [0, 0.6]
+  "complete_block_v2 0 1 4 4 3 0 1.1 0 0.8"             # for complete, c3 < c1/3, c4 < c2/3 [0, 1.1] and [0, 0.8]
+  "complete_block_j2 0 1 4 0.5 4 3 0 0.8 0 0.6"         # for jump                           [0, 0.8] and [0, 0.6]
   #"complete_block_c0 0.5 4 2 2 0.7 0.7"
   #"complete_block_c2 0 1 4 2 2 0.7 0.7"
   
@@ -50,8 +50,8 @@ adj_type_params=(
   
 )
 
-n_large=1000
-ns=(100 300 1000)
+n_large=10000
+ns=(100 300 1000 3000 10000)
 
 #n_large=20000
 #ns=(100 250 500 1000 2500 5000 10000 20000)
