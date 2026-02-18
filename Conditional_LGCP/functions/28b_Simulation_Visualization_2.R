@@ -1042,7 +1042,14 @@ visualize_metrics_finite_basis <- function(truth_file_name, results_folder, i, j
                                pattern = "\\.RData$", 
                                full.names = TRUE)
   
-  ns <- sort(get_ns(results_folder)) 
+  # Store the original unsorted data
+  original_ns <- get_ns(results_folder)
+  
+  # index + sort
+  idxs <- order(original_ns)
+  ns <- original_ns[idxs]
+  
+  estimate_files <- estimate_files[idxs]
   
   results_df <- data.frame()
   evals_df <- data.frame()
