@@ -4,8 +4,8 @@
 #
 # GOAL: Fit data replicates for mice data
 # 
-# v2:   (1/12/2026)
-#       Incorporate parallelized estimation code 
+# v5:   (2/18/2026)
+#       mimic gen_fit v5 code
 #
 # 
 # inputs:
@@ -21,6 +21,9 @@
 # - VR                (integer)  VR off (0) or on (1)
 # - min_events        (integer)  what is the minimum number of events in subject's neuron to be included?
 # - max_processes     (integer)  do we truncate the number of neurons?
+# - eigen_setting     (string)   only_joint, or trig_and_joint
+# - global_thresh_method (string)  both, joint, tau_c, or neither. (both = global and hybrid)
+# 
 # ------------------------------------------------------------------------------
 
 cd "$(dirname "$0")/.."   # go one level up (from /scripts to /)
@@ -30,37 +33,42 @@ IDs=("Tau3")
 y_c_structure="week_only"
 method="CPGM"
 model_type="mice"  # simu or mice
-max_jobs=30
+max_jobs=60
 
 time_scale=10 
 m=30
 movement=(0 0 1 1)
 VR=(0 1 0 1)
 min_events=5
-max_processes=1000
+max_processes=10
 n_weeks=5
 eigen_setting="only_joint"  #only_joint, trig_and_joint
+global_thresh_method="both"
 
-# function wait_for_slot {
-#     # Wait until the number of background jobs is strictly less than max_jobs
-#     while true; do
-#         running=$(jobs -rp | wc -l)
-#         if (( running < max_jobs )); then
-#             break
-#         fi
-#         sleep 0.5
-#     done
-# }
+
 
 function wait_for_slot {
+    # 1. Use pgrep to find processes named exactly "R" owned by the current user
+    # 2. This creates a global throttle across all subshells
     while true; do
-        # Count any process named 'R' or 'Rscript' owned by you
-        running=$(pgrep -u jasen -x "R" | wc -l)
+        # Count R and Rscript processes
+        running=$(pgrep -u "$USER" -x "R|Rscript" | wc -l)
+        
         if (( running < max_jobs )); then
             break
         fi
         sleep 1
     done
+}
+
+print_bar() {
+    local current=$1 total=$2 width=40
+    local filled=$(( current * width / total ))
+    local empty=$(( width - filled ))
+    printf "\r["
+    printf "%${filled}s" | tr ' ' '#'
+    printf "%${empty}s" | tr ' ' '-'
+    printf "] %3d / %3d" "$current" "$total"
 }
 
 mkdir -p script_outputs
