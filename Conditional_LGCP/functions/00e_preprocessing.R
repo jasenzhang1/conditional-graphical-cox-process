@@ -322,16 +322,29 @@ convert_data_for_storage <- function(LGCP_data, y_c_structure, movement_num, vr_
   # Ensure Y_continuous order matches the mapped subject_num_map
   y_cont_raw <- y_cont_raw[order(match(subject_num, final_subjects))]
   
-  if (y_c_structure == 'week_only') {
-    Y_continuous <- matrix(y_cont_raw$age)
-    y_c_query <- matrix(seq(min(LGCP_data[[3]]$age), max(LGCP_data[[3]]$age), n_weeks))
+  
+    
+  min_age <- min(y_cont_raw$age)
+  max_age <- max(y_cont_raw$age)
+  
+  # 2. Check the condition
+  # The number of integers in the range [min, max] is (max - min + 1)
+  if (n_weeks >= (max_age - min_age + 1)) {
+    # Case: Count every integer
+    vals <- min_age:max_age
   } else {
-    Y_continuous <- as.matrix(y_cont_raw[, .(age, timestamp)])
-    y_c_query_week <- seq(min(LGCP_data[[3]]$age), max(LGCP_data[[3]]$age), n_weeks)
+    # Case: Space out the selection to get exactly n_weeks integers
+    # We use round() to ensure they remain integers
+    vals <- round(seq(from = min_age, to = max_age, length.out = n_weeks))
+  }
+  
+  if (y_c_structure == 'week_only') {
+    # 3. Create the matrix
+    y_c_query <- matrix(vals, ncol = 1)
+  } else {
     max_time <- max(LGCP_data[[3]]$timestamp)
-    last_t <- 120 + floor((max_time - 120) / 240) * 240
-    y_c_query_time <- seq(120, last_t, by = 240)              # time is every 2 minutes
-    y_c_query <- expand.grid(v1 = y_c_query_week, v2 = y_c_query_time)
+    y_c_query_time <- seq(0, max_time, by = 120)              # time is every 2 minutes
+    y_c_query <- expand.grid(v1 = vals, v2 = y_c_query_time)
   }
   
   
