@@ -99,10 +99,6 @@ visualize_points_on_intensity <- function(step_0_events, step_1b, k, time_grid_e
   #
   # - step_0_events   (list)    each item denotes a process and is a vector of points
   # - step_1b         (list)    
-  #   - X_k_est                   (p x m_est   x n)
-  #   - X_k_truth                 (p x m_truth x n)
-  #   - X_k_coarse_truth          (p x m_est   x n)
-  #   - X_k_both_truth            (p x m_both  x n)
   #   - Lambda_k_truth            (p x m_truth x n)
   #   - Lambda_k_coarse_truth     (p x m_est   x n)
   #   - Lambda_k_est              (p x m_est   x n)
