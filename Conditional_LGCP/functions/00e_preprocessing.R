@@ -201,7 +201,7 @@ convert_data_adj_check <- function(process_ids, subject_ids){
   
 }
 
-convert_data_for_storage <- function(LGCP_data, y_c_structure, movement_num, vr_num, 
+convert_data_for_storage <- function(LGCP_data, ID, y_c_structure, movement_num, vr_num, time_scale,
                                      time_grid_est, min_events, n_weeks, max_processes = Inf, seed = NULL){
   
   # ----------------------------------------------------------------------------
@@ -225,9 +225,11 @@ convert_data_for_storage <- function(LGCP_data, y_c_structure, movement_num, vr_
   #   - [[2]] (nx3 data.frame with 'movement', 'VR', and 'subject_num')
   #   - [[3]] (nx3 data.frame with 'subject_num', 'age', and 'timestamp')
   #
+  # - ID                (string)      mouse name like "Tau1"
   # - y_c_structure     (string)      "week_only" or "time_and_week"
   # - movement_num      (0 or 1)
   # - vr_num            (0 or 1)
+  # - time_scale        (integer)     how many seconds per replicate?
   # - time_grid_est
   # - min_events        (integer)     minimum number of spikes for a replicate-process to be included
   # - n_weeks           (integer)     how many weeks do we want?
@@ -339,9 +341,10 @@ convert_data_for_storage <- function(LGCP_data, y_c_structure, movement_num, vr_
   }
   
   if (y_c_structure == 'week_only') {
-    # 3. Create the matrix
+    Y_continuous <- matrix(y_cont_raw$age)
     y_c_query <- matrix(vals, ncol = 1)
   } else {
+    Y_continuous <- as.matrix(y_cont_raw[, .(age, timestamp)])
     max_time <- max(LGCP_data[[3]]$timestamp)
     y_c_query_time <- seq(0, max_time, by = 120)              # time is every 2 minutes
     y_c_query <- expand.grid(v1 = vals, v2 = y_c_query_time)
@@ -353,6 +356,11 @@ convert_data_for_storage <- function(LGCP_data, y_c_structure, movement_num, vr_
     event_times = event_times,
     Y_continuous = Y_continuous,
     simulation_params = list(
+      ID = ID,
+      movement = movement_num,
+      vr = vr_num,
+      time_scale = time_scale,
+      min_events = min_events,
       n = nrow(Y_continuous),
       p = length(final_features),
       Tmax = 1,
