@@ -281,7 +281,7 @@ for ID in "${IDs[@]}"; do
             wait_for_slot
         
     
-            Rscript script_unpack_finite_basis_results.R "$n_large" "${ns[*]}" "$method" "$X_truth" "$beta_truth" "$eigen_setting" "$adj_type" "${adj_params[@]}" >> "$outfile" 2>&1
+            Rscript script_unpack_mice_results.R "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$eigen_setting"  >> "$outfile" 2>&1
             
             wait
             
