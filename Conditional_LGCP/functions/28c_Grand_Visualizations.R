@@ -171,7 +171,6 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth,
   arr_mat_8 <- matrix(1:8, nrow = 2, byrow = F)
   arr_mat_10 <- matrix(1:10, nrow = 2, byrow = F)  
   
-  m <- length(time_grid)
   m_est <- length(time_grid_est)
   
   graphs <- list()
