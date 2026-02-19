@@ -33,7 +33,7 @@ source('functions/00_function_wrapper.R')
 # 1) load args 
 args <- commandArgs(trailingOnly = TRUE)
 
-ID <- args[1]                       # ID <- 'Tau1'
+ID <- args[1]                       # ID <- 'Tau3'
 y_c_structure <- args[2]            # y_c_structure <- "week_only" or "time_and_week"
 time_scale <- as.numeric(args[3])   # time_scale <- 10   (each replicate is 5 seconds)
 method <- args[4]                   # method <- 'CPGM'
@@ -44,7 +44,7 @@ min_events <- as.numeric(args[8])
 max_processes <- as.numeric(args[9])
 n_weeks <- as.numeric(args[10])
 
-# ID <- 'Tau1'
+# ID <- 'Tau3'
 # y_c_structure <- 'week_only'
 # time_scale <- 10
 # method <- 'CPGM'
@@ -53,7 +53,7 @@ n_weeks <- as.numeric(args[10])
 # VR <- 0
 # min_events <- 5
 # max_processes <- 12
-# n_query <- 5
+# n_weeks <- 6
 
 # 2) create folder and print settings
 
@@ -81,7 +81,7 @@ load(paste0(old_data_folder, '/', ID, '_t', time_scale, '_data.rda'))
 
 time_grid_est <- make_time_grid(m)
 
-dataset_k <- convert_data_for_storage(LGCP_data, y_c_structure, movement, VR, 
+dataset_k <- convert_data_for_storage(LGCP_data, ID, y_c_structure, movement, VR, time_scale,
                                       time_grid_est, min_events, n_weeks, max_processes = max_processes, seed = NULL) # 00e
 
 # 5) store

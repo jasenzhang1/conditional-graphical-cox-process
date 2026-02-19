@@ -17,6 +17,15 @@ movement <- as.numeric(args[5])            # movement <- 0
 VR <- as.numeric(args[6])                  # VR <- 0
 eigen_setting  <- args[7]                  # only_joint, trig_and_joint
 
+# ID <- 'Tau3'
+# y_c_structure <- 'week_only'
+# time_scale <- 10
+# method <- 'CPGM'
+# movement <- 0
+# VR <- 0
+# eigen_setting <- 'only_joint'
+
+
 discrete_level <- paste0('m', movement, 'vr', VR)
 
 
