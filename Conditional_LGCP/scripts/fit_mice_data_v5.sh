@@ -41,7 +41,7 @@ movement=(0 0 1 1)
 VR=(0 1 0 1)
 min_events=5
 max_processes=10
-n_weeks=5
+n_weeks=6
 eigen_setting="only_joint"  #only_joint, trig_and_joint
 global_thresh_method="both"
 
@@ -127,7 +127,7 @@ for ID in "${IDs[@]}"; do
             # Step 2: Fit
             # -----------------------
             
-            echo "[STEP 2] Fitting dataset..." | tee -a "$outfile"
+            echo "[STEP 2] Fitting dataset ..." | tee -a "$outfile"
             echo "" | tee -a "$outfile"
             echo "===================================================" >> "$outfile"
             echo "" | tee -a "$outfile"
@@ -200,7 +200,6 @@ for ID in "${IDs[@]}"; do
             
             
             # temp_data/simu/step_2_v5_raw_rho_list...
-            wait_for_slot
             Rscript script_step2_part3_v5.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_i" "$n_ij" >> "$outfile" 2>&1
             
           
@@ -234,6 +233,27 @@ for ID in "${IDs[@]}"; do
             wait 
             
             # ----------------
+            # Part 2c - joint calculation of tau_c and tau_p across all timepoints                      
+            #           
+            #           AND/OR
+            #
+            #         - joint calculation of global tau_c and individual tau_p across all timepoints
+            # ----------------
+            
+            wait_for_slot 
+            
+            Rscript script_fit_mice_data_part2c.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_queries" "$global_thresh_method" >> "$outfile" 2>&1
+            
+            # ----------------
+            # Part 2d - get step_12 and step_12b, ROC and edge set after all w_mats have been calculated                     
+            # ----------------
+            
+            wait_for_slot
+            
+            Rscript script_fit_mice_data_part2d.R "$model_type" "$n_large" "$n" "$adj_type" "$method" "$n_query" >> "$outfile" 2>&1
+                  
+            
+            # ----------------
             # Part 3- when all part 2's are done, do part 3
             # ----------------
             
@@ -247,6 +267,24 @@ for ID in "${IDs[@]}"; do
                 
           
             wait
+            
+            # ----------------
+            # Last step - visualize results
+            # ----------------
+            
+            echo "" | tee -a "$outfile"
+            echo "===================================================" >> "$outfile"
+            echo "" | tee -a "$outfile"
+            echo "[STEP 3] Graphing results... " >> "$outfile"
+            echo "" | tee -a "$outfile"
+            
+            wait_for_slot
+        
+    
+            Rscript script_unpack_finite_basis_results.R "$n_large" "${ns[*]}" "$method" "$X_truth" "$beta_truth" "$eigen_setting" "$adj_type" "${adj_params[@]}" >> "$outfile" 2>&1
+            
+            wait
+            
             
             # ============================================================
             # END TIMER
