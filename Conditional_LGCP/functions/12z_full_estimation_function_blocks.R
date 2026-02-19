@@ -589,7 +589,7 @@ step_4_eigendecomp <- function(step_3, p, same_basis, constant_d){
   # 2) for each core name `est`, `X_truth` etc... get the resulting name, apply the function on it, and store it
   for(i in 1:length(core_names)){
     
-    name_i <- paste0('eigen_decomp_', core_names[i])
+    name_i <- paste0('eigen_decomp_', core_names[i], '_eig3')
     
     temp_var <- prep_eigendecomposition_ii(step_3[[input_names[i]]], p)  # prep
     result[[name_i]] <- compute_eigendecomposition_ii(temp_var, same_basis, constant_d)       # then compute
