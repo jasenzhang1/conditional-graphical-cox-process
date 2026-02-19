@@ -438,7 +438,9 @@ result_line_graph_prep <- function(my_list, entry_name, time_grid, grouping = 'e
       
       # Optionally trim by number of processes
       if (!is.null(num_processes)) {
-        A <- A[1:num_processes, ]
+        if(nrow(A) >= num_processes){
+          A <- A[1:num_processes, ]
+        }
       }
       
       df_ij <- reshape2::melt(A)
