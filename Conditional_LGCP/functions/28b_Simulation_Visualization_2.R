@@ -131,7 +131,7 @@ visualize_points_on_intensity <- function(step_0_events, step_1b, k, time_grid_e
   names(step_0_events_k) <- i_vec[k_vec == k]
   
 
-  process_id <- 1:length(step_0_events_k)
+  process_id <- names(step_0_events_k) %>% as.numeric()
   
 
   
@@ -147,12 +147,14 @@ visualize_points_on_intensity <- function(step_0_events, step_1b, k, time_grid_e
   
   # 2b) start of graph loop
   
-  for(i in process_id){
+  for(i in 1:length(process_id)){
     x <- step_0_events_k[[i]]
+    
+    idx <- process_id[i]
     
     df_est <- data.frame(
       x = time_grid_est,
-      y = step_1b$Lambda_k_est[i, , 1] / nbins
+      y = step_1b$Lambda_k_est[idx, , k] / nbins
     )
     
     # 2c) graph
@@ -168,7 +170,7 @@ visualize_points_on_intensity <- function(step_0_events, step_1b, k, time_grid_e
         aes(x = x, y = y, color = 'Estimate')
       ) +
       labs(
-        title = paste0("Process ", i),
+        title = paste0("Process ", idx),
         fill = "Event",
         color = "Intensity"
       ) +
@@ -187,7 +189,7 @@ visualize_points_on_intensity <- function(step_0_events, step_1b, k, time_grid_e
     if(X_truth){
       df_truth <- data.frame(
         x = time_grid,
-        y = step_1b$Lambda_k_truth[i, , 1] / nbins
+        y = step_1b$Lambda_k_truth[idx, , k] / nbins
       )
       
       graph_i <- graph_i +
