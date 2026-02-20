@@ -1279,10 +1279,10 @@ simulate_finite_basis_cox_data_part5 <- function(temp_file_dir, setting_info_lis
   truths_file_name          <- paste0('truths_', adj_type, '_n_', n, '_nquery', 1:cont_inds, '_rep_', rep_i, '.rds')
   dataset_file_name         <- paste0('dataset_', adj_type, '_n_', n, '_rep_', rep_i, '.rds')
   
-  file.remove(file.path(temp_file_dir, part0_file_name))
-  file.remove(file.path(temp_file_dir, parts_1_and_2_file_name))
-  file.remove(file.path(temp_file_dir, truths_file_name))
-  file.remove(file.path(temp_file_dir, dataset_file_name))
+  # file.remove(file.path(temp_file_dir, part0_file_name))
+  # file.remove(file.path(temp_file_dir, parts_1_and_2_file_name))
+  # file.remove(file.path(temp_file_dir, truths_file_name))
+  # file.remove(file.path(temp_file_dir, dataset_file_name))
   
   # -------------
   # return so it can be saved
