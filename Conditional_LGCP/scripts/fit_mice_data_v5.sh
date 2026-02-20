@@ -33,14 +33,16 @@ IDs=("Tau3")
 y_c_structure="week_only"
 method="CPGM"
 model_type="mice"  # simu or mice
-max_jobs=60
+max_jobs=30
 
 time_scale=10 
 m=30
 movement=(0 0 1 1)
 VR=(0 1 0 1)
+movement=(0)
+VR=(0)
 min_events=5
-max_processes=10
+max_processes=30
 n_weeks=6
 eigen_setting="only_joint"  #only_joint, trig_and_joint
 global_thresh_method="both"
@@ -259,7 +261,7 @@ for ID in "${IDs[@]}"; do
             
             wait_for_slot
             
-            # simu_results/adj_type/CPGM/... .RData
+            # mice_results/adj_type/CPGM/... .RData
             Rscript script_fit_mice_data_part3.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_queries" >> "$outfile" 2>&1
             
             echo "" | tee -a "$outfile"

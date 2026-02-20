@@ -13,7 +13,7 @@ args <- commandArgs(trailingOnly = TRUE)
 model_type <- args[1]                 # model_type = 'simu', or 'mice'
 
 if(model_type == 'mice'){
-  ID <- args[2]                              # ID <- 'Tau1'
+  ID <- args[2]                              # ID <- 'Tau3'
   y_c_structure <- args[3]                   # y_c_structure <- "week_only" or "time_and_week"
   time_scale <- as.numeric(args[4])          # time_scale <- 10   (each replicate is 5 seconds)
   method <- args[5]                          # method <- 'CPGM'
