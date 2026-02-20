@@ -768,25 +768,45 @@ result_step_12_prep <- function(step_12, est_names) {
   return(g)
 }
 
-result_29 <- function(weights, y_c_values, y_c_id){
+result_29 <- function(weights, Y_continuous, y_c_names){
   
   
   # ----------------------------------------------------------------------------
   # 
   # GOAL: plot the distribution of the weights in estimating rho_i(t)
   #
-  # - weights    (n-dim vector)  weight vector
-  # - y_c_values (n-dim vector)  time vector
-  # - y_c_id     (value)         y_c_query
+  # - weights      (list of n-dim vector)    list of weight vector
+  # - Y_continuous (n-dim vector)            time vector
+  # - y_c_names    (vector of values)          vector of y_c_query names
   #
   # ----------------------------------------------------------------------------
 
+  # 1. Create the combined long-format data frame
+  plot_data <- data.frame(
+    x = rep(Y_continuous, times = length(weights)),
+    y = unlist(weights),
+    id = rep(y_c_names, each = length(Y_continuous))
+  )
   
-  df_29 <- data.frame(x = y_c_values, y = weights)
-  g <- ggplot(data = df_29, aes(x = x, y = y)) + geom_line() + geom_point() + 
-    ylab('weight') + 
-    xlab('continuous covariate') + 
-    ggtitle(paste0('y_c_query=', y_c_id))
+  # Generate the faceted plot
+  g <- ggplot(plot_data, aes(x = x, y = y)) +
+    geom_line() +
+    geom_point() +
+    facet_wrap(~ id, nrow = 1) + 
+    labs(x = 'continuous covariate', y = 'weight') +
+    theme_bw() + # Starting with a clean base theme
+    theme(
+      # Remove all gridlines
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),
+      
+      # Box the facet names (the "strips")
+      strip.background = element_rect(fill = "white", color = "black"),
+      strip.text = element_text(face = "bold"),
+      
+      # Ensure a border around each facet panel
+      panel.border = element_rect(color = "black", fill = NA)
+    )
   
   return(g)
   
@@ -894,27 +914,24 @@ result_43_prep <- function(step_4){
 }
 
 # reconstruction error histogram
-result_44_prep <- function(step_3, step_4, p, X_truth, eigen_troubleshoot){
+result_44_prep <- function(step_3, step_4, p, ground_truth, X_truth, eigen_troubleshoot){
   
   if(! eigen_troubleshoot){
     
-  
-    # prep
-    g_ii_truth          <- prep_eigendecomposition_ii(step_3$g_ij_truth, p)
+    # prep, validate store
     g_ii_est            <- prep_eigendecomposition_ii(step_3$g_ij_est, p) 
+    g_ii_est_decomp     <- validate_eigendecomposition_ii(g_ii_est,            step_4$eigen_decomp_est) 
+    error_list <- list(error_est = as.numeric(g_ii_est - g_ii_est_decomp))
     
-    # validate
-    g_ii_truth_decomp           <- validate_eigendecomposition_ii(g_ii_truth,          step_4$eigen_decomp_truth)
-    g_ii_est_decomp             <- validate_eigendecomposition_ii(g_ii_est,            step_4$eigen_decomp_est) 
-    
-    error_list <- list(error_truth = as.numeric(g_ii_truth - g_ii_truth_decomp),
-                       error_est   = as.numeric(g_ii_est - g_ii_est_decomp))
-    
+    if(ground_truth){
+      g_ii_truth          <- prep_eigendecomposition_ii(step_3$g_ij_truth, p)
+      g_ii_truth_decomp   <- validate_eigendecomposition_ii(g_ii_truth,          step_4$eigen_decomp_truth)
+      error_list[['error_truth']] = as.numeric(g_ii_truth - g_ii_truth_decomp)
+    }
+
     if(X_truth){
-      #prep and validate X_truth
       g_ii_X_truth        <- prep_eigendecomposition_ii(step_3$g_ij_X_truth, p) 
-      g_ii_X_truth_decomp         <- validate_eigendecomposition_ii(g_ii_X_truth,        step_4$eigen_decomp_X_truth) 
-      
+      g_ii_X_truth_decomp <- validate_eigendecomposition_ii(g_ii_X_truth,        step_4$eigen_decomp_X_truth) 
       error_list[['error_X_truth']] <- as.numeric(g_ii_X_truth - g_ii_X_truth_decomp)
     } 
     
