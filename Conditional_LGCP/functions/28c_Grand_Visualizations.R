@@ -65,25 +65,31 @@ visualize_prec_mat_over_time <- function(folder_name, n){
 
 
 # helper 
-rearrange_plots <- function(g_list){
-  
-  # g_list is a list of lists
-  # - first layer is for each y_c
-  # - second layer is for (truth theory, est etc)
-  
+rearrange_plots <- function(g_list, main_title = NULL){
   
   n_time <- length(g_list)
   n_graphs <- length(g_list[[1]])
-  N <- n_time * n_graphs
   
-  # unlist the plots, reorganize them
+  # 1. Unlist and reorganize plots
   plots <- unlist(g_list, recursive = FALSE)
   indices <- as.vector(sapply(1:n_graphs, function(r) r + (0:(n_time-1))*n_graphs))
   plots_colwise <- plots[indices]
   
+  # 2. Setup the arguments for grid.arrange
+  # We use grobs = plots_colwise to explicitly separate the plots from the layout settings
+  args_list <- list(
+    grobs = plots_colwise,
+    nrow = n_graphs,
+    ncol = n_time
+  )
   
-  # plot them
-  arranged_plot <- do.call(grid.arrange, c(plots_colwise, nrow = n_graphs, ncol = n_time))  
+  # 3. Add the title only if it exists
+  if(!is.null(main_title)) {
+    args_list$top <- grid::textGrob(main_title, gp = grid::gpar(fontsize = 16, fontface = "bold"))
+  }
+  
+  # 4. Call grid.arrange using the cleaned argument list
+  arranged_plot <- do.call(gridExtra::grid.arrange, args_list)
   
   return(arranged_plot)
 }
@@ -124,7 +130,7 @@ label_model_type <- function(vec) {
 
 # everything over all query_id
 
-visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth, eigen_troubleshoot){
+visualize_over_time <- function(graph_results_i, graph_ids, ground_truth, beta_truth, X_truth, eigen_troubleshoot){
   
   
   # ----------------------------------------------------------------------------
@@ -150,6 +156,7 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth,
   # - graph_ids         (vector of strings)    which graphs do we want?
   # - i
   # - j
+  # - ground_truth          (boolean)             do our results have the overall truth?
   # - beta_truth            (boolean)             do our results have beta_truth values? 
   # - X_truth               (boolean)             do our results have X_truth values? 
   #
@@ -276,11 +283,7 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth,
   
   # weights, all y_c_query settings in a row
   if('29' %in% graph_ids){
-    graph_list <- lapply(seq_along(weights), function(i) {
-      result_29(weights[[i]], Y_continuous, y_c_names[i])
-    })
-    
-    graphs[['g_29']] <- do.call(grid.arrange, c(graph_list, nrow = 1))
+    graphs[['g_29']] <- result_29(weights, Y_continuous, y_c_names)
   }
   
   # g_ij(s,t) at 1_1
@@ -319,7 +322,7 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth,
   
   # reconstruction error histogram 
   if('44' %in% graph_ids){ 
-    g_list <- lapply(1:length(step_3), function(i){result_44_prep(step_3[[i]], step_4[[i]], p, X_truth, eigen_troubleshoot)})
+    g_list <- lapply(1:length(step_3), function(i){result_44_prep(step_3[[i]], step_4[[i]], p, ground_truth, X_truth, eigen_troubleshoot)})
     names(g_list) <- y_c_names
     
     graphs[['g_44']] <- result_histogram_prep(g_list, 'error', data_format = 'regular', nbins = 20)
@@ -388,10 +391,10 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth,
   # KL_cor entire matrix + KL_cov 
   if('58' %in% graph_ids){
     g_list <- lapply(step_5b, function(x) result_58_prep(x, p))   # correlation
-    graphs[['g_58']] <- rearrange_plots(g_list) 
+    graphs[['g_58']] <- rearrange_plots(g_list, main_title = 'KL Correlation') 
     
     g_list <- lapply(step_5, function(x) result_58_cov_prep(x, p))  # covariance
-    graphs[['g_58b']] <- rearrange_plots(g_list) 
+    graphs[['g_58b']] <- rearrange_plots(g_list, main_title = 'KL Covariance') 
     
     
   }
@@ -399,7 +402,7 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth,
   # KL_prec entire matrix
   if('59' %in% graph_ids){
     g_list <- lapply(step_5c, function(x) result_59_prep(x, p))   # precision
-    graphs[['g_59']] <- rearrange_plots(g_list) 
+    graphs[['g_59']] <- rearrange_plots(g_list, main_title = 'KL Precision') 
   }
   
   # V_Xi_Xj
@@ -430,32 +433,53 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth,
   
   # C_HS for all pxp blocks
   if('95' %in% graph_ids){
-    graphs[['g_94']] <- result_heatmap_nonblock_prep(step_11b, 'C_HS', data_format = 'regular', time_grid_est = time_grid_est, rm_diag = F, graph_title = 'C_HS values (display diag)', zmid = 0)
-    graphs[['g_95']] <- result_heatmap_nonblock_prep(step_11b, 'C_HS', data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, graph_title = 'C_HS values (hide diag)', zmid = 0)
     
-    
-    # only keep the eig1 names
-    step_11b_names <- names(step_11b[[1]])
-    suffixes <- sub("^C_HS_", "", step_11b_names)
-    est_eig1_index <- grep("est_eig1$", suffixes)
-    truth_index <- which(suffixes == 'truth')
-    kept_indices  <- c(truth_index, est_eig1_index)
-    kept_names <- step_11b_names[kept_indices]
-    new_names <- label_model_type(kept_names)     # helper function earlier in the code
-    name_map <- setNames(new_names, kept_names)
-    
-    # filter 
-    step_11b_v2 <- step_11b
-    step_11b_v2 <- lapply(step_11b, function(x) {
+    if(! eigen_troubleshoot){
+      # assume we only have est_eig3 for mice
+
+      step_11b_names <- names(step_11b[[1]])
+      new_names <- label_model_type(step_11b_names)     # helper function earlier in the code
+      name_map <- setNames(new_names, step_11b_names)
       
-      x <- x[kept_indices]
-      names(x) <- name_map[names(x)]
+      step_11b_v2 <- step_11b
+      step_11b_v2 <- lapply(step_11b, function(x) {
+        
+        names(x) <- name_map[names(x)]
+        
+        return(x)
+      })
       
-      return(x)
-    })
-    
-    graphs[['g_94b']] <- result_heatmap_nonblock_prep(step_11b_v2, NULL, data_format = 'regular', time_grid_est = time_grid_est, rm_diag = F, graph_title = 'C_HS values of est_eig1 (display diag)', zmid = 0)
-    graphs[['g_95b']] <- result_heatmap_nonblock_prep(step_11b_v2, NULL, data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, graph_title = 'C_HS values of est_eig1 (hide diag)', zmid = 0)
+      graphs[['g_94']] <- result_heatmap_nonblock_prep(step_11b_v2, NULL, data_format = 'regular', time_grid_est = time_grid_est, rm_diag = F, graph_title = 'C_HS values (display diag)', zmid = 0)
+      graphs[['g_95']] <- result_heatmap_nonblock_prep(step_11b_v2, NULL, data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, graph_title = 'C_HS values (hide diag)', zmid = 0)  
+      
+    } else{
+      graphs[['g_94']] <- result_heatmap_nonblock_prep(step_11b, 'C_HS', data_format = 'regular', time_grid_est = time_grid_est, rm_diag = F, graph_title = 'C_HS values (display diag)', zmid = 0)
+      graphs[['g_95']] <- result_heatmap_nonblock_prep(step_11b, 'C_HS', data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, graph_title = 'C_HS values (hide diag)', zmid = 0)
+
+      # only keep the eig1 names
+      step_11b_names <- names(step_11b[[1]])
+      suffixes <- sub("^C_HS_", "", step_11b_names)
+      est_eig1_index <- grep("est_eig1$", suffixes)
+      truth_index <- which(suffixes == 'truth')
+      kept_indices  <- c(truth_index, est_eig1_index)
+      kept_names <- step_11b_names[kept_indices]
+      new_names <- label_model_type(kept_names)     # helper function earlier in the code
+      name_map <- setNames(new_names, kept_names)
+      
+      # filter 
+      step_11b_v2 <- step_11b
+      step_11b_v2 <- lapply(step_11b, function(x) {
+        
+        x <- x[kept_indices]
+        names(x) <- name_map[names(x)]
+        
+        return(x)
+      })
+      
+      graphs[['g_94b']] <- result_heatmap_nonblock_prep(step_11b_v2, NULL, data_format = 'regular', time_grid_est = time_grid_est, rm_diag = F, graph_title = 'C_HS values of est_eig1 (display diag)', zmid = 0)
+      graphs[['g_95b']] <- result_heatmap_nonblock_prep(step_11b_v2, NULL, data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, graph_title = 'C_HS values of est_eig1 (hide diag)', zmid = 0)
+      
+    }
   }
   
   # distribution of C_HS
@@ -491,33 +515,68 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth,
   # 111 = remove diagonals
   
   if('111' %in% graph_ids){
-    graphs[['g_110']] <- result_heatmap_nonblock_prep(step_11, 'w_mat', data_format = 'regular', time_grid_est = time_grid_est, rm_diag = F, graph_title = 'P_HS values (display diag)', zmid = 0)
-    graphs[['g_111']] <- result_heatmap_nonblock_prep(step_11, 'w_mat', data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, graph_title = 'P_HS values (hide diag)', zmid = 0)
     
-    
-    # only keep the eig1 names
-    step_11_names <- names(step_11[[1]])
-    suffixes <- sub("^w_mat_", "", step_11_names)
-    est_eig1_index <- grep("est_eig1$", suffixes)
-    truth_index <- which(suffixes == 'truth')
-    kept_indices  <- c(truth_index, est_eig1_index)
-    kept_names <- step_11_names[kept_indices]
-    new_names <- label_model_type(kept_names)     # helper function earlier in the code
-    name_map <- setNames(new_names, kept_names)
-    
-    # filter 
-    step_11_v2 <- step_11
-    step_11_v2 <- lapply(step_11, function(x) {
+    if(! eigen_troubleshoot){
+      # assume we only have est_eig3 for mice
       
-      x <- x[kept_indices]
-      names(x) <- name_map[names(x)]
+      step_11_names <- names(step_11[[1]])
+      new_names <- label_model_type(step_11_names)     # helper function earlier in the code
+      name_map <- setNames(new_names, step_11_names)
       
-      return(x)
-    })
-    
-    graphs[['g_110b']] <- result_heatmap_nonblock_prep(step_11_v2, NULL, data_format = 'regular', time_grid_est = time_grid_est, rm_diag = F, graph_title = 'P_HS values of est_eig1 (display diag)', zmid = 0)
-    graphs[['g_111b']] <- result_heatmap_nonblock_prep(step_11_v2, NULL, data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, graph_title = 'P_HS values of est_eig1 (hide diag)', zmid = 0)
-    
+      step_11_v2 <- step_11
+      step_11_v2 <- lapply(step_11, function(x) {
+        
+        names(x) <- name_map[names(x)]
+        
+        return(x)
+      })
+      
+      graphs[['g_110']] <- result_heatmap_nonblock_prep(step_11_v2, NULL, data_format = 'regular', time_grid_est = time_grid_est, rm_diag = F, graph_title = 'P_HS values (display diag)', zmid = 0)
+      graphs[['g_111']] <- result_heatmap_nonblock_prep(step_11_v2, NULL, data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, graph_title = 'P_HS values (hide diag)', zmid = 0) 
+      
+      
+      if('none' %in% new_names){
+        step_11_v3 <- step_11_v2
+        step_11_v3 <- lapply(step_11_v2, function(x) {
+          x <- x[names(x) != 'none']
+          return(x)
+        })
+        graphs[['g_110b']] <- result_heatmap_nonblock_prep(step_11_v3, NULL, data_format = 'regular', time_grid_est = time_grid_est, rm_diag = F, graph_title = 'P_HS values (display diag)', zmid = 0)
+        graphs[['g_111b']] <- result_heatmap_nonblock_prep(step_11_v3, NULL, data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, graph_title = 'P_HS values (hide diag)', zmid = 0) 
+        
+        
+        
+      }
+      
+      
+    } else{ # look at eig_est1
+      graphs[['g_110']] <- result_heatmap_nonblock_prep(step_11, 'w_mat', data_format = 'regular', time_grid_est = time_grid_est, rm_diag = F, graph_title = 'P_HS values (display diag)', zmid = 0)
+      graphs[['g_111']] <- result_heatmap_nonblock_prep(step_11, 'w_mat', data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, graph_title = 'P_HS values (hide diag)', zmid = 0)
+      
+      
+      # only keep the eig1 names
+      step_11_names <- names(step_11[[1]])
+      suffixes <- sub("^w_mat_", "", step_11_names)
+      est_eig1_index <- grep("est_eig1$", suffixes)
+      truth_index <- which(suffixes == 'truth')
+      kept_indices  <- c(truth_index, est_eig1_index)
+      kept_names <- step_11_names[kept_indices]
+      new_names <- label_model_type(kept_names)     # helper function earlier in the code
+      name_map <- setNames(new_names, kept_names)
+      
+      # filter 
+      step_11_v2 <- step_11
+      step_11_v2 <- lapply(step_11, function(x) {
+        
+        x <- x[kept_indices]
+        names(x) <- name_map[names(x)]
+        
+        return(x)
+      })
+      
+      graphs[['g_110b']] <- result_heatmap_nonblock_prep(step_11_v2, NULL, data_format = 'regular', time_grid_est = time_grid_est, rm_diag = F, graph_title = 'P_HS values of est_eig1 (display diag)', zmid = 0)
+      graphs[['g_111b']] <- result_heatmap_nonblock_prep(step_11_v2, NULL, data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, graph_title = 'P_HS values of est_eig1 (hide diag)', zmid = 0)
+    }
 
   }  
   
@@ -613,62 +672,81 @@ visualize_over_time <- function(graph_results_i, graph_ids, beta_truth, X_truth,
   
   # Final adj_mat for all pxp blocks
   if('114' %in% graph_ids){
-    graphs[['g_114']] <- result_heatmap_nonblock_prep(step_12b, 'adj_mat', data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, graph_title = 'edge sets', zmid = 0)
     
-    # groups
-    # 1) truth_names     -  truths
-    # 2) GIC_names       -  KL_GIC est and X_truth
-    # 3) GIC_est_names   -  KL_GIC est 
-    # 4) est_names       -  est and X_truth
-    # 5) KL_est_names    -  just est
+    if(!eigen_troubleshoot){
+      # assume we only have est_eig3 for mice
+      
+      step_12b_names <- names(step_12b[[1]])
+      new_names <- label_model_type(step_12b_names)     # helper function earlier in the code
+      name_map <- setNames(new_names, step_12b_names)
+      
+      step_12b_v2 <- step_12b
+      step_12b_v2 <- lapply(step_12b, function(x) {
+        
+        names(x) <- name_map[names(x)]
+        
+        return(x)
+      })
+      
+      
+      graphs[['g_114']] <- result_heatmap_nonblock_prep(step_12b_v2, NULL, data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, graph_title = 'edge sets', zmid = 0)
+    } else{
     
-    step_12b_names <- names(step_12b[[1]])
-    truth_names   <- step_12b_names[grepl("truth$", step_12b_names)]
-    step_12b_names <- setdiff(step_12b_names, truth_names)
-    
-    
-    KL_GIC_names  <- step_12b_names[grepl("^adj_mat_KL_GIC", step_12b_names)]  
-    KL_GIC_est_names <- grep("_est_", KL_GIC_names, value = TRUE)
-    est_names <- setdiff(step_12b_names, KL_GIC_names)
-    KL_est_names <- est_names[startsWith(est_names, "adj_mat_KL_est")]
-    
-    # truths
-    step_12b_v2 <- step_12b
-    step_12b_v2 <- lapply(step_12b_v2, function(x) {
-      x[names(x) %in% truth_names]
-    })
-    graphs[['g_114b']] <- result_heatmap_nonblock_prep(step_12b_v2, 'adj_mat', data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, graph_title = 'edge set of truths', zmid = 0)
-    
-    # estimates
-    step_12b_v3 <- step_12b
-    step_12b_v3 <- lapply(step_12b_v3, function(x) {
-      x[names(x) %in% est_names]
-    })
-    graphs[['g_114c']] <- result_heatmap_nonblock_prep(step_12b_v3, 'adj_mat', data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, graph_title = 'edge set of non-thresholded results', zmid = 0)
-    
-    # KL_est
-    step_12b_v6 <- step_12b
-    step_12b_v6 <- lapply(step_12b_v6, function(x) {
-      x[names(x) %in% KL_est_names]
-    })
-    graphs[['g_114d']] <- result_heatmap_nonblock_prep(step_12b_v6, 'adj_mat', data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, graph_title = 'edge set of non-thresholded estimates', zmid = 0)
-    
-    # KL_GIC
-    step_12b_v4 <- step_12b
-    step_12b_v4 <- lapply(step_12b_v4, function(x) {
-      x[names(x) %in% KL_GIC_names]
-    })
-    graphs[['g_114e']] <- result_heatmap_nonblock_prep(step_12b_v4, 'adj_mat', data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, graph_title = 'edge set of thresholded results', zmid = 0)
-    
-    # KL_GIC_est
-    step_12b_v5 <- step_12b
-    step_12b_v5 <- lapply(step_12b_v5, function(x) {
-      x[names(x) %in% KL_GIC_est_names]
-    })
-    graphs[['g_114f']] <- result_heatmap_nonblock_prep(step_12b_v5, 'adj_mat', data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, graph_title = 'edge set of thresholded estimates', zmid = 0)
-    
-    
-    
+      graphs[['g_114']] <- result_heatmap_nonblock_prep(step_12b, 'adj_mat', data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, graph_title = 'edge sets', zmid = 0)
+      
+      # groups
+      # 1) truth_names     -  truths
+      # 2) GIC_names       -  KL_GIC est and X_truth
+      # 3) GIC_est_names   -  KL_GIC est 
+      # 4) est_names       -  est and X_truth
+      # 5) KL_est_names    -  just est
+      
+      step_12b_names <- names(step_12b[[1]])
+      truth_names   <- step_12b_names[grepl("truth$", step_12b_names)]
+      step_12b_names <- setdiff(step_12b_names, truth_names)
+      
+      
+      KL_GIC_names  <- step_12b_names[grepl("^adj_mat_KL_GIC", step_12b_names)]  
+      KL_GIC_est_names <- grep("_est_", KL_GIC_names, value = TRUE)
+      est_names <- setdiff(step_12b_names, KL_GIC_names)
+      KL_est_names <- est_names[startsWith(est_names, "adj_mat_KL_est")]
+      
+      # truths
+      step_12b_v2 <- step_12b
+      step_12b_v2 <- lapply(step_12b_v2, function(x) {
+        x[names(x) %in% truth_names]
+      })
+      graphs[['g_114b']] <- result_heatmap_nonblock_prep(step_12b_v2, 'adj_mat', data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, graph_title = 'edge set of truths', zmid = 0)
+      
+      # estimates
+      step_12b_v3 <- step_12b
+      step_12b_v3 <- lapply(step_12b_v3, function(x) {
+        x[names(x) %in% est_names]
+      })
+      graphs[['g_114c']] <- result_heatmap_nonblock_prep(step_12b_v3, 'adj_mat', data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, graph_title = 'edge set of non-thresholded results', zmid = 0)
+      
+      # KL_est
+      step_12b_v6 <- step_12b
+      step_12b_v6 <- lapply(step_12b_v6, function(x) {
+        x[names(x) %in% KL_est_names]
+      })
+      graphs[['g_114d']] <- result_heatmap_nonblock_prep(step_12b_v6, 'adj_mat', data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, graph_title = 'edge set of non-thresholded estimates', zmid = 0)
+      
+      # KL_GIC
+      step_12b_v4 <- step_12b
+      step_12b_v4 <- lapply(step_12b_v4, function(x) {
+        x[names(x) %in% KL_GIC_names]
+      })
+      graphs[['g_114e']] <- result_heatmap_nonblock_prep(step_12b_v4, 'adj_mat', data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, graph_title = 'edge set of thresholded results', zmid = 0)
+      
+      # KL_GIC_est
+      step_12b_v5 <- step_12b
+      step_12b_v5 <- lapply(step_12b_v5, function(x) {
+        x[names(x) %in% KL_GIC_est_names]
+      })
+      graphs[['g_114f']] <- result_heatmap_nonblock_prep(step_12b_v5, 'adj_mat', data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, graph_title = 'edge set of thresholded estimates', zmid = 0)
+      
+    }
   }   
   
   
