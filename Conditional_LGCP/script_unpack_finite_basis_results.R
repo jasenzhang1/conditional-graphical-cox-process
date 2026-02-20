@@ -11,12 +11,13 @@ args <- commandArgs(trailingOnly = TRUE)
 
 n_large  <- as.numeric(args[1])
 ns       <- as.numeric(unlist(strsplit(args[2], " ")))
-method      <- args[3]    
-X_truth     <- as.logical(args[4])
-beta_truth  <- as.logical(args[5])
-eigen_setting  <- args[6]
-adj_type    <- args[7]
-adj_params <- as.numeric(args[8:length(args)])
+n_reps      <- as.numeric(args[3])
+method      <- args[4]    
+X_truth     <- as.logical(args[5])
+beta_truth  <- as.logical(args[6])
+eigen_setting  <- args[7]
+adj_type    <- args[8]
+adj_params <- as.numeric(args[9:length(args)])
 
 
 # n_large <- 10000
@@ -58,7 +59,7 @@ final_ids <- c('113',  # roc
 
 tau_ids <- c('121')  # tau_c and tau_p
 
-truth_file_name <- paste0(data_folder, '/', adj_type, '_n_', n_large, '_truths.RData')
+truth_file_name <- paste0(data_folder, '/', adj_type, '_n_', n_large, '_rep_1_truths.RData')
 results_folder <- paste0(base_folder, '/', adj_type, '/', method)
 
 
@@ -76,7 +77,7 @@ print('Plotting 28e Figures')
 for(n in ns){
   
 
-  estimates_file_name <- paste0(results_folder, '/', adj_type, '_n_', n, '.RData')
+  estimates_file_name <- paste0(results_folder, '/', adj_type, '_n_', n, '_rep_', 1, '.RData')
   
   g_exploratory <- visualize_finite_basis(truth_file_name, estimates_file_name, exploratory_ids, ground_truth, beta_truth, X_truth, eigen_troubleshoot)
   g_betas       <- visualize_finite_basis(truth_file_name, estimates_file_name, beta_ids,        ground_truth, beta_truth, X_truth, eigen_troubleshoot)

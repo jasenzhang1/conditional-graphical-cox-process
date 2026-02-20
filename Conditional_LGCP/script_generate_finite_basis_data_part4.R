@@ -8,12 +8,14 @@ omp_set_num_threads(1)    # limit OpenMP
 args <- commandArgs(trailingOnly = TRUE)
 
 n_large <- as.numeric(args[1])
-adj_type <- args[2]
-cont_ind <- as.numeric(args[3])
-beta_truth <- as.logical(args[4])
-adj_params <- as.numeric(args[5:length(args)])
+rep_i <- as.numeric(args[2])
+adj_type <- args[3]
+cont_ind <- as.numeric(args[4])
+beta_truth <- as.logical(args[5])
+adj_params <- as.numeric(args[6:length(args)])
 
 setting_info_list <- list(n = n_large,
+                          rep_i = rep_i,
                           beta_truth = beta_truth,
                           adj_type = adj_type,
                           adj_params = adj_params)

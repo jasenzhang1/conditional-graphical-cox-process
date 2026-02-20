@@ -776,7 +776,7 @@ simulate_finite_basis_cox_data_parts1_and_2 <- function(temp_file_dir, setting_i
   
   list2env(setting_info_list, envir = environment())
   
-  part_0_info_list <- paste0("part0_", adj_type, '_n_', n, '.rds')
+  part_0_info_list <- paste0("part0_", adj_type, '_n_', n, '_rep_', rep_i, '.rds')
   results <- readRDS(file.path(temp_file_dir, part_0_info_list))
   list2env(results, envir = environment())
   
@@ -845,7 +845,7 @@ simulate_finite_basis_cox_data_parts1_and_2 <- function(temp_file_dir, setting_i
   
   # save 
   
-  parts_1_and_2_info_list <- paste0('parts1_and_2_', adj_type, '_n_', n, '_group', group_idx, '.rds')
+  parts_1_and_2_info_list <- paste0('parts1_and_2_', adj_type, '_n_', n, '_group', group_idx, '_rep_', rep_i, '.rds')
   saveRDS(results, file = file.path(temp_file_dir, parts_1_and_2_info_list))  
   
 }
@@ -901,13 +901,13 @@ simulate_finite_basis_cox_data_part3 <- function(temp_file_dir, setting_info_lis
   list2env(setting_info_list, envir = environment())
   
   # 0b) load part 0's stuff
-  part_0_info_list <- paste0("part0_", adj_type, '_n_', n, '.rds')
+  part_0_info_list <- paste0("part0_", adj_type, '_n_', n, '_rep_', rep_i, '.rds')
   results <- readRDS(file.path(temp_file_dir, part_0_info_list))
   list2env(results, envir = environment())
   
   
   # 0bc) load parts 1 and 2 together
-  part_1_and_2_info_lists <- paste0(temp_file_dir, '/parts1_and_2_', adj_type, '_n_', n, '_group', 1:group_nums, '.rds')
+  part_1_and_2_info_lists <- paste0(temp_file_dir, '/parts1_and_2_', adj_type, '_n_', n, '_group', 1:group_nums, '_rep_', rep_i, '.rds')
   all_parts_1_and_2_loaded <- lapply(part_1_and_2_info_lists, readRDS)
   
   events               <- do.call(c, lapply(all_parts_1_and_2_loaded, `[[`, "events"))
@@ -942,7 +942,7 @@ simulate_finite_basis_cox_data_part3 <- function(temp_file_dir, setting_info_lis
                                         adj_type, adj_params, time_grid, time_grid_est, time_grid_both, seed,
                                         log_intensities, log_intensities_est, log_intensities_both, Y_c, beta_coeffs)
                                        
-  part_3_info_list <- paste0('dataset_', adj_type, '_n_', n, '.rds')
+  part_3_info_list <- paste0('dataset_', adj_type, '_n_', n, '_rep_', rep_i, '.rds')
   saveRDS(dataset, file = file.path(temp_file_dir, part_3_info_list))  
   
 
@@ -1032,13 +1032,13 @@ simulate_finite_basis_cox_data_part4 <- function(temp_file_dir, setting_info_lis
   
   # 0a) load part0 
 
-  part_0_info_list <- paste0("part0_", adj_type, '_n_', n, '.rds')
+  part_0_info_list <- paste0("part0_", adj_type, '_n_', n, '_rep_', rep_i, '.rds')
   results <- readRDS(file.path(temp_file_dir, part_0_info_list))
   list2env(results, envir = environment())
   
   # 0b) load things from `dataset`
   
-  part_3_info_list <- paste0('dataset_', adj_type, '_n_', n, '.rds')
+  part_3_info_list <- paste0('dataset_', adj_type, '_n_', n, '_rep_', rep_i, '.rds')
   dataset <- readRDS(file.path(temp_file_dir, part_3_info_list))   
   beta_coeffs <- dataset$beta_coeffs
   
@@ -1189,7 +1189,7 @@ simulate_finite_basis_cox_data_part4 <- function(temp_file_dir, setting_info_lis
   
   # store 
   
-  part_4_info_list <- paste0('truths_', adj_type, '_n_', n, '_nquery', cont_ind, '.rds')
+  part_4_info_list <- paste0('truths_', adj_type, '_n_', n, '_nquery', cont_ind, '_rep_', rep_i, '.rds')
   saveRDS(all_truths, file = file.path(temp_file_dir, part_4_info_list))  
 }
 
@@ -1218,11 +1218,11 @@ simulate_finite_basis_cox_data_part5 <- function(temp_file_dir, setting_info_lis
   
   
   # 0b) load the truths
-  part_4_info_lists <- paste0(temp_file_dir, '/truths_', adj_type, '_n_', n, '_nquery', 1:cont_inds, '.rds')
+  part_4_info_lists <- paste0(temp_file_dir, '/truths_', adj_type, '_n_', n, '_nquery', 1:cont_inds, '_rep_', rep_i, '.rds')
   all_part_4_loaded <- lapply(part_4_info_lists, readRDS)
   
   # 0c) load part 0 to get query_y_cs
-  part_0_info_list <- paste0("part0_", adj_type, '_n_', n, '.rds')
+  part_0_info_list <- paste0("part0_", adj_type, '_n_', n, '_rep_', rep_i, '.rds')
   results <- readRDS(file.path(temp_file_dir, part_0_info_list))
   list2env(results, envir = environment())
   
@@ -1243,7 +1243,7 @@ simulate_finite_basis_cox_data_part5 <- function(temp_file_dir, setting_info_lis
   
   # 1a) load the dataset
   
-  part_3_info_list <- paste0('dataset_', adj_type, '_n_', n, '.rds') 
+  part_3_info_list <- paste0('dataset_', adj_type, '_n_', n, '_rep_', rep_i, '.rds') 
   dataset <- readRDS(file.path(temp_file_dir, part_3_info_list)) 
   
   log_intensities <- dataset$X_k_truth
@@ -1274,15 +1274,15 @@ simulate_finite_basis_cox_data_part5 <- function(temp_file_dir, setting_info_lis
   # ------------------------
   
 
-  part0_file_name           <- paste0('part0_', adj_type, '_n_', n, '.rds')
-  parts_1_and_2_file_name   <- paste0('parts1_and_2_', adj_type, '_n_', n, '_group', 1:group_nums, '.rds')
-  truths_file_name          <- paste0('truths_', adj_type, '_n_', n, '_nquery', 1:cont_inds, '.rds')
-  dataset_file_name         <- paste0('dataset_', adj_type, '_n_', n, '.rds')
+  part0_file_name           <- paste0('part0_', adj_type, '_n_', n, '_rep_', rep_i, '.rds')
+  parts_1_and_2_file_name   <- paste0('parts1_and_2_', adj_type, '_n_', n, '_group', 1:group_nums, '_rep_', rep_i, '.rds')
+  truths_file_name          <- paste0('truths_', adj_type, '_n_', n, '_nquery', 1:cont_inds, '_rep_', rep_i, '.rds')
+  dataset_file_name         <- paste0('dataset_', adj_type, '_n_', n, '_rep_', rep_i, '.rds')
   
-  # file.remove(file.path(temp_file_dir, part0_file_name)) 
-  # file.remove(file.path(temp_file_dir, parts_1_and_2_file_name)) 
-  # file.remove(file.path(temp_file_dir, truths_file_name)) 
-  # file.remove(file.path(temp_file_dir, dataset_file_name)) 
+  file.remove(file.path(temp_file_dir, part0_file_name))
+  file.remove(file.path(temp_file_dir, parts_1_and_2_file_name))
+  file.remove(file.path(temp_file_dir, truths_file_name))
+  file.remove(file.path(temp_file_dir, dataset_file_name))
   
   # -------------
   # return so it can be saved

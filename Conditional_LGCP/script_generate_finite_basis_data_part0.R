@@ -12,10 +12,11 @@ args <- commandArgs(trailingOnly = TRUE)
 p        <- as.numeric(args[1])
 d        <- as.numeric(args[2])
 n_large  <- as.numeric(args[3])
-n_query  <- as.numeric(args[4])
-beta_0   <- as.numeric(args[5])
-adj_type <- args[6]
-adj_params <- as.numeric(args[7:length(args)])
+rep_i    <- as.numeric(args[4])
+n_query  <- as.numeric(args[5])
+beta_0   <- as.numeric(args[6])
+adj_type <- args[7]
+adj_params <- as.numeric(args[8:length(args)])
 
 
 
@@ -96,7 +97,7 @@ if (!dir.exists(temp_file_dir)) dir.create(temp_file_dir)  # temp_data/simu_data
 
 # save data
 
-datafile_name <- paste0("part0_", adj_type, '_n_', n_large, '.rds')
+datafile_name <- paste0("part0_", adj_type, '_n_', n_large, '_rep_', rep_i, '.rds')
 
 saveRDS(param_list, file = file.path(temp_file_dir, datafile_name)) 
                                           

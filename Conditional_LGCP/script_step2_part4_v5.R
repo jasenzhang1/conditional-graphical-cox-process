@@ -36,12 +36,14 @@ if(model_type == 'mice'){
   
   n_large <- as.numeric(args[2])
   n <- as.numeric(args[3])      # which sub sample size  
-  adj_type <- args[4]
-  method <- args[5]
-  cont_ind <- as.numeric(args[6])       # which y_c query
+  rep_i <- as.numeric(args[4])
+  adj_type <- args[5]
+  method <- args[6]
+  cont_ind <- as.numeric(args[7])       # which y_c query
   
   setting_info_list <- list(n_large = n_large,
                             n = n,
+                            rep_i = rep_i,
                             adj_type = adj_type,
                             method = method)
   
