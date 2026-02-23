@@ -52,7 +52,7 @@ adj_type_params=(
 
 n_large=100
 ns=(100)
-n_reps=3
+n_reps=2
 
 #n_large=20000
 #ns=(100 250 500 1000 2500 5000 10000 20000)
@@ -66,7 +66,7 @@ max_jobs=30
 min_events=10
 max_events=5000
 
-p=12
+p=24
 d=2
 n_query=6
 beta_0=4.7
