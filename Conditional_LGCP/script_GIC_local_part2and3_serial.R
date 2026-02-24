@@ -56,7 +56,7 @@ if(model_type == 'mice'){
 
 task_csv <- read.csv(paste0(temp_file_dir, '/task_map.csv'))
 
-suffix_name <- task_csv[1, id_suffix]
+suffix_name <- task_csv[id_suffix, 1]
 GIC_step2and3_serial_tau_c(temp_file_dir, suffix_name, k)
 
 
