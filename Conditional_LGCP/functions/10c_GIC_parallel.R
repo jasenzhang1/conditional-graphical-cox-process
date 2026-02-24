@@ -138,6 +138,8 @@ GIC_step2and3_serial_tau_c <- function(temp_file_dir, id_suffix, k) {
   # id_suffix = suffix name
   # k = tau_c index
   
+  print(paste0('suffix name is: ', id_suffix))
+  
   # --- Step 1: Logic from your original GIC_step2 ---
   # Load the ID-specific initial data (contains C_cond, p, W_y, threshold_list_c)
   load(paste0(temp_file_dir, "/GIC_local_initial_data_", id_suffix, ".RData"))
@@ -201,7 +203,7 @@ GIC_step2and3_serial_tau_c <- function(temp_file_dir, id_suffix, k) {
 
 GIC_step4_finalize <- function(temp_file_dir) {
   # 1) Load the task map to know which IDs were processed
-  task_map_path <- paste0(temp_file_dir, '/task_map_nquery.csv')
+  task_map_path <- paste0(temp_file_dir, '/task_map.csv')
   
   if (!file.exists(task_map_path)) stop("Task map not found at: ", task_map_path)
   task_map <- read.csv(task_map_path)

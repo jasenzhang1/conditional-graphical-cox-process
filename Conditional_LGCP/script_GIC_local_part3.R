@@ -61,7 +61,7 @@ if(model_type == 'mice'){
 
 # retrieve the suffix_name
 
-task_csv <- read.csv(paste0(temp_file_dir, '/task_map_nquery.csv'))
+task_csv <- read.csv(paste0(temp_file_dir, '/task_map.csv'))
 
 suffix_name <- task_csv[1, id_suffix]
 GIC_step3_iterate_tau_p(temp_file_dir, suffix_name, k, l)

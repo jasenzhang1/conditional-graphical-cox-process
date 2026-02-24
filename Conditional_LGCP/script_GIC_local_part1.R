@@ -114,7 +114,7 @@ for(i in seq_along(core_names)){
 
 num_suffixes <- nrow(task_map)
   
-write.csv(task_map, paste0(GIC_folder, "/task_map_nquery.csv"), row.names = FALSE)
+write.csv(task_map, paste0(GIC_folder, "/task_map.csv"), row.names = FALSE)
 
 # We return max_k so Bash knows the maximum range it might need to loop through
 
