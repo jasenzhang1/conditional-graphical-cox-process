@@ -1650,6 +1650,200 @@ full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, sett
   
 }
 
+full_conditional_estimation_with_no_truth_part2b_before_GIC <- function(temp_file_dir, setting_info_list, cont_ind, mouse, X_truth, eigen_setting){
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: estimation of everything else after step 2 in series
+  #       used in script_fit_mice_data_part2b
+  #
+  #       save file called:
+  #
+  #       temp_data/simu/part3_block_banded_c0_n_100_nquery1.rds
+  # 
+  # 
+  # inputs
+  #
+  # - temp_file_dir
+  # - setting_info_list
+  # - cont_ind              (integer)   n_query id
+  # - mouse                 (boolean)   is it a mouse?
+  # - eigen_setting         (string)   'only_joint', 'trig_and_joint'
+  #
+  # 
+  # loading
+  #
+  # - part2             (list of various parameters)
+  # - step_2_rho_list   (list of step_2 and step_2b)
+  # 
+  # outputs:
+  #
+  # - estimated_graphs  (list of steps 2 and later, each of these differs based on y_c_query)
+  # 
+  # estimated_graphs <- list(step_2 = step_2, step_2b = step_2b, step_3 = step_3,
+  #                          step_4 = step_4, step_5 = step_5, step_5b = step_5b, step_9 = step_9, step_9b = step_9b,
+  #                          step_10 = step_10, step_11 = step_11)
+  # 
+  # ----------------------------------------------------------------------------
+  
+  
+  
+  # 0) load 
+  
+  list2env(setting_info_list, envir = environment())
+  
+  # load everything from step_1
+  if(mouse){
+    step_2_info_list <- paste0("part2_", ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '.rds')
+    rho_list_name <- paste0('step_2_rho_list_', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '.rds')
+    datafile_error_name <- paste0("dataset_part2_", ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '.RData')  # in case we need to quit and troubleshoot
+  } else{
+    step_2_info_list <- paste0("part2_", adj_type, '_n_', n, '_nquery', cont_ind, '_rep_', rep_i, '.rds')
+    rho_list_name <- paste0("step_2_rho_list_", adj_type, '_n_', n, '_nquery', cont_ind, '_rep_', rep_i, '.rds')
+    datafile_error_name <- paste0("dataset_part2_", adj_type, '_n_', n, '_nquery', cont_ind, '_rep_', rep_i, '.RData')  # in case we need to quit and troubleshoot
+  }
+  
+  # load `W_y`, `p`
+  results <- readRDS(file.path(temp_file_dir, step_2_info_list))
+  p <- results$p
+  W_y <- results$W_y
+  adj_mat_i <- results$adj_mat_i
+  #list2env(results, envir = environment())
+  steps_2_and_2b <- readRDS(file.path(temp_file_dir, rho_list_name))
+  
+  step_2 <- steps_2_and_2b$step_2
+  step_2b <- steps_2_and_2b$step_2b
+  
+  # ------------------
+  # Step 2b onward
+  # ------------------
+  
+  i_neq_j <- T
+  
+  step_3  <- step_3_g_ij(step_2, step_2b, i_neq_j)
+  
+  
+  if(eigen_setting == 'only_joint'){
+    
+    step_4 <- tryCatch({
+      step_4_eigendecomp(step_3, p, F, NULL)
+    }, error = function(e) {
+      cat("Error in step_4, saving dataset...\n")
+      save(dataset, file = file.path(temp_file_dir, datafile_error_name))
+      stop(e)
+      
+    })
+  } else if (eigen_setting == 'trig_and_joint'){
+    
+    step_4 <- tryCatch({
+      step_4_eigendecomp_troubleshoot(step_3, p)
+    }, error = function(e) {
+      cat("Error in step_4, saving dataset...\n")
+      save(dataset, file = file.path(temp_file_dir, datafile_error_name))
+      stop(e)
+    })
+    
+  } else{
+    stop('12b ERROR: eigen_setting not available')
+  }
+  
+  
+  # 3) steps 5: obtain KL_cor and KL_prec
+  
+  
+  #step_5 <- step_5_KL_covariance(step_3, step_4)
+  step_5 <- step_5_KL_covariance_eigencases(step_3, step_4)
+  step_5b <- step_5b_KL_correlation(step_5, p)
+  step_5c <- step_5c_KL_precision(step_5b, p)
+  
+  
+  
+  # save 
+  estimated_graphs <- list(step_2 = step_2, step_2b = step_2b, step_3 = step_3,
+                           step_4 = step_4, step_5 = step_5, step_5b = step_5b, step_5c = step_5c, 
+                           p = p, 
+                           W_y = W_y)
+  
+  
+  
+  if(mouse){
+    file_name <- paste0('part2b_', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '.rds')
+  } else{
+    file_name <- paste0("part2b_", adj_type, '_n_', n, '_nquery', cont_ind, '_rep_', rep_i, '.rds')
+  }
+  
+  saveRDS(estimated_graphs, file = file.path(temp_file_dir, file_name))  
+}
+
+full_conditional_estimation_with_no_truth_part2b_after_GIC <- function(temp_file_dirs, setting_info_list, cont_ind, mouse, X_truth, eigen_setting){
+  
+  # temp_file_dirs[1] = temp_data/simu
+  # temp_file_dirs[2] = temp_data/simu/GIC...
+  
+  if(mouse){
+    part_2b_file_name <- paste0('part2b_', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '.rds')
+    GIC_file_name <- "GIC_final_combined.RData"
+  } else{
+    part_2b_file_name <- paste0("part2b_", adj_type, '_n_', n, '_nquery', cont_ind, '_rep_', rep_i, '.rds')
+    GIC_file_name <- "GIC_final_combined.RData"
+  }
+  
+  results <- readRDS(file.path(temp_file_dirs[1], part_2b_file_name))  # query_y_cs, y_c_strata_full
+  list2env(results, envir = environment())
+  
+  
+  list2env(setting_info_list, envir = environment()) # n overrides n from results
+  
+  # estimate C_HS, w_mat from KL WITH thresh
+  
+  step_11_GIC_bundle <- readRDS(file.path(temp_file_dirs[2], GIC_file_name))
+  
+  
+  # estimate C_HS, w_mat from KL without thresh 
+  
+  step_11_KL_no_thresh  <- step_11_HS_norms_from_KL(step_5c, p)
+  step_11b_KL_no_thresh <- step_11b_HS_norms_from_KL(step_5b, p)
+  
+  # load the bundle
+  
+  step_11_KL_yes_thresh  <- step_11_HS_norms_from_KL_GIC(step_11_GIC_bundle)
+  step_11b_KL_yes_thresh <- step_11b_HS_norms_from_KL_GIC(step_11_GIC_bundle)
+  
+  # step_11x = tau_c and tau_p
+  steps_11xy <- step_11xy_HS_norms_from_KL_GIC(step_11_GIC_bundle)
+  step_11x <- steps_11xy$step_11x
+  step_11y <- steps_11xy$step_11y
+  
+  
+  # 7) collect all of 11 and 11b results
+  
+  step_11 <- c(step_11_KL_no_thresh,
+               step_11_KL_yes_thresh)
+  # step_11_mxm_no_thresh_bundle$step_11)
+  
+  step_11b <- c(step_11b_KL_no_thresh,
+                step_11b_KL_yes_thresh)
+  #step_11_mxm_no_thresh_bundle$step_11b)
+  
+  # save 
+  estimated_graphs <- list(step_2 = step_2, step_2b = step_2b, step_3 = step_3,
+                           step_4 = step_4, step_5 = step_5, step_5b = step_5b, step_5c = step_5c, 
+                           step_11 = step_11, step_11b = step_11b, 
+                           step_11x = step_11x, step_11y = step_11y)
+  
+  
+  
+  
+  if(mouse){
+    file_name <- paste0('part3_', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '.rds')
+  } else{
+    file_name <- paste0("part3_", adj_type, '_n_', n, '_nquery', cont_ind, '_rep_', rep_i, '.rds')
+  }
+  
+  saveRDS(estimated_graphs, file = file.path(temp_file_dir, file_name))  
+  
+}
+
 # 2c: optional estimation that involves finding a global tau_c and global tau_p across all y_c_query values
 full_conditional_estimation_with_no_truth_part2c <- function(temp_file_dir, setting_info_list, cont_inds, mouse, global_thresh_method){
   
