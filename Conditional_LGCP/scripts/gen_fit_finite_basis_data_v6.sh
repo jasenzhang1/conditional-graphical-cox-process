@@ -313,11 +313,20 @@ for entry in "${adj_type_params[@]}"; do
                       echo "At GIC local" >> "$outfile"
           
                       # PART 1: Precompute tau_c quantiles and get num_k
-                      output=$(Rscript --vanilla --slave script_GIC_local_part1.R "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$X_truth" "$j" "$eigen_setting")
+                      output=$(Rscript --vanilla --slave script_GIC_local_part1.R \
+                               "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$X_truth" "$j" "$eigen_setting" \
+                               2>&1 | tee -a "$outfile")
                       
-                      # Split the string into two variables
-                      read -r num_k num_suffixes <<< "$output"
+
                       
+                      # retrieve variables
+                                  
+                      max_k=$(echo "$output" | grep "max_k" | awk -F= '{print $2}')
+                      max_k=$(echo "$max_k" | xargs)
+                      
+                      num_suffixes=$(echo "$output" | grep "num_suffixes" | awk -F= '{print $2}')
+                      num_suffixes=$(echo "$num_suffixes" | xargs)
+
                       echo "The Max K is: $num_k" >> "$outfile"
                       echo "The Number of Suffixes is: $num_suffixes" >> "$outfile"
 

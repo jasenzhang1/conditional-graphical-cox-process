@@ -115,7 +115,6 @@ num_suffixes <- nrow(task_map)
 write.csv(task_map, paste0(GIC_folder, "/task_map_nquery.csv"), row.names = FALSE)
 
 # We return max_k so Bash knows the maximum range it might need to loop through
-cat(max_k, num_suffixes)
 
-
-
+cat("max_k=", max_k, "\n")
+cat("num_suffixes=", num_suffixes, "\n")
