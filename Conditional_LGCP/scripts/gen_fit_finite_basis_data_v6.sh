@@ -53,7 +53,7 @@ adj_type_params=(
 
 n_large=100
 ns=(100)
-n_reps=2
+n_reps=1
 
 #n_large=20000
 #ns=(100 250 500 1000 2500 5000 10000 20000)
@@ -63,7 +63,7 @@ groups=$(( n_large / n_group ))
 
 method="CPGM"
 model_type="simu"  # simu or mice
-max_jobs=50
+max_jobs=30
 min_events=10
 max_events=5000
 
