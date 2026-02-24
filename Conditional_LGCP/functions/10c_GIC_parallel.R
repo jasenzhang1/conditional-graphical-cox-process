@@ -138,8 +138,6 @@ GIC_step2and3_serial_tau_c <- function(temp_file_dir, id_suffix, k) {
   # id_suffix = suffix name
   # k = tau_c index
   
-  print(paste0('suffix name is: ', id_suffix))
-  
   # --- Step 1: Logic from your original GIC_step2 ---
   # Load the ID-specific initial data (contains C_cond, p, W_y, threshold_list_c)
   load(paste0(temp_file_dir, "/GIC_local_initial_data_", id_suffix, ".RData"))
@@ -197,8 +195,6 @@ GIC_step2and3_serial_tau_c <- function(temp_file_dir, id_suffix, k) {
   if (!is.null(best_result)) {
     save(best_result, file = paste0(temp_file_dir, "/GIC_local_best_k_", id_suffix, "_k", k, ".RData"))
   }
-  
-  cat(paste0("Finished tau_c index ", k, " with best GIC: ", round(best_GIC, 4), "\n"))
 }
 
 GIC_step4_finalize <- function(temp_file_dir) {
@@ -288,8 +284,6 @@ GIC_step4_finalize <- function(temp_file_dir) {
   # 6) Save combined results
   final_save_name <- "GIC_final_combined.RData"
   save(final_gic_results, file = paste0(temp_file_dir, "/", final_save_name))
-  
-  cat("Final combined file saved to:", paste0(temp_file_dir, "/", final_save_name), "\n")
 }
 
 

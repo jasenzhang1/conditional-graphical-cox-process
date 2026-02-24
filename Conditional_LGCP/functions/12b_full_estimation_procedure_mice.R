@@ -1796,7 +1796,7 @@ full_conditional_estimation_with_no_truth_part2b_after_GIC <- function(temp_file
   
   # estimate C_HS, w_mat from KL WITH thresh
   
-  step_11_GIC_bundle <- readRDS(file.path(temp_file_dirs[2], GIC_file_name))
+  step_11_GIC_bundle <- load(file.path(temp_file_dirs[2], GIC_file_name))
   
   
   # estimate C_HS, w_mat from KL without thresh 
