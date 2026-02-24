@@ -339,18 +339,13 @@ for entry in "${adj_type_params[@]}"; do
                           
                               for ((k=1; k<=num_k; k++)); do
                               
-                                  wait_for_slot
-                                  (
-                                      # PART 2: Iterate tau_c and get num_l for this specific k/id combo
-                                      # Note: Added $id_suffix as the 2nd argument to match your intermediate script
-                                      num_l=$(Rscript script_GIC_local_part2.R "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$j" "$eigen_setting" "$id_suffix" "$k")
-                                      
-                                      # PART 3: Parallelize tau_p workers
-                                      for ((l=1; l<=num_l; l++)); do
-                                          wait_for_slot
-                                          Rscript script_GIC_local_part3.R "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$j" "$eigen_setting" "$id_suffix" "$k" "$l" >> "$outfile" 2>&1 &
-                                      done
-                                  ) &
+                                wait_for_slot
+                                # Launch one R process per tau_c. 
+                                # Inside this R script, it will loop through all tau_p (l=1...num_l)
+                                Rscript script_GIC_local_part2and3_serial.R \
+                                    "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" \
+                                    "$j" "$eigen_setting" "$id_suffix" "$k" >> "$outfile" 2>&1 &                              
+
                                       
                               done
                               wait

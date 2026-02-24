@@ -131,6 +131,73 @@ GIC_step3_iterate_tau_p <- function(temp_file_dir, id_suffix, k, l){
   
 }
 
+GIC_step2and3_serial_tau_c <- function(temp_file_dir, id_suffix, k) {
+  
+  
+  # temp_file_dir = folder name
+  # id_suffix = suffix name
+  # k = tau_c index
+  
+  # --- Step 1: Logic from your original GIC_step2 ---
+  # Load the ID-specific initial data (contains C_cond, p, W_y, threshold_list_c)
+  load(paste0(temp_file_dir, "/GIC_local_initial_data_", id_suffix, ".RData"))
+  
+  tau_c <- threshold_list_c$hs_vals[k]
+  excluded_indices <- threshold_list_c$index_path[[k]]
+  
+  C_cond_thresh <- C_cond
+  for (idx in excluded_indices) { C_cond_thresh[[idx]][] <- 0 }
+  
+  C_cond_full <- assemble_block_matrix_irregular(C_cond_thresh, p)
+  Theta_full  <- ginv(C_cond_full$block_matrix)
+  Theta_cond  <- extract_block_matrix_irregular(Theta_full, C_cond_full$row_borders, C_cond_full$col_borders)
+  
+  # Get the tau_p candidates for this specific tau_c
+  threshold_list_p <- GIC_get_percentile_info(Theta_cond, off_diag_indices)
+  num_l <- length(threshold_list_p$hs_vals)
+  
+  # --- Step 2: Serial iteration over tau_p (l) ---
+  best_GIC <- Inf
+  best_result <- NULL
+  
+  for (l in 1:num_l) {
+    tau_p <- threshold_list_p$hs_vals[l]
+    excluded_indices_p <- threshold_list_p$index_path[[l]]
+    
+    Theta_cond_thresh <- Theta_cond
+    for (idx in excluded_indices_p) { Theta_cond_thresh[[idx]][] <- 0 }
+    
+    # Evaluate GIC
+    Theta_cond_full_final <- assemble_block_matrix_irregular(Theta_cond_thresh, p)
+    num_edges <- GIC_edge_count(Theta_cond_thresh, p)
+    
+    # Calculate GIC
+    current_GIC <- GIC_evalulation(C_cond_full$block_matrix, 
+                                   Theta_cond_full_final$block_matrix, 
+                                   W_y, 
+                                   num_edges)
+    
+    # Keep only the best l for this k
+    if (current_GIC < best_GIC) {
+      best_GIC <- current_GIC
+      best_result <- list(
+        k = k, 
+        l = l,
+        tau_c = tau_c, 
+        tau_p = tau_p, 
+        GIC = current_GIC,
+        Theta_cond_thresh = Theta_cond_thresh 
+      )
+    }
+  }
+  
+  # --- Step 3: Save only the "Winner" for this k ---
+  if (!is.null(best_result)) {
+    save(best_result, file = paste0(temp_file_dir, "/GIC_local_best_k_", id_suffix, "_k", k, ".RData"))
+  }
+  
+  cat(paste0("Finished tau_c index ", k, " with best GIC: ", round(best_GIC, 4), "\n"))
+}
 
 GIC_step4_finalize <- function(temp_file_dir) {
   # 1) Load the task map to know which IDs were processed
@@ -142,42 +209,54 @@ GIC_step4_finalize <- function(temp_file_dir) {
   # 2) Initialize the final result list
   final_gic_results <- list()
   
-  # 3) Loop through each ID (e.g., 'est', 'X_truth')
-  for (i in 1:nrow(task_map)) {
-    id_i <- task_map$id[i]
-    name_i <- paste0('GIC_local_', id_i)
+  # 3) Loop through each ID (e.g., 1, 2... representing 'est', 'X_truth')
+  for (i in 1:ncol(task_map)) {
+    # In your Part 2/3 script, you used task_csv[1, id_suffix]
+    # We follow that logic here to identify the suffix name
+    id_name <- colnames(task_map)[i]
+    name_entry <- task_map[1, i]
+    name_i <- paste0('GIC_local_', name_entry)
     
-    # Load ID-specific global data
-    initial_data_path <- paste0(temp_file_dir, "/GIC_local_initial_data_", id_i, ".RData")
+    # Load ID-specific global data (using index i as the id_suffix)
+    initial_data_path <- paste0(temp_file_dir, "/GIC_local_initial_data_", i, ".RData")
     if(!file.exists(initial_data_path)) next
     load(initial_data_path)
     
-    # Identify result files
+    # Identify result files - Updated pattern to match the "best_k" files
     result_files <- list.files(path = temp_file_dir, 
-                               pattern = paste0("GIC_local_result_", id_i, "_k\\d+_l\\d+\\.RData"), 
+                               pattern = paste0("GIC_local_best_k_", i, "_k\\d+\\.RData"), 
                                full.names = TRUE)
     
-    if (length(result_files) == 0) next
+    if (length(result_files) == 0) {
+      cat("No result files found for suffix:", i, "\n")
+      next
+    }
     
-    # Find best GIC
+    # Find best GIC among all k-winners
     lowest_GIC <- Inf
     best_data <- NULL
     df_GIC_id <- data.frame()
     
     for (f in result_files) {
-      load(f) # loads 'result_kl'
-      df_GIC_id <- rbind(df_GIC_id, data.frame(k=result_kl$k, l=result_kl$l, 
-                                               tau_c=result_kl$tau_c, tau_p=result_kl$tau_p, 
-                                               GIC=result_kl$GIC))
-      if (!is.na(result_kl$GIC) && result_kl$GIC < lowest_GIC) {
-        lowest_GIC <- result_kl$GIC
-        best_data <- result_kl
+      # Load 'best_result' (saved in script_GIC_local_part2and3_serial.R)
+      load(f) 
+      
+      df_GIC_id <- rbind(df_GIC_id, data.frame(k = best_result$k, 
+                                               l = best_result$l, 
+                                               tau_c = best_result$tau_c, 
+                                               tau_p = best_result$tau_p, 
+                                               GIC = best_result$GIC))
+      
+      if (!is.na(best_result$GIC) && best_result$GIC < lowest_GIC) {
+        lowest_GIC <- best_result$GIC
+        best_data <- best_result
       }
     }
     
     if (is.null(best_data)) next
     
     # 4) Reconstruction
+    # We use the threshold_list_c loaded from the initial_data_path
     C_cond_thresh_final <- C_cond
     excluded_indices_c <- threshold_list_c$index_path[[best_data$k]]
     for (idx in excluded_indices_c) {
@@ -190,21 +269,25 @@ GIC_step4_finalize <- function(temp_file_dir) {
     
     # 5) Store
     final_gic_results[[name_i]] <- list(
-      tau_c = best_data$tau_c, tau_p = best_data$tau_p,
+      tau_c = best_data$tau_c, 
+      tau_p = best_data$tau_p,
       tau_c_levels = threshold_list_c$hs_vals,
-      C_cond = C_cond_thresh_final, Theta_cond = best_data$Theta_cond_thresh,
+      C_cond = C_cond_thresh_final, 
+      Theta_cond = best_data$Theta_cond_thresh,
       C_HS = hilbert_schmidt_norm_list_to_mat(C_cond_thresh_final, p),
       w_mat = hilbert_schmidt_norm_list_to_mat(best_data$Theta_cond_thresh, p),
-      adj_mat = adj_results$adj_mat, adj_list = adj_results$adj_list,
-      num_edges = num_edges_final, df_GIC = df_GIC_id
+      adj_mat = adj_results$adj_mat, 
+      adj_list = adj_results$adj_list,
+      num_edges = num_edges_final, 
+      df_GIC = df_GIC_id
     )
   }
   
-  # 6) Save using arguments
-  final_save_name <- paste0("GIC_final_combined.RData")
+  # 6) Save combined results
+  final_save_name <- "GIC_final_combined.RData"
   save(final_gic_results, file = paste0(temp_file_dir, "/", final_save_name))
   
-  cat("Final combined file saved to:", final_save_name, "\n")
+  cat("Final combined file saved to:", paste0(temp_file_dir, "/", final_save_name), "\n")
 }
 
 
