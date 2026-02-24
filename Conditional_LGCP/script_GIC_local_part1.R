@@ -93,6 +93,8 @@ input_names <- names(step_5b)
 task_map <- data.frame()
 max_k <- 0
 
+cat('checkpoint 1')
+
 for(i in seq_along(core_names)){
   C_cond_i <- step_5b[[input_names[i]]]
   id_i <- core_names[i]
