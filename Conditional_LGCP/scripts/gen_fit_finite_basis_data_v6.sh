@@ -364,6 +364,9 @@ for entry in "${adj_type_params[@]}"; do
                       # estimation after GIC
                       # temp_data/simu/part3...
                       
+                      echo "" | tee -a "$outfile"
+                      echo "===================================================" >> "$outfile"
+                      echo "" | tee -a "$outfile"
                       echo "Merging GIC local info with part2b" >> "$outfile"
                       
                       Rscript script_fit_mice_data_part2b_after_GIC.R "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$X_truth" "$j" "$eigen_setting" >> "$outfile" 2>&1

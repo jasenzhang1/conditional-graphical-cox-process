@@ -208,21 +208,20 @@ GIC_step4_finalize <- function(temp_file_dir) {
   final_gic_results <- list()
   
   # 3) Loop through each ID (e.g., 1, 2... representing 'est', 'X_truth')
-  for (i in 1:ncol(task_map)) {
-    # In your Part 2/3 script, you used task_csv[1, id_suffix]
-    # We follow that logic here to identify the suffix name
-    id_name <- colnames(task_map)[i]
-    name_entry <- task_map[1, i]
-    name_i <- paste0('GIC_local_', name_entry)
+  for (i in 1:nrow(task_map)) {
+
+
+    name_entry <- task_map[i, 1]
+    name_i <- paste0('GIC_KL_', name_entry)
     
     # Load ID-specific global data (using index i as the id_suffix)
-    initial_data_path <- paste0(temp_file_dir, "/GIC_local_initial_data_", i, ".RData")
+    initial_data_path <- paste0(temp_file_dir, "/GIC_local_initial_data_", name_entry, ".RData")
     if(!file.exists(initial_data_path)) next
     load(initial_data_path)
     
     # Identify result files - Updated pattern to match the "best_k" files
     result_files <- list.files(path = temp_file_dir, 
-                               pattern = paste0("GIC_local_best_k_", i, "_k\\d+\\.RData"), 
+                               pattern = paste0("GIC_local_best_k_", name_entry, "_k\\d+\\.RData"), 
                                full.names = TRUE)
     
     if (length(result_files) == 0) {

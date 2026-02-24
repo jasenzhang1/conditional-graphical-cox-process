@@ -1796,7 +1796,7 @@ full_conditional_estimation_with_no_truth_part2b_after_GIC <- function(temp_file
   
   # estimate C_HS, w_mat from KL WITH thresh
   
-  step_11_GIC_bundle <- load(file.path(temp_file_dirs[2], GIC_file_name))
+  load(file.path(temp_file_dirs[2], GIC_file_name))
   
   
   # estimate C_HS, w_mat from KL without thresh 
@@ -1806,11 +1806,11 @@ full_conditional_estimation_with_no_truth_part2b_after_GIC <- function(temp_file
   
   # load the bundle
   
-  step_11_KL_yes_thresh  <- step_11_HS_norms_from_KL_GIC(step_11_GIC_bundle)
-  step_11b_KL_yes_thresh <- step_11b_HS_norms_from_KL_GIC(step_11_GIC_bundle)
+  step_11_KL_yes_thresh  <- step_11_HS_norms_from_KL_GIC(final_gic_results)
+  step_11b_KL_yes_thresh <- step_11b_HS_norms_from_KL_GIC(final_gic_results)
   
   # step_11x = tau_c and tau_p
-  steps_11xy <- step_11xy_HS_norms_from_KL_GIC(step_11_GIC_bundle)
+  steps_11xy <- step_11xy_HS_norms_from_KL_GIC(final_gic_results)
   step_11x <- steps_11xy$step_11x
   step_11y <- steps_11xy$step_11y
   
