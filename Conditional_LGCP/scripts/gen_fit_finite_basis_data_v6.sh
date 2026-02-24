@@ -7,6 +7,7 @@
 #            - v3: parallelize data generation
 # 
 #            - v5: calculate rho_i and rho_ij before normalizing them by different n and y_c
+#            - v6: parallelize GIC
 # ---------------------------------------------------------------------------
 
 
@@ -302,12 +303,14 @@ for entry in "${adj_type_params[@]}"; do
             
                       # estimation until GIC
                       # temp_data/simu/part2b...
-                      Rscript script_fit_mice_data_part2b.R "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$X_truth" "$j" "$eigen_setting" >> "$outfile" 2>&1
+                      Rscript script_fit_mice_data_part2b_before_GIC.R "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$X_truth" "$j" "$eigen_setting" >> "$outfile" 2>&1
                       
                       
                       # ---------------------------------------------------------
                       # GIC_LOCAL PROCEDURE
                       # ---------------------------------------------------------
+                      
+                      echo "At GIC local" >> "$outfile"
           
                       # PART 1: Precompute tau_c quantiles and get num_k
                       output=$(Rscript --vanilla --slave script_GIC_local_part1.R "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$X_truth" "$j" "$eigen_setting")
@@ -315,8 +318,8 @@ for entry in "${adj_type_params[@]}"; do
                       # Split the string into two variables
                       read -r num_k num_suffixes <<< "$output"
                       
-                      echo "The Max K is: $num_k"
-                      echo "The Number of Suffixes is: $num_suffixes"
+                      echo "The Max K is: $num_k" >> "$outfile"
+                      echo "The Number of Suffixes is: $num_suffixes" >> "$outfile"
 
 
                       # Loop through the IDs found in the map
@@ -324,7 +327,7 @@ for entry in "${adj_type_params[@]}"; do
                       
                           wait_for_slot
                           (
-                              echo "  [GIC] Processing suffix ID: $id_suffix" >> "$outfile"
+                              echo "[GIC] Processing suffix ID: $id_suffix" >> "$outfile"
                           
                               for ((k=1; k<=num_k; k++)); do
                               
@@ -342,7 +345,7 @@ for entry in "${adj_type_params[@]}"; do
                                       
                               done
                               wait
-                              echo "  [GIC DONE] Processing suffix ID: $id_suffix" >> "$outfile"
+                              echo "[GIC DONE] Processing suffix ID: $id_suffix" >> "$outfile"
                           ) &
                       done
                       wait
