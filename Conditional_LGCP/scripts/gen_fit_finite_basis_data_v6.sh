@@ -79,13 +79,12 @@ global_thresh_method="both" #both, joint, tau_c, neither   both = do joint and t
 
 
 function wait_for_slot {
-    # 1. Use pgrep to find processes named exactly "R" owned by the current user
-    # 2. This creates a global throttle across all subshells
     while true; do
-        # Count R and Rscript processes
         running=$(pgrep -u "$USER" -x "R|Rscript" | wc -l)
-        
         if (( running < max_jobs )); then
+            # Small sleep to allow the process you're about to launch 
+            # to actually show up in the process table for the next check.
+            sleep 0.1 
             break
         fi
         sleep 1
@@ -348,6 +347,7 @@ for entry in "${adj_type_params[@]}"; do
                                       
                                       # PART 3: Parallelize tau_p workers
                                       for ((l=1; l<=num_l; l++)); do
+                                          wait_for_slot
                                           Rscript script_GIC_local_part3.R "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$j" "$eigen_setting" "$id_suffix" "$k" "$l" >> "$outfile" 2>&1 &
                                       done
                                   ) &
