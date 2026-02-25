@@ -510,6 +510,11 @@ for entry in "${adj_type_params[@]}"; do
     # Last step - visualize results
     # ----------------
     
+    echo "" | tee -a "$outfile"
+    echo "===================================================" >> "$outfile"
+    echo "" | tee -a "$outfile"
+    echo "[PART 3] Visualization ..." >> "$outfile"
+    
     viz_log="script_outputs/simu/${adj_type}_visualization.log"
     
     wait_for_slot

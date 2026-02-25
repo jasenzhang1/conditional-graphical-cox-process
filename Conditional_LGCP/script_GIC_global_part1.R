@@ -50,15 +50,19 @@ results_all_queries <- lapply(step_3_paths, readRDS)
 
 # --- 2. Multi-ID Setup Logic (Task Mapping) ---
 # Get names like "KL_cor_est_eig1", "KL_cor_est_eig2"
-suffix_names <- step_00_grab_ID(names(results_all_queries[[1]]$step_5b), 'KL_cor')
+full_names <- names(results_all_queries[[1]]$step_5b)
+suffix_names <- step_00_grab_ID(full_names, 'KL_cor')
 
 task_map <- data.frame()
 max_k <- 0
 
-for(suffix in suffix_names){
+for(i in 1:length(full_names)){
+  
+  full_name <- full_names[i]
+  suffix <- suffix_names[i]
   # Create a list where each element corresponds to one query, 
   # but only contains the matrix for this specific suffix
-  C_cond_list_suffix <- lapply(results_all_queries, function(res) res$step_5b[[suffix]])
+  C_cond_list_suffix <- lapply(results_all_queries, function(res) res$step_5b[[full_name]])
   
   # Run your existing setup logic, but specific to this suffix
   # Note: Modified GIC_joint_part1_setup to accept a suffix to avoid file overwrites

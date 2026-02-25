@@ -55,6 +55,6 @@ if(model_type == 'mice'){
 task_csv <- read.csv(paste0(temp_file_dir, '/task_map.csv'))
 
 suffix_name <- task_csv[id_suffix, 1]
-GIC_joint_part2and3_serialized(temp_file_dir, suffix_name, k)
+GIC_joint_part2and3_serialized(k, suffix_name, temp_file_dir)
 
 
