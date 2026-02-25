@@ -26,7 +26,7 @@ source('functions/20_simulation_function_wrapper.R')
 
 # 1) generate dataset ----------------------------------------------------------
 
-temp_file_dir <- 'temp_data/simu_data'
+temp_file_dir <- paste0('temp_data/simu_data_', adj_type, '_n_', n_large, '_rep_', rep_i)
 
 simulate_finite_basis_cox_data_part4(temp_file_dir, setting_info_list, cont_ind)
 

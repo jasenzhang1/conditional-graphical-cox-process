@@ -467,7 +467,7 @@ for entry in "${adj_type_params[@]}"; do
               # Part 2d - get step_12 and step_12b, ROC and edge set after all w_mats have been calculated                     
               # ----------------
               
-              echo "HOME SWEET HOME" >> "$outfile"
+              echo "At part 2d" >> "$outfile"
               
               wait_for_slot
               
@@ -478,6 +478,8 @@ for entry in "${adj_type_params[@]}"; do
               # ----------------
               
               wait_for_slot
+              
+              echo "At part 3" >> "$outfile"
               
               # simu_results/adj_type/CPGM/... .RData
               Rscript script_fit_mice_data_part3.R "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$n_query" >> "$outfile" 2>&1

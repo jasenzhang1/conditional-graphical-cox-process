@@ -23,7 +23,7 @@ source('functions/20_simulation_function_wrapper.R')
 
 # 1) generate dataset ----------------------------------------------------------
 
-temp_file_dir <- 'temp_data/simu_data'
+temp_file_dir <- paste0('temp_data/simu_data_', adj_type, '_n_', n_large, '_rep_', rep_i)
 
 result <- simulate_finite_basis_cox_data_part5(temp_file_dir, setting_info_list, cont_inds, groups)
                                           
@@ -33,9 +33,11 @@ truths <- result$all_truths
 rm(result)
 
 if (!dir.exists('simu_data')) dir.create('simu_data')
+simu_data_dir <- paste0('simu_data/', adj_type, '_n_', n_large, '_rep_', rep_i)
 
-save(dataset, file = paste0('simu_data/', adj_type, '_n_', n_large, '_rep_', rep_i, '.RData'))
-save(truths, file = paste0('simu_data/', adj_type, '_n_', n_large, '_rep_', rep_i, '_truths.RData'))
+
+save(dataset, file = paste0(simu_data_dir, '/', adj_type, '_n_', n_large, '_rep_', rep_i, '.RData'))
+save(truths, file = paste0(simu_data_dir, '/', adj_type, '_n_', n_large, '_rep_', rep_i, '_truths.RData'))
 
 
 

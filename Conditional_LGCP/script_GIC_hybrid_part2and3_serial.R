@@ -43,7 +43,8 @@ if(model_type == 'mice'){
   k         <- as.numeric(args[9])   # tau_c index
 
   
-  temp_file_dir <- paste0('temp_data/simu/GIC_joint_', adj_type, '_n_', n, '_rep', rep_i)
+  temp_file_dir <- paste0('temp_data/simu_', adj_type, '_n_', n_large, '_rep_', rep_i)
+  temp_file_dir <- paste0(temp_file_dir, '/GIC_joint_', adj_type, '_n_', n, '_rep', rep_i)
   mouse <- F
   
 } else{

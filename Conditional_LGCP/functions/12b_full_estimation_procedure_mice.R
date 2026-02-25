@@ -2037,7 +2037,7 @@ full_conditional_estimation_with_no_truth_part2d <- function(temp_file_dir, sett
   
 }
 
-full_conditional_estimation_with_no_truth_part3 <- function(temp_file_dir, setting_info_list, cont_inds, mouse){
+full_conditional_estimation_with_no_truth_part3 <- function(temp_file_dir, temp_file_dir2, setting_info_list, cont_inds, mouse){
   
   
   # ----------------------------------------------------------------------------
@@ -2049,6 +2049,7 @@ full_conditional_estimation_with_no_truth_part3 <- function(temp_file_dir, setti
   # inputs:
   # 
   # - temp_file_dir
+  # - temp_file_dir2      (temp_data/simu_data so we can delete)
   # - setting_info_list
   # - cont_inds           (scalar)  number of y_c_queries
   # - mouse               (boolean) are we working with mice data
@@ -2092,7 +2093,7 @@ full_conditional_estimation_with_no_truth_part3 <- function(temp_file_dir, setti
   if(mouse){
     file_names <- paste0(temp_file_dir, '/part3_', ID, '_', discrete_level, '_t', time_scale, '_nquery', 1:cont_inds, '.rds')
   } else{
-    file_names <- paste0(temp_file_dir, '/part3_', adj_type, '_n_', n, '_nquery', 1:cont_inds, '.rds')
+    file_names <- paste0(temp_file_dir, '/part3_', adj_type, '_n_', n, '_nquery', 1:cont_inds, '_rep_', rep_i,  '.rds')
   }
   
   
@@ -2116,7 +2117,7 @@ full_conditional_estimation_with_no_truth_part3 <- function(temp_file_dir, setti
   if(mouse){
     step_2_list_names <- paste0(temp_file_dir, '/part2_', ID, '_', discrete_level, '_t', time_scale, '_nquery', 1:cont_inds, '.rds')
   } else{
-    step_2_list_names <- paste0(temp_file_dir, '/part2_', adj_type, '_n_', n, '_nquery', 1:cont_inds, '.rds')
+    step_2_list_names <- paste0(temp_file_dir, '/part2_', adj_type, '_n_', n, '_nquery', 1:cont_inds, '_rep_', rep_i, '.rds')
   }
   
   step_2_all_data <- lapply(step_2_list_names, readRDS)
@@ -2180,7 +2181,8 @@ full_conditional_estimation_with_no_truth_part3 <- function(temp_file_dir, setti
     part3_file_name          <- paste0('part3_', adj_type, '_n_', n, '_nquery', 1:cont_inds, '.rds')
   }
   
-
+  unlink(temp_file_dir, recursive = TRUE)
+  unlink(temp_file_dir2, recursive = TRUE)
   # file.remove(file.path(temp_file_dir, part1_file_name)) 
   # file.remove(file.path(temp_file_dir, part2_file_name)) 
   # file.remove(file.path(temp_file_dir, part2_rho_i_file_name)) 

@@ -84,8 +84,8 @@ if(model_type == 'mice'){
   temp_file_dir <- 'temp_data'
   if (!dir.exists(temp_file_dir)) dir.create(temp_file_dir)  # temp_data
   
-  temp_file_dir <- paste0(temp_file_dir, '/simu')
-  if (!dir.exists(temp_file_dir)) dir.create(temp_file_dir)  # temp_data/simu
+  temp_file_dir <- paste0('temp_data/simu_', adj_type, '_n_', n_large, '_rep_', rep_i)
+  if (!dir.exists(temp_file_dir)) dir.create(temp_file_dir)  # temp_data/simu_adj_type
   mouse <- F
   
 } else{
@@ -103,7 +103,8 @@ if(mouse){
   load(paste0(data_folder, '/', ID, '_', discrete_level, '_t', time_scale, '.RData')) # dataset_k
   dataset_k$Y_continuous_k <- dataset_k$Y_continuous  
 } else{
-  load(paste0('simu_data/', adj_type, '_n_', n_large, '_rep_', rep_i, '.RData')) #dataset --> dataset_k
+  simu_data_dir <- paste0('simu_data/', adj_type, '_n_', n_large, '_rep_', rep_i)
+  load(paste0(simu_data_dir, '/', adj_type, '_n_', n_large, '_rep_', rep_i, '.RData')) #dataset --> dataset_k
   
   # 1) choose indices that thin the sample size
   idx <- round(seq(1, n_large, length.out = n))

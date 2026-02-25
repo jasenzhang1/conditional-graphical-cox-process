@@ -60,8 +60,8 @@ if(model_type == 'mice'){
                             method = method)
   
   mouse <- F
-  temp_file_dir <- 'temp_data/simu'
-  
+  temp_file_dir  <- paste0('temp_data/simu_', adj_type, '_n_', n_large, '_rep_', rep_i)
+  temp_file_dir2 <- paste0('temp_data/simu_data_', adj_type, '_n_', n_large, '_rep_', rep_i)
   
   folder_1_name <- 'simu_results'
   if (!dir.exists(folder_1_name)) dir.create(folder_1_name)  # simu_results
@@ -83,7 +83,7 @@ if(model_type == 'mice'){
 # ---------------------------
 
 if(method == 'CPGM'){
-  graph_results_i <- full_conditional_estimation_with_no_truth_part3(temp_file_dir, setting_info_list, cont_inds, mouse)
+  graph_results_i <- full_conditional_estimation_with_no_truth_part3(temp_file_dir, temp_file_dir2, setting_info_list, cont_inds, mouse)
 } else{
   stop('Invalid method. Must be CPGM')
 }

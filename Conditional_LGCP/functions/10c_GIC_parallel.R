@@ -438,7 +438,6 @@ GIC_joint_part2and3_serialized <- function(k, id_suffix, folder) {
   # This avoids reloading/re-inverting the large C matrices multiple times.
   # ----------------------------------------------------------------------------
   
-  print('beginning of GIC_joint_part2and3_serialized')
   
   # 1. Load Initial Setup Data for this specific ID
   initial_file <- paste0(folder, "/GIC_joint_initial_", id_suffix, ".RData")
@@ -511,10 +510,6 @@ GIC_joint_part2and3_serialized <- function(k, id_suffix, folder) {
   save_path <- paste0(folder, "/GIC_joint_res_", id_suffix, "_k", k, ".rds")
   saveRDS(combined_res, file = save_path)
   
-  
-  print('end of GIC_joint_part2and3_serialized')
-  
-  return(nrow(combined_res))
 }
 
 GIC_joint_part4_finalize <- function(GIC_folder, temp_file_dir, setting_info_list, cont_inds, mouse) {
@@ -574,9 +569,6 @@ GIC_joint_part4_finalize <- function(GIC_folder, temp_file_dir, setting_info_lis
 GIC_hybrid_part2and3_serialized <- function(k, id, folder) {
   
   
-  
-  print('beginning of GIC_hybrid_part2and3_serialized')
-  
   # 1. Load Setup Data
   load(paste0(folder, "/GIC_joint_initial_", id, ".RData"))
   tau_c <- tau_c_levels[k]
@@ -634,8 +626,6 @@ GIC_hybrid_part2and3_serialized <- function(k, id, folder) {
   # 4. Save result for this global tau_c
   res <- list(k = k, tau_c = tau_c, total_gic = hybrid_total_GIC, locals = local_winners)
   saveRDS(res, file = paste0(folder, "/GIC_hybrid_res_", id, "_k", k, ".rds"))
-  
-  print('end of GIC_hybrid_part2and3_serialized')
   
 }
 

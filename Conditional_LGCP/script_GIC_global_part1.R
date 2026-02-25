@@ -26,7 +26,7 @@ if(model_type == 'mice'){
   method    <- args[6]
   cont_inds <- as.numeric(args[7])
   
-  temp_file_dir <- 'temp_data/simu'
+  temp_file_dir <- paste0('temp_data/simu_', adj_type, '_n_', n_large, '_rep_', rep_i)
   GIC_folder    <- paste0(temp_file_dir, '/GIC_joint_', adj_type, '_n_', n, '_rep', rep_i)
   mouse <- FALSE
 }

@@ -92,7 +92,7 @@ param_list <- list(
 temp_file_dir <- 'temp_data'
 if (!dir.exists(temp_file_dir)) dir.create(temp_file_dir)  # temp_data
 
-temp_file_dir <- paste0(temp_file_dir, '/simu_data')
+temp_file_dir <- paste0(temp_file_dir, '/simu_data_', adj_type, '_n_', n_large, '_rep_', rep_i)
 if (!dir.exists(temp_file_dir)) dir.create(temp_file_dir)  # temp_data/simu_data
 
 # save data

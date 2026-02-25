@@ -47,7 +47,9 @@ if(model_type == 'mice'){
                             adj_type = adj_type,
                             method = method)
   
-  temp_file_dirs <- c('temp_data/simu', 'temp_data/simu_data')
+  simu_dir <- paste0('temp_data/simu_', adj_type, '_n_', n_large, '_rep_', rep_i)
+  simu_data_dir <- paste0('temp_data/simu_data_', adj_type, '_n_', n_large, '_rep_', rep_i)
+  temp_file_dirs <- c(simu_dir, simu_data_dir)
   mouse <- F
   
 } else{
