@@ -417,29 +417,29 @@ for entry in "${adj_type_params[@]}"; do
                   
                   # Loop through the IDs found in the map
                   for id_suffix in $(seq 1 "$num_suffixes"); do
-                  
-                      wait_for_slot
-                      (
-                        
-                          for ((k=1; k<=num_k; k++)); do
-                              wait_for_slot
-                              (
-                                  # Run JOINT if requested
-                                  if [[ "$global_thresh_method" == "joint" || "$global_thresh_method" == "both" ]]; then
-                                      Rscript script_GIC_global_part2and3_serial.R \
-                                          "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" \
-                                          "$eigen_setting" "$id_suffix" "$k" >> "$outfile" 2>&1
-                                  fi
-                  
-                                  # Run HYBRID if requested
-                                  if [[ "$global_thresh_method" == "tau_c" || "$global_thresh_method" == "both" ]]; then
-                                      Rscript script_GIC_hybrid_part2and3_serial.R \
-                                          "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" \
-                                          "$eigen_setting" "$id_suffix" "$k" >> "$outfile" 2>&1
-                                  fi
-                              ) & 
-                          done
-                      ) &
+
+                      for ((k=1; k<=num_k; k++)); do
+
+                          # Run JOINT if requested
+                          wait_for_slot
+                          
+                          if [[ "$global_thresh_method" == "joint" || "$global_thresh_method" == "both" ]]; then
+                              Rscript script_GIC_global_part2and3_serial.R \
+                                  "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" \
+                                  "$eigen_setting" "$id_suffix" "$k" >> "$outfile" 2>&1 &
+                          fi
+                          
+                          # Run HYBRID if requested
+                          wait_for_slot
+                          
+                          if [[ "$global_thresh_method" == "tau_c" || "$global_thresh_method" == "both" ]]; then
+                              Rscript script_GIC_hybrid_part2and3_serial.R \
+                                  "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" \
+                                  "$eigen_setting" "$id_suffix" "$k" >> "$outfile" 2>&1 &
+                          fi
+
+                      done
+
                   done
                   wait
                   
