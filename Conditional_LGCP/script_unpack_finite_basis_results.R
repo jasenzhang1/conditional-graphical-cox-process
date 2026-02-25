@@ -22,6 +22,7 @@ adj_params <- as.numeric(args[9:length(args)])
 
 # n_large <- 10000
 # n <- 10000
+# n_reps <- 50
 # method <- 'CPGM'
 # X_truth <- T
 # beta_truth <- T
@@ -29,7 +30,8 @@ adj_params <- as.numeric(args[9:length(args)])
 # adj_type <- 'hub_block_v2'
 # adj_params <- c()
 
-data_folder <- 'simu_data'   
+ 
+data_folder <- paste0('simu_data/', adj_type, '_n_', n_large, '_rep_1') # simu_data/hub_block_v2_n_100_rep_1
 base_folder <- 'simu_results'
 
 eigen_troubleshoot <- (eigen_setting == 'trig_and_joint')
@@ -60,7 +62,7 @@ final_ids <- c('113',  # roc
 tau_ids <- c('121')  # tau_c and tau_p
 
 truth_file_name <- paste0(data_folder, '/', adj_type, '_n_', n_large, '_rep_1_truths.RData')
-results_folder <- paste0(base_folder, '/', adj_type, '/', method)
+results_folder <- paste0(base_folder, '/', adj_type, '/', method, '/rep1')  # simu_results/hub_block_v2/CPGM/rep1
 
 
 results_folder_2 <- paste0(results_folder, '/export')
@@ -77,7 +79,7 @@ print('Plotting 28e Figures')
 for(n in ns){
   
 
-  estimates_file_name <- paste0(results_folder, '/', adj_type, '_n_', n, '_rep_', 1, '.RData')
+  estimates_file_name <- paste0(results_folder, '/', adj_type, '_n_', n, '_rep_1.RData')
   
   g_exploratory <- visualize_finite_basis(truth_file_name, estimates_file_name, exploratory_ids, ground_truth, beta_truth, X_truth, eigen_troubleshoot)
   g_betas       <- visualize_finite_basis(truth_file_name, estimates_file_name, beta_ids,        ground_truth, beta_truth, X_truth, eigen_troubleshoot)
@@ -259,7 +261,7 @@ dev.off()                                                                       
 
 
 
-
+print('made it to the very end!!')
 
   
   

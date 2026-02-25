@@ -53,7 +53,7 @@ adj_type_params=(
 
 n_large=100
 ns=(100)
-n_reps=1
+n_reps=2
 
 #n_large=20000
 #ns=(100 250 500 1000 2500 5000 10000 20000)
@@ -71,8 +71,8 @@ p=12
 d=2
 n_query=2
 beta_0=4.7
-beta_truth="T"
-X_truth="T"
+beta_truth="F"
+X_truth="F"
 eigen_setting="trig_and_joint" #only_joint, trig_and_joint
 global_thresh_method="both" #both, joint, tau_c, neither   both = do joint and tau_c
 
@@ -418,9 +418,9 @@ for entry in "${adj_type_params[@]}"; do
                   # Loop through the IDs found in the map
                   for id_suffix in $(seq 1 "$num_suffixes"); do
 
+                      echo "suffix="$id_suffix >> "$outfile"
+                      
                       for ((k=1; k<=num_k; k++)); do
-                          
-                          echo "query=" $j ", suffix=" $id_suffix ", k=", $k >> "$outfile"
                           
                           # Run JOINT if requested
                           wait_for_slot
@@ -485,28 +485,26 @@ for entry in "${adj_type_params[@]}"; do
               Rscript script_fit_mice_data_part3.R "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$n_query" >> "$outfile" 2>&1
               
               echo "" | tee -a "$outfile"
-              echo "[DONE] Estimating n=$n" >> "$outfile"
+              echo "[DONE] Estimating n=$n in rep $rep_i out of $n_reps" >> "$outfile"
               
               
-          done
+          done # end of each n
           
           # ============================================================
           # END TIMER
           # ============================================================
-          
-          echo "" | tee -a "$outfile"
-          echo "===================================================" >> "$outfile"
-          
-          
+      
           end_time=$(date +%s)
           runtime=$((end_time - start_time))
           
           echo "Pipeline finished at: $(date)" >> "$outfile"
           echo "Total runtime: ${runtime} seconds (~$((runtime/60)) minutes)." >> "$outfile"
           
-          
+      
       ) &
-    done
+      
+      
+    done  # end of each rep
     
     wait
         
@@ -514,12 +512,17 @@ for entry in "${adj_type_params[@]}"; do
     # Last step - visualize results
     # ----------------
     
-    echo "" | tee -a "$outfile"
-    echo "===================================================" >> "$outfile"
-    echo "" | tee -a "$outfile"
-    echo "[PART 3] Visualization ..." >> "$outfile"
-    
     viz_log="script_outputs/simu/${adj_type}_visualization.log"
+    
+
+    echo "===================================================" >> "$viz_log"
+    echo "" | tee -a "$viz_log"
+    echo "[PART 3] Visualization ..." >> "$viz_log"
+    echo "" | tee -a "$viz_log"
+    echo "===================================================" >> "$viz_log"
+    echo "" | tee -a "$viz_log"
+
+    
     
     wait_for_slot
 
@@ -527,7 +530,9 @@ for entry in "${adj_type_params[@]}"; do
     Rscript script_unpack_finite_basis_results.R "$n_large" "${ns[*]}" "$n_reps" "$method" "$X_truth" "$beta_truth" "$eigen_setting" "$adj_type" "${adj_params[@]}" > "$viz_log" 2>&1
 
 
+
 done
 
 wait
+
 

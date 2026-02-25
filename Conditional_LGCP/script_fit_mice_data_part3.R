@@ -69,8 +69,8 @@ if(model_type == 'mice'){
   folder_2_name <- paste0(folder_1_name, "/", adj_type)
   if (!dir.exists(folder_2_name)) dir.create(folder_2_name)  # simu_results/single_c2
   
-  results_folder_name <- paste0(folder_2_name, "/", method)
-  if (!dir.exists(results_folder_name)) dir.create(results_folder_name)  # simu_results/single_c2/CPGM
+  results_folder_name <- paste0(folder_2_name, "/", method, '/rep', rep_i)
+  if (!dir.exists(results_folder_name)) dir.create(results_folder_name)  # simu_results/single_c2/CPGM/rep1
   
 } else{
   stop('model_type not supported')
