@@ -391,21 +391,81 @@ for entry in "${adj_type_params[@]}"; do
               
               wait_for_slot 
               
-              if [[ "$global_thresh_method" == "tau_c" || "$global_thresh_method" == "both" ]]; then
-                  echo "Running Hybrid script..."
-                  Rscript script_fit_mice_data_part2c_hybrid.R "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$n_query" "$global_thresh_method" >> "$outfile" 2>&1
-              fi
-              
               # Check for joint or both
-              if [[ "$global_thresh_method" == "joint" || "$global_thresh_method" == "both" ]]; then
-                  echo "Running Global script..."
-                  Rscript script_fit_mice_data_part2c_global.R "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$n_query" "$global_thresh_method" >> "$outfile" 2>&1
+              if [[ "$global_thresh_method" == "joint" || "$global_thresh_method" == "both" || "$global_thresh_method" == "tau_c" ]]; then
+                  echo "Running global/hybrid script..." >> "$outfile"
+                  
+      
+                  # PART 1: Precompute tau_c quantiles and get num_k
+                  output=$(Rscript script_GIC_global_part1.R \
+                           "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$n_query" \
+                           2>&1 | tee -a "$outfile")
+                  
+
+                  
+                  # retrieve variables
+                              
+                  num_k=$(echo "$output" | grep "max_k" | awk -F= '{print $2}')
+                  num_k=$(echo "$num_k" | xargs)
+                  
+                  num_suffixes=$(echo "$output" | grep "num_suffixes" | awk -F= '{print $2}')
+                  num_suffixes=$(echo "$num_suffixes" | xargs)
+
+                  echo "The Max K is: $num_k" >> "$outfile"
+                  echo "The Number of Suffixes is: $num_suffixes" >> "$outfile"
+                  
+                  
+                  # Loop through the IDs found in the map
+                  for id_suffix in $(seq 1 "$num_suffixes"); do
+                  
+                      wait_for_slot
+                      (
+                        
+                          for ((k=1; k<=num_k; k++)); do
+                              wait_for_slot
+                              (
+                                  # Run JOINT if requested
+                                  if [[ "$global_thresh_method" == "joint" || "$global_thresh_method" == "both" ]]; then
+                                      Rscript script_GIC_global_part2and3_serial.R \
+                                          "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" \
+                                          "$eigen_setting" "$id_suffix" "$k" >> "$outfile" 2>&1
+                                  fi
+                  
+                                  # Run HYBRID if requested
+                                  if [[ "$global_thresh_method" == "tau_c" || "$global_thresh_method" == "both" ]]; then
+                                      Rscript script_GIC_hybrid_part2and3_serial.R \
+                                          "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" \
+                                          "$eigen_setting" "$id_suffix" "$k" >> "$outfile" 2>&1
+                                  fi
+                              ) & 
+                          done
+                      ) &
+                  done
+                  wait
+                  
+                  echo "All GIC global/hybrid tasks complete. Combining." >> "$outfile"
+                  
+                  # PART 4: Finalize and combine results
+                  
+                  if [[ "$global_thresh_method" == "joint" || "$global_thresh_method" == "both" ]]; then
+                      Rscript script_GIC_global_part4.R "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$n_query" >> "$outfile" 2>&1
+                  fi
+                  
+                  if [[ "$global_thresh_method" == "tau_c" || "$global_thresh_method" == "both" ]]; then
+                      Rscript script_GIC_hybrid_part4.R "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$n_query" >> "$outfile" 2>&1
+                  fi
+                  
+                  
+                  
+
               fi
               
               
               # ----------------
               # Part 2d - get step_12 and step_12b, ROC and edge set after all w_mats have been calculated                     
               # ----------------
+              
+              echo "HOME SWEET HOME" >> "$outfile"
               
               wait_for_slot
               

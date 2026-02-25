@@ -288,7 +288,7 @@ GIC_step4_finalize <- function(temp_file_dir) {
 
 # joint
 
-GIC_joint_part1_setup <- function(C_cond_list, p, W_y_list, folder) {
+GIC_joint_part1_setup <- function(C_cond_list, p, W_y_list, folder, id_suffix) {
   
   # ----------------------------------------------------------------------------
   #
@@ -301,6 +301,7 @@ GIC_joint_part1_setup <- function(C_cond_list, p, W_y_list, folder) {
   # - p             (scalar)
   # - W_y           (list of scalars) effective sample size
   # - folder        (string)   'temp_data/simu/GIC_global...'
+  # - id_suffix     (string) (e.g., "est_eig1") to distinguish different estimation runs
   #
   # 
   # Output: 
@@ -315,24 +316,45 @@ GIC_joint_part1_setup <- function(C_cond_list, p, W_y_list, folder) {
   # 0) Setup indices and norms
   n_datasets <- length(C_cond_list)
   block_names <- names(C_cond_list[[1]])
+  
+  # Identify off-diagonal blocks (e.g., "1_2", "2_3") vs diagonal blocks ("1_1")
   off_diag_indices <- which(sapply(strsplit(block_names, "_"), function(x) x[1] != x[2]))
   
+  # Ensure diagonal blocks are identity for GIC stability
   C_cond_list <- lapply(C_cond_list, GIC_set_CXX_diag_identity)
+  
+  # Pre-calculate HS norms for every block in every dataset
   C_norms_list <- lapply(C_cond_list, function(dataset) {
     lapply(dataset, function(block) hilbert_schmidt_norm(block))
   })
   
-  # 1) Tau_c Candidates
+  # 1) Tau_c Candidate Generation (Aggregated across all datasets/queries)
   all_c_norms <- unlist(lapply(C_cond_list, function(dataset) {
     sapply(off_diag_indices, function(idx) norm(dataset[[idx]], "F"))
   }))
+  
+  # Create a grid based on percentiles of all observed off-diagonal norms
   tau_c_levels <- unique(quantile(all_c_norms, probs = seq(0, 1, by = 0.01)))
-  if(min(tau_c_levels) > 0) tau_c_levels <- c(0, tau_c_levels)
   
-  # Save initial data for workers
-  save(C_cond_list, C_norms_list, tau_c_levels, off_diag_indices, p, W_y_list, 
-       file = paste0(folder, "/GIC_joint_initial.RData"))
+  # Ensure 0 is included as a candidate (no thresholding)
+  if(length(tau_c_levels) == 0 || min(tau_c_levels) > 0) {
+    tau_c_levels <- c(0, tau_c_levels)
+  }
   
+  # 2) Save Setup Data
+  # Filename includes 'id' so that part 2/3 workers know which estimation type they are solving
+  save_path <- paste0(folder, "/GIC_joint_initial_", id_suffix, ".RData")
+  
+  save(C_cond_list, 
+       C_norms_list, 
+       tau_c_levels, 
+       off_diag_indices, 
+       p, 
+       W_y_list, 
+       id_suffix,
+       file = save_path)
+  
+  # Return the number of tau_c candidates for the Bash loop (max_k)
   return(length(tau_c_levels))
 }
 
@@ -409,85 +431,261 @@ GIC_joint_part3_evaluate <- function(k, l, folder) {
   saveRDS(res, file = paste0(folder, "/GIC_joint_res_k", k, "_l", l, ".rds"))
 }
 
-GIC_joint_part4_finalize <- function(folder) {
+GIC_joint_part2and3_serialized <- function(k, id_suffix, folder) {
   
-  # - folder        (string)   'temp_data/simu/GIC_global...'
+  # ----------------------------------------------------------------------------
+  # GOAL: For a fixed tau_c (k) and estimation type (id_suffix), evaluate ALL tau_p levels.
+  # This avoids reloading/re-inverting the large C matrices multiple times.
+  # ----------------------------------------------------------------------------
   
-  # 1. Load the initial data to get original matrices and parameters
-  initial_data_path <- paste0(folder, "/GIC_joint_initial.RData")
-  if (!file.exists(initial_data_path)) stop("Initial data file not found.")
-  load(initial_data_path) 
-  # This loads: C_cond_list, C_norms_list, tau_c_levels, off_diag_indices, p, W_y_list
+  # 1. Load Initial Setup Data for this specific ID
+  initial_file <- paste0(folder, "/GIC_joint_initial_", id_suffix, ".RData")
+  if (!file.exists(initial_file)) stop("Initial data not found for: ", id_suffix)
+  load(initial_file) 
+  # Loads: C_cond_list, C_norms_list, tau_c_levels, off_diag_indices, p, W_y_list
   
-  # 2. Gather all individual GIC results from Part 3
-  result_files <- list.files(path = folder, 
-                             pattern = "GIC_joint_res_k\\d+_l\\d+\\.rds", 
-                             full.names = TRUE)
-  
-  if (length(result_files) == 0) stop("No result files found in folder.")
-  
-  # Combine all small data frames into one master table
-  all_results <- do.call(rbind, lapply(result_files, readRDS))
-  
-  # 3. Identify the optimal pair
-  # We remove NAs just in case some inversions failed
-  valid_results <- all_results[!is.na(all_results$gic), ]
-  if (nrow(valid_results) == 0) stop("No valid GIC results found.")
-  
-  winner <- valid_results[which.min(valid_results$gic), ]
-  best_tau_c <- winner$tau_c
-  best_tau_p <- winner$tau_p
-  lowest_gic <- winner$gic
-  
-  # 4. Final Reconstruction Pass
+  tau_c <- tau_c_levels[k]
   n_datasets <- length(C_cond_list)
-  final_Theta_list <- list()
-  final_C_list     <- list()
+  
+  # 2. Part 2 Logic: Apply tau_c and Invert (The expensive step)
+  # We do this once per k index.
+  current_Theta_cond_list <- list()
+  current_C_full_matrices <- list()
   
   for (i in 1:n_datasets) {
-    # 4a) Apply the optimal Global tau_c
-    C_final <- C_cond_list[[i]]
+    C_thresh <- C_cond_list[[i]]
     dataset_norms <- C_norms_list[[i]]
+    
+    # Threshold C blocks
     for (idx in off_diag_indices) {
-      if (dataset_norms[[idx]] <= best_tau_c) {
-        C_final[[idx]][] <- 0
-      }
+      if (dataset_norms[[idx]] <= tau_c) C_thresh[[idx]][] <- 0
     }
     
-    # 4b) Perform the final inversion
-    res_final      <- assemble_block_matrix_irregular(C_final, p)
-    Theta_full_raw <- ginv(res_final$block_matrix)
-    Th_cond_final  <- extract_block_matrix_irregular(Theta_full_raw, 
-                                                     res_final$row_borders, 
-                                                     res_final$col_borders)
+    # Assemble and Invert
+    res <- assemble_block_matrix_irregular(C_thresh, p)
+    current_C_full_matrices[[i]] <- res$block_matrix
     
-    # 4c) Apply the optimal Global tau_p
-    for (idx in off_diag_indices) {
-      if (norm(Th_cond_final[[idx]], "F") <= best_tau_p) {
-        Th_cond_final[[idx]][] <- 0
-      }
-    }
-    
-    final_C_list[[i]]     <- C_final
-    final_Theta_list[[i]] <- Th_cond_final
+    # Generate Theta (the precision matrix estimate)
+    Theta_full <- ginv(res$block_matrix)
+    current_Theta_cond_list[[i]] <- extract_block_matrix_irregular(
+      Theta_full, res$row_borders, res$col_borders
+    )
   }
   
-  # 5. Compile Final Output Object
-  output <- list(
-    joint_tau_c   = best_tau_c,
-    joint_tau_p   = best_tau_p,
-    total_min_GIC = lowest_gic,
-    Theta_list    = final_Theta_list,
-    Cond_list     = final_C_list,
-    w_mat         = lapply(final_Theta_list, function(m) hilbert_schmidt_norm_list_to_mat(m, p)),
-    C_HS          = lapply(final_C_list, function(m) hilbert_schmidt_norm_list_to_mat(m, p))
-  )
+  # 3. Determine tau_p candidates for this specific inversion state
+  all_p_norms <- unlist(lapply(current_Theta_cond_list, function(Th) {
+    sapply(off_diag_indices, function(idx) norm(Th[[idx]], "F"))
+  }))
+  tau_p_levels <- unique(quantile(all_p_norms, probs = seq(0, 1, by = 0.01)))
+  if(length(tau_p_levels) > 0 && min(tau_p_levels) > 0) tau_p_levels <- c(0, tau_p_levels)
   
-  # 6. Cleanup (Optional: deletes thousands of tiny files to keep the disk clean)
-  # file.remove(result_files)
-  # file.remove(list.files(folder, pattern = "GIC_joint_k_.*\\.RData", full.names = TRUE))
+  # 4. Part 3 Logic: Loop through all tau_p (l) in memory
+  k_results <- lapply(seq_along(tau_p_levels), function(l) {
+    tau_p <- tau_p_levels[l]
+    total_GIC_at_pair <- 0
+    
+    for (i in 1:n_datasets) {
+      Th_test <- current_Theta_cond_list[[i]]
+      
+      # Apply tau_p thresholding to Theta blocks
+      for (idx in off_diag_indices) {
+        if (norm(Th_test[[idx]], "F") <= tau_p) Th_test[[idx]][] <- 0
+      }
+      
+      # Re-assemble for GIC evaluation
+      TH_assembled <- assemble_block_matrix_irregular(Th_test, p)$block_matrix
+      n_edges <- GIC_edge_count(Th_test, p)
+      
+      # Calculate Joint GIC (summed across all queries/datasets)
+      total_GIC_at_pair <- total_GIC_at_pair + 
+        GIC_evalulation(current_C_full_matrices[[i]], TH_assembled, W_y_list[[i]], n_edges)
+    }
+    
+    return(data.frame(id_suffix = id_suffix, k = k, l = l, tau_c = tau_c, tau_p = tau_p, gic = total_GIC_at_pair))
+  })
   
-  return(output)
+  # 5. Save consolidated result file for this k and id
+  combined_res <- do.call(rbind, k_results)
+  save_path <- paste0(folder, "/GIC_joint_res_", id_suffix, "_k", k, ".rds")
+  saveRDS(combined_res, file = save_path)
+  
+  return(nrow(combined_res))
 }
 
+GIC_joint_part4_finalize <- function(GIC_folder, temp_file_dir, setting_info_list, cont_inds, mouse) {
+  # 1) Setup original file paths for infusion
+  list2env(setting_info_list, envir = environment())
+  if(mouse){
+    step_3_paths <- paste0(temp_file_dir, '/part3_', ID, '_', discrete_level, '_t', time_scale, '_nquery', 1:cont_inds, '.rds')
+  } else {
+    step_3_paths <- paste0(temp_file_dir, '/part3_', adj_type, '_n_', n, '_nquery', 1:cont_inds, '_rep_', rep_i, '.rds')
+  }
+  original_results <- lapply(step_3_paths, readRDS)
+  
+  # 2) Load task map
+  task_map <- read.csv(paste0(GIC_folder, '/task_map.csv'))
+  
+  for (i in 1:nrow(task_map)) {
+    current_id <- as.character(task_map$id[i])
+    suffix <- sub("^KL_cor_", "", current_id) 
+    
+    initial_data_path <- paste0(GIC_folder, "/GIC_joint_initial_", current_id, ".RData")
+    if(!file.exists(initial_data_path)) next
+    load(initial_data_path) 
+    
+    result_files <- list.files(path = GIC_folder, pattern = paste0("GIC_joint_res_", current_id, "_k\\d+\\.rds"), full.names = TRUE)
+    if (length(result_files) == 0) next
+    
+    all_res_df <- do.call(rbind, lapply(result_files, readRDS))
+    winner     <- all_res_df[which.min(all_res_df$gic), ]
+    
+    # 3) Reconstruction & Infusion Loop
+    for (d in 1:cont_inds) {
+      C_d <- C_cond_list[[d]]
+      for (idx in off_diag_indices) {
+        if (C_norms_list[[d]][[idx]] <= winner$tau_c) C_d[[idx]][] <- 0
+      }
+      res_inv    <- assemble_block_matrix_irregular(C_d, p)
+      Theta_raw  <- ginv(res_inv$block_matrix)
+      Theta_cond <- extract_block_matrix_irregular(Theta_raw, res_inv$row_borders, res_inv$col_borders)
+      for (idx in off_diag_indices) {
+        if (norm(Theta_cond[[idx]], "F") <= winner$tau_p) Theta_cond[[idx]][] <- 0
+      }
+      
+      # Inject into original result structure
+      original_results[[d]]$step_11[[paste0('w_mat_KL_GIC_global_', suffix)]]  <- hilbert_schmidt_norm_list_to_mat(Theta_cond, p)
+      original_results[[d]]$step_11b[[paste0('C_HS_KL_GIC_global_', suffix)]] <- hilbert_schmidt_norm_list_to_mat(C_d, p)
+      original_results[[d]]$step_11x[[paste0('tau_c_global_', suffix)]]       <- winner$tau_c
+      original_results[[d]]$step_11y[[paste0('tau_p_global_', suffix)]]       <- winner$tau_p
+    }
+  }
+  
+  # 4) Save back to RDS
+  for (d in 1:cont_inds) saveRDS(original_results[[d]], file = step_3_paths[d])
+}
+
+# hybrid can join in with joint
+
+GIC_hybrid_part2and3_serialized <- function(k, id, folder) {
+  # 1. Load Setup Data
+  load(paste0(folder, "/GIC_joint_initial_", id, ".RData"))
+  tau_c <- tau_c_levels[k]
+  n_datasets <- length(C_cond_list)
+  
+  # 2. Apply Global tau_c and Invert
+  current_Theta_list <- list()
+  current_C_full_list <- list()
+  
+  for (i in 1:n_datasets) {
+    C_thresh <- C_cond_list[[i]]
+    for (idx in off_diag_indices) {
+      if (C_norms_list[[i]][[idx]] <= tau_c) C_thresh[[idx]][] <- 0
+    }
+    res <- assemble_block_matrix_irregular(C_thresh, p)
+    current_C_full_list[[i]] <- res$block_matrix
+    current_Theta_list[[i]]  <- ginv(res$block_matrix)
+  }
+  
+  # 3. Local Search for best tau_p per dataset
+  hybrid_total_GIC <- 0
+  local_winners <- list()
+  
+  for (i in 1:n_datasets) {
+    # Generate tau_p candidates for THIS specific matrix
+    Th_cond <- extract_block_matrix_irregular(current_Theta_list[[i]], res$row_borders, res$col_borders)
+    p_norms <- sapply(off_diag_indices, function(idx) norm(Th_cond[[idx]], "F"))
+    tau_p_levels <- unique(quantile(p_norms, probs = seq(0, 1, by = 0.01)))
+    
+    best_local_gic <- Inf
+    best_local_tau_p <- 0
+    
+    for (tp in tau_p_levels) {
+      # Apply tp locally
+      Th_test <- Th_cond
+      for (idx in off_diag_indices) {
+        if (norm(Th_test[[idx]], "F") <= tp) Th_test[[idx]][] <- 0
+      }
+      
+      # Evaluate GIC for this dataset only
+      TH_assembled <- assemble_block_matrix_irregular(Th_test, p)$block_matrix
+      n_edges <- GIC_edge_count(Th_test, p)
+      current_gic <- GIC_evalulation(current_C_full_list[[i]], TH_assembled, W_y_list[[i]], n_edges)
+      
+      if (current_gic < best_local_gic) {
+        best_local_gic <- current_gic
+        best_local_tau_p <- tp
+      }
+    }
+    
+    hybrid_total_GIC <- hybrid_total_GIC + best_local_gic
+    local_winners[[i]] <- list(tau_p = best_local_tau_p, gic = best_local_gic)
+  }
+  
+  # 4. Save result for this global tau_c
+  res <- list(k = k, tau_c = tau_c, total_gic = hybrid_total_GIC, locals = local_winners)
+  saveRDS(res, file = paste0(folder, "/GIC_hybrid_res_", id, "_k", k, ".rds"))
+}
+
+GIC_hybrid_part4_finalize <- function(GIC_folder, temp_file_dir, setting_info_list, cont_inds, mouse) {
+  # 1) Setup original file paths for infusion
+  list2env(setting_info_list, envir = environment())
+  if(mouse){
+    step_3_paths <- paste0(temp_file_dir, '/part3_', ID, '_', discrete_level, '_t', time_scale, '_nquery', 1:cont_inds, '.rds')
+  } else {
+    step_3_paths <- paste0(temp_file_dir, '/part3_', adj_type, '_n_', n, '_nquery', 1:cont_inds, '_rep_', rep_i, '.rds')
+  }
+  original_results <- lapply(step_3_paths, readRDS)
+  
+  # 2) Load task map
+  task_map <- read.csv(paste0(GIC_folder, '/task_map.csv'))
+  
+  for (i in 1:nrow(task_map)) {
+    current_id <- as.character(task_map$id[i])
+    suffix <- sub("^KL_cor_", "", current_id) 
+    
+    initial_data_path <- paste0(GIC_folder, "/GIC_joint_initial_", current_id, ".RData")
+    if(!file.exists(initial_data_path)) next
+    load(initial_data_path) 
+    
+    result_files <- list.files(path = GIC_folder, pattern = paste0("GIC_hybrid_res_", current_id, "_k\\d+\\.rds"), full.names = TRUE)
+    if (length(result_files) == 0) next
+    
+    best_overall_gic <- Inf
+    winner_file <- NULL
+    for (f in result_files) {
+      tmp <- readRDS(f)
+      if (!is.na(tmp$total_gic) && tmp$total_gic < best_overall_gic) {
+        best_overall_gic <- tmp$total_gic
+        winner_file <- tmp
+      }
+    }
+    if (is.null(winner_file)) next
+    
+    # 3) Reconstruction & Infusion Loop
+    for (d in 1:cont_inds) {
+      C_d <- C_cond_list[[d]]
+      for (idx in off_diag_indices) {
+        if (C_norms_list[[d]][[idx]] <= winner_file$tau_c) C_d[[idx]][] <- 0
+      }
+      res_inv    <- assemble_block_matrix_irregular(C_d, p)
+      Theta_raw  <- ginv(res_inv$block_matrix)
+      Theta_cond <- extract_block_matrix_irregular(Theta_raw, res_inv$row_borders, res_inv$col_borders)
+      
+      # Use local tau_p for this specific dataset
+      local_tp_d <- winner_file$locals[[d]]$tau_p
+      for (idx in off_diag_indices) {
+        if (norm(Theta_cond[[idx]], "F") <= local_tp_d) Theta_cond[[idx]][] <- 0
+      }
+      
+      # Inject into original result structure
+      original_results[[d]]$step_11[[paste0('w_mat_KL_GIC_hybrid_', suffix)]]  <- hilbert_schmidt_norm_list_to_mat(Theta_cond, p)
+      original_results[[d]]$step_11b[[paste0('C_HS_KL_GIC_hybrid_', suffix)]] <- hilbert_schmidt_norm_list_to_mat(C_d, p)
+      original_results[[d]]$step_11x[[paste0('tau_c_hybrid_', suffix)]]       <- winner_file$tau_c
+      original_results[[d]]$step_11y[[paste0('tau_p_hybrid_', suffix)]]       <- local_tp_d
+    }
+  }
+  
+  # 4) Save back to RDS
+  for (d in 1:cont_inds) saveRDS(original_results[[d]], file = step_3_paths[d])
+}
 
