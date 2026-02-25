@@ -34,7 +34,7 @@ rm(result)
 
 if (!dir.exists('simu_data')) dir.create('simu_data')
 simu_data_dir <- paste0('simu_data/', adj_type, '_n_', n_large, '_rep_', rep_i)
-
+if (!dir.exists(simu_data_dir)) dir.create(simu_data_dir)
 
 save(dataset, file = paste0(simu_data_dir, '/', adj_type, '_n_', n_large, '_rep_', rep_i, '.RData'))
 save(truths, file = paste0(simu_data_dir, '/', adj_type, '_n_', n_large, '_rep_', rep_i, '_truths.RData'))
