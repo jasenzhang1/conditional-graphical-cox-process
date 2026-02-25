@@ -419,7 +419,9 @@ for entry in "${adj_type_params[@]}"; do
                   for id_suffix in $(seq 1 "$num_suffixes"); do
 
                       for ((k=1; k<=num_k; k++)); do
-
+                          
+                          echo "query=" $j ", suffix=" $id_suffix ", k=", $k >> "$outfile"
+                          
                           # Run JOINT if requested
                           wait_for_slot
                           
