@@ -513,13 +513,13 @@ for entry in "${adj_type_params[@]}"; do
     # ----------------
     
     viz_log="script_outputs/simu/${adj_type}_visualization.log"
-    
+    rm -f "$viz_log"   # delete old log if it exists
 
-    echo "===================================================" >> "$viz_log"
+    echo "===================================================" | tee -a "$viz_log"
     echo "" | tee -a "$viz_log"
-    echo "[PART 3] Visualization ..." >> "$viz_log"
+    echo "[PART 3] Visualization ..." | tee -a "$viz_log"
     echo "" | tee -a "$viz_log"
-    echo "===================================================" >> "$viz_log"
+    echo "===================================================" | tee -a "$viz_log"
     echo "" | tee -a "$viz_log"
 
     
