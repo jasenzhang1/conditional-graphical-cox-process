@@ -14,7 +14,6 @@ if(model_type == 'mice'){
   movement <- as.numeric(args[6])     # movement <- 0
   VR <- as.numeric(args[7])           # VR <- 0
   cont_ind <- as.numeric(args[8])     # cont_ind <- 1  
-  eigen_setting <- args[9]            # eigen_seting <- 'only_joint'
   
   X_truth <- F
   
@@ -38,7 +37,6 @@ if(model_type == 'mice'){
   method <- args[6]
   X_truth <- as.logical(args[7])
   cont_ind <- as.numeric(args[8])
-  eigen_setting <- args[9]
   
   setting_info_list <- list(n_large = n_large,
                             n = n,

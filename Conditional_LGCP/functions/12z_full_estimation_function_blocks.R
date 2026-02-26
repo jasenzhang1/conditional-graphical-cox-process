@@ -599,7 +599,9 @@ step_4_eigendecomp <- function(step_3, p, same_basis, constant_d){
   return(result)
 }
 
-step_4_eigendecomp_troubleshoot <- function(step_3, p){
+
+
+step_4_eigendecomp_troubleshoot <- function(step_3, p, eigen_setting){
   
   
   # ----------------------------------------------------------------------------
@@ -616,7 +618,7 @@ step_4_eigendecomp_troubleshoot <- function(step_3, p){
   #   - g_ij_suffix                (list of m x m matrices for i_j entries)
   #
   # - p                            (scalar)
-  #
+  # - eigen_setting                (string)  'trig_and_joint',  'trig_simple'
   #
   # outputs:
   #
@@ -629,8 +631,15 @@ step_4_eigendecomp_troubleshoot <- function(step_3, p){
   #
   # ----------------------------------------------------------------------------
   
-  basis_settings <- c(T, T, F)
-  constant_d_settings <- c(2, NA, NA)
+  if(eigen_setting == 'trig_simple'){
+    basis_settings <- c(T)
+    constant_d_settings <- c(2)
+  } else{
+    basis_settings <- c(T, T, F)
+    constant_d_settings <- c(2, NA, NA) 
+  }
+  
+
 
   
   result <- list()

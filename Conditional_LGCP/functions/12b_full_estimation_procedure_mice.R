@@ -1552,10 +1552,10 @@ full_conditional_estimation_with_no_truth_part2b <- function(temp_file_dir, sett
       stop(e)
       
     })
-  } else if (eigen_setting == 'trig_and_joint'){
+  } else if (eigen_setting %in% c('trig_and_joint', 'trig_simple')){
     
     step_4 <- tryCatch({
-      step_4_eigendecomp_troubleshoot(step_3, p)
+      step_4_eigendecomp_troubleshoot(step_3, p, eigen_setting)
     }, error = function(e) {
       cat("Error in step_4, saving dataset...\n")
       save(dataset, file = file.path(temp_file_dir, datafile_error_name))
@@ -1733,10 +1733,10 @@ full_conditional_estimation_with_no_truth_part2b_before_GIC <- function(temp_fil
       stop(e)
       
     })
-  } else if (eigen_setting == 'trig_and_joint'){
+  } else if (eigen_setting %in% c('trig_and_joint', 'trig_simple')){
     
     step_4 <- tryCatch({
-      step_4_eigendecomp_troubleshoot(step_3, p)
+      step_4_eigendecomp_troubleshoot(step_3, p, eigen_setting)
     }, error = function(e) {
       cat("Error in step_4, saving dataset...\n")
       save(dataset, file = file.path(temp_file_dir, datafile_error_name))
@@ -1775,7 +1775,7 @@ full_conditional_estimation_with_no_truth_part2b_before_GIC <- function(temp_fil
   saveRDS(estimated_graphs, file = file.path(temp_file_dir, file_name))  
 }
 
-full_conditional_estimation_with_no_truth_part2b_after_GIC <- function(temp_file_dirs, setting_info_list, cont_ind, mouse, X_truth, eigen_setting){
+full_conditional_estimation_with_no_truth_part2b_after_GIC <- function(temp_file_dirs, setting_info_list, cont_ind, mouse, X_truth){
   
   # temp_file_dirs[1] = temp_data/simu
   # temp_file_dirs[2] = temp_data/simu/GIC...

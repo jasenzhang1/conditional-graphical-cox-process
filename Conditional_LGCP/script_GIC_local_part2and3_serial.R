@@ -14,9 +14,8 @@ if(model_type == 'mice'){
   movement <- as.numeric(args[6])     # movement <- 0
   VR <- as.numeric(args[7])           # VR <- 0
   cont_ind <- as.numeric(args[8])     # cont_ind <- 1  
-  eigen_setting <- args[9]            # eigen_seting <- 'only_joint'
-  id_suffix <- args[10]               # est or X_truth
-  k         <- args[11]               # tau_c index
+  id_suffix <- args[9]               # est or X_truth
+  k         <- args[10]               # tau_c index
   
   
   X_truth <- F
@@ -40,9 +39,8 @@ if(model_type == 'mice'){
   adj_type <- args[5]
   method <- args[6]
   cont_ind <- as.numeric(args[7])
-  eigen_setting <- args[8]
-  id_suffix <- as.numeric(args[9])   # est or X_truth
-  k         <- as.numeric(args[10])   # tau_c index
+  id_suffix <- as.numeric(args[8])   # est or X_truth
+  k         <- as.numeric(args[9])   # tau_c index
 
   temp_file_dir <- paste0('temp_data/simu_', adj_type, '_n_', n_large, '_rep_', rep_i)
   temp_file_dir <- paste0(temp_file_dir, '/GIC_local_', adj_type, '_n_', n, '_nquery', cont_ind, '_rep', rep_i)

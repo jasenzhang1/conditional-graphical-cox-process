@@ -13,9 +13,8 @@ if(model_type == 'mice'){
   method <- args[5]                   # method <- 'CPGM'
   movement <- as.numeric(args[6])     # movement <- 0
   VR <- as.numeric(args[7])           # VR <- 0
-  eigen_setting <- args[8]            # eigen_seting <- 'only_joint'
-  id_suffix <- args[9]               # est or X_truth
-  k         <- args[10]               # tau_c index
+  id_suffix <- args[8]               # est or X_truth
+  k         <- args[9]               # tau_c index
   
   
   X_truth <- F
@@ -38,9 +37,8 @@ if(model_type == 'mice'){
   rep_i <- as.numeric(args[4])
   adj_type <- args[5]
   method <- args[6]
-  eigen_setting <- args[7]
-  id_suffix <- as.numeric(args[8])   # est or X_truth
-  k         <- as.numeric(args[9])   # tau_c index
+  id_suffix <- as.numeric(args[7])   # est or X_truth
+  k         <- as.numeric(args[8])   # tau_c index
 
   
   temp_file_dir <- paste0('temp_data/simu_', adj_type, '_n_', n_large, '_rep_', rep_i)
