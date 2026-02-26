@@ -51,9 +51,9 @@ adj_type_params=(
   
 )
 
-n_large=1000
-ns=(100 300 1000)
-n_reps=5
+n_large=100
+ns=(90 100)
+n_reps=1
 
 #n_large=20000
 #ns=(100 250 500 1000 2500 5000 10000 20000)
@@ -69,7 +69,7 @@ max_events=5000
 
 p=12
 d=2
-n_query=6
+n_query=2
 beta_0=4.7
 beta_truth="F"
 X_truth="F"
@@ -482,10 +482,19 @@ for entry in "${adj_type_params[@]}"; do
           Rscript script_fit_mice_data_part3.R "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$n_query" >> "$outfile" 2>&1
           
           echo "" | tee -a "$outfile"
+          echo "===================================================" >> "$outfile"
+          echo "" | tee -a "$outfile"
           echo "[DONE] Estimating n=$n in rep $rep_i out of $n_reps" >> "$outfile"
-          
+          echo "" | tee -a "$outfile"
+          echo "===================================================" >> "$outfile"
+          echo "" | tee -a "$outfile"
           
       done # end of each n
+      
+      echo "At part 4" >> "$outfile"
+      
+      # delete everything for this rep
+      # Rscript script_fit_mice_data_part4.R "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$n_query" >> "$outfile" 2>&1
       
       # ============================================================
       # END TIMER

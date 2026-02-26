@@ -2181,8 +2181,8 @@ full_conditional_estimation_with_no_truth_part3 <- function(temp_file_dir, temp_
     part3_file_name          <- paste0('part3_', adj_type, '_n_', n, '_nquery', 1:cont_inds, '.rds')
   }
   
-  unlink(temp_file_dir, recursive = TRUE)
-  unlink(temp_file_dir2, recursive = TRUE)
+  # unlink(temp_file_dir, recursive = TRUE)
+  # unlink(temp_file_dir2, recursive = TRUE)
   # file.remove(file.path(temp_file_dir, part1_file_name)) 
   # file.remove(file.path(temp_file_dir, part2_file_name)) 
   # file.remove(file.path(temp_file_dir, part2_rho_i_file_name)) 
