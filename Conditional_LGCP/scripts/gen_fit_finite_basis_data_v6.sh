@@ -51,9 +51,9 @@ adj_type_params=(
   
 )
 
-n_large=100
-ns=(100)
-n_reps=2
+n_large=1000
+ns=(100 300 1000)
+n_reps=5
 
 #n_large=20000
 #ns=(100 250 500 1000 2500 5000 10000 20000)
@@ -63,17 +63,17 @@ groups=$(( n_large / n_group ))
 
 method="CPGM"
 model_type="simu"  # simu or mice
-max_jobs=30
+max_jobs=50
 min_events=10
 max_events=5000
 
 p=12
 d=2
-n_query=2
+n_query=6
 beta_0=4.7
 beta_truth="F"
 X_truth="F"
-eigen_setting="trig_and_joint" #only_joint, trig_and_joint
+eigen_setting="trig_simple" #only_joint, trig_and_joint, trig_simple
 global_thresh_method="both" #both, joint, tau_c, neither   both = do joint and tau_c
 
 
@@ -313,7 +313,7 @@ for entry in "${adj_type_params[@]}"; do
           
                       # PART 1: Precompute tau_c quantiles and get num_k
                       output=$(Rscript script_GIC_local_part1.R \
-                               "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$X_truth" "$j" "$eigen_setting" \
+                               "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$X_truth" "$j" \
                                2>&1 | tee -a "$outfile")
                       
 
@@ -344,7 +344,7 @@ for entry in "${adj_type_params[@]}"; do
                                 # Inside this R script, it will loop through all tau_p (l=1...num_l)
                                 Rscript script_GIC_local_part2and3_serial.R \
                                     "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" \
-                                    "$j" "$eigen_setting" "$id_suffix" "$k" >> "$outfile" 2>&1 &                              
+                                    "$j" "$id_suffix" "$k" >> "$outfile" 2>&1 &                              
 
                                       
                               done
@@ -369,7 +369,7 @@ for entry in "${adj_type_params[@]}"; do
                       echo "" | tee -a "$outfile"
                       echo "Merging GIC local info with part2b" >> "$outfile"
                       
-                      Rscript script_fit_mice_data_part2b_after_GIC.R "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$X_truth" "$j" "$eigen_setting" >> "$outfile" 2>&1
+                      Rscript script_fit_mice_data_part2b_after_GIC.R "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$X_truth" "$j" >> "$outfile" 2>&1
                       
                       
                       echo "[END] n = $n, y_c = $j" >> "$outfile"
@@ -428,7 +428,7 @@ for entry in "${adj_type_params[@]}"; do
                           if [[ "$global_thresh_method" == "joint" || "$global_thresh_method" == "both" ]]; then
                               Rscript script_GIC_global_part2and3_serial.R \
                                   "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" \
-                                  "$eigen_setting" "$id_suffix" "$k" >> "$outfile" 2>&1 &
+                                  "$id_suffix" "$k" >> "$outfile" 2>&1 &
                           fi
                           
                           # Run HYBRID if requested
@@ -437,7 +437,7 @@ for entry in "${adj_type_params[@]}"; do
                           if [[ "$global_thresh_method" == "tau_c" || "$global_thresh_method" == "both" ]]; then
                               Rscript script_GIC_hybrid_part2and3_serial.R \
                                   "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" \
-                                  "$eigen_setting" "$id_suffix" "$k" >> "$outfile" 2>&1 &
+                                  "$id_suffix" "$k" >> "$outfile" 2>&1 &
                           fi
 
                       done
@@ -527,9 +527,12 @@ for entry in "${adj_type_params[@]}"; do
     wait_for_slot
 
 
-    Rscript script_unpack_finite_basis_results.R "$n_large" "${ns[*]}" "$n_reps" "$method" "$X_truth" "$beta_truth" "$eigen_setting" "$adj_type" "${adj_params[@]}" > "$viz_log" 2>&1
+    Rscript script_unpack_finite_basis_results.R "$n_large" "${ns[*]}" "$n_reps" "$method" "$X_truth" "$beta_truth" "$eigen_setting" "$adj_type" "${adj_params[@]}" >> "$viz_log" 2>&1
 
-
+    echo "" | tee -a "$viz_log"
+    echo "===================================================" | tee -a "$viz_log"
+    echo "" | tee -a "$viz_log"
+    echo "[PART 3] DONE" | tee -a "$viz_log"
 
 done
 

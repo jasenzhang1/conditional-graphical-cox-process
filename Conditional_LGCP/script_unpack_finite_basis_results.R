@@ -259,11 +259,10 @@ grid.arrange(metrics_summary$eval_metrics_graph)                                
 grid.arrange(metrics_summary$eval_metrics_graph2)                                  
 dev.off()                                                                         # close the file
 
+# ------------------------------------------------------------------------------
+# 5) 28e) CI's for accuracy/f1/sens/spec etc for each n across reps
+  
+results_folder <- paste0(base_folder, '/', adj_type, '/', method)
 
+visualize_metrics_CI(results_folder, n_reps, adj_type)
 
-print('made it to the very end!!')
-
-  
-  
-  
-  
