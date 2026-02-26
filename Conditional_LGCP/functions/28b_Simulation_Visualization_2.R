@@ -1041,7 +1041,7 @@ visualize_metrics_finite_basis <- function(truth_file_name, results_folder, i, j
                                full.names = TRUE)
   
   # Store the original unsorted data
-  original_ns <- get_ns(results_folder)
+  original_ns <- get_ns_with_rep_unsorted(results_folder)
   
   # index + sort
   idxs <- order(original_ns)
@@ -1056,7 +1056,6 @@ visualize_metrics_finite_basis <- function(truth_file_name, results_folder, i, j
   for(l in 1:length(ns)){ # for each sample size:
     
     n <- ns[l]
-    print(n)
     
     estimates_file_name <- estimate_files[l]
 

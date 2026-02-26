@@ -37,6 +37,35 @@ get_ns <- function(folder_name){
   return(ns)
 }
 
+get_ns_with_rep_unsorted <- function(folder_name) {
+  
+  # ----------------------------------------------------------------------------
+  # GOAL: Extract 'n' from filenames like 'adj_type_n_500_rep_1.RData'
+  #
+  # Pattern logic:
+  #   - Look for "_n_"
+  #   - Capture digits (\\d+)
+  #   - Stop at "_rep_"
+  # ----------------------------------------------------------------------------  
+  
+  # 1) Get all file names in the directory
+  files <- list.files(folder_name, full.names = FALSE)
+  
+  # 2) Use regmatches and regexec for more precise middle-string extraction
+  # This regex looks for the digits immediately following "_n_"
+  ns <- sapply(files, function(x) {
+    match <- regmatches(x, regexec("_n_(\\d+)_rep_", x))
+    return(match[[1]][2]) # Index 2 captures the group inside the parentheses
+  })
+  
+  # 3) Clean up: Convert to numeric, remove NAs, and get unique values
+  ns <- as.numeric(ns)
+  ns <- unique(ns[!is.na(ns)])
+  
+  return(ns)
+}
+
+
 get_ns_with_rep <- function(folder_name) {
   
   # ----------------------------------------------------------------------------

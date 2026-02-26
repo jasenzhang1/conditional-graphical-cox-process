@@ -53,7 +53,7 @@ adj_type_params=(
 
 n_large=100
 ns=(90 100)
-n_reps=1
+n_reps=4
 
 #n_large=20000
 #ns=(100 250 500 1000 2500 5000 10000 20000)
@@ -491,10 +491,21 @@ for entry in "${adj_type_params[@]}"; do
           
       done # end of each n
       
-      echo "At part 4" >> "$outfile"
+      echo "Deleting Files ..." >> "$outfile"
       
-      # delete everything for this rep
-      # Rscript script_fit_mice_data_part4.R "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$n_query" >> "$outfile" 2>&1
+      
+      BASE_DIR="../temp_data"
+      
+      # Construct the folder names
+      FOLDER1="simu_data_${adj_type}_n_${n_large}_rep_${rep_i}"
+      FOLDER2="simu_${adj_type}_n_${n_large}_rep_${rep_i}"
+      
+      # Execute the deletion
+      # Using -v (verbose) so you can see exactly what is being deleted
+      rm -rf "$BASE_DIR/$FOLDER1"
+      rm -rf "$BASE_DIR/$FOLDER2"
+      
+      echo "Cleanup complete for $adj_type, n=$n_large, rep=$rep_i."
       
       # ============================================================
       # END TIMER

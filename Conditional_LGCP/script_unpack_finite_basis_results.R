@@ -262,6 +262,8 @@ dev.off()                                                                       
 # ------------------------------------------------------------------------------
 # 5) 28e) CI's for accuracy/f1/sens/spec etc for each n across reps
   
+print('Getting CI Results')
+
 results_folder <- paste0(base_folder, '/', adj_type, '/', method)
 
 visualize_metrics_CI(results_folder, n_reps, adj_type)
