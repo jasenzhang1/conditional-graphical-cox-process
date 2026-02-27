@@ -21,7 +21,6 @@ if(model_type == 'mice'){
   movement <- as.numeric(args[6])     # movement <- 0
   VR <- as.numeric(args[7])           # VR <- 0
   cont_inds <- as.numeric(args[8])    # cont_ind <- 1  
-  global_thresh_method <- args[9]     # both, joint, tau_c, neither
   
   
   discrete_level <- paste0('m', movement, 'vr', VR)
