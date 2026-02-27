@@ -51,9 +51,9 @@ adj_type_params=(
   
 )
 
-n_large=100
-ns=(90 100)
-n_reps=2
+n_large=1000
+ns=(100 300 1000)
+n_reps=10
 
 #n_large=20000
 #ns=(100 250 500 1000 2500 5000 10000 20000)
@@ -69,7 +69,7 @@ max_events=5000
 
 p=12
 d=2
-n_query=2
+n_query=6
 beta_0=4.7
 beta_truth="F"
 X_truth="F"
