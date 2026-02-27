@@ -15,7 +15,7 @@ n_reps      <- as.numeric(args[3])
 method      <- args[4]    
 X_truth     <- as.logical(args[5])
 beta_truth  <- as.logical(args[6])
-eigen_setting  <- args[7]
+eigen_setting  <- args[7]     # only_joint, trig_and_joint, trig_simple
 adj_type    <- args[8]
 adj_params <- as.numeric(args[9:length(args)])
 
@@ -26,15 +26,12 @@ adj_params <- as.numeric(args[9:length(args)])
 # method <- 'CPGM'
 # X_truth <- T
 # beta_truth <- T
-# eigen_troubleshoot <- T
 # adj_type <- 'hub_block_v2'
 # adj_params <- c()
 
  
 data_folder <- paste0('simu_data/', adj_type, '_n_', n_large, '_rep_1') # simu_data/hub_block_v2_n_100_rep_1
 base_folder <- 'simu_results'
-
-eigen_troubleshoot <- (eigen_setting == 'trig_and_joint')
 
 ground_truth <- T
 make_gif <- F
@@ -77,17 +74,16 @@ if (!dir.exists(results_folder_2)) {
 print('Plotting 28e Figures')
 
 for(n in ns){
-  
 
   estimates_file_name <- paste0(results_folder, '/', adj_type, '_n_', n, '_rep_1.RData')
   
-  g_exploratory <- visualize_finite_basis(truth_file_name, estimates_file_name, exploratory_ids, ground_truth, beta_truth, X_truth, eigen_troubleshoot)
-  g_betas       <- visualize_finite_basis(truth_file_name, estimates_file_name, beta_ids,        ground_truth, beta_truth, X_truth, eigen_troubleshoot)
-  g_bivariate   <- visualize_finite_basis(truth_file_name, estimates_file_name, bivariate_ids,   ground_truth, beta_truth, X_truth, eigen_troubleshoot)
-  g_KL          <- visualize_finite_basis(truth_file_name, estimates_file_name, KL_ids,          ground_truth, beta_truth, X_truth, eigen_troubleshoot)
-  g_HS          <- visualize_finite_basis(truth_file_name, estimates_file_name, HS_ids,          ground_truth, beta_truth, X_truth, eigen_troubleshoot)
-  g_final       <- visualize_finite_basis(truth_file_name, estimates_file_name, final_ids,       ground_truth, beta_truth, X_truth, eigen_troubleshoot)
-  g_tau         <- visualize_finite_basis(truth_file_name, estimates_file_name, tau_ids,         ground_truth, beta_truth, X_truth, eigen_troubleshoot)
+  g_exploratory <- visualize_finite_basis(truth_file_name, estimates_file_name, exploratory_ids, ground_truth, beta_truth, X_truth, eigen_setting)
+  g_betas       <- visualize_finite_basis(truth_file_name, estimates_file_name, beta_ids,        ground_truth, beta_truth, X_truth, eigen_setting)
+  g_bivariate   <- visualize_finite_basis(truth_file_name, estimates_file_name, bivariate_ids,   ground_truth, beta_truth, X_truth, eigen_setting)
+  g_KL          <- visualize_finite_basis(truth_file_name, estimates_file_name, KL_ids,          ground_truth, beta_truth, X_truth, eigen_setting)
+  g_HS          <- visualize_finite_basis(truth_file_name, estimates_file_name, HS_ids,          ground_truth, beta_truth, X_truth, eigen_setting)
+  g_final       <- visualize_finite_basis(truth_file_name, estimates_file_name, final_ids,       ground_truth, beta_truth, X_truth, eigen_setting)
+  g_tau         <- visualize_finite_basis(truth_file_name, estimates_file_name, tau_ids,         ground_truth, beta_truth, X_truth, eigen_setting)
   
   g_name_exploratory <- paste0(results_folder_2, '/', adj_type, '_n_', n, '_exploratory.pdf')
   g_name_betas       <- paste0(results_folder_2, '/', adj_type, '_n_', n, '_betas.pdf')
