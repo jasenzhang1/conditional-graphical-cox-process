@@ -40,7 +40,7 @@ m=30
 movement=(0 0 1 1)
 VR=(0 1 0 1)
 min_events=5
-max_processes=10000
+max_processes=10
 n_weeks=6
 eigen_setting="only_joint"  #only_joint, trig_and_joint
 global_thresh_method="both"
@@ -439,7 +439,7 @@ for ID in "${IDs[@]}"; do
             
             echo "Deleting Files ..." >> "$outfile"
             
-            MICE_FOLDER="temp_data/mice/${ID}_${discrete_level}_t${time_scale}"
+            MICE_FOLDER="temp_data/mice/${ID}_m${mov}vr${vr}_t${time_scale}"
             
             rm -rf "$MICE_FOLDER"
             
