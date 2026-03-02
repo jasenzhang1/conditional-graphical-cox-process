@@ -315,7 +315,14 @@ for ID in "${IDs[@]}"; do
             
             # Check for joint or both
             if [[ "$global_thresh_method" == "joint" || "$global_thresh_method" == "both" || "$global_thresh_method" == "tau_c" ]]; then
+            
+                echo "" | tee -a "$outfile"
+                echo "===================================================" >> "$outfile"
+                echo "" | tee -a "$outfile"
                 echo "Running global/hybrid script..." >> "$outfile"
+                echo "" | tee -a "$outfile"
+                echo "===================================================" >> "$outfile"
+                echo "" | tee -a "$outfile"
                 
     
                 # PART 1: Precompute tau_c quantiles and get num_k

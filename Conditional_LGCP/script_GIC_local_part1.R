@@ -65,23 +65,11 @@ if(mouse){
 
 # --- 1. Load the Estimation Data (.rds safe) ---
 
-full_path <- paste0(temp_file_dir, "/", file_name)
+full_path <- file.path(temp_file_dir, file_name)
 
-if (!file.exists(full_path)) stop("File not found: ", full_path)
-
-# Handle .rds vs .RData
-if (grepl("\\.rds$", file_name, ignore.case = TRUE)) {
-  estimated_graphs <- readRDS(full_path)
-} else {
-  load(full_path) # Assumes it contains 'estimated_graphs'
-}
-
-# Ensure variables (step_5b, p, W_y) are standalone
-if (exists("estimated_graphs")) {
-  list2env(estimated_graphs, envir = .GlobalEnv)
-} else {
-  stop("Object 'estimated_graphs' not found in loaded file.")
-}
+# Read and immediately unpack into Global Env
+estimated_graphs <- readRDS(full_path)
+invisible(list2env(estimated_graphs, envir = .GlobalEnv))
 
 # --- 2. Multi-ID Setup Logic ---
 # Identify which items in step_5b need GIC (e.g., 'est', 'X_truth')
@@ -91,7 +79,7 @@ input_names <- names(step_5b)
 task_map <- data.frame()
 max_k <- 0
 
-cat('checkpoint 1')
+cat('checkpoint 1\n')
 
 for(i in seq_along(core_names)){
   C_cond_i <- step_5b[[input_names[i]]]

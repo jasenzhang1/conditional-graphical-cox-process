@@ -13,8 +13,8 @@ if(model_type == 'mice'){
   method <- args[5]                   # method <- 'CPGM'
   movement <- as.numeric(args[6])     # movement <- 0
   VR <- as.numeric(args[7])           # VR <- 0
-  id_suffix <- args[8]               # est or X_truth
-  k         <- args[9]               # tau_c index
+  id_suffix <- args[8]                # id_suffix <- 1 
+  k         <- args[9]                # tau_c index
   
   
   X_truth <- F

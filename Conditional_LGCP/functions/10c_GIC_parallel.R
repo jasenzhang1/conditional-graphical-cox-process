@@ -431,17 +431,17 @@ GIC_joint_part3_evaluate <- function(k, l, folder) {
   saveRDS(res, file = paste0(folder, "/GIC_joint_res_k", k, "_l", l, ".rds"))
 }
 
-GIC_joint_part2and3_serialized <- function(k, id_suffix, folder) {
+GIC_joint_part2and3_serialized <- function(k, suffix_name, folder) {
   
   # ----------------------------------------------------------------------------
-  # GOAL: For a fixed tau_c (k) and estimation type (id_suffix), evaluate ALL tau_p levels.
+  # GOAL: For a fixed tau_c (k) and estimation type (suffix_name), evaluate ALL tau_p levels.
   # This avoids reloading/re-inverting the large C matrices multiple times.
   # ----------------------------------------------------------------------------
   
   
   # 1. Load Initial Setup Data for this specific ID
-  initial_file <- paste0(folder, "/GIC_joint_initial_", id_suffix, ".RData")
-  if (!file.exists(initial_file)) stop("Initial data not found for: ", id_suffix)
+  initial_file <- paste0(folder, "/GIC_joint_initial_", suffix_name, ".RData")
+  if (!file.exists(initial_file)) stop("Initial data not found for: ", suffix_name)
   load(initial_file) 
   # Loads: C_cond_list, C_norms_list, tau_c_levels, off_diag_indices, p, W_y_list
   
@@ -502,12 +502,12 @@ GIC_joint_part2and3_serialized <- function(k, id_suffix, folder) {
         GIC_evalulation(current_C_full_matrices[[i]], TH_assembled, W_y_list[[i]], n_edges)
     }
     
-    return(data.frame(id_suffix = id_suffix, k = k, l = l, tau_c = tau_c, tau_p = tau_p, gic = total_GIC_at_pair))
+    return(data.frame(suffix_name = suffix_name, k = k, l = l, tau_c = tau_c, tau_p = tau_p, gic = total_GIC_at_pair))
   })
   
   # 5. Save consolidated result file for this k and id
   combined_res <- do.call(rbind, k_results)
-  save_path <- paste0(folder, "/GIC_joint_res_", id_suffix, "_k", k, ".rds")
+  save_path <- paste0(folder, "/GIC_joint_res_", suffix_name, "_k", k, ".rds")
   saveRDS(combined_res, file = save_path)
   
 }
