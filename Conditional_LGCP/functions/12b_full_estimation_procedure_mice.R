@@ -1223,32 +1223,67 @@ estimate_intensities_stratum_parallel_with_yc_part4_helper <- function(results, 
   results[['weights']] <- weights2
   results[['W_y']] <- W_y 
   
-  # 2) work on dataset
+  # 2) work on events
   
+  # dataset_k <- results$dataset
+  # 
+  # # 2a) Split strings and extract k and i from event_times
+  # split_list <- strsplit(names(dataset_k$event_times), "_")
+  # 
+  # k_values <- sapply(split_list, function(x) as.numeric(x[1]))
+  # i_values <- sapply(split_list, function(x) as.numeric(x[2]))
+  # 
+  # # reorder from sting order to numeric order
+  # reorder_index <- order(k_values)
+  # k_values <- k_values[reorder_index]
+  # i_values <- i_values[reorder_index]
+  # 
+  # # 2b) keep only entries where i is in idx
+  # keep <- k_values %in% idx
+  # dataset_k$event_times <- dataset_k$event_times[keep]
+  # k_values <- k_values[keep]
+  # i_values <- i_values[keep]
+  # 
+  # # 2c) Compress k to 1:n (preserving order of appearance)
+  # k_map <- match(k_values, unique(k_values))
+  # 
+  # # 2d) Rename entries as "newk_i"
+  # names(dataset_k$event_times) <- paste0(k_map, "_", i_values)
+  
+  # 2) Work on events
   dataset_k <- results$dataset
   
-  # 2a) Split strings and extract k and i from event_times
-  split_list <- strsplit(names(dataset_k$event_times), "_")
+  # --- Step A: Remove empty/nameless entries first ---
+  # This solves the "missing value where TRUE/FALSE needed" and "nameless" issues
+  is_valid <- sapply(dataset_k$event_times, length) > 0 & !is.null(names(dataset_k$event_times))
+  event_times_clean <- dataset_k$event_times[is_valid]
   
+  # --- Step B: Extract k and i from the valid names ---
+  split_list <- strsplit(names(event_times_clean), "_")
+  
+  # Use a safety check inside sapply to avoid index errors
   k_values <- sapply(split_list, function(x) as.numeric(x[1]))
   i_values <- sapply(split_list, function(x) as.numeric(x[2]))
   
-  # reorder from sting order to numeric order
-  reorder_index <- order(k_values)
-  k_values <- k_values[reorder_index]
-  i_values <- i_values[reorder_index]
-  
-  # 2b) keep only entries where i is in idx
+  # --- Step C: Filter by idx ---
   keep <- k_values %in% idx
-  dataset_k$event_times <- dataset_k$event_times[keep]
-  k_values <- k_values[keep]
-  i_values <- i_values[keep]
+  event_times_filtered <- event_times_clean[keep]
+  k_filtered <- k_values[keep]
+  i_filtered <- i_values[keep]
   
-  # 2c) Compress k to 1:n (preserving order of appearance)
-  k_map <- match(k_values, unique(k_values))
+  # --- Step D: Sort numerically (Optional but recommended for consistency) ---
+  reorder_idx <- order(k_filtered, i_filtered)
+  event_times_sorted <- event_times_filtered[reorder_idx]
+  k_sorted <- k_filtered[reorder_idx]
+  i_sorted <- i_filtered[reorder_idx]
   
-  # 2d) Rename entries as "newk_i"
-  names(dataset_k$event_times) <- paste0(k_map, "_", i_values)
+  # --- Step E: Re-map k to 1:n and Rename ---
+  # match() against unique(k_sorted) ensures 1, 2, 3... based on order of appearance
+  k_map <- match(k_sorted, unique(k_sorted))
+  names(event_times_sorted) <- paste0(k_map, "_", i_sorted)
+  
+  # Update the original object
+  dataset_k$event_times <- event_times_sorted
   
   
   # 2e) update the rest of the dataset
