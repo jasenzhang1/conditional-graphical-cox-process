@@ -15,7 +15,7 @@ if(model_type == 'mice'){
   cont_inds     <- as.numeric(args[8]) # Total number of queries
   
   discrete_level <- paste0('m', movement, 'vr', VR)
-  temp_file_dir  <- 'temp_data/mice'
+  temp_file_dir <- paste0('temp_data/mice/', ID, '_', discrete_level, '_t', time_scale)
   GIC_folder     <- paste0(temp_file_dir, '/GIC_joint_', ID, '_', discrete_level, '_t', time_scale)
   mouse <- TRUE
 } else if(model_type == 'simu'){

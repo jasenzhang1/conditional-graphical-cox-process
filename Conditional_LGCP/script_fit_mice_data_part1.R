@@ -62,6 +62,10 @@ if(model_type == 'mice'){
   
   temp_file_dir <- paste0(temp_file_dir, '/mice')
   if (!dir.exists(temp_file_dir)) dir.create(temp_file_dir)  # temp_data/mice
+  
+  temp_file_dir <- paste0(temp_file_dir, '/', ID, '_', discrete_level, '_t', time_scale)
+  if (!dir.exists(temp_file_dir)) dir.create(temp_file_dir)  # temp_data/mice/Tau3_m0vr0_t10/
+  
   mouse <- T
   X_truth <- F
   

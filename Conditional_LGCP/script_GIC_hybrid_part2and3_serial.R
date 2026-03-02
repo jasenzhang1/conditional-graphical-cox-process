@@ -27,7 +27,8 @@ if(model_type == 'mice'){
                             method = method,
                             discrete_level = discrete_level)
   
-  temp_file_dir <- paste0('temp_data/mice/GIC_joint_', ID, '_', discrete_level, '_t', time_scale)
+  temp_file_dir <- paste0('temp_data/mice/', ID, '_', discrete_level, '_t', time_scale)
+  temp_file_dir <- paste0(temp_file_dir, '/GIC_joint_', ID, '_', discrete_level, '_t', time_scale)
   mouse <- T
   
 } else if(model_type == 'simu'){

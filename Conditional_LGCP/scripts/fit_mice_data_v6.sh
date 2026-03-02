@@ -39,10 +39,8 @@ time_scale=10
 m=30
 movement=(0 0 1 1)
 VR=(0 1 0 1)
-movement=(0)
-VR=(0)
 min_events=5
-max_processes=25
+max_processes=10
 n_weeks=6
 eigen_setting="only_joint"  #only_joint, trig_and_joint
 global_thresh_method="both"
@@ -436,11 +434,16 @@ for ID in "${IDs[@]}"; do
             wait_for_slot
         
     
-            # TODO
+
             Rscript script_unpack_mice_results.R "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$eigen_setting"  >> "$outfile" 2>&1
             
-            wait
+            echo "Deleting Files ..." >> "$outfile"
             
+            MICE_FOLDER="temp_data/mice/${ID}_${discrete_level}_t${time_scale}"
+            
+            rm -rf "$MICE_FOLDER"
+            
+            echo "Cleanup complete for $ID, $discrete_level, t=$time_scale." >> "$outfile"
             
             # ============================================================
             # END TIMER

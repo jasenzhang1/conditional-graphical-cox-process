@@ -29,7 +29,7 @@ if(model_type == 'mice'){
                             method = method,
                             discrete_level = discrete_level)
   
-  temp_file_dirs <- c('temp_data/mice', 'temp_data/mice_data')
+  temp_file_dirs <- c(paste0('temp_data/mice/', ID, '_', discrete_level, '_t', time_scale), 'temp_data/mice_data')
   mouse <- T
   
 } else if(model_type == 'simu'){
