@@ -513,6 +513,8 @@ GIC_joint_part2and3_serialized <- function(k, suffix_name, folder) {
 }
 
 GIC_joint_part4_finalize <- function(GIC_folder, temp_file_dir, setting_info_list, cont_inds, mouse) {
+  
+  
   # 1) Setup original file paths for infusion
   list2env(setting_info_list, envir = environment())
   if(mouse){
