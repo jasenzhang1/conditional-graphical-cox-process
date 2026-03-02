@@ -566,17 +566,18 @@ GIC_joint_part4_finalize <- function(GIC_folder, temp_file_dir, setting_info_lis
 
 # hybrid can join in with joint
 
-GIC_hybrid_part2and3_serialized <- function(k, id, folder) {
+GIC_hybrid_part2and3_serialized <- function(k, suffix_name, folder) {
   
   
   # 1. Load Setup Data
-  load(paste0(folder, "/GIC_joint_initial_", id, ".RData"))
+  load(paste0(folder, "/GIC_joint_initial_", suffix_name, ".RData"))
   tau_c <- tau_c_levels[k]
   n_datasets <- length(C_cond_list)
   
   # 2. Apply Global tau_c and Invert
   current_Theta_list <- list()
   current_C_full_list <- list()
+  res_list <- list()
   
   for (i in 1:n_datasets) {
     C_thresh <- C_cond_list[[i]]
@@ -584,6 +585,8 @@ GIC_hybrid_part2and3_serialized <- function(k, id, folder) {
       if (C_norms_list[[i]][[idx]] <= tau_c) C_thresh[[idx]][] <- 0
     }
     res <- assemble_block_matrix_irregular(C_thresh, p)
+    
+    res_list[[i]] <- res
     current_C_full_list[[i]] <- res$block_matrix
     current_Theta_list[[i]]  <- ginv(res$block_matrix)
   }
@@ -594,7 +597,7 @@ GIC_hybrid_part2and3_serialized <- function(k, id, folder) {
   
   for (i in 1:n_datasets) {
     # Generate tau_p candidates for THIS specific matrix
-    Th_cond <- extract_block_matrix_irregular(current_Theta_list[[i]], res$row_borders, res$col_borders)
+    Th_cond <- extract_block_matrix_irregular(current_Theta_list[[i]], res_list[[i]]$row_borders, res_list[[i]]$col_borders)
     p_norms <- sapply(off_diag_indices, function(idx) norm(Th_cond[[idx]], "F"))
     tau_p_levels <- unique(quantile(p_norms, probs = seq(0, 1, by = 0.01)))
     
@@ -625,7 +628,7 @@ GIC_hybrid_part2and3_serialized <- function(k, id, folder) {
   
   # 4. Save result for this global tau_c
   res <- list(k = k, tau_c = tau_c, total_gic = hybrid_total_GIC, locals = local_winners)
-  saveRDS(res, file = paste0(folder, "/GIC_hybrid_res_", id, "_k", k, ".rds"))
+  saveRDS(res, file = paste0(folder, "/GIC_hybrid_res_", suffix_name, "_k", k, ".rds"))
   
 }
 

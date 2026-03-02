@@ -257,7 +257,7 @@ for ID in "${IDs[@]}"; do
                     
                         wait_for_slot
                         (
-                            echo "[GIC] Processing suffix ID: $id_suffix" >> "$outfile"
+                            echo "[GIC] y_c = $j, suffix ID = $id_suffix" >> "$outfile"
                         
                             for ((k=1; k<=num_k; k++)); do
                             
