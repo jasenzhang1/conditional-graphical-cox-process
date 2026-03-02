@@ -920,9 +920,14 @@ result_44_prep <- function(step_3, step_4, p, ground_truth, X_truth, eigen_setti
   step_4_names <- names(step_4)
   
   # do truth first and get it out of the way
-  g_ii_truth         <- prep_eigendecomposition_ii(step_3$g_ij_truth, p)
-  g_ii_truth_decomp  <- validate_eigendecomposition_ii(g_ii_truth,          step_4$eigen_decomp_truth)
-  error_list         <- list(error_truth = as.numeric(g_ii_truth - g_ii_truth_decomp))
+  if(ground_truth){
+    g_ii_truth         <- prep_eigendecomposition_ii(step_3$g_ij_truth, p)
+    g_ii_truth_decomp  <- validate_eigendecomposition_ii(g_ii_truth,          step_4$eigen_decomp_truth)
+    error_list         <- list(error_truth = as.numeric(g_ii_truth - g_ii_truth_decomp))
+  } else{
+    error_list <- list()
+  }
+
   
   step_4_names <- setdiff(step_4_names, 'eigen_decomp_truth')
   step_3_names <- setdiff(step_3_names, 'g_ij_truth')

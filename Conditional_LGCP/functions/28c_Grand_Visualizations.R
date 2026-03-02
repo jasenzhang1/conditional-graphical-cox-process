@@ -485,6 +485,23 @@ visualize_over_time <- function(graph_results_i, graph_ids, ground_truth, beta_t
     graphs[['g_95b']] <- result_heatmap_nonblock_prep(step_11b_v2, NULL, data_format = 'regular', 
                                                       time_grid_est = time_grid_est, rm_diag = T, 
                                                       graph_title = paste('C_HS values', title_suffix, '(hide diag)'), zmid = 0)
+    
+    if('none' %in% names(step_11b_v2[[1]])){
+      step_11b_v3 <- lapply(step_11b_v2, function(sublist) {
+        sublist$none <- NULL
+        return(sublist)
+      })
+      
+      title_suffix <- paste("for", eigen_setting)
+      graphs[['g_94c']] <- result_heatmap_nonblock_prep(step_11b_v3, NULL, data_format = 'regular', 
+                                                        time_grid_est = time_grid_est, rm_diag = F, 
+                                                        graph_title = paste('C_HS values', title_suffix, '(display diag)'), zmid = 0)
+      graphs[['g_95c']] <- result_heatmap_nonblock_prep(step_11b_v3, NULL, data_format = 'regular', 
+                                                        time_grid_est = time_grid_est, rm_diag = T, 
+                                                        graph_title = paste('C_HS values', title_suffix, '(hide diag)'), zmid = 0)
+      
+    }
+    
   }
   
   # distribution of C_HS
@@ -568,6 +585,23 @@ visualize_over_time <- function(graph_results_i, graph_ids, ground_truth, beta_t
     graphs[['g_111b']] <- result_heatmap_nonblock_prep(step_11_v2, NULL, data_format = 'regular', 
                                                        time_grid_est = time_grid_est, rm_diag = T, 
                                                        graph_title = paste('P_HS values', title_tag, '(hide diag)'), zmid = 0)
+    
+    if('none' %in% names(step_11_v2[[1]])){
+      step_11_v3 <- lapply(step_11_v2, function(sublist) {
+        sublist$none <- NULL
+        return(sublist)
+      })
+      
+      title_suffix <- paste("for", eigen_setting)
+      graphs[['g_110c']] <- result_heatmap_nonblock_prep(step_11_v3, NULL, data_format = 'regular', 
+                                                         time_grid_est = time_grid_est, rm_diag = F, 
+                                                         graph_title = paste('P_HS values', title_tag, '(display diag)'), zmid = 0)
+      graphs[['g_111c']] <- result_heatmap_nonblock_prep(step_11_v3, NULL, data_format = 'regular', 
+                                                         time_grid_est = time_grid_est, rm_diag = T, 
+                                                         graph_title = paste('P_HS values', title_tag, '(hide diag)'), zmid = 0)
+      
+    }
+    
   }
   
   # P_HS (w_mat) for all pxp blocks - delete est and X_truth
@@ -703,10 +737,14 @@ visualize_over_time <- function(graph_results_i, graph_ids, ground_truth, beta_t
     
     # b) Truths
     truth_v2_names <- v2_names[grepl("truth", v2_names)]
-    step_12b_v2_truths <- lapply(step_12b_v2, function(x) x[names(x) %in% truth_v2_names])
-    graphs[['g_114b']] <- result_heatmap_nonblock_prep(step_12b_v2_truths, NULL, data_format = 'regular', 
-                                                       time_grid_est = time_grid_est, rm_diag = T, 
-                                                       graph_title = 'edge set of truths', zmid = 0)
+    
+    if(length(truth_v2_names) > 0){
+      step_12b_v2_truths <- lapply(step_12b_v2, function(x) x[names(x) %in% truth_v2_names])
+      graphs[['g_114b']] <- result_heatmap_nonblock_prep(step_12b_v2_truths, NULL, data_format = 'regular', 
+                                                         time_grid_est = time_grid_est, rm_diag = T, 
+                                                         graph_title = 'edge set of truths', zmid = 0)
+    }
+
     
     # c) Estimates (non-GIC)
     # Based on your original code's logic for est_names
