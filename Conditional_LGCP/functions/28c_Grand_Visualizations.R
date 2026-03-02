@@ -171,6 +171,12 @@ visualize_over_time <- function(graph_results_i, graph_ids, ground_truth, beta_t
   # graph_results_i also contains time_grid, time_grid_est, y_c_query
   list2env(graph_results_i, envir = environment())  # does all of the above in one go
   
+  
+  # If time_grid doesn't exist in the current environment, set it to NA
+  if (!exists("time_grid", inherits = FALSE)) {
+    time_grid <- NA
+  }
+  
   # prep
   arr_mat_6 <- matrix(1:6, nrow = 2, byrow = F)
   arr_mat_8 <- matrix(1:8, nrow = 2, byrow = F)
@@ -197,7 +203,12 @@ visualize_over_time <- function(graph_results_i, graph_ids, ground_truth, beta_t
   # histograms of event times with intensity (Lambda) overlay
   if('02' %in% graph_ids){
     k <- 1
-    graphs[['g_02']] <- visualize_points_on_intensity(step_0_events, step_1b, k, time_grid_est, T, time_grid) #28b
+    if(is.na(time_grid)){
+      graphs[['g_02']] <- visualize_points_on_intensity(step_0_events, step_1b, k, time_grid_est, F, time_grid) #28b
+    } else{
+      graphs[['g_02']] <- visualize_points_on_intensity(step_0_events, step_1b, k, time_grid_est, T, time_grid) #28b
+    }
+    
   }
   
   # intensities for each subject across all processes

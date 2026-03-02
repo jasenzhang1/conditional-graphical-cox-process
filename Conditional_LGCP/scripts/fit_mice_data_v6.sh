@@ -141,6 +141,8 @@ for ID in "${IDs[@]}"; do
             echo "[PART 1] Collecting parameters ..." >> "$outfile"
             
             wait_for_slot
+            
+            # temp_data/simu/part1_hub_block_v2_n_100 
             output=$(Rscript script_fit_mice_data_part1.R \
                       "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" \
                       2>&1 | tee -a "$outfile")
@@ -219,6 +221,7 @@ for ID in "${IDs[@]}"; do
                 (
                     # gets weights and pads rho_i and rho_ii
                     # temp_data/simu/step_2_rho_list...
+                    # temp_data/simu/part2_...
                     Rscript script_step2_part4_v5.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" >> "$outfile" 2>&1
                     
             

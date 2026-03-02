@@ -1233,6 +1233,11 @@ estimate_intensities_stratum_parallel_with_yc_part4_helper <- function(results, 
   k_values <- sapply(split_list, function(x) as.numeric(x[1]))
   i_values <- sapply(split_list, function(x) as.numeric(x[2]))
   
+  # reorder from sting order to numeric order
+  reorder_index <- order(k_values)
+  k_values <- k_values[reorder_index]
+  i_values <- i_values[reorder_index]
+  
   # 2b) keep only entries where i is in idx
   keep <- k_values %in% idx
   dataset_k$event_times <- dataset_k$event_times[keep]

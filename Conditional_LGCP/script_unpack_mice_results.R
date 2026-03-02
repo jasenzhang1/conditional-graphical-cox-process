@@ -9,13 +9,13 @@ source('functions/20_simulation_function_wrapper.R')
 
 args <- commandArgs(trailingOnly = TRUE)
 
-ID <- args[1]                              # ID <- 'Tau3'
-y_c_structure <- args[2]                   # y_c_structure <- "week_only" or "time_and_week"
-time_scale <- as.numeric(args[3])          # time_scale <- 10   (each replicate is 5 seconds)
-method <- args[4]                          # method <- 'CPGM'
-movement <- as.numeric(args[5])            # movement <- 0
-VR <- as.numeric(args[6])                  # VR <- 0
-eigen_setting  <- args[7]                  # only_joint, trig_and_joint
+ID             <- args[1]                   # ID <- 'Tau3'
+y_c_structure  <- args[2]                   # y_c_structure <- "week_only" or "time_and_week"
+time_scale     <- as.numeric(args[3])       # time_scale <- 10   (each replicate is 5 seconds)
+method         <- args[4]                   # method <- 'CPGM'
+movement       <- as.numeric(args[5])       # movement <- 0
+VR             <- as.numeric(args[6])       # VR <- 0
+eigen_setting  <- args[7]                   # only_joint, trig_and_joint, trig_simple
 
 # ID <- 'Tau3'
 # y_c_structure <- 'week_only'
@@ -34,8 +34,6 @@ discrete_level <- paste0('m', movement, 'vr', VR)
 
 data_folder <- 'mice_data'   
 base_folder <- 'mice_results'
-
-eigen_troubleshoot <- (eigen_setting == 'trig_and_joint')
 
 
 make_gif <- F
@@ -81,12 +79,12 @@ estimates_file_name <- paste0(results_folder, '/', ID, '_', discrete_level, '_t'
 
 graph_results_i <- load_file(estimates_file_name)
 
-g_exploratory <- visualize_over_time(graph_results_i, exploratory_ids, ground_truth, beta_truth, X_truth, eigen_troubleshoot) #28c
-g_bivariate   <- visualize_over_time(graph_results_i, bivariate_ids,   ground_truth, beta_truth, X_truth, eigen_troubleshoot) 
-g_KL          <- visualize_over_time(graph_results_i, KL_ids,          ground_truth, beta_truth, X_truth, eigen_troubleshoot) 
-g_HS          <- visualize_over_time(graph_results_i, HS_ids,          ground_truth, beta_truth, X_truth, eigen_troubleshoot) 
-g_final       <- visualize_over_time(graph_results_i, final_ids,       ground_truth, beta_truth, X_truth, eigen_troubleshoot) 
-g_tau         <- visualize_over_time(graph_results_i, tau_ids,         ground_truth, beta_truth, X_truth, eigen_troubleshoot) 
+g_exploratory <- visualize_over_time(graph_results_i, exploratory_ids, ground_truth, beta_truth, X_truth, eigen_setting) #28c
+g_bivariate   <- visualize_over_time(graph_results_i, bivariate_ids,   ground_truth, beta_truth, X_truth, eigen_setting) 
+g_KL          <- visualize_over_time(graph_results_i, KL_ids,          ground_truth, beta_truth, X_truth, eigen_setting) 
+g_HS          <- visualize_over_time(graph_results_i, HS_ids,          ground_truth, beta_truth, X_truth, eigen_setting) 
+g_final       <- visualize_over_time(graph_results_i, final_ids,       ground_truth, beta_truth, X_truth, eigen_setting) 
+g_tau         <- visualize_over_time(graph_results_i, tau_ids,         ground_truth, beta_truth, X_truth, eigen_setting) 
 
 
 g_name_exploratory <- paste0(results_folder_2, '/', ID, '_', discrete_level, '_t', time_scale, '_exploratory.pdf')
