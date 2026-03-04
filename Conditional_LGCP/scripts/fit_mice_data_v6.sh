@@ -33,7 +33,7 @@ IDs=("WT1")
 y_c_structure="week_only"
 method="CPGM"
 model_type="mice"  # simu or mice
-max_jobs=30
+max_jobs=60
 
 time_scale=10 
 m=30
