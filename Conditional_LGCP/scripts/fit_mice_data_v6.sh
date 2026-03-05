@@ -461,8 +461,9 @@ for ID in "${IDs[@]}"; do
             echo "Total runtime: ${runtime} seconds (~$((runtime/60)) minutes)." >> "$outfile"
         ) &
     done  # discrete strata loop
+    wait
+    
 done  # mouse loop
-
 wait
 
 
