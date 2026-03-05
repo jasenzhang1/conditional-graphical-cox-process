@@ -21,7 +21,7 @@
 # - VR                (integer)  VR off (0) or on (1)
 # - min_events        (integer)  what is the minimum number of events in subject's neuron to be included?
 # - max_processes     (integer)  do we truncate the number of neurons?
-# - eigen_setting     (string)   only_joint, or trig_and_joint
+# - eigen_setting     (string)   only_joint, or trig_and_joint, or trig_simple
 # - global_thresh_method (string)  both, joint, tau_c, or neither. (both = global and hybrid)
 # 
 # ------------------------------------------------------------------------------
@@ -29,7 +29,7 @@
 cd "$(dirname "$0")/.."   # go one level up (from /scripts to /)
 
 
-IDs=("WT1")
+IDs=("Tau3", "WT3")
 y_c_structure="week_only"
 method="CPGM"
 model_type="mice"  # simu or mice
@@ -41,9 +41,10 @@ movement=(0 0 1 1)
 VR=(0 1 0 1)
 min_events=5
 max_processes=10000
-n_weeks=6
-eigen_setting="only_joint"  #only_joint, trig_and_joint
-global_thresh_method="both"
+region="HIP"   # "HIP", "EHC", or "HIP_EHC"
+n_weeks=50
+eigen_setting="only_joint"  #only_joint, trig_and_joint, trig_simple
+global_thresh_method="neither" # both, joint, tau_c, or neither
 
 
 
@@ -95,7 +96,7 @@ for ID in "${IDs[@]}"; do
             
             
             echo "===================================================" | tee -a "$outfile"
-            echo "Starting full pipeline for mouse=$ID, movement=$mov, VR=$vr, time_scale=$time_scale" | tee -a "$outfile"
+            echo "Starting full pipeline for mouse=$ID, region=$region, movement=$mov, VR=$vr, time_scale=$time_scale" | tee -a "$outfile"
             echo "Logging to: $outfile" | tee -a "$outfile"
             echo "Start time: $(date)" | tee -a "$outfile"
             echo "===================================================" | tee -a "$outfile"
@@ -110,7 +111,7 @@ for ID in "${IDs[@]}"; do
             echo "[STEP 1] Preprocess dataset..." | tee -a "$outfile"
             
             wait_for_slot
-            Rscript script_preprocess_mice_data.R "$ID" "$y_c_structure" "$time_scale" "$method" "$m" "$mov" "$vr" "$min_events" "$max_processes" "$n_weeks" >> "$outfile" 2>&1 
+            Rscript script_preprocess_mice_data.R "$ID" "$y_c_structure" "$time_scale" "$method" "$m" "$mov" "$vr" "$region" "$min_events" "$max_processes" "$n_weeks" >> "$outfile" 2>&1 
 
             
             end_time=$(date +%s)

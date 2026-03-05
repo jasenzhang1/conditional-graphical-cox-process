@@ -12,6 +12,7 @@
 # - m                (integer)   time_grid spacing
 # - movement         (integer)   0 (resting) or 1 (moving)
 # - VR               (integer)   0 (off) or 1 (on)
+# - region           (string)    'HIP', 'EHC', or 'HIP_EHC'
 # - min_events       (integer)   what is the minimum number of events in subject's neuron to be included?
 # - max_processes    (integer)   how many processes should we truncate? 
 #
@@ -33,16 +34,17 @@ source('functions/00_function_wrapper.R')
 # 1) load args 
 args <- commandArgs(trailingOnly = TRUE)
 
-ID <- args[1]                       # ID <- 'Tau3'
-y_c_structure <- args[2]            # y_c_structure <- "week_only" or "time_and_week"
-time_scale <- as.numeric(args[3])   # time_scale <- 10   (each replicate is 5 seconds)
-method <- args[4]                   # method <- 'CPGM'
-m <- as.numeric(args[5])            # m <- 20
-movement <- as.numeric(args[6])
-VR <- as.numeric(args[7])
-min_events <- as.numeric(args[8])
-max_processes <- as.numeric(args[9])
-n_weeks <- as.numeric(args[10])
+ID             <- args[1]               # ID <- 'Tau3'
+y_c_structure  <- args[2]               # y_c_structure <- "week_only" or "time_and_week"
+time_scale     <- as.numeric(args[3])   # time_scale <- 10   (each replicate is 5 seconds)
+method         <- args[4]               # method <- 'CPGM'
+m              <- as.numeric(args[5])   # m <- 20
+movement       <- as.numeric(args[6])
+VR             <- as.numeric(args[7])
+region         <- args[8]
+min_events     <- as.numeric(args[9])
+max_processes  <- as.numeric(args[10])
+n_weeks        <- as.numeric(args[11])
 
 # ID <- 'Tau3'
 # y_c_structure <- 'week_only'
@@ -51,6 +53,7 @@ n_weeks <- as.numeric(args[10])
 # m <- 30
 # movement <- 0
 # VR <- 0
+# region <- 'HIP'
 # min_events <- 5
 # max_processes <- 12
 # n_weeks <- 6
@@ -74,6 +77,9 @@ print(paste0("num timepoints: ", m))
 old_data_folder <- 'data/with_ts'
 load(paste0(old_data_folder, '/', ID, '_t', time_scale, '_data.rda'))
 
+# load brain region info
+load('data/Brain_Region.RData')
+
 # ------------------------------------------------------------
 # 4) pre-processing to make it look just like "dataset"
 # ------------------------------------------------------------
@@ -81,7 +87,7 @@ load(paste0(old_data_folder, '/', ID, '_t', time_scale, '_data.rda'))
 
 time_grid_est <- make_time_grid(m)
 
-dataset_k <- convert_data_for_storage(LGCP_data, ID, y_c_structure, movement, VR, time_scale,
+dataset_k <- convert_data_for_storage(LGCP_data, df_brain_region, ID, y_c_structure, movement, VR, region, time_scale,
                                       time_grid_est, min_events, n_weeks, max_processes = max_processes, seed = NULL) # 00e
 
 # 5) store
