@@ -201,7 +201,7 @@ convert_data_adj_check <- function(process_ids, subject_ids){
   
 }
 
-convert_data_for_storage <- function(LGCP_data, ID, y_c_structure, movement_num, vr_num, time_scale,
+convert_data_for_storage <- function(LGCP_data, df_brain_region, ID, y_c_structure, movement_num, vr_num, region, time_scale,
                                      time_grid_est, min_events, n_weeks, max_processes = Inf, seed = NULL){
   
   # ----------------------------------------------------------------------------
@@ -225,10 +225,21 @@ convert_data_for_storage <- function(LGCP_data, ID, y_c_structure, movement_num,
   #   - [[2]] (nx3 data.frame with 'movement', 'VR', and 'subject_num')
   #   - [[3]] (nx3 data.frame with 'subject_num', 'age', and 'timestamp')
   #
+  #
+  # - df_brain_region  (dataframe of)
+  #
+  #   - Neuron_Num      (integer)  i = 1, ..., p
+  #   - Electrode_Num   (integer)  1 through 64
+  #   - Brain_Region    (factor)   'Hippocampus' or 'Entorhinal_Cortex'
+  #   - Mouse           (string)   '346' mouse ID in string form
+  #   - Strain          (string)   'Tau' or 'WT'
+  #   - ID2             (factor)   'Tau1', 'Tau2', 'Tau3', 'WT1', 'WT2', 'WT3'
+  # 
   # - ID                (string)      mouse name like "Tau1"
   # - y_c_structure     (string)      "week_only" or "time_and_week"
   # - movement_num      (0 or 1)
   # - vr_num            (0 or 1)
+  # - region            (string)      brain region, either 'HIP', 'EHC', or 'HIP_EHC'
   # - time_scale        (integer)     how many seconds per replicate?
   # - time_grid_est
   # - min_events        (integer)     minimum number of spikes for a replicate-process to be included
@@ -250,6 +261,19 @@ convert_data_for_storage <- function(LGCP_data, ID, y_c_structure, movement_num,
   # --- 1) Initial Extraction and Filtering ---
   p_og <- max(LGCP_data[[1]]$feature_id)
   
+  if(region == 'HIP'){
+    relevant_neurons <- df_brain_region$Neuron_Num[df_brain_region$ID2 == ID & df_brain_region$Brain_Region == 'Hippocampus']
+  } else if(region == 'EHC'){
+    relevant_neurons <- df_brain_region$Neuron_Num[df_brain_region$ID2 == ID & df_brain_region$Brain_Region == 'Entorhinal_Cortex']
+  } else{
+    relevant_neurons <- df_brain_region$Neuron_Num[df_brain_region$ID2 == ID]
+  }
+  
+  # filter by max_processes
+  n_temp <- min(length(relevant_neurons), max_processes)
+  relevant_neurons <- sort(relevant_neurons)[1:n_temp]
+  
+  
   # Get valid subject pool based on Movement and VR
   valid_subjects <- LGCP_data[[2]] %>% 
     filter(movement == movement_num, VR == vr_num) %>% 
@@ -257,7 +281,7 @@ convert_data_for_storage <- function(LGCP_data, ID, y_c_structure, movement_num,
   
   # Initial subset of the main data
   dt <- as.data.table(LGCP_data[[1]])
-  dt <- dt[subject_num %in% valid_subjects & feature_id <= max_processes]
+  dt <- dt[subject_num %in% valid_subjects & feature_id %in% relevant_neurons]
   
   # --- 2) Iterative Pruning (The While Loop) ---
   # We loop until the set of subjects and processes stabilizes
