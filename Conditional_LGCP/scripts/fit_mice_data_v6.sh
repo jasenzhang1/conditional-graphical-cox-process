@@ -29,7 +29,7 @@
 cd "$(dirname "$0")/.."   # go one level up (from /scripts to /)
 
 
-IDs=("Tau3", "WT3")
+IDs=("Tau3" "WT3")
 y_c_structure="week_only"
 method="CPGM"
 model_type="mice"  # simu or mice
