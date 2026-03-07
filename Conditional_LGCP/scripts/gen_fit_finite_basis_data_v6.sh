@@ -63,7 +63,7 @@ groups=$(( n_large / n_group ))
 
 method="CPGM"
 model_type="simu"  # simu or mice
-max_jobs=70
+max_jobs=50
 min_events=10
 max_events=5000
 
@@ -84,7 +84,7 @@ function wait_for_slot {
         if (( running < max_jobs )); then
             # Small sleep to allow the process you're about to launch 
             # to actually show up in the process table for the next check.
-            sleep 0.1 
+            sleep 0.5 
             break
         fi
         sleep 1
