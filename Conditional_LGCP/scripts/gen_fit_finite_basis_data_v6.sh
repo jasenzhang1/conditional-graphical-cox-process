@@ -51,7 +51,7 @@ adj_type_params=(
   
 )
 
-n_large=10000
+n_large=2000
 ns=(250 500 1000 2000)
 n_reps=50
 
