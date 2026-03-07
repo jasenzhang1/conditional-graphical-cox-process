@@ -32,20 +32,20 @@ adj_type_params=(
   #"block_banded_c0 0.5 0.5 2"
   
   "hub_block_v2 0 1 4 4 3 0.1 1.5 0.1 1"              # for hub, we can allow [0, 1.5] and [0, 1]
-  #"hub_block_j2 0 1 4 0.5 4 3 0 1.2 0 0.8"            # jump                  [0, 1.2] and [0, 0.8]
+  "hub_block_j2 0 1 4 0.5 4 3 0 1.2 0 0.8"            # jump                  [0, 1.2] and [0, 0.8]
   #"hub_block_c2 0 1 4 2 2 0.7 0.7"
   #"hub_block_c0 0.5 4 2 2 0.7 0.7"
   
   
   
-  #"complete_block_v2 0 1 4 4 3 0 1.1 0 0.8"             # for complete, c3 < c1/3, c4 < c2/3 [0, 1.1] and [0, 0.8]
-  #"complete_block_j2 0 1 4 0.5 4 3 0 0.8 0 0.6"         # for jump                           [0, 0.8] and [0, 0.6]
+  "complete_block_v2 0 1 4 4 3 0 1.1 0 0.8"             # for complete, c3 < c1/3, c4 < c2/3 [0, 1.1] and [0, 0.8]
+  "complete_block_j2 0 1 4 0.5 4 3 0 0.8 0 0.6"         # for jump                           [0, 0.8] and [0, 0.6]
   #"complete_block_c0 0.5 4 2 2 0.7 0.7"
   #"complete_block_c2 0 1 4 2 2 0.7 0.7"
   
   
-  #"flexible_block_banded_v2 0 1 4 4 3 0 1.6 0 1.2"       # for flexible, a bit more chill [0, 1.6] and [0, 1.2]
-  #"flexible_block_banded_j2 0 1 4 0.5 4 3 0 1.2 0 0.8"   # jump from                      [0, 1.2] and [0, 0.8]
+  "flexible_block_banded_v2 0 1 4 4 3 0 1.6 0 1.2"       # for flexible, a bit more chill [0, 1.6] and [0, 1.2]
+  "flexible_block_banded_j2 0 1 4 0.5 4 3 0 1.2 0 0.8"   # jump from                      [0, 1.2] and [0, 0.8]
   #"flexible_block_banded_c2 0 1 4 2 2 0.7 0.7"
   #"flexible_block_banded_c0 0.5 4 2 2 0.7 0.7"  
   
@@ -63,11 +63,11 @@ groups=$(( n_large / n_group ))
 
 method="CPGM"
 model_type="simu"  # simu or mice
-max_jobs=50
+max_jobs=70
 min_events=10
 max_events=5000
 
-p=24
+p=16
 d=2
 n_query=6
 beta_0=4.7
