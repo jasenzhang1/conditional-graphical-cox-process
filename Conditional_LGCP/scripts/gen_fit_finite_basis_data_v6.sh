@@ -63,7 +63,7 @@ groups=$(( n_large / n_group ))
 
 method="CPGM"
 model_type="simu"  # simu or mice
-max_jobs=70
+max_jobs=90
 min_events=10
 max_events=5000
 
