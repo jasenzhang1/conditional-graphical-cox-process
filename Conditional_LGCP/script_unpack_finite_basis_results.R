@@ -20,18 +20,34 @@ adj_type    <- args[8]
 adj_params <- as.numeric(args[9:length(args)])
 
 
-# n_large <- 10000
-# n <- 10000
+# n_large <- 2000
+# ns <- c(250, 500, 1000, 2000)
 # n_reps <- 50
 # method <- 'CPGM'
 # X_truth <- T
 # beta_truth <- T
+# eigen_setting <- 'trig_simple'
 # adj_type <- 'hub_block_v2'
 # adj_params <- c()
 
+rep_i <- 1
  
-data_folder <- paste0('simu_data/', adj_type, '_n_', n_large, '_rep_1') # simu_data/hub_block_v2_n_100_rep_1
+data_folder <- paste0('simu_data/', adj_type, '_n_', n_large, '_rep_', rep_i) # simu_data/hub_block_v2_n_100_rep_1
 base_folder <- 'simu_results'
+
+data_folder <- paste0('../../../project-biostat-chair/simu_data/', adj_type, '_n_', n_large, '_rep_', rep_i)
+base_folder <- '../../../project-biostat-chair/simu_results'
+
+truth_file_name <- paste0(data_folder, '/', adj_type, '_n_', n_large, '_rep_', rep_i, '_truths.RData')
+results_folder <- paste0(base_folder, '/', adj_type, '/', method, '/rep', rep_i)  # simu_results/hub_block_v2/CPGM/rep1
+
+
+results_folder_2 <- paste0(results_folder, '/export')
+
+if (!dir.exists(results_folder_2)) {
+  dir.create(results_folder_2)
+}
+
 
 ground_truth <- T
 make_gif <- F
@@ -54,19 +70,13 @@ HS_ids <- c('95',   # C_HS, 95b = specific entries only
 
 final_ids <- c('113',  # roc
                '114',  # adj_mat
+               '115',  # adj_mat with accuracy
                '120')  # performance metrics
+
+accuracy_ids <- c('115')
 
 tau_ids <- c('121')  # tau_c and tau_p
 
-truth_file_name <- paste0(data_folder, '/', adj_type, '_n_', n_large, '_rep_1_truths.RData')
-results_folder <- paste0(base_folder, '/', adj_type, '/', method, '/rep1')  # simu_results/hub_block_v2/CPGM/rep1
-
-
-results_folder_2 <- paste0(results_folder, '/export')
-
-if (!dir.exists(results_folder_2)) {
-  dir.create(results_folder_2)
-}
 
 # ------------------------------------------------------------------------------
 # 28e - visualize results over y_c
@@ -75,13 +85,14 @@ print('Plotting 28e Figures')
 
 for(n in ns){
 
-  estimates_file_name <- paste0(results_folder, '/', adj_type, '_n_', n, '_rep_1.RData')
+  estimates_file_name <- paste0(results_folder, '/', adj_type, '_n_', n, '_rep_', rep_i, '.RData')
   
   g_exploratory <- visualize_finite_basis(truth_file_name, estimates_file_name, exploratory_ids, ground_truth, beta_truth, X_truth, eigen_setting)
   g_betas       <- visualize_finite_basis(truth_file_name, estimates_file_name, beta_ids,        ground_truth, beta_truth, X_truth, eigen_setting)
   g_bivariate   <- visualize_finite_basis(truth_file_name, estimates_file_name, bivariate_ids,   ground_truth, beta_truth, X_truth, eigen_setting)
   g_KL          <- visualize_finite_basis(truth_file_name, estimates_file_name, KL_ids,          ground_truth, beta_truth, X_truth, eigen_setting)
   g_HS          <- visualize_finite_basis(truth_file_name, estimates_file_name, HS_ids,          ground_truth, beta_truth, X_truth, eigen_setting)
+  g_x           <- visualize_finite_basis(truth_file_name, estimates_file_name, accuracy_ids,    ground_truth, beta_truth, X_truth, eigen_setting)
   g_final       <- visualize_finite_basis(truth_file_name, estimates_file_name, final_ids,       ground_truth, beta_truth, X_truth, eigen_setting)
   g_tau         <- visualize_finite_basis(truth_file_name, estimates_file_name, tau_ids,         ground_truth, beta_truth, X_truth, eigen_setting)
   
@@ -90,8 +101,18 @@ for(n in ns){
   g_name_bivariate   <- paste0(results_folder_2, '/', adj_type, '_n_', n, '_bivariate.pdf')
   g_name_KL          <- paste0(results_folder_2, '/', adj_type, '_n_', n, '_KL.pdf')
   g_name_HS          <- paste0(results_folder_2, '/', adj_type, '_n_', n, '_HS.pdf')
+  g_name_x           <- paste0(results_folder_2, '/', adj_type, '_n_', n, '_accuracy.png')
   g_name_final       <- paste0(results_folder_2, '/', adj_type, '_n_', n, '_final.pdf')
   g_name_tau         <- paste0(results_folder_2, '/', adj_type, '_n_', n, '_tau.pdf')
+  
+  
+  # just save the accuracy png 
+  
+  ggsave(g_name_x, 
+         plot = g_x$g_115, 
+         width = 10,       # In inches by default
+         height = 7, 
+         dpi = 300)        # High resolution for papers/presentations
   
   # print regular graphs
   
@@ -260,7 +281,62 @@ dev.off()                                                                       
   
 print('Getting CI Results')
 
+adj_types <- c('hub_block_v2', 'hub_block_j2', 'flexible_block_banded_j2', 'flexible_block_banded_v2')
+
+for(adj_type in adj_types){
+  results_folder <- paste0(base_folder, '/', adj_type, '/', method)
+  
+  visualize_metrics_CI(results_folder, n_reps, adj_type)
+}
+
+
+# ------------------------------------------------------------------------------
+# 6) 28e) loess curves, with confidence band from replicates, wrt y_c, for each n
+
+
+print('Getting loess curves')
+
+adj_types <- c('hub_block_j2', 'hub_block_v2', 'flexible_block_banded_j2', 'flexible_block_banded_v2', 'complete_block_j2', 'complete_block_v2')
+verts <- c(T, F, T, F, T, F)
+
+for(i in 1:length(adj_types)){
+  results_folder <- paste0(base_folder, '/', adj_types[i], '/', method)
+  
+  visualize_accuracy_CI_across_yc(results_folder, n_reps, adj_types[i], verts[i])
+  print(adj_types[i])
+}
+
+
+# ------------------------------------------------------------------------------
+# 7) 28e) loess curves, with confidence band from replicates, wrt y_c, just local, stratified by n
+
+
 results_folder <- paste0(base_folder, '/', adj_type, '/', method)
 
-visualize_metrics_CI(results_folder, n_reps, adj_type)
+if(adj_type %in% c('hub_block_j2', 'flexible_block_banded_j2', 'complete_block_j2')){
+  verts <- T
+} else{
+  verts <- F
+}
+
+
+visualize_accuracy_CI_across_yc(results_folder, 'local', n_reps, adj_type, verts)
+
+
+# ------------------------------------------------------------------------------
+# 8) Accuracy plot across n, local only
+
+
+
+for(adj_type in c('hub_block_v2', 'hub_block_j2')){
+  for(rep_i in 1:10){
+    results_folder <- paste0(base_folder, '/', adj_type, '/', method, '/rep', rep_i)
+    truth_file <- paste0('../../../project-biostat-chair/simu_data/', adj_type, '_n_', n_large, '_rep_', rep_i, '/', adj_type, '_n_', n_large, '_rep_', rep_i, '_truths.RData')
+    
+    visualize_accuracy_heatmap_across_yc(results_folder, truth_file, adj_type)
+    print(rep_i)
+  } 
+}
+
+
 
