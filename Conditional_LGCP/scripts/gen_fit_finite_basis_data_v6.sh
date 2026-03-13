@@ -31,7 +31,7 @@ adj_type_params=(
   #"block_banded_v2 0 1 0.4 0.8 2"
   #"block_banded_c0 0.5 0.5 2"
   
-  "hub_block_v2 0 1 4 4 3 0.1 1.5 0.1 1"              # for hub, we can allow [0, 1.5] and [0, 1]
+  "hub_block_v2 0 1 4 4 3 0 1.5 0 1"              # for hub, we can allow [0, 1.5] and [0, 1]
   "hub_block_j2 0 1 4 0.5 4 3 0 1.2 0 0.8"            # jump                  [0, 1.2] and [0, 0.8]
   #"hub_block_c2 0 1 4 2 2 0.7 0.7"
   #"hub_block_c0 0.5 4 2 2 0.7 0.7"
