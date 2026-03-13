@@ -347,7 +347,7 @@ visualize_over_time <- function(graph_results_i, graph_ids, ground_truth, beta_t
   
   # assume we know beta_truths, do their empirical correlations match the actual correlations?
   if('50' %in% graph_ids){
-
+    
     graphs[['g_50']] <- lapply(1:length(step_5d), function(i){
       visualize_beta_corr(step_5d[[i]]$KL_coeffs_truth, 
                           true_graphs[[i]]$cov_mat_truth,
@@ -390,7 +390,7 @@ visualize_over_time <- function(graph_results_i, graph_ids, ground_truth, beta_t
     graphs[['g_57']] <- rearrange_plots(g_list) 
   }
   
-
+  
   
   # KL_cor entire matrix + KL_cov 
   if('58' %in% graph_ids){
@@ -623,7 +623,7 @@ visualize_over_time <- function(graph_results_i, graph_ids, ground_truth, beta_t
     KL_GIC_est_names <- grep("_est_", KL_GIC_names, value = TRUE)
     est_names <- setdiff(step_11_names, KL_GIC_names)
     KL_est_names <- est_names[startsWith(est_names, "w_mat_KL_est")]
-     
+    
     
     # truths
     step_11_v2 <- step_11
@@ -660,14 +660,14 @@ visualize_over_time <- function(graph_results_i, graph_ids, ground_truth, beta_t
     })
     graphs[['g_112f']] <- result_heatmap_nonblock_prep(step_11_v5, 'w_mat', data_format = 'regular', time_grid_est = time_grid_est, rm_diag = T, graph_title = 'P_HS values of thresholded estimates', zmid = 0)
     
-
+    
     
   } 
   
   # ROC curves
   if('113' %in% graph_ids){
     
-
+    
     # groups
     # 1) truth_names     -  truths
     # 2) GIC_names       -  KL_GIC est and X_truth
@@ -744,7 +744,7 @@ visualize_over_time <- function(graph_results_i, graph_ids, ground_truth, beta_t
                                                          time_grid_est = time_grid_est, rm_diag = T, 
                                                          graph_title = 'edge set of truths', zmid = 0)
     }
-
+    
     
     # c) Estimates (non-GIC)
     # Based on your original code's logic for est_names
@@ -756,6 +756,52 @@ visualize_over_time <- function(graph_results_i, graph_ids, ground_truth, beta_t
     
   }
   
+  # Final adj_mat for local, hybrid, global with x's on blocks that are false
+  if ('115' %in% graph_ids){
+    
+    # 1. Map eigen_setting to the correct regex pattern
+    suffix_pattern <- switch(eigen_setting,
+                             "trig_simple"    = "est_eig1$",
+                             "trig_and_joint" = "est_eig[123]$",
+                             "only_joint"     = "est_eig3$",
+                             "est_eig[123]$"  # Default fallback
+    )
+    
+
+    
+    # 3. Identify indices to keep (including truth and none)
+    step_12b_names <- names(step_12b[[1]])
+    suffixes       <- sub("^adj_mat_", "", step_12b_names)
+    
+    target_indices <- grep(suffix_pattern, suffixes)
+    truth_indices  <- which(grepl("truth$", suffixes))
+
+    kept_indices   <- sort(unique(c(truth_indices, target_indices)))
+    
+    # 4. Map names and transform the list for the 'b' versions
+    kept_names <- step_12b_names[kept_indices]
+    new_names  <- label_model_type(kept_names)
+    name_map   <- setNames(new_names, kept_names)
+    
+    step_12b_v2 <- lapply(step_12b, function(x) {
+      x_filtered <- x[kept_indices]
+      names(x_filtered) <- name_map[names(x_filtered)]
+      return(x_filtered)
+    })
+    
+    # 5. Generate the sub-group heatmaps following the original logic but filtered
+    # Use the mapped names in step_12b_v2 to define subsets
+    v2_names <- names(step_12b_v2[[1]])
+    
+    
+    # c) Estimates (non-GIC)
+    # Based on your original code's logic for est_names
+    est_v2_names <- v2_names[!grepl("none", v2_names)]
+    step_12b_v3 <- lapply(step_12b_v2, function(x) x[names(x) %in% est_v2_names])
+    graphs[['g_115']] <- result_heatmap_mismatch_x(step_12b_v3, 'truth', 1, rm_diag = T, zmid = 0)
+    
+
+  }
   
   # accuracy/f1/sens/spec/ppv/npv
   if('120' %in% graph_ids){
@@ -769,15 +815,15 @@ visualize_over_time <- function(graph_results_i, graph_ids, ground_truth, beta_t
     KL_GIC_est_names <- grep("_est_", KL_GIC_names, value = TRUE)
     est_names <- setdiff(step_12_names, KL_GIC_names)
     KL_est_names <- est_names[startsWith(est_names, "roc_KL_est")]
-  
-
+    
+    
     graphs[['g_120']]  <- result_step_12_prep(step_12, step_12_names)
     graphs[['g_120c']] <- result_step_12_prep(step_12, est_names)
     graphs[['g_120d']] <- result_step_12_prep(step_12, KL_est_names)
     graphs[['g_120e']] <- result_step_12_prep(step_12, KL_GIC_names)
     graphs[['g_120f']] <- result_step_12_prep(step_12, KL_GIC_est_names)
     
-
+    
   }
   
   # tau_c and tau_p values
@@ -788,7 +834,7 @@ visualize_over_time <- function(graph_results_i, graph_ids, ground_truth, beta_t
     suffix_names <- gsub("^tau_c_", "", step_11x_names)
     est_suffix_names <- grep("_est_", suffix_names, value = TRUE)
     
-
+    
     graphs[['g_121']]  <- result_121_prep(step_11x, step_11y, est_suffix_names)
   }
   
@@ -799,7 +845,202 @@ visualize_over_time <- function(graph_results_i, graph_ids, ground_truth, beta_t
 
 
 
+visualize_adj_grid <- function(sparse_data_list, all_weeks, absent_week_list) {
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: arrange edge set adjacency matrices in a 2d grid, helper function
+  #
+  # 
+  # inputs:
+  #
+  # - sparse_data_list (list of lists)   each item is a list of edge coordinates without repeating (j, i) since we have (i, j)
+  # - all_weeks        (vector)          all weeks in vector form
+  # - absent_week_list (list of vectors) for each setting, which weeks are absent so we can gray them out 
+  #
+  #
+  # ----------------------------------------------------------------------------
+  
+  plot_data_list <- list()
+  row_names <- names(sparse_data_list)
+  
+  # 1. Process the Edge Data
+  for (r_name in row_names) {
+    row_content <- sparse_data_list[[r_name]]
+    
+    for (c_idx in seq_along(row_content)) {
+      coords <- row_content[[c_idx]]
+      if (is.null(coords) || nrow(coords) == 0) next
+      
+      original <- as.matrix(coords)
+      mirrored <- original[, c(2, 1), drop = FALSE]
+      combined_coords <- unique(rbind(original, mirrored))
+      
+      df_coords <- as.data.frame(combined_coords)
+      colnames(df_coords) <- c("Node_Row", "Node_Col")
+      
+      df_coords$Row_ID <- r_name
+      # Use the names of the list items to get the actual week number
+      df_coords$Col_ID <- as.numeric(names(row_content)[c_idx])
+      
+      plot_data_list[[length(plot_data_list) + 1]] <- df_coords
+    }
+  }
+  
+  plot_data <- do.call(rbind, plot_data_list)
+  
+  # 2. Create the Gray-out Data
+  # This creates a data frame identifying which (Row_ID, Col_ID) should be gray.
+  bg_gray_list <- list()
+  for (r_name in names(absent_week_list)) {
+    absent_weeks <- absent_week_list[[r_name]]
+    if (length(absent_weeks) > 0) {
+      bg_gray_list[[r_name]] <- data.frame(
+        Row_ID = r_name,
+        Col_ID = absent_weeks
+      )
+    }
+  }
+  bg_gray_data <- do.call(rbind, bg_gray_list)
+  
+  # 3. Build the Plot
+  # We use 'all_weeks' to ensure the facets for empty/absent weeks still appear
+  plot_data$Col_ID <- factor(plot_data$Col_ID, levels = all_weeks)
+  if (!is.null(bg_gray_data)) {
+    bg_gray_data$Col_ID <- factor(bg_gray_data$Col_ID, levels = all_weeks)
+  }
+  
+  g <- ggplot() + 
+    # Layer 1: Gray out absent weeks
+    # Inf/-Inf ensures the entire facet panel is covered
+    geom_rect(data = bg_gray_data, 
+              aes(xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Inf),
+              fill = "gray80", alpha = 0.5) +
+    
+    # Layer 2: Plot the actual edges
+    geom_tile(data = plot_data, aes(x = Node_Col, y = -Node_Row), fill = "red") + 
+    
+    # Facet by Row and the full range of weeks
+    facet_grid(Row_ID ~ Col_ID, drop = FALSE) + 
+    
+    coord_fixed() +
+    
+    # make text larger
+    theme_minimal(base_size = 15) + 
+    
+    theme(
+      axis.text = element_blank(),
+      axis.title = element_blank(),
+      axis.ticks = element_blank(),
+      panel.grid = element_blank(),
+      # Main background is transparent
+      panel.background = element_rect(fill = NA, color = "gray90"), 
+      plot.background = element_rect(fill = "transparent", color = NA),
+      legend.position = "none",
+      strip.background = element_rect(fill = "gray95"),
+      strip.text = element_text(face = "bold", size = rel(2))
+    )
+    
 
+  
+  return(g)
+
+}
+
+visualize_discrete_comparison <- function(results_folder, ID, time_scale, discrete_levels) {
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: plot adjacency matrix results in a grid-like manner where rows represent different discrete levels
+  #       and columns represent weeks. Weeks must be integers. 
+  #
+  # 
+  # inputs:
+  #
+  # - results_folder   (string)
+  # - ID               (string)  'Tau3'
+  # - time_scale       (integer)   10 
+  # - discrete_levels  (vector of strings)  'm0vr0', 'm1vr1' etc
+  #
+  #
+  #
+  # ----------------------------------------------------------------------------
+  
+  # Prepare to store data for the grid
+  
+  sparse_data_list <- list()
+  absent_week_list <- list()
+  
+  # 1. Loop through each discrete level (Rows of the grid)
+  for (d_level in discrete_levels) {
+    
+    sparse_data_list_2 <- list()
+    
+    # Construct file path and load
+    file_path <- paste0(results_folder, '/', ID, '_', d_level, '_t', time_scale, '.RData')
+    
+    if (!file.exists(file_path)) {
+      warning(paste("File not found:", file_path))
+      next
+    }
+    
+    # Load into a temporary environment to avoid overwriting loop variables
+    tmp_env <- new.env()
+    load(file_path, envir = tmp_env)
+    res_i <- tmp_env$graph_results_i
+    
+    # Extract the estimated adjacency matrices (assuming they are in step_12b)
+    # We filter for 'est_eig1' as requested
+    step_data <- res_i$step_12b
+    y_c_weeks <- as.numeric(res_i$y_c_query) # Convert "001.000" etc to integers
+    
+    absent_weeks <- setdiff(17:38, y_c_weeks)
+    
+    # 2. Loop through each week (Columns)
+    for (idx in seq_along(y_c_weeks)) {
+      current_week <- y_c_weeks[idx]
+      
+      # Target the specific adjacency matrix
+      adj_mat <- step_data[[idx]][["adj_mat_KL_GIC_local_est_eig3"]]
+      
+      if (is.null(adj_mat)) next
+      
+      # 3. SPARSITY STEP: Get coordinates of 1s only
+      coords <- which(adj_mat == 1, arr.ind = TRUE)
+      
+      if (nrow(coords) > 0) {
+        # Keep only upper triangular (Column > Row)
+        # This removes symmetry and the diagonal
+        coords <- coords[coords[, 2] > coords[, 1], , drop = FALSE]
+      }
+      
+      if (nrow(coords) > 0) {
+        df_coords <- as.data.frame(coords)
+        colnames(df_coords) <- c("Node_Row", "Node_Col")
+        
+        # Store for later binding
+        sparse_data_list_2[[as.character(current_week)]] <- df_coords
+      }
+    }
+    
+    # Clean up large environment immediately
+    rm(tmp_env)
+    rm(res_i)
+    rm(step_data)
+    
+    sparse_data_list[[d_level]] <- sparse_data_list_2
+    
+    absent_week_list[[d_level]] <- absent_weeks
+    
+  }
+  
+
+  
+  # 4. Assembly and returning
+  
+  return(visualize_adj_grid(sparse_data_list, 17:38, absent_week_list))
+  
+}
 
 
 
