@@ -385,6 +385,115 @@ result_heatmap_nonblock_prep <- function(my_list, entry_name, data_format, time_
   return(g)
 }
 
+result_heatmap_mismatch_x <- function(my_list, truth_name, x_size, facet_size, rm_diag = F, palette_ID = 'Blue-Red 2', graph_title = NULL, zmin = NULL, zmid = NULL, zmax = NULL, ordering_vec = NULL){
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: similar to result_heatmap_nonblock_prep, but we already prepared our list of lists of adjacency matrices
+  #
+  #       instead of extracting the ij-th block, we look at the entire block
+  #
+  # inputs:
+  #
+  # - my_list          (list)     step_x; list of y_c_queries --> g_ij_est etc items
+  # - truth_name       (string)   name of truth item within each sublist, almost always 'truth'
+  # - x_size           (integer)  size of x's
+  # - facet_size       (integer)  size of text in facet (14 is good)
+  # - rm_diag          (boolean)  do we remove the diag term?
+  # - palette_ID       (string)
+  # - graph_title      (string)   overall graph title
+  # - zmin, zmid, zmax   (values)   do we manually decide on the bordering color values?
+  #
+  # outputs:
+  # 
+  # - ggplot object
+  # 
+  # ----------------------------------------------------------------------------
+  
+  # 1) Setup Basics
+  # We assume data_format = 'regular' as per instructions
+  queried_names <- names(my_list[[1]])
+  sub_names <- names(my_list)
+  m <- length(my_list)
+  
+  new_palette <- hcl.colors(3, palette = palette_ID)
+  c_low <- new_palette[1]; c_mid <- new_palette[2]; c_high <- new_palette[3]  
+  
+  df_all <- bind_rows(lapply(seq_len(m), function(k) {
+    entry <- my_list[[k]]
+    if (!(truth_name %in% names(entry))) return(NULL)
+    M_truth <- entry[[truth_name]]
+    
+    dfs <- list()
+    other_names <- queried_names[queried_names != truth_name]
+    
+    for (this_name in other_names) {
+      M_est <- entry[[this_name]]
+      if (is.null(M_est)) next
+      
+      df_t <- reshape2::melt(M_est)
+      colnames(df_t) <- c("Row", "Col", "Value")
+      
+      mismatch_mat <- reshape2::melt(M_est != M_truth)
+      df_t$is_mismatch <- mismatch_mat$value
+      
+      df_t$Type <- this_name
+      df_t$y_c <- sub_names[k]
+      dfs[[length(dfs) + 1]] <- df_t
+    }
+    bind_rows(dfs)
+  }))
+  
+  if (rm_diag) {
+    df_all <- df_all[df_all$Row != df_all$Col, ]
+  }
+  
+  # --- Apply Custom Ordering ---
+  if (!is.null(ordering_vec)) {
+    # Filter ordering vector to only include types actually present in data
+    valid_orders <- ordering_vec[ordering_vec %in% unique(df_all$Type)]
+    df_all$Type <- factor(df_all$Type, levels = valid_orders)
+  }
+  
+  if(is.null(zmin)) zmin <- min(df_all$Value)
+  if(is.null(zmax)) zmax <- max(df_all$Value)
+  if(is.null(zmid)) zmid <- (zmin + zmax) / 2       
+  
+  zmax <- zmax + 0.1 * (zmax - zmin)
+  zmin <- zmin - 0.1 * (zmax - zmin)
+  
+  df_all$Col_val <- df_all$Col
+  df_all$Row_val <- df_all$Row    
+  
+  g <- ggplot(df_all, aes(x = Col_val, y = Row_val)) +
+    geom_tile(aes(fill = Value)) +
+    geom_point(data = subset(df_all, is_mismatch == TRUE), 
+               aes(x = Col_val, y = Row_val), 
+               color = "black", 
+               alpha = 0.7, 
+               shape = 16, 
+               size = x_size) +
+    scale_y_reverse() +
+    scale_fill_gradient2(low = c_low, mid = c_mid, high = c_high,
+                         midpoint = zmid, limits = c(zmin, zmax)) +
+    coord_fixed() +
+    theme_minimal() +
+    facet_grid(Type ~ y_c, scales = "fixed") +
+    labs(x = NULL, y = NULL, fill = NULL, title = graph_title) +
+    theme(
+      strip.background = element_rect(fill = "gray90"),
+      # Increased size from default to 14
+      strip.text = element_text(face = "bold", size = facet_size),
+      legend.position = "none",
+      axis.text.x = element_blank(),
+      axis.text.y = element_blank(),
+      axis.ticks = element_blank(),
+      panel.grid = element_blank()
+    )
+  
+  return(g)
+}
+
 result_line_graph_prep <- function(my_list, entry_name, time_grid, grouping = 'estimand', palette_ID = 'Dark 2', num_processes = NULL){
   
   # ----------------------------------------------------------------------------
