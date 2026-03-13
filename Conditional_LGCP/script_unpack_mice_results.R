@@ -28,15 +28,23 @@ eigen_setting  <- args[7]                   # only_joint, trig_and_joint, trig_s
 
 discrete_level <- paste0('m', movement, 'vr', VR)
 
-
+make_gif <- F
 
 
 
 data_folder <- 'mice_data'   
 base_folder <- 'mice_results'
 
+base_folder <- '../../../project-biostat-chair/mice_results'
 
-make_gif <- F
+results_folder <- paste0(base_folder, '/', y_c_structure, '/', method)
+
+
+results_folder_2 <- paste0(results_folder, '/export')
+
+if (!dir.exists(results_folder_2)) {
+  dir.create(results_folder_2)
+}
 
 # 3) heatmaps of certain metrics 
 
@@ -57,14 +65,7 @@ final_ids <- c('114')  # adj_mat
 tau_ids <- c('121')  # tau_c and tau_p
 
 
-results_folder <- paste0(base_folder, '/', y_c_structure, '/', method)
 
-
-results_folder_2 <- paste0(results_folder, '/export')
-
-if (!dir.exists(results_folder_2)) {
-  dir.create(results_folder_2)
-}
 
 # ------------------------------------------------------------------------------
 # 28e - visualize results over y_c
@@ -144,9 +145,22 @@ for(k in 1:length(reg_graphs)){
 }
 
 
+# ------------------------------------------------------------------------------
+# for all 4 discrete settings, group them and plot adjacency matrices over time
 
+IDs <- c('Tau3', 'WT3')
+discrete_levels <- paste0('m', c(0, 0, 1, 1), 'vr', c(0, 1, 0, 1))
 
+for(ID in IDs){
 
+  png_name <- paste0(results_folder_2, '/', ID, '_t', time_scale, '_edge_sets.png') 
+  
+  png(png_name, width = 45, height = 15, units = "in", res = 100)
+  
+  g <- visualize_discrete_comparison(results_folder, ID, time_scale, discrete_levels) 
+  g
+  dev.off()
+}
 
 
   
