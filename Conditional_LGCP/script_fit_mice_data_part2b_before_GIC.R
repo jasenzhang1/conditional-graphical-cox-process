@@ -22,6 +22,7 @@ if(model_type == 'mice'){
   VR <- as.numeric(args[7])           # VR <- 0
   cont_ind <- as.numeric(args[8])     # cont_ind <- 1  
   eigen_setting <- args[9]            # eigen_seting <- 'only_joint'
+  y_c_bandwidth <- as.numeric(args[10])
   
   X_truth <- F
   
@@ -31,7 +32,8 @@ if(model_type == 'mice'){
                             y_c_structure = y_c_structure,
                             time_scale = time_scale,
                             method = method,
-                            discrete_level = discrete_level)
+                            discrete_level = discrete_level,
+                            y_c_bandwidth = y_c_bandwidth)
   
   temp_file_dir <- paste0('temp_data/mice/', ID, '_', discrete_level, '_t', time_scale)
   mouse <- T
@@ -46,12 +48,14 @@ if(model_type == 'mice'){
   X_truth <- as.logical(args[7])
   cont_ind <- as.numeric(args[8])
   eigen_setting <- args[9]
+  y_c_bandwidth <- as.numeric(args[10])
   
   setting_info_list <- list(n_large = n_large,
                             n = n,
                             rep_i = rep_i,
                             adj_type = adj_type,
-                            method = method)
+                            method = method,
+                            y_c_bandwidth = y_c_bandwidth)
   
   temp_file_dir <- paste0('temp_data/simu_', adj_type, '_n_', n_large, '_rep_', rep_i)
   mouse <- F

@@ -1406,6 +1406,13 @@ estimate_intensities_stratum_parallel_with_yc_part4_v5 <- function(temp_file_dir
     results[['adj_mat_i']] <- truths$true_graphs$adj_mat_truth
   }
   
+  # 2d) if y_c_bandwidth is null, save it
+  
+  if(is.null(y_c_bandwidth)){
+    results[['y_c_bandwidth']] <- results$gamma_c
+  } else{
+    results[['y_c_bandwidth']] <- y_c_bandwidth
+  }
   
   # 2d) save results as part2_
   
@@ -1753,6 +1760,9 @@ full_conditional_estimation_with_no_truth_part2b_before_GIC <- function(temp_fil
   results <- readRDS(file.path(temp_file_dir, step_2_info_list))
   p <- results$p
   W_y <- results$W_y
+  gamma_c <- results$gamma_c[1]
+  y_c_bandwidth <- results$y_c_bandwidth[1]
+  
   adj_mat_i <- results$adj_mat_i
   #list2env(results, envir = environment())
   steps_2_and_2b <- readRDS(file.path(temp_file_dir, rho_list_name))
@@ -1808,7 +1818,14 @@ full_conditional_estimation_with_no_truth_part2b_before_GIC <- function(temp_fil
   estimated_graphs <- list(step_2 = step_2, step_2b = step_2b, step_3 = step_3,
                            step_4 = step_4, step_5 = step_5, step_5b = step_5b, step_5c = step_5c, 
                            p = p, 
-                           W_y = W_y)
+                           W_y = W_y,
+                           gamma_c = gamma_c)
+  
+  if(is.null(y_c_bandwidth)){
+    estimated_graphs[['y_c_bandwidth']] <- gamma_c
+  } else{
+    estimated_graphs[['y_c_bandwidth']] <- y_c_bandwidth
+  }
   
   
   

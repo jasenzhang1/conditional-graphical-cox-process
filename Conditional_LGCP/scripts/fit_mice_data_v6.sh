@@ -40,10 +40,8 @@ time_scale=10
 m=30
 movement=(0 0 1 1)
 VR=(0 1 0 1)
-movement=(0)
-VR=(0)
 min_events=5
-max_processes=10
+max_processes=10000
 region="HIP"   # "HIP", "EHC", or "HIP_EHC"
 n_weeks=50
 eigen_setting="only_joint"  #only_joint, trig_and_joint, trig_simple
@@ -229,7 +227,7 @@ for ID in "${IDs[@]}"; do
             
                     # estimation until GIC
                     # temp_data/simu/part2b...
-                    Rscript script_fit_mice_data_part2b_before_GIC.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" "$eigen_setting" >> "$outfile" 2>&1
+                    Rscript script_fit_mice_data_part2b_before_GIC.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" "$eigen_setting" "$y_c_bandwidth" >> "$outfile" 2>&1
                     
                     
                     # ---------------------------------------------------------
