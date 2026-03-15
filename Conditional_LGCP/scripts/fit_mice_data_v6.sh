@@ -35,7 +35,7 @@ method="CPGM"
 model_type="mice"  # simu or mice
 max_jobs=60
 
-y_c_bandwidth=0.05 # usually its 0.3, exp(-gamma * y_c_diff^2)
+y_c_bandwidth=0.01 # usually its 0.3, exp(-gamma * y_c_diff^2)
 time_scale=10 
 m=30
 movement=(0 0 1 1)
