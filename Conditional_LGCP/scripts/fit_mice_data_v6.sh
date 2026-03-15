@@ -35,12 +35,15 @@ method="CPGM"
 model_type="mice"  # simu or mice
 max_jobs=60
 
+y_c_bandwidth=0.05 # usually its 0.3, exp(-gamma * y_c_diff^2)
 time_scale=10 
 m=30
 movement=(0 0 1 1)
 VR=(0 1 0 1)
+movement=(0)
+VR=(0)
 min_events=5
-max_processes=10000
+max_processes=10
 region="HIP"   # "HIP", "EHC", or "HIP_EHC"
 n_weeks=50
 eigen_setting="only_joint"  #only_joint, trig_and_joint, trig_simple
@@ -221,7 +224,7 @@ for ID in "${IDs[@]}"; do
                     # gets weights and pads rho_i and rho_ii
                     # temp_data/simu/step_2_rho_list...
                     # temp_data/simu/part2_...
-                    Rscript script_step2_part4_v5.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" >> "$outfile" 2>&1
+                    Rscript script_step2_part4_v5.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" "$y_c_bandwidth" >> "$outfile" 2>&1
                     
             
                     # estimation until GIC
