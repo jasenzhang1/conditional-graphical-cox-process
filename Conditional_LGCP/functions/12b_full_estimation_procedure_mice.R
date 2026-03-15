@@ -1177,7 +1177,7 @@ estimate_intensities_stratum_parallel_with_yc_part3_v5 <- function(temp_file_dir
   
 }
 
-estimate_intensities_stratum_parallel_with_yc_part4_helper <- function(results, n_large, n, cont_ind){
+estimate_intensities_stratum_parallel_with_yc_part4_helper <- function(results, n_large, n, cont_ind, gamma_c_manual = NULL){
   
   # ----------------------------------------------------------------------------
   #
@@ -1190,6 +1190,7 @@ estimate_intensities_stratum_parallel_with_yc_part4_helper <- function(results, 
   # - n_large
   # - n 
   # - cont_ind
+  # - gamma_c_manual   (number)   bandwidth parameter for y_c_kernel
   #
   #
   # outputs:
@@ -1206,11 +1207,16 @@ estimate_intensities_stratum_parallel_with_yc_part4_helper <- function(results, 
   
   y_c_query <- results$query_y_cs[cont_ind,]
   
-  
-  weights <- apply(results$y_c_strata, 1, function(row) {
-    step_6_kernel(as.numeric(row), y_c_query, results$gamma_c) 
-  })  
-  
+  if(is.null(gamma_c_manual)){
+    weights <- apply(results$y_c_strata, 1, function(row) {
+      step_6_kernel(as.numeric(row), y_c_query, results$gamma_c) 
+    })  
+  } else{
+    weights <- apply(results$y_c_strata, 1, function(row) {
+      step_6_kernel(as.numeric(row), y_c_query, gamma_c_manual) 
+    })  
+  }
+
   weights[!(1:n_large %in% idx)] <- 0
   W_y <- sum(weights)
   weights <- weights / W_y
@@ -1386,7 +1392,7 @@ estimate_intensities_stratum_parallel_with_yc_part4_v5 <- function(temp_file_dir
     n <- results$n
   }
 
-  helper_result <- estimate_intensities_stratum_parallel_with_yc_part4_helper(results, n_large, n, cont_ind)
+  helper_result <- estimate_intensities_stratum_parallel_with_yc_part4_helper(results, n_large, n, cont_ind, y_c_bandwidth)
   results <- helper_result[[1]]
   weights2 <- helper_result[[2]] # dim n_large, sum = 1, excluded elements = 0
 
