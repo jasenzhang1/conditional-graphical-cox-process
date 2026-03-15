@@ -1,5 +1,5 @@
 library(MASS)
-library(ggplot2)
+library(tidyverse)
 source('functions/28_Simulation_Visualization.R')
 source('functions/25_point_generation_process.R')
 
@@ -78,6 +78,56 @@ present_GP_funcs <- function(p, timepoints, kernel, kernel_params){
   
 }
 
+thinning <- function(time_vec, lambda_vec){
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: thinning algorithm to draw events from an inhomogeneous point process
+  #
+  # inputs:
+  #
+  # - time_vec   (vector) times
+  # - lambda_vec (vector) values of the intensity at certain times
+  #
+  # 
+  # outputs:
+  #
+  # - events   (vector) vector of drawn events
+  #
+  # ----------------------------------------------------------------------------
+  
+  # 1. Clean data: Ensure intensity is non-negative
+  # (Using pmax because intensities cannot be negative for thinning)
+  lambda_t <- pmax(0, lambda_vec) 
+  
+  # 2. Get bounds from the data provided
+  t_min <- min(time_vec)
+  t_max <- max(time_vec)
+  max_lambda <- max(lambda_t)
+  
+  # If max_lambda is 0, no events can occur
+  if (max_lambda <= 0) return(numeric(0))
+  
+  # 3. Generate potential events from a Homogeneous Poisson Process
+  # Intensity * duration
+  n_potential <- rpois(1, lambda = max_lambda * (t_max - t_min))
+  
+  if (n_potential == 0) return(numeric(0))
+  
+  potential_events <- sort(runif(n_potential, t_min, t_max))
+  
+  # 4. Thinning: accept points with probability lambda(t) / max_lambda
+  # Use linear interpolation to find lambda at the exact potential event times
+  event_intensities <- approx(x = time_vec, y = lambda_t, xout = potential_events)$y
+  
+  acceptance_prob <- event_intensities / max_lambda
+  keep <- runif(n_potential) <= acceptance_prob
+  
+  events <- potential_events[keep]
+  
+  return(events)
+  
+}
 
 sine_random_function_with_points_generate <- function(tmin, tmax, delta_t, mu, sigma, seed, sin_prop = NULL){
   

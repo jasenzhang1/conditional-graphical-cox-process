@@ -85,3 +85,40 @@ l2 <- sine_random_function_with_points_generate(tmin, tmax, delta_t, mu, sigma, 
 g2 <- sine_random_function_with_points_plot(l2$t_vec, l2$x_t, l2$events, event_y)
 
 g2$graph_with_intensity
+
+# 4) generate events from an intensity vector
+
+lambda_1 <- read.csv('data/lambda_1.csv', header = T) %>%
+  # Replace 'V1' with whatever the actual column name is (check with names(lambda_1))
+  separate(1, into = c("time", "intensity"), sep = ",") %>%
+  mutate(across(everything(), as.numeric))
+
+lambda_2 <- read.csv('data/lambda_2.csv', header = T) %>%
+  # Replace 'V1' with whatever the actual column name is (check with names(lambda_1))
+  separate(1, into = c("time", "intensity"), sep = ",") %>%
+  mutate(across(everything(), as.numeric))
+
+lambda_3 <- read.csv('data/lambda_p.csv', header = T) %>%
+  # Replace 'V1' with whatever the actual column name is (check with names(lambda_1))
+  separate(1, into = c("time", "intensity"), sep = ",") %>%
+  mutate(across(everything(), as.numeric))
+
+m <- 4
+shift <- 0.8
+
+lambda_df <- data.frame(lambda_1$time, 
+                        m*(lambda_1$intensity + shift), 
+                        m*(lambda_2$intensity + shift), 
+                        m*(lambda_3$intensity + shift))
+
+colnames(lambda_df) <- c('time', 'l1', 'l2', 'l3')
+
+
+ggplot() + geom_point(data = lambda_df, aes(x = time, y = l1), color = 'red') + 
+  geom_point(data = lambda_df, aes(x = time, y = l2), color = 'blue') + 
+  geom_point(data = lambda_df, aes(x = time, y = l3), color = 'green')
+
+
+events_1 <- thinning(lambda_df$time, lambda_df$l1)
+events_2 <- thinning(lambda_df$time, lambda_df$l2)
+events_3 <- thinning(lambda_df$time, lambda_df$l3)
