@@ -29,13 +29,13 @@
 cd "$(dirname "$0")/.."   # go one level up (from /scripts to /)
 
 
-IDs=("Tau1" "Tau2" "WT1" "WT2")
+IDs=("Tau1" "WT1")
 y_c_structure="week_only"
 method="CPGM"
 model_type="mice"  # simu or mice
 max_jobs=60
 
-y_c_bandwidth=0.01 # usually its 0.3, exp(-gamma * y_c_diff^2)
+y_c_bandwidth=0.001 # usually its 0.3, exp(-gamma * y_c_diff^2)
 time_scale=10 
 m=30
 movement=(0 0 1 1)

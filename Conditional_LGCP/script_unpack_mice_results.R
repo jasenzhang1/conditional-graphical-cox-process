@@ -148,20 +148,34 @@ for(k in 1:length(reg_graphs)){
 # ------------------------------------------------------------------------------
 # for all 4 discrete settings, group them and plot adjacency matrices over time
 
-IDs <- c('Tau3', 'WT3')
+# IDs <- c('Tau3', 'WT3')
+# discrete_levels <- paste0('m', c(0, 0, 1, 1), 'vr', c(0, 1, 0, 1))
+# 
+# for(ID in IDs){
+# 
+#   png_name <- paste0(results_folder_2, '/', ID, '_t', time_scale, '_edge_sets.png')
+# 
+#   png(png_name, width = 45, height = 15, units = "in", res = 100)
+# 
+#   g <- visualize_discrete_comparison(results_folder, ID, time_scale, discrete_levels)
+#   print(g)
+#   dev.off()
+# 
+#   print(ID)
+# }
+
+
 discrete_levels <- paste0('m', c(0, 0, 1, 1), 'vr', c(0, 1, 0, 1))
 
-for(ID in IDs){
 
-  png_name <- paste0(results_folder_2, '/', ID, '_t', time_scale, '_edge_sets.png') 
-  
-  png(png_name, width = 45, height = 15, units = "in", res = 100)
-  
-  g <- visualize_discrete_comparison(results_folder, ID, time_scale, discrete_levels) 
-  g
-  dev.off()
-}
+png_name <- paste0(results_folder_2, '/', ID, '_t', time_scale, '_edge_sets.png')
 
+png(png_name, width = 45, height = 15, units = "in", res = 100)
+
+g <- visualize_discrete_comparison(results_folder, ID, time_scale, discrete_levels)
+print(g)
+dev.off()
+  
 
   
   
