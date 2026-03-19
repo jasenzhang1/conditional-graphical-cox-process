@@ -172,12 +172,33 @@ png_name <- paste0(results_folder_2, '/', ID, '_t', time_scale, '_edge_sets.png'
 
 png(png_name, width = 45, height = 15, units = "in", res = 100)
 
-g <- visualize_discrete_comparison(results_folder, ID, time_scale, discrete_levels)
+g <- visualize_discrete_comparison(results_folder, ID, time_scale, discrete_levels, 'adj')
 print(g)
 dev.off()
   
+# ------------------------------------------------------------------------------
+# for all 4 discrete settings, group them and plot P_HS over time
 
+
+png_name <- paste0(results_folder_2, '/', ID, '_t', time_scale, '_P_HS.png')
+
+png(png_name, width = 45, height = 15, units = "in", res = 100)
+
+g <- visualize_discrete_comparison(results_folder, ID, time_scale, discrete_levels, 'P_HS')
+print(g)
+dev.off()
   
   
-  
-  
+# ------------------------------------------------------------------------------
+# for all 4 discrete settings, group them and plot P_HS over time
+
+
+png_name <- paste0(results_folder_2, '/', ID, '_t', time_scale, '_C_HS.png')
+
+png(png_name, width = 45, height = 15, units = "in", res = 100)
+
+g <- visualize_discrete_comparison(results_folder, ID, time_scale, discrete_levels, 'C_HS')
+print(g)
+dev.off()
+
+
