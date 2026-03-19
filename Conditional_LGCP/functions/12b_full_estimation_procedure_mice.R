@@ -1789,6 +1789,15 @@ full_conditional_estimation_with_no_truth_part2b_before_GIC <- function(temp_fil
       stop(e)
       
     })
+  } else if(eigen_setting == 'mfpca'){
+    step_4 <- tryCatch({
+      step_4_eigendecomp_mfpca(step_3, p, F, NULL)
+    }, error = function(e) {
+      cat("Error in step_4, saving dataset...\n")
+      save(dataset, file = file.path(temp_file_dir, datafile_error_name))
+      stop(e)
+      
+    })
   } else if (eigen_setting %in% c('trig_and_joint', 'trig_simple')){
     
     step_4 <- tryCatch({
