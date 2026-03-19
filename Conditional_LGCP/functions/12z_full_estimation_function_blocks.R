@@ -599,7 +599,51 @@ step_4_eigendecomp <- function(step_3, p, same_basis, constant_d){
   return(result)
 }
 
-
+step_4_eigendecomp_mfpca <- function(step_3, p, same_basis, constant_d){
+  
+  
+  # ----------------------------------------------------------------------------
+  # 
+  # GOAL: copy of 'step_4_eigendecomp', but we assume mfpca setting
+  #
+  #
+  # inputs:
+  #
+  # - step_3
+  #   - g_ij_suffix                (list of m x m matrices for i_j entries)
+  #
+  # - p                            (scalar) number of processes
+  #
+  # outputs:
+  #
+  # - list of:
+  #   - eigen_decomp_suffix             (list of 3 things)
+  #     - [[1]] eigenvalues            (list of p vectors of eigenvalues)
+  #     - [[2]] eigenvectors           (list of p matrices of m x d_i)
+  #     - [[3]] n_dims                 (list of p integers denoting d_i)
+  #
+  #
+  # ----------------------------------------------------------------------------
+  
+  
+  result <- list()
+  
+  # 1) grab names
+  
+  core_names <- step_00_grab_ID(names(step_3), 'g_ij')
+  
+  input_names <- names(step_3)
+  
+  # 2) for each core name `est`, `X_truth` etc... get the resulting name, apply the function on it, and store it
+  for(i in 1:length(core_names)){
+    
+    name_i <- paste0('eigen_decomp_', core_names[i], '_eig4')
+  
+    result[[name_i]] <- compute_eigendecomposition_mfpca(step_3[[input_names[i]]], p, same_basis, constant_d)       # then compute
+  }
+  
+  return(result)
+}
 
 step_4_eigendecomp_troubleshoot <- function(step_3, p, eigen_setting){
   
@@ -618,7 +662,7 @@ step_4_eigendecomp_troubleshoot <- function(step_3, p, eigen_setting){
   #   - g_ij_suffix                (list of m x m matrices for i_j entries)
   #
   # - p                            (scalar)
-  # - eigen_setting                (string)  'trig_and_joint',  'trig_simple'
+  # - eigen_setting                (string)  'trig_and_joint',  'trig_simple', 'mfpca
   #
   # outputs:
   #
