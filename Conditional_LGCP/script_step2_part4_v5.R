@@ -20,7 +20,11 @@ if(model_type == 'mice'){
   movement <- as.numeric(args[6])            # movement <- 0
   VR <- as.numeric(args[7])                  # VR <- 0
   cont_ind <- as.numeric(args[8])           
-  y_c_bandwidth <- as.numeric(args[9])
+  if(args[9] == ''){
+    y_c_bandwidth <- NULL
+  } else{
+    y_c_bandwidth <- as.numeric(args[9])
+  }
   
   discrete_level <- paste0('m', movement, 'vr', VR)
   
@@ -43,11 +47,19 @@ if(model_type == 'mice'){
   method <- args[6]
   cont_ind <- as.numeric(args[7])       # which y_c query
   
+  if(args[8] == ''){
+    y_c_bandwidth <- NULL
+  } else{
+    y_c_bandwidth <- as.numeric(args[8])
+  }
+
+  
   setting_info_list <- list(n_large = n_large,
                             n = n,
                             rep_i = rep_i,
                             adj_type = adj_type,
-                            method = method)
+                            method = method,
+                            y_c_bandwidth = y_c_bandwidth)
   
   simu_dir <- paste0('temp_data/simu_', adj_type, '_n_', n_large, '_rep_', rep_i)
   simu_data_dir <- paste0('temp_data/simu_data_', adj_type, '_n_', n_large, '_rep_', rep_i)
