@@ -845,18 +845,20 @@ visualize_over_time <- function(graph_results_i, graph_ids, ground_truth, beta_t
 
 
 
-visualize_adj_grid <- function(sparse_data_list, all_weeks, absent_week_list) {
+visualize_adj_grid <- function(sparse_data_list, all_weeks, absent_week_list, output) {
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: arrange edge set adjacency matrices in a 2d grid, helper function
+  # GOAL: arrange edge set adjacency matrices in a 2d grid, 
+  #       helper function for visualize_discrete_comparison
   #
   # 
   # inputs:
   #
-  # - sparse_data_list (list of lists)   each item is a list of edge coordinates without repeating (j, i) since we have (i, j)
-  # - all_weeks        (vector)          all weeks in vector form
-  # - absent_week_list (list of vectors) for each setting, which weeks are absent so we can gray them out 
+  # - sparse_data_list   (list of lists)      each item is a list of edge coordinates without repeating (j, i) since we have (i, j)
+  # - all_weeks          (vector)             all weeks in vector form
+  # - absent_week_list   (list of vectors)    for each setting, which weeks are absent so we can gray them out 
+  # - output             (string)             'adj', or 'P_HS', or 'C_HS'
   #
   #
   # ----------------------------------------------------------------------------
@@ -864,33 +866,45 @@ visualize_adj_grid <- function(sparse_data_list, all_weeks, absent_week_list) {
   plot_data_list <- list()
   row_names <- names(sparse_data_list)
   
+  new_palette <- hcl.colors(3, palette = 'Blue-Red 2')
+  c_low <- new_palette[1]
+  c_mid <- new_palette[2]
+  c_high <- new_palette[3]  
+  
   # 1. Process the Edge Data
   for (r_name in row_names) {
     row_content <- sparse_data_list[[r_name]]
     
     for (c_idx in seq_along(row_content)) {
-      coords <- row_content[[c_idx]]
-      if (is.null(coords) || nrow(coords) == 0) next
+      df_coords <- row_content[[c_idx]]
+      if (is.null(df_coords) || nrow(df_coords) == 0) next
       
-      original <- as.matrix(coords)
-      mirrored <- original[, c(2, 1), drop = FALSE]
-      combined_coords <- unique(rbind(original, mirrored))
+      # Determine if we are handling weighted data
+      is_weighted <- output %in% c("P_HS", "C_HS")
       
-      df_coords <- as.data.frame(combined_coords)
-      colnames(df_coords) <- c("Node_Row", "Node_Col")
+      # Mirroring logic
+      # For 'adj', we just have coords. For weighted, we have Node_Row, Node_Col, and Value.
+      original <- df_coords
       
-      df_coords$Row_ID <- r_name
-      # Use the names of the list items to get the actual week number
-      df_coords$Col_ID <- as.numeric(names(row_content)[c_idx])
+      # Create mirrored copy: Swap Row and Col
+      # For weighted data, this preserves the 'Value' column correctly
+      mirrored <- original
+      mirrored$Node_Row <- original$Node_Col
+      mirrored$Node_Col <- original$Node_Row
       
-      plot_data_list[[length(plot_data_list) + 1]] <- df_coords
+      # Combine and remove duplicates (especially important for the diagonal entries)
+      combined_df <- unique(rbind(original, mirrored))
+      
+      combined_df$Row_ID <- r_name
+      combined_df$Col_ID <- as.numeric(names(row_content)[c_idx])
+      
+      plot_data_list[[length(plot_data_list) + 1]] <- combined_df
     }
   }
   
   plot_data <- do.call(rbind, plot_data_list)
   
   # 2. Create the Gray-out Data
-  # This creates a data frame identifying which (Row_ID, Col_ID) should be gray.
   bg_gray_list <- list()
   for (r_name in names(absent_week_list)) {
     absent_weeks <- absent_week_list[[r_name]]
@@ -904,50 +918,64 @@ visualize_adj_grid <- function(sparse_data_list, all_weeks, absent_week_list) {
   bg_gray_data <- do.call(rbind, bg_gray_list)
   
   # 3. Build the Plot
-  # We use 'all_weeks' to ensure the facets for empty/absent weeks still appear
   plot_data$Col_ID <- factor(plot_data$Col_ID, levels = all_weeks)
   if (!is.null(bg_gray_data)) {
     bg_gray_data$Col_ID <- factor(bg_gray_data$Col_ID, levels = all_weeks)
   }
   
+  # Initialize the ggplot object
   g <- ggplot() + 
     # Layer 1: Gray out absent weeks
-    # Inf/-Inf ensures the entire facet panel is covered
     geom_rect(data = bg_gray_data, 
               aes(xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Inf),
-              fill = "gray80", alpha = 0.5) +
+              fill = "gray80", alpha = 0.5)
+  
+  # Layer 2: Plot the actual edges (Binary vs Weighted)
+  if (output == "adj") {
+    g <- g + geom_tile(data = plot_data, aes(x = Node_Col, y = -Node_Row), fill = "red")
+  } else {
+    # Weighted plots: Use the Value column for fill
+    # viridis or scale_fill_gradient2 (useful if values are log-probs or centered at 0)
     
-    # Layer 2: Plot the actual edges
-    geom_tile(data = plot_data, aes(x = Node_Col, y = -Node_Row), fill = "red") + 
+
+    zmin <- min(plot_data$Value)
+    zmax <- max(plot_data$Value)
     
-    # Facet by Row and the full range of weeks
+    zmax <- zmax + 0.1 * (zmax - zmin)
+    zmin <- zmin - 0.1 * (zmax - zmin)
+    
+    
+    g <- g + geom_tile(data = plot_data, aes(x = Node_Col, y = -Node_Row, fill = Value)) +
+      # scale_fill_viridis_c(option = "magma") + # Good for log densities
+      scale_fill_gradient2(low = c_low, mid = c_mid, high = c_high,
+                           midpoint = 0,
+                           limits = c(zmin, zmax)) + 
+      theme(legend.position = "right")      # We actually want the legend here
+  }
+  
+  # 4. Final Formatting
+  g <- g + 
     facet_grid(Row_ID ~ Col_ID, drop = FALSE) + 
-    
     coord_fixed() +
-    
-    # make text larger
     theme_minimal(base_size = 15) + 
-    
     theme(
       axis.text = element_blank(),
       axis.title = element_blank(),
       axis.ticks = element_blank(),
       panel.grid = element_blank(),
-      # Main background is transparent
       panel.background = element_rect(fill = NA, color = "gray90"), 
       plot.background = element_rect(fill = "transparent", color = NA),
-      legend.position = "none",
       strip.background = element_rect(fill = "gray95"),
       strip.text = element_text(face = "bold", size = rel(2))
     )
-    
-
+  
+  if(output == "adj") g <- g + theme(legend.position = "none")
   
   return(g)
 
 }
 
-visualize_discrete_comparison <- function(results_folder, ID, time_scale, discrete_levels) {
+visualize_discrete_comparison <- function(results_folder, ID, time_scale, discrete_levels, output) {
   
   # ----------------------------------------------------------------------------
   #
@@ -961,6 +989,7 @@ visualize_discrete_comparison <- function(results_folder, ID, time_scale, discre
   # - ID               (string)  'Tau3'
   # - time_scale       (integer)   10 
   # - discrete_levels  (vector of strings)  'm0vr0', 'm1vr1' etc
+  # - output           (string)  what to look at. For example 'adj', 'P_HS', 'C_HS'
   #
   #
   #
@@ -989,39 +1018,117 @@ visualize_discrete_comparison <- function(results_folder, ID, time_scale, discre
     load(file_path, envir = tmp_env)
     res_i <- tmp_env$graph_results_i
     
-    # Extract the estimated adjacency matrices (assuming they are in step_12b)
-    # We filter for 'est_eig1' as requested
-    step_data <- res_i$step_12b
-    y_c_weeks <- as.numeric(res_i$y_c_query) # Convert "001.000" etc to integers
-    
-    absent_weeks <- setdiff(17:38, y_c_weeks)
-    
-    # 2. Loop through each week (Columns)
-    for (idx in seq_along(y_c_weeks)) {
-      current_week <- y_c_weeks[idx]
+    if(output == 'adj'){
       
-      # Target the specific adjacency matrix
-      adj_mat <- step_data[[idx]][["adj_mat_KL_GIC_local_est_eig3"]]
+      # Extract the estimated adjacency matrices (assuming they are in step_12b)
+      # We filter for 'est_eig1' as requested
+      step_data <- res_i$step_12b
+      y_c_weeks <- as.numeric(res_i$y_c_query) # Convert "001.000" etc to integers
       
-      if (is.null(adj_mat)) next
+      absent_weeks <- setdiff(17:38, y_c_weeks)
       
-      # 3. SPARSITY STEP: Get coordinates of 1s only
-      coords <- which(adj_mat == 1, arr.ind = TRUE)
-      
-      if (nrow(coords) > 0) {
-        # Keep only upper triangular (Column > Row)
-        # This removes symmetry and the diagonal
-        coords <- coords[coords[, 2] > coords[, 1], , drop = FALSE]
+      # 2. Loop through each week (Columns)
+      for (idx in seq_along(y_c_weeks)) {
+        current_week <- y_c_weeks[idx]
+        
+        # Target the specific adjacency matrix
+        adj_mat <- step_data[[idx]][["adj_mat_KL_GIC_local_est_eig3"]]
+        
+        if (is.null(adj_mat)) next
+        
+        # 3. SPARSITY STEP: Get coordinates of 1s only
+        coords <- which(adj_mat == 1, arr.ind = TRUE)
+        
+        if (nrow(coords) > 0) {
+          # Keep only upper triangular (Column > Row)
+          # This removes symmetry and the diagonal
+          coords <- coords[coords[, 2] > coords[, 1], , drop = FALSE]
+        }
+        
+        if (nrow(coords) > 0) {
+          df_coords <- as.data.frame(coords)
+          colnames(df_coords) <- c("Node_Row", "Node_Col")
+          
+          # Store for later binding
+          sparse_data_list_2[[as.character(current_week)]] <- df_coords
+        }
       }
+    } else if(output == 'P_HS'){
       
-      if (nrow(coords) > 0) {
-        df_coords <- as.data.frame(coords)
+      step_data <- res_i$step_11
+      y_c_weeks <- as.numeric(res_i$y_c_query) # Convert "001.000" etc to integers
+      
+      absent_weeks <- setdiff(17:38, y_c_weeks)
+      
+      # 2. Loop through each week (Columns)
+      for (idx in seq_along(y_c_weeks)) {
+        current_week <- y_c_weeks[idx]
+        
+        # Target the specific matrix
+        P_HS_log <- log(step_data[[idx]][["w_mat_KL_est_eig3"]])
+        
+        if (is.null(P_HS_log)) next
+        
+        # 1. Get matrix dimensions
+        n_size <- nrow(P_HS_log)
+        
+        # 2. Generate all Upper Triangular indices (including diagonal)
+        # row() and col() generate matrices of indices; we filter where col >= row
+        upper_tri_idx <- which(col(P_HS_log) >= row(P_HS_log), arr.ind = TRUE)
+        
+        # 3. Create the data frame
+        df_coords <- as.data.frame(upper_tri_idx)
         colnames(df_coords) <- c("Node_Row", "Node_Col")
+        
+        # 4. Extract the actual values
+        # Since you mentioned it's real numbers, you likely want to store them!
+        df_coords$Value <- P_HS_log[upper_tri_idx]
         
         # Store for later binding
         sparse_data_list_2[[as.character(current_week)]] <- df_coords
       }
+      
+    } else if(output == 'C_HS'){
+      
+      step_data <- res_i$step_11b
+      y_c_weeks <- as.numeric(res_i$y_c_query) # Convert "001.000" etc to integers
+      
+      absent_weeks <- setdiff(17:38, y_c_weeks)
+      
+      # 2. Loop through each week (Columns)
+      for (idx in seq_along(y_c_weeks)) {
+        current_week <- y_c_weeks[idx]
+        
+        # Target the specific matrix
+        C_HS_log <- log(step_data[[idx]][["C_HS_KL_est_eig3"]])
+        
+        if (is.null(C_HS_log)) next
+        
+        # 1. Get matrix dimensions
+        n_size <- nrow(C_HS_log)
+        
+        # 2. Generate all Upper Triangular indices (including diagonal)
+        # row() and col() generate matrices of indices; we filter where col >= row
+        upper_tri_idx <- which(col(C_HS_log) >= row(C_HS_log), arr.ind = TRUE)
+        
+        # 3. Create the data frame
+        df_coords <- as.data.frame(upper_tri_idx)
+        colnames(df_coords) <- c("Node_Row", "Node_Col")
+        
+        # 4. Extract the actual values
+        # Since you mentioned it's real numbers, you likely want to store them!
+        df_coords$Value <- C_HS_log[upper_tri_idx]
+        
+        # Store for later binding
+        sparse_data_list_2[[as.character(current_week)]] <- df_coords
+      }
+      
+    } else{
+      stop('error in 28C: visualize_discrete_comparison')
     }
+    
+    
+  
     
     # Clean up large environment immediately
     rm(tmp_env)
@@ -1038,7 +1145,7 @@ visualize_discrete_comparison <- function(results_folder, ID, time_scale, discre
   
   # 4. Assembly and returning
   
-  return(visualize_adj_grid(sparse_data_list, 17:38, absent_week_list))
+  return(visualize_adj_grid(sparse_data_list, 17:38, absent_week_list, output))
   
 }
 
