@@ -22,7 +22,14 @@ if(model_type == 'mice'){
   VR <- as.numeric(args[7])           # VR <- 0
   cont_ind <- as.numeric(args[8])     # cont_ind <- 1  
   eigen_setting <- args[9]            # eigen_seting <- 'only_joint'
-  y_c_bandwidth <- as.numeric(args[10])
+  
+  if(args[10] == ''){
+    y_c_bandwidth <- NULL
+  } else{
+    y_c_bandwidth <- as.numeric(args[10])
+  }
+  
+
   
   X_truth <- F
   
@@ -48,7 +55,13 @@ if(model_type == 'mice'){
   X_truth <- as.logical(args[7])
   cont_ind <- as.numeric(args[8])
   eigen_setting <- args[9]
-  y_c_bandwidth <- as.numeric(args[10])
+
+  if(args[10] == ''){
+    y_c_bandwidth <- NULL
+  } else{
+    y_c_bandwidth <- as.numeric(args[10])
+  }
+  
   
   setting_info_list <- list(n_large = n_large,
                             n = n,

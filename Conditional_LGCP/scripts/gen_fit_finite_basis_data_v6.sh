@@ -58,6 +58,9 @@ adj_type_params=(
 n_large=4000
 ns=(500 1000 2000 4000)
 
+n_large=100
+ns=(100)
+
 n_reps=1 # 50
 y_c_bandwidth=""
 #n_large=20000
@@ -302,12 +305,12 @@ for entry in "${adj_type_params[@]}"; do
                   (
                       # gets weights and pads rho_i and rho_ii
                       # temp_data/simu/step_2_rho_list...
-                      Rscript script_step2_part4_v5.R "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$j" >> "$outfile" 2>&1
+                      Rscript script_step2_part4_v5.R "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$j" "$y_c_bandwidth" >> "$outfile" 2>&1
                       
             
                       # estimation until GIC
                       # temp_data/simu/part2b...
-                      Rscript script_fit_mice_data_part2b_before_GIC.R "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$X_truth" "$j" "$eigen_setting" >> "$outfile" 2>&1
+                      Rscript script_fit_mice_data_part2b_before_GIC.R "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$X_truth" "$j" "$eigen_setting" "$y_c_bandwidth" >> "$outfile" 2>&1
                       
                       
                       # ---------------------------------------------------------
