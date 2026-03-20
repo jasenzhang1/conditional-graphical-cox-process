@@ -35,21 +35,21 @@ adj_type_params=(
                                                       # c3 < c1 / sqrt(3)
                                                       # c4 < c2 / sqrt(3)
   "hub_block_v2 0 1 4 4 3 0 1.2 0 0.9"                # for hub, we can allow [0, 1.2] and [0, 0.9]
-  "hub_block_j2 0 1 4 0.5 4 3 0 1.2 0 0.9"            # jump                  [0, 1.2] and [0, 0.9]
+  #"hub_block_j2 0 1 4 0.5 4 3 0 1.2 0 0.9"            # jump                  [0, 1.2] and [0, 0.9]
   #"hub_block_c2 0 1 4 2 2 0.7 0.7"
   #"hub_block_c0 0.5 4 2 2 0.7 0.7"
   
   
   
-  "complete_block_v2 0 1 4 4 3 0 1.2 0 0.9"             # for complete, c3 < c1/3, c4 < c2/3 [0, 1.2] and [0, 0.9]
-  "complete_block_j2 0 1 4 0.5 4 3 0 1.2 0 0.9"         # for jump                           [0, 1.2] and [0, 0.9]
+  #"complete_block_v2 0 1 4 4 3 0 1.2 0 0.9"             # for complete, c3 < c1/3, c4 < c2/3 [0, 1.2] and [0, 0.9]
+  #"complete_block_j2 0 1 4 0.5 4 3 0 1.2 0 0.9"         # for jump                           [0, 1.2] and [0, 0.9]
   #"complete_block_c0 0.5 4 2 2 0.7 0.7"
   #"complete_block_c2 0 1 4 2 2 0.7 0.7"
   
                                                          # c3 < c1 / 1.618
                                                          # c4 < c2 / 1.618
-  "flexible_block_banded_v2 0 1 4 4 3 0 1.2 0 0.9"       # for flexible, a bit more chill [0, 1.2] and [0, 0.9]   
-  "flexible_block_banded_j2 0 1 4 0.5 4 3 0 1.2 0 0.9"   # jump from                      [0, 1.2] and [0, 0.9]
+  #"flexible_block_banded_v2 0 1 4 4 3 0 1.2 0 0.9"       # for flexible, a bit more chill [0, 1.2] and [0, 0.9]   
+  #"flexible_block_banded_j2 0 1 4 0.5 4 3 0 1.2 0 0.9"   # jump from                      [0, 1.2] and [0, 0.9]
   #"flexible_block_banded_c2 0 1 4 2 2 0.7 0.7"
   #"flexible_block_banded_c0 0.5 4 2 2 0.7 0.7"  
   
