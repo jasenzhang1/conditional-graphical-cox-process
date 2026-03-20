@@ -35,21 +35,21 @@ adj_type_params=(
                                                       # c3 < c1 / sqrt(3)
                                                       # c4 < c2 / sqrt(3)
   "hub_block_v2 0 1 4 4 3 0 1.2 0 0.9"                # for hub, we can allow [0, 1.2] and [0, 0.9]
-  #"hub_block_j2 0 1 4 0.5 4 3 0 1.2 0 0.9"            # jump                  [0, 1.2] and [0, 0.9]
+  "hub_block_j2 0 1 4 0.5 4 3 0 1.2 0 0.9"            # jump                  [0, 1.2] and [0, 0.9]
   #"hub_block_c2 0 1 4 2 2 0.7 0.7"
   #"hub_block_c0 0.5 4 2 2 0.7 0.7"
   
   
   
-  #"complete_block_v2 0 1 4 4 3 0 1.2 0 0.9"             # for complete, c3 < c1/3, c4 < c2/3 [0, 1.2] and [0, 0.9]
-  #"complete_block_j2 0 1 4 0.5 4 3 0 1.2 0 0.9"         # for jump                           [0, 1.2] and [0, 0.9]
+  "complete_block_v2 0 1 4 4 3 0 1.2 0 0.9"             # for complete, c3 < c1/3, c4 < c2/3 [0, 1.2] and [0, 0.9]
+  "complete_block_j2 0 1 4 0.5 4 3 0 1.2 0 0.9"         # for jump                           [0, 1.2] and [0, 0.9]
   #"complete_block_c0 0.5 4 2 2 0.7 0.7"
   #"complete_block_c2 0 1 4 2 2 0.7 0.7"
   
                                                          # c3 < c1 / 1.618
                                                          # c4 < c2 / 1.618
-  #"flexible_block_banded_v2 0 1 4 4 3 0 1.2 0 0.9"       # for flexible, a bit more chill [0, 1.2] and [0, 0.9]   
-  #"flexible_block_banded_j2 0 1 4 0.5 4 3 0 1.2 0 0.9"   # jump from                      [0, 1.2] and [0, 0.9]
+  "flexible_block_banded_v2 0 1 4 4 3 0 1.2 0 0.9"       # for flexible, a bit more chill [0, 1.2] and [0, 0.9]   
+  "flexible_block_banded_j2 0 1 4 0.5 4 3 0 1.2 0 0.9"   # jump from                      [0, 1.2] and [0, 0.9]
   #"flexible_block_banded_c2 0 1 4 2 2 0.7 0.7"
   #"flexible_block_banded_c0 0.5 4 2 2 0.7 0.7"  
   
@@ -58,15 +58,12 @@ adj_type_params=(
 n_large=4000
 ns=(500 1000 2000 4000)
 
-n_large=100
-ns=(100)
-
 n_reps=1 # 50
 y_c_bandwidth=""
 #n_large=20000
 #ns=(100 250 500 1000 2500 5000 10000 20000)
 
-n_group=10
+n_group=20
 groups=$(( n_large / n_group ))
 
 method="CPGM"
