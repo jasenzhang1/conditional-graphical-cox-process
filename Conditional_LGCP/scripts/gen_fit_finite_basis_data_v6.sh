@@ -58,7 +58,7 @@ adj_type_params=(
 n_large=4000
 ns=(500 1000 2000 4000)
 
-n_reps=1 # 50
+n_reps=49 # 50
 y_c_bandwidth=""
 #n_large=20000
 #ns=(100 250 500 1000 2500 5000 10000 20000)

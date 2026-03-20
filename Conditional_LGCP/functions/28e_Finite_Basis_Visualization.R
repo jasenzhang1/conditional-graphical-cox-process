@@ -448,7 +448,9 @@ visualize_accuracy_heatmap_across_yc <- function(results_folder, truth_file, adj
   # ----------------------------------------------------------------------------
   # Plug the combined information into the heatmap function
   # This will now display the comparison of different n's against the truth
-  p <- result_heatmap_mismatch_x(step_12b_v4, 'truth', 1.2, 14, rm_diag = TRUE, zmid = 0, ordering_vec = c('n = 250', 'n = 500', 'n = 1000', 'n = 2000'))
+  
+  ordering_vec <- paste0('n = ', ns_sorted)
+  p <- result_heatmap_mismatch_x(step_12b_v4, 'truth', 1.2, 14, rm_diag = TRUE, zmid = 0, ordering_vec = ordering_vec)
   
   file_name <- paste0(adj_type, "_", mode, "_heatmap_combined_n.png")
   export_folder <- paste0(results_folder, '/export')
