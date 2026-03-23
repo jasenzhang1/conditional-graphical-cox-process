@@ -35,14 +35,14 @@ adj_type_params=(
                                                       # c3 < c1 / sqrt(3)
                                                       # c4 < c2 / sqrt(3)
   #"hub_block_v2 0 1 4 4 3 0 1.2 0 0.9"                # for hub, we can allow [0, 1.2] and [0, 0.9]
-  #"hub_block_j2 0 1 4 0.5 4 3 0 1.2 0 0.9"            # jump                  [0, 1.2] and [0, 0.9]
+  "hub_block_j2 0 1 4 0.5 4 3 0 1.2 0 0.9"            # jump                  [0, 1.2] and [0, 0.9]
   #"hub_block_c2 0 1 4 2 2 0.7 0.7"
   #"hub_block_c0 0.5 4 2 2 0.7 0.7"
   
   
   
-  #"complete_block_v2 0 1 4 4 3 0 1.2 0 0.9"             # for complete, c3 < c1/3, c4 < c2/3 [0, 1.2] and [0, 0.9]
-  "complete_block_j2 0 1 4 0.5 4 3 0 1.2 0 0.9"         # for jump                           [0, 1.2] and [0, 0.9]
+  "complete_block_v2 0 1 4 4 3 0 1.2 0 0.9"             # for complete, c3 < c1/3, c4 < c2/3 [0, 1.2] and [0, 0.9]
+  #"complete_block_j2 0 1 4 0.5 4 3 0 1.2 0 0.9"         # for jump                           [0, 1.2] and [0, 0.9]
   #"complete_block_c0 0.5 4 2 2 0.7 0.7"
   #"complete_block_c2 0 1 4 2 2 0.7 0.7"
   
@@ -59,7 +59,7 @@ n_large=4000
 ns=(500 1000 2000 4000)
 
 #n_reps=49 # 50
-rep_ids=($(seq 12 50))
+rep_ids=($(seq 11 50))
 n_reps=${#rep_ids[@]}
 
 y_c_bandwidth=""
@@ -71,7 +71,7 @@ groups=$(( n_large / n_group ))
 
 method="CPGM"
 model_type="simu"  # simu or mice
-max_jobs=60
+max_jobs=80
 min_events=10
 max_events=5000
 
