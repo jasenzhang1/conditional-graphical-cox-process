@@ -30,7 +30,7 @@ adj_params <- as.numeric(args[9:length(args)])
 # adj_type <- 'hub_block_v2'
 # adj_params <- c()
 
-rep_i <- 50
+rep_i <- 1
  
 data_folder <- paste0('simu_data/', adj_type, '_n_', n_large, '_rep_', rep_i) # simu_data/hub_block_v2_n_100_rep_1
 base_folder <- 'simu_results'
@@ -302,14 +302,13 @@ verts <- c(T, F, T, F, T, F)
 for(i in 1:length(adj_types)){
   results_folder <- paste0(base_folder, '/', adj_types[i], '/', method)
   
-  visualize_accuracy_CI_across_yc(results_folder, n_reps, adj_types[i], verts[i])
+  visualize_accuracy_CI_across_yc(results_folder, 'local', n_reps, adj_types[i], verts[i])
   print(adj_types[i])
 }
 
 
 # ------------------------------------------------------------------------------
-# 7) 28e) loess curves, with confidence band from replicates, wrt y_c, just local, stratified by n
-
+# 6b) 28e) just for one setting
 
 results_folder <- paste0(base_folder, '/', adj_type, '/', method)
 
@@ -324,14 +323,15 @@ visualize_accuracy_CI_across_yc(results_folder, 'local', n_reps, adj_type, verts
 
 
 # ------------------------------------------------------------------------------
-# 8) Accuracy plot across n, local only
+# 7) Accuracy plot across n, local only
 
 
+truth_rep <- 50
 
-for(adj_type in c('complete_block_v2', 'complete_block_j2', 'flexible_block_banded_v2', 'flexible_block_banded_j2')){
-  for(rep_i in c(50)){
+for(adj_type in c('hub_block_v2', 'hub_block_j2', 'complete_block_v2', 'complete_block_j2', 'flexible_block_banded_v2', 'flexible_block_banded_j2')){
+  for(rep_i in c(1)){
     results_folder <- paste0(base_folder, '/', adj_type, '/', method, '/rep', rep_i)
-    truth_file <- paste0('../../../project-biostat-chair/simu_data/', adj_type, '_n_', n_large, '_rep_', rep_i, '/', adj_type, '_n_', n_large, '_rep_', rep_i, '_truths.RData')
+    truth_file <- paste0('../../../project-biostat-chair/simu_data/', adj_type, '_n_', n_large, '_rep_', truth_rep, '/', adj_type, '_n_', n_large, '_rep_', truth_rep, '_truths.RData')
 
     visualize_accuracy_heatmap_across_yc(results_folder, truth_file, adj_type)
     print(rep_i)
