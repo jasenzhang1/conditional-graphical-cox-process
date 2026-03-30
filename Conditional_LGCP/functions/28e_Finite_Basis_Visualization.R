@@ -412,8 +412,8 @@ visualize_accuracy_heatmap_across_yc <- function(results_folder, truth_file, adj
       name_map[truth_orig_name] <- "truth"
     }
     
-    # Rename items of step_12b (the y queries) as "y = 0.2"
-    names(step_12b) <- paste0("y = ", names(step_12b))
+    # Rename items of step_12b (the y queries) as "Time: 0.2", and also "Time: 0.0" as opposed to "t = 0"
+    names(step_12b) <- paste0("Time: ", sprintf("%.1f", as.numeric(names(step_12b))))
     
     # Filter and Rename the model types inside each y-item
     step_12b_v2 <- lapply(step_12b, function(x) {
