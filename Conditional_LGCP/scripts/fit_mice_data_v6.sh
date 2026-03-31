@@ -29,7 +29,7 @@
 cd "$(dirname "$0")/.."   # go one level up (from /scripts to /)
 
 
-IDs=("WT1")
+IDs=("WT1" "WT2" "Tau1" "Tau2")
 movement=(0 0 1 1)
 VR=(0 1 0 1)
 
@@ -81,7 +81,7 @@ mkdir -p script_outputs/mice
 # -------------------------------------------------
 
 
-# Loop over all combinations of movement and VR
+# Loop over all mice
 for ID in "${IDs[@]}"; do
 
     # Loop over all combinations of movement and VR
