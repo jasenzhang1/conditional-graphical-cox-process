@@ -308,7 +308,24 @@ for(i in 1:length(adj_types)){
 
 
 # ------------------------------------------------------------------------------
-# 6b) 28e) just for one setting
+# 6b) loess curves but all 6 of them are in the same figure
+
+vert_dashed_line <- list(c(F, F, F),
+                         c(T, T, T))
+
+results_folders <- list(paste0(base_folder, '/', c('flexible_block_banded_v2', 'hub_block_v2', 'complete_block_v2'), '/', method),
+                        paste0(base_folder, '/', c('flexible_block_banded_j2', 'hub_block_j2', 'complete_block_j2'), '/', method))
+
+
+row_names <- c('Linear', 'Jump')
+col_names <- c('Banded', 'Hub', 'Complete')
+
+
+visualize_accuracy_CI_across_yc_faceted(results_folders, 'local', n_reps, row_names, col_names, vert_dashed_line, base_folder, fig_title = NULL)
+  
+
+# ------------------------------------------------------------------------------
+# 6c) 28e) just for one setting
 
 results_folder <- paste0(base_folder, '/', adj_type, '/', method)
 
@@ -337,6 +354,9 @@ for(adj_type in c('hub_block_v2', 'hub_block_j2', 'complete_block_v2', 'complete
     print(rep_i)
   }
 }
+
+
+
 
 
 

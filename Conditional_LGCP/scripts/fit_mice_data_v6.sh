@@ -29,7 +29,7 @@
 cd "$(dirname "$0")/.."   # go one level up (from /scripts to /)
 
 
-IDs=("WT1" "WT2" "Tau1" "Tau2")
+IDs=("WT3" "Tau3")
 movement=(0 0 1 1)
 VR=(0 1 0 1)
 
@@ -43,7 +43,7 @@ time_scale=10
 m=30
 min_events=5
 max_processes=10000
-region="HIP"   # "HIP", "EHC", or "HIP_EHC"
+region="HIP_EHC"   # "HIP", "EHC", or "HIP_EHC"
 n_weeks=50
 eigen_setting="only_joint"  #only_joint, trig_and_joint, trig_simple
 global_thresh_method="neither" # both, joint, tau_c, or neither
