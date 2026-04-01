@@ -291,6 +291,158 @@ visualize_accuracy_CI_across_yc <- function(results_folder, mode, n_reps, adj_ty
   message("Visualization complete for mode: ", mode)
 }
 
+visualize_accuracy_CI_across_yc_faceted <- function(results_folder, mode, n_reps, row_names, col_names, vert_dashed_line, output_folder, fig_title = NULL){
+  
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: Visualize loess accuracy of all 6 settings in one figure!!!
+  #
+  # 
+  # inputs:
+  #
+  # - results_folder    (list)      named list of chr vectors: list(Linear=c(...), Jump=c(...))
+  # - mode              (string)    'method', 'local', 'hybrid', 'global'
+  # - n_reps            (integer)   how many reps?
+  # - row_names         e.g. c("Linear", "Jump")
+  # - col_names         e.g. c("Banded", "Hub", "Complete")
+  # - vert_dashed_line  (list)      nmaed list of logical vectors: add a vertical dashed line at x = 0.5?
+  # - output_folder      where to save the combined figure
+  # - fig_title = NULL   optional overall title
+  # 
+  # 
+  # ----------------------------------------------------------------------------
+
+  
+  results_list <- list()
+  
+  # --------------------------------------------------------------------------
+  # 1) Data Extraction — iterate over all 6 (row x col) combinations
+  # --------------------------------------------------------------------------
+  for (row_idx in seq_along(row_names)) {
+    row_label <- row_names[row_idx]
+    
+    for (col_idx in seq_along(col_names)) {
+      col_label   <- col_names[col_idx]
+      folder      <- results_folder[[row_idx]][col_idx]
+      vdl         <- vert_dashed_line[[row_idx]][col_idx]
+      
+      for (i in 1:n_reps) {
+        current_rep_path <- file.path(folder, paste0("rep", i))
+        if (!dir.exists(current_rep_path)) next
+        
+        files <- list.files(current_rep_path, pattern = "\\.RData$", full.names = TRUE)
+        
+        for (f in seq_along(files)) {
+          obj_name <- load(files[f])
+          res      <- get(obj_name)
+          s12      <- res$step_12
+          
+          n_val <- as.numeric(sub(".*_n_(\\d+)_rep_.*", "\\1", files[f]))
+          
+          for (y_query in names(s12)) {
+            current_y_item <- s12[[y_query]]
+            suffix_items   <- grep("^roc_KL_", names(current_y_item), value = TRUE)
+            
+            for (item_name in suffix_items) {
+              suffix  <- sub("roc_KL_", "", item_name)
+              metrics <- current_y_item[[item_name]]
+              
+              results_list[[length(results_list) + 1]] <- data.frame(
+                n         = n_val,
+                y_yc      = as.numeric(y_query),
+                suffix    = suffix,
+                rep       = i,
+                accuracy  = metrics$accuracy,
+                row_label = row_label,
+                col_label = col_label,
+                vdl       = vdl,          # carry per-panel flag through
+                stringsAsFactors = FALSE
+              )
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  full_df <- bind_rows(results_list) %>%
+    filter(suffix != "est_eig1") %>%
+    mutate(
+      suffix    = recode(suffix,
+                         "GIC_local_est_eig1"  = "Local",
+                         "GIC_hybrid_est_eig1" = "Hybrid",
+                         "GIC_global_est_eig1" = "Global"),
+      # Enforce display order for facet axes
+      row_label = factor(row_label, levels = row_names),
+      col_label = factor(col_label, levels = col_names)
+    )
+  
+  full_df <- full_df %>%
+    mutate(xintercept = ifelse(vdl, 0.5, NA_real_))
+  
+
+  
+  # --------------------------------------------------------------------------
+  # 3) Plotting logic based on MODE
+  # --------------------------------------------------------------------------
+  if (mode == "method") {
+    p <- ggplot(full_df, aes(x = y_yc, y = accuracy, color = suffix, fill = suffix)) +
+      geom_smooth(method = "loess", alpha = 0.3, size = 1.2, level = 0.95, se = TRUE)
+    
+  } else {
+    target_suffix <- tools::toTitleCase(mode)
+    
+    plot_data <- full_df %>%
+      filter(suffix == target_suffix) %>%
+      mutate(n_factor = as.factor(n))
+    
+    p <- ggplot(plot_data, aes(x = y_yc, y = accuracy, color = n_factor, fill = n_factor)) +
+      geom_smooth(method = "loess", alpha = 0.2, size = 1.2, level = 0.95, se = TRUE) +
+      labs(color = "Sample Size (n)", fill = "Sample Size (n)")
+  }
+  
+  # --------------------------------------------------------------------------
+  # 4) Add shared layers, facet, and theme
+  # --------------------------------------------------------------------------
+  p <- p +
+    geom_vline(
+      aes(xintercept = xintercept),
+      linetype  = "dashed",
+      color     = "gray60",
+      size      = 0.8,
+      na.rm     = TRUE
+    ) +
+    facet_grid(
+      rows = vars(row_label),
+      cols = vars(col_label)
+    ) +
+    labs(
+      title = fig_title,
+      x     = "Time",
+      y     = "Accuracy"
+    )
+  
+  p <- apply_beamer_theme_faceted(p) 
+  
+
+  
+  # --------------------------------------------------------------------------
+  # 5) Save
+  # --------------------------------------------------------------------------
+  file_name <- paste0(mode, "_accuracy_faceted_2x3.png")
+  ggsave(
+    file.path(output_folder, file_name),
+    plot   = p,
+    width  = 10,   # wider to accommodate 3 columns
+    height = 7,    # taller to accommodate 2 rows
+    dpi    = 300
+  )
+  
+  message("Faceted visualization complete for mode: ", mode)
+}
+
+
 # Helper function to maintain consistent Beamer aesthetics
 apply_beamer_theme <- function(p, vert_dashed_line) {
   p <- p +
@@ -314,13 +466,37 @@ apply_beamer_theme <- function(p, vert_dashed_line) {
   return(p)
 }
 
-
+apply_beamer_theme_faceted <- function(p, vert_dashed_line = FALSE) {
+  p <- p +
+    scale_y_continuous(breaks = seq(0.6, 1.0, 0.2)) +
+    scale_x_continuous(breaks = c(0, 0.5, 1), labels = c("0", "0.5", "1")) + 
+    theme_classic() +
+    theme(
+      panel.border         = element_rect(color = "black", fill = NA, size = 0.8),
+      axis.line            = element_blank(),
+      legend.position      = "bottom",
+      legend.justification = "center",
+      legend.title         = element_text(size = 14, face = "bold"),
+      legend.background    = element_rect(fill = alpha("white", 0.5), color = NA),
+      legend.margin        = margin(t = 0),
+      panel.grid.major     = element_blank(),
+      panel.grid.minor     = element_blank(),
+      text                 = element_text(size = 18)
+    ) +
+    coord_cartesian(xlim = c(-0.02, 1.02), ylim = c(0.58, 1.05), expand = FALSE)
+  
+  if (vert_dashed_line) {
+    p <- p + geom_vline(xintercept = 0.5, linetype = "dashed", color = "gray60", alpha = 0.5)
+  }
+  
+  return(p)
+}
 
 visualize_accuracy_heatmap_across_yc <- function(results_folder, truth_file, adj_type, mode = 'local', eigen_setting = "trig_simple") {
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: Heatmaps with dots to visualize accuracy for a single rep at different sample sizes. Allow adding a vertically dashed line for the jump cases. Select one mode only.
+  # GOAL: Heatmaps with dots to visualize accuracy for a single rep at different sample sizes. Select one mode only.
   #
   # 
   # inputs:
