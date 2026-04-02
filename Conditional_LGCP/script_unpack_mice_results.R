@@ -16,14 +16,16 @@ method         <- args[4]                   # method <- 'CPGM'
 movement       <- as.numeric(args[5])       # movement <- 0
 VR             <- as.numeric(args[6])       # VR <- 0
 eigen_setting  <- args[7]                   # only_joint, trig_and_joint, trig_simple
+region         <- args[8]                   # 'EHC', 'HIP', 'EHC_HIP'
 
-# ID <- 'Tau3'
+# ID <- 'WT1'
 # y_c_structure <- 'week_only'
 # time_scale <- 10
 # method <- 'CPGM'
-# movement <- 0
-# VR <- 0
+# movement <- 1
+# VR <- 1
 # eigen_setting <- 'only_joint'
+# region <- 'HIP'
 
 
 discrete_level <- paste0('m', movement, 'vr', VR)
@@ -37,7 +39,7 @@ base_folder <- 'mice_results'
 
 base_folder <- '../../../project-biostat-chair/mice_results'
 
-results_folder <- paste0(base_folder, '/', y_c_structure, '/', method)
+results_folder <- paste0(base_folder, '/', y_c_structure, '/', method, '_', region)
 
 
 results_folder_2 <- paste0(results_folder, '/export')
@@ -166,7 +168,8 @@ for(k in 1:length(reg_graphs)){
 
 
 discrete_levels <- paste0('m', c(0, 0, 1, 1), 'vr', c(0, 1, 0, 1))
-
+discrete_levels <- paste0('m', c(0, 1, 1), 'vr', c(1, 0, 1))
+discrete_levels <- paste0('m', c(0, 1, 1), 'vr', c(0, 0, 1))
 
 png_name <- paste0(results_folder_2, '/', ID, '_t', time_scale, '_edge_sets.png')
 

@@ -443,7 +443,7 @@ for ID in "${IDs[@]}"; do
         
         rm -rf "$MICE_FOLDER"
         
-        echo "Cleanup complete for $ID, $discrete_level, t=$time_scale." >> "$outfile"
+        echo "Cleanup complete for $ID, m${mov}vr${vr}, t=$time_scale." >> "$outfile"
         
         # ============================================================
         # END TIMER
@@ -463,6 +463,6 @@ for ID in "${IDs[@]}"; do
     wait
     
 done  # mouse loop
-wait
+
 
 
