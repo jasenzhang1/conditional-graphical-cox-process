@@ -29,7 +29,7 @@
 cd "$(dirname "$0")/.."   # go one level up (from /scripts to /)
 
 
-IDs=("WT1" "WT2" "Tau1" "Tau2")
+IDs=("WT3" "Tau3" "WT1" "WT2" "Tau1" "Tau2")
 movement=(0 0 1 1)
 VR=(0 1 0 1)
 
@@ -38,12 +38,16 @@ method="CPGM"
 model_type="mice"  # simu or mice
 max_jobs=60
 
-y_c_bandwidth=0.001 # usually its 0.3, exp(-gamma * y_c_diff^2)
-time_scale=10 
+y_c_bandwidth=0.0001 # usually its 0.3, exp(-gamma * y_c_diff^2)
 m=30
-min_events=5
+
+time_scale=10 
+min_freq=0.5
+
+min_events=$((time_scale * min_freq))
 max_processes=10000
-region="EHC"   # "HIP", "EHC", or "HIP_EHC"
+
+region="HIP"   # "HIP", "EHC", or "HIP_EHC"
 n_weeks=50
 eigen_setting="only_joint"  #only_joint, trig_and_joint, trig_simple
 global_thresh_method="neither" # both, joint, tau_c, or neither
