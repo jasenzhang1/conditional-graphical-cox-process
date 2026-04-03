@@ -29,7 +29,7 @@
 cd "$(dirname "$0")/.."   # go one level up (from /scripts to /)
 
 
-IDs=("WT3" "Tau3")
+IDs=("WT1" "WT2" "Tau1" "Tau2")
 movement=(0 0 1 1)
 VR=(0 1 0 1)
 
