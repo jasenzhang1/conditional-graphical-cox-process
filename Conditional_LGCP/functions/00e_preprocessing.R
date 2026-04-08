@@ -323,7 +323,7 @@ convert_data_for_storage <- function(LGCP_data, df_brain_region, ID, y_c_structu
       
       if (length(cliques) > 0) {
         # keep the largest clique that retains the most data (subjects x processes)
-        clique_features <- lapply(cliques, function(cl) as.numeric(names(V(g)[cl])))
+        clique_features <- lapply(cliques, function(cl) as.numeric(V(g)$name[cl]))
         best_idx <- which.max(sapply(clique_features, function(feats) nrow(dt[feature_id %in% feats])))
         dt <- dt[feature_id %in% clique_features[[best_idx]]]
       } else {
