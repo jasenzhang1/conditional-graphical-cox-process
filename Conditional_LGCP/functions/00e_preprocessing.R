@@ -294,27 +294,15 @@ convert_data_for_storage <- function(LGCP_data, df_brain_region, ID, y_c_structu
   
   while (!converged) {
     
-    print(paste0('(1/6) Before, length of table: ', nrow(dt)))
-    print(paste0('(2/6) Before, num subjects: ', length(unique(dt$subject_num))))
-    print(paste0('(3/6) Before, num processes: ', length(unique(dt$feature_id))))
-    print(paste0('min events class: ', class(min_events)))
-    print(paste0('min events: ', min_events))
-    
     n_start <- nrow(dt)
     
     # A) Constraint: Minimum events per (Process x Subject)
     dt <- dt[, n_spikes := .N, by = .(feature_id, subject_num)][n_spikes >= min_events]
     dt[, n_spikes := NULL]
     
-    print(paste0('(1/6) During, length of table: ', nrow(dt)))
-    print(paste0('(2/6) During, num subjects: ', length(unique(dt$subject_num))))
-    print(paste0('(3/6) During, num processes: ', length(unique(dt$feature_id))))
-    
     # B) Constraint: Subject must have events on at least one process
     # (Automatically handled by data.table row removal, but we ensure subject pool is fresh)
     current_subjects <- unique(dt$subject_num)
-    
-    print(paste0('(3/6) During, current subjects: ', current_subjects))
     
     # C) Constraint: Pairwise Connectivity (Maximum Clique)
     # Build adjacency: Processes connected by shared subjects
@@ -328,19 +316,7 @@ convert_data_for_storage <- function(LGCP_data, df_brain_region, ID, y_c_structu
       # Find the largest subset of processes that are all mutually connected
       g <- graph_from_adjacency_matrix(adj_matrix, mode = "undirected")
       
-      print(paste0("Adj matrix sum: ", sum(adj_matrix)))
-      print(paste0("Num vertices: ", vcount(g)))
-      print(paste0("Num edges: ", ecount(g)))
-      print(paste0("Num cliques found: ", length(largest_cliques(g))))
-      print(paste0("Is connected: ", is_connected(g)))
-      
-      print(g)
-      
       cliques <- largest_cliques(g)
-      
-      print(cliques[[1]])
-      print(V(g)$name)
-      print(class(cliques[[1]]))
       
       if (length(cliques) > 0) {
         # keep the largest clique that retains the most data (subjects x processes)
