@@ -321,6 +321,10 @@ convert_data_for_storage <- function(LGCP_data, df_brain_region, ID, y_c_structu
       g <- graph_from_adjacency_matrix(adj_matrix, mode = "undirected")
       cliques <- largest_cliques(g)
       
+      print(cliques[[1]])
+      print(V(g)$name)
+      print(class(cliques[[1]]))
+      
       if (length(cliques) > 0) {
         # keep the largest clique that retains the most data (subjects x processes)
         clique_features <- lapply(cliques, function(cl) as.numeric(V(g)$name[cl]))
