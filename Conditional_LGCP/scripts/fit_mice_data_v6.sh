@@ -48,7 +48,7 @@ m=30
 time_scale=10 
 min_freq=0.5
 
-min_events=$(echo "$time_scale * $min_freq" | bc)
+min_events=$(echo "$time_scale * $min_freq" | bc | xargs printf "%.0f")
 max_processes=10000
 
 region="HIP_EHC"   # "HIP", "EHC", or "HIP_EHC"
