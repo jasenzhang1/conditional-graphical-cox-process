@@ -269,15 +269,20 @@ convert_data_for_storage <- function(LGCP_data, df_brain_region, ID, y_c_structu
     relevant_neurons <- df_brain_region$Neuron_Num[df_brain_region$ID2 == ID]
   }
   
+  print(paste0('Num relevant neurons: ', length(relevant_neurons)))
+  
   # filter by max_processes
   n_temp <- min(length(relevant_neurons), max_processes)
   relevant_neurons <- sort(relevant_neurons)[1:n_temp]
   
+  print(paste0('Neurons after max_processes: ', length(relevant_neurons)))
   
   # Get valid subject pool based on Movement and VR
   valid_subjects <- LGCP_data[[2]] %>% 
     filter(movement == movement_num, VR == vr_num) %>% 
     pull(subject_num)
+  
+  print(paste0('Num subjects: ', length(valid_subjects)))
   
   # Initial subset of the main data
   dt <- as.data.table(LGCP_data[[1]])
@@ -288,6 +293,11 @@ convert_data_for_storage <- function(LGCP_data, df_brain_region, ID, y_c_structu
   converged <- FALSE
   
   while (!converged) {
+    
+    print(paste0('(1/3) Length of table: ', nrow(dt)))
+    print(paste0('(2/3) Num subjects: ', length(unique(dt$subject_num))))
+    print(paste0('(3/3) Num processes: ', length(unique(dt$feature_id))))
+    
     n_start <- nrow(dt)
     
     # A) Constraint: Minimum events per (Process x Subject)
