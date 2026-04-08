@@ -51,7 +51,7 @@ min_freq=0.5
 min_events=$((time_scale * min_freq))
 max_processes=10000
 
-region="HIP"   # "HIP", "EHC", or "HIP_EHC"
+region="EHC"   # "HIP", "EHC", or "HIP_EHC"
 n_weeks=50
 eigen_setting="only_joint"  #only_joint, trig_and_joint, trig_simple
 global_thresh_method="neither" # both, joint, tau_c, or neither
@@ -101,7 +101,6 @@ for ID in "${IDs[@]}"; do
         outfile="script_outputs/mice/${ID}_m${mov}vr${vr}_t${time_scale}.log"   #Tau1_m0vr0_t10.log
         rm -f "$outfile"   # delete old log if it exists
         
-        
         echo "===================================================" | tee -a "$outfile"
         echo "Starting full pipeline for mouse=$ID, region=$region, movement=$mov, VR=$vr, time_scale=$time_scale" | tee -a "$outfile"
         echo "Logging to: $outfile" | tee -a "$outfile"
@@ -116,6 +115,8 @@ for ID in "${IDs[@]}"; do
         # -------------------
         
         echo "[STEP 1] Preprocess dataset..." | tee -a "$outfile"
+        
+        rm -rf "mice_data/$y_c_structure"   # delete old datasets
         
         wait_for_slot
         Rscript script_preprocess_mice_data.R "$ID" "$y_c_structure" "$time_scale" "$method" "$m" "$mov" "$vr" "$region" "$min_events" "$max_processes" "$n_weeks" >> "$outfile" 2>&1 
