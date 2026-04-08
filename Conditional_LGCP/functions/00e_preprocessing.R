@@ -320,6 +320,12 @@ convert_data_for_storage <- function(LGCP_data, df_brain_region, ID, y_c_structu
       # Find the largest subset of processes that are all mutually connected
       g <- graph_from_adjacency_matrix(adj_matrix, mode = "undirected")
       
+      print(paste0("Adj matrix sum: ", sum(adj_matrix)))
+      print(paste0("Num vertices: ", vcount(g)))
+      print(paste0("Num edges: ", ecount(g)))
+      print(paste0("Num cliques found: ", length(largest_cliques(g))))
+      print(paste0("Is connected: ", is_connected(g)))
+      
       print(g)
       
       cliques <- largest_cliques(g)
