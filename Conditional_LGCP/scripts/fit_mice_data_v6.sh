@@ -51,7 +51,7 @@ min_freq=0.5
 min_events=$((time_scale * min_freq))
 max_processes=10000
 
-region="HIP"   # "HIP", "EHC", or "HIP_EHC"
+region="HIP_EHC"   # "HIP", "EHC", or "HIP_EHC"
 n_weeks=50
 eigen_setting="only_joint"  #only_joint, trig_and_joint, trig_simple
 global_thresh_method="neither" # both, joint, tau_c, or neither

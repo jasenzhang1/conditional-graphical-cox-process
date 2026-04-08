@@ -863,6 +863,8 @@ visualize_adj_grid <- function(sparse_data_list, all_weeks, absent_week_list, ou
   #
   # ----------------------------------------------------------------------------
   
+  discrete_strata <- names(sparse_data_list)
+  
   plot_data_list <- list()
   row_names <- names(sparse_data_list)
   
@@ -903,6 +905,40 @@ visualize_adj_grid <- function(sparse_data_list, all_weeks, absent_week_list, ou
   }
   
   plot_data <- do.call(rbind, plot_data_list)
+  
+  # Guard: if no edges exist at all across all strata
+  if (is.null(plot_data)) {
+    plot_data <- data.frame(
+      Node_Row = NA,
+      Node_Col = NA,
+      Row_ID   = discrete_strata,
+      Col_ID   = all_weeks[1]
+    )
+    if (output %in% c("P_HS", "C_HS")) plot_data$Value <- NA
+  }
+  
+  has_edges <- any(!is.na(plot_data$Node_Row))
+  
+  # After building plot_data and before the plot, pad missing strata
+  all_strata_in_data <- unique(as.character(plot_data$Row_ID))
+  missing_strata <- setdiff(discrete_strata, all_strata_in_data)
+  
+  if (length(missing_strata) > 0) {
+    dummy_rows <- data.frame(
+      Node_Row = NA,
+      Node_Col = NA,
+      Row_ID   = missing_strata,
+      Col_ID   = all_weeks[1]   # arbitrary week, just needs a valid level
+    )
+    # Add Value column if weighted
+    if (output %in% c("P_HS", "C_HS")) dummy_rows$Value <- NA
+    
+    plot_data <- rbind(plot_data, dummy_rows)
+  }
+  
+  # Re-apply factor with correct levels after padding
+  plot_data$Row_ID <- factor(plot_data$Row_ID, levels = discrete_strata)
+  plot_data$Col_ID <- factor(plot_data$Col_ID, levels = all_weeks)
   
   # 2. Create the Gray-out Data
   bg_gray_list <- list()
@@ -956,7 +992,7 @@ visualize_adj_grid <- function(sparse_data_list, all_weeks, absent_week_list, ou
   # 4. Final Formatting
   g <- g + 
     facet_grid(Row_ID ~ Col_ID, drop = FALSE) + 
-    coord_fixed() +
+    { if (has_edges) coord_fixed() else coord_cartesian() } + 
     theme_minimal(base_size = 15) + 
     theme(
       axis.text = element_blank(),
@@ -1051,6 +1087,9 @@ visualize_discrete_comparison <- function(results_folder, ID, time_scale, discre
           
           # Store for later binding
           sparse_data_list_2[[as.character(current_week)]] <- df_coords
+        } else{
+          sparse_data_list_2[[as.character(current_week)]] <- data.frame(Node_Row = integer(0), 
+                                                                         Node_Col = integer(0))
         }
       }
     } else if(output == 'P_HS'){

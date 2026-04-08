@@ -291,43 +291,42 @@ visualize_accuracy_CI_across_yc <- function(results_folder, mode, n_reps, adj_ty
   message("Visualization complete for mode: ", mode)
 }
 
-visualize_accuracy_CI_across_yc_faceted <- function(results_folder, mode, n_reps, row_names, col_names, vert_dashed_line, output_folder, fig_title = NULL){
-  
+visualize_retrieve_metrics <- function(base_folder, results_folder, metrics, n_reps, row_names, col_names) {
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: Visualize loess accuracy of all 6 settings in one figure!!!
+  # GOAL: Extract all metrics from step_12 across all settings and reps in preparation for loess
   #
-  # 
   # inputs:
   #
+  # - base_folder       (string)    where to store the result
   # - results_folder    (list)      named list of chr vectors: list(Linear=c(...), Jump=c(...))
-  # - mode              (string)    'method', 'local', 'hybrid', 'global'
+  # - metrics           (vector)    e.g. c('accuracy', 'sensitivity', 'specificity', 'ppv', 'npv', 'f1_score')
   # - n_reps            (integer)   how many reps?
   # - row_names         e.g. c("Linear", "Jump")
   # - col_names         e.g. c("Banded", "Hub", "Complete")
-  # - vert_dashed_line  (list)      nmaed list of logical vectors: add a vertical dashed line at x = 0.5?
-  # - output_folder      where to save the combined figure
-  # - fig_title = NULL   optional overall title
-  # 
-  # 
+  # - vert_dashed_line  (list)      named list of logical vectors
+  #
+  # output:
+  # - a single long data.frame with columns:
+  #   n, y_yc, suffix, rep, row_label, col_label, vdl, xintercept, + one col per metric
+  #
   # ----------------------------------------------------------------------------
-
   
   results_list <- list()
   
-  # --------------------------------------------------------------------------
-  # 1) Data Extraction — iterate over all 6 (row x col) combinations
-  # --------------------------------------------------------------------------
   for (row_idx in seq_along(row_names)) {
     row_label <- row_names[row_idx]
     
     for (col_idx in seq_along(col_names)) {
-      col_label   <- col_names[col_idx]
-      folder      <- results_folder[[row_idx]][col_idx]
-      vdl         <- vert_dashed_line[[row_idx]][col_idx]
+      col_label <- col_names[col_idx]
+      folder    <- results_folder[[row_idx]][col_idx]
+      vdl       <- vert_dashed_line[[row_idx]][col_idx]
+      
+      print(paste0('Row Name: ', row_names[row_idx], ', Col Name: ', col_names[col_idx]))
       
       for (i in 1:n_reps) {
+        print(i)
         current_rep_path <- file.path(folder, paste0("rep", i))
         if (!dir.exists(current_rep_path)) next
         
@@ -346,19 +345,29 @@ visualize_accuracy_CI_across_yc_faceted <- function(results_folder, mode, n_reps
             
             for (item_name in suffix_items) {
               suffix  <- sub("roc_KL_", "", item_name)
-              metrics <- current_y_item[[item_name]]
+              met_obj <- current_y_item[[item_name]]
               
-              results_list[[length(results_list) + 1]] <- data.frame(
+              # Build base row
+              base_df <- data.frame(
                 n         = n_val,
                 y_yc      = as.numeric(y_query),
                 suffix    = suffix,
                 rep       = i,
-                accuracy  = metrics$accuracy,
                 row_label = row_label,
                 col_label = col_label,
-                vdl       = vdl,          # carry per-panel flag through
+                vdl       = vdl,
                 stringsAsFactors = FALSE
               )
+              
+              # Append each requested metric as its own column
+              metric_df <- as.data.frame(
+                setNames(
+                  lapply(metrics, function(m) met_obj[[m]]),
+                  metrics
+                )
+              )
+              
+              results_list[[length(results_list) + 1]] <- cbind(base_df, metric_df)
             }
           }
         }
@@ -373,13 +382,38 @@ visualize_accuracy_CI_across_yc_faceted <- function(results_folder, mode, n_reps
                          "GIC_local_est_eig1"  = "Local",
                          "GIC_hybrid_est_eig1" = "Hybrid",
                          "GIC_global_est_eig1" = "Global"),
-      # Enforce display order for facet axes
       row_label = factor(row_label, levels = row_names),
-      col_label = factor(col_label, levels = col_names)
+      col_label = factor(col_label, levels = col_names),
+      xintercept = ifelse(vdl, 0.5, NA_real_)
     )
   
-  full_df <- full_df %>%
-    mutate(xintercept = ifelse(vdl, 0.5, NA_real_))
+  # save 
+
+  save(full_df, file = file.path(output_folder, "full_evaluation_metrics.RData"))
+  
+  return(NULL)
+}
+
+visualize_metric_CI_across_yc_faceted <- function(metric, metric_title, mode, output_folder, fig_title = NULL){
+  
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: Visualize loess accuracy of all 6 settings in one figure!!!
+  #
+  # 
+  # inputs:
+  #
+  # - metric            (string)    'accuracy', 'sensitivity', 'specificity', 'ppv', 'npv', 'f1_score'
+  # - metric_title      (string)    y-axis name
+  # - mode              (string)    'method', 'local', 'hybrid', 'global'
+  # - output_folder      where to save the combined figure
+  # - fig_title = NULL   optional overall title
+  # 
+  # 
+  # ----------------------------------------------------------------------------
+
+  load(file.path(output_folder, "full_evaluation_metrics.RData"))
   
 
   
@@ -387,7 +421,7 @@ visualize_accuracy_CI_across_yc_faceted <- function(results_folder, mode, n_reps
   # 3) Plotting logic based on MODE
   # --------------------------------------------------------------------------
   if (mode == "method") {
-    p <- ggplot(full_df, aes(x = y_yc, y = accuracy, color = suffix, fill = suffix)) +
+    p <- ggplot(full_df, aes(x = y_yc, y = .data[[metric]], color = suffix, fill = suffix)) +
       geom_smooth(method = "loess", alpha = 0.3, size = 1.2, level = 0.95, se = TRUE)
     
   } else {
@@ -397,7 +431,7 @@ visualize_accuracy_CI_across_yc_faceted <- function(results_folder, mode, n_reps
       filter(suffix == target_suffix) %>%
       mutate(n_factor = as.factor(n))
     
-    p <- ggplot(plot_data, aes(x = y_yc, y = accuracy, color = n_factor, fill = n_factor)) +
+    p <- ggplot(plot_data, aes(x = y_yc, y = .data[[metric]], color = n_factor, fill = n_factor)) +
       geom_smooth(method = "loess", alpha = 0.2, size = 1.2, level = 0.95, se = TRUE) +
       labs(color = "Sample Size (n)", fill = "Sample Size (n)")
   }
@@ -420,7 +454,7 @@ visualize_accuracy_CI_across_yc_faceted <- function(results_folder, mode, n_reps
     labs(
       title = fig_title,
       x     = "Time",
-      y     = "Accuracy"
+      y     = metric_title
     )
   
   p <- apply_beamer_theme_faceted(p) 
@@ -430,7 +464,7 @@ visualize_accuracy_CI_across_yc_faceted <- function(results_folder, mode, n_reps
   # --------------------------------------------------------------------------
   # 5) Save
   # --------------------------------------------------------------------------
-  file_name <- paste0(mode, "_accuracy_faceted_2x3.png")
+  file_name <- paste0(mode, "_", metric, "_faceted_2x3.png")
   ggsave(
     file.path(output_folder, file_name),
     plot   = p,
@@ -441,6 +475,8 @@ visualize_accuracy_CI_across_yc_faceted <- function(results_folder, mode, n_reps
   
   message("Faceted visualization complete for mode: ", mode)
 }
+
+
 
 
 # Helper function to maintain consistent Beamer aesthetics
@@ -642,5 +678,133 @@ visualize_accuracy_heatmap_across_yc <- function(results_folder, truth_file, adj
   dev.off()
   
   message("Saved aggregated heatmap to: ", full_path)
+  
+}
+
+
+# table 1 in paper, summarizing simulation performance metrics
+
+summarize_metrics_table <- function(results_folder, settings, mode, ns, n_reps, output_folder, fig_title = NULL){
+  
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: Visualize loess accuracy of all 6 settings in one figure!!!
+  #
+  # 
+  # inputs:
+  #
+  # - results_folder    (vector)    vector of results_folder names
+  # - settings          (vector)    vector of setting names that correspond with the folders
+  # - mode              (string)    'method', 'local', 'hybrid', 'global'
+  # - ns                (vector)    simulation sample sizes, will be the subcategory for each setting
+  # - n_reps            (integer)   how many reps?
+  # - output_folder      where to save the combined figure
+  # - fig_title = NULL   optional overall title
+  # 
+  # 
+  # ----------------------------------------------------------------------------
+  
+  suffix_target <- "roc_KL_GIC_local_est_eig1"
+  metric_names  <- c("accuracy", "sensitivity", "specificity", "PPV", "NPV", "F1")
+  
+  results_list <- list()
+  
+  # --------------------------------------------------------------------------
+  # 1) Data extraction
+  # --------------------------------------------------------------------------
+  for (s_idx in seq_along(settings)) {
+    setting_label <- settings[s_idx]
+    folder        <- results_folder[s_idx]
+    
+    for (i in 1:n_reps) {
+      current_rep_path <- file.path(folder, paste0("rep", i))
+      if (!dir.exists(current_rep_path)) next
+      
+      files <- list.files(current_rep_path, pattern = "\\.RData$", full.names = TRUE)
+      
+      for (f in seq_along(files)) {
+        obj_name <- load(files[f])
+        res      <- get(obj_name)
+        s12      <- res$step_12
+        
+        n_val <- as.numeric(sub(".*_n_(\\d+)_rep_.*", "\\1", files[f]))
+        if (!n_val %in% ns) next
+        
+        for (y_query in names(s12)) {
+          current_y_item <- s12[[y_query]]
+          
+          if (!suffix_target %in% names(current_y_item)) next
+          metrics <- current_y_item[[suffix_target]]
+          
+          results_list[[length(results_list) + 1]] <- data.frame(
+            setting     = setting_label,
+            n           = n_val,
+            rep         = i,
+            time        = as.numeric(y_query),   # read directly from sublist name
+            accuracy    = metrics$accuracy,
+            sensitivity = metrics$sensitivity,
+            specificity = metrics$specificity,
+            PPV         = metrics$PPV,
+            NPV         = metrics$NPV,
+            F1          = metrics$F1,
+            stringsAsFactors = FALSE
+          )
+        }
+      }
+    }
+  }
+  
+  full_df <- bind_rows(results_list) %>%
+    mutate(
+      setting = factor(setting, levels = settings),
+      n       = factor(n,       levels = ns)
+    )
+  
+  # --------------------------------------------------------------------------
+  # 2) Discover time points from data (preserves whatever grid is in the files)
+  # --------------------------------------------------------------------------
+  time_points <- sort(unique(full_df$time))
+  time_cols   <- paste0("time: ", time_points)
+  
+  # --------------------------------------------------------------------------
+  # 3) Helper: "0.xxx (0.yyy)" — mean (sd)
+  # --------------------------------------------------------------------------
+  fmt_mean_sd <- function(x) {
+    sprintf("%.3f (%.3f)", mean(x, na.rm = TRUE), sd(x, na.rm = TRUE))
+  }
+  
+  # --------------------------------------------------------------------------
+  # 4) Build and save one table per metric
+  # --------------------------------------------------------------------------
+  dir.create(output_folder, showWarnings = FALSE, recursive = TRUE)
+  
+  tables <- list()
+  
+  for (metric in metric_names) {
+    
+    wide_df <- full_df %>%
+      group_by(setting, n, time) %>%
+      summarise(value = fmt_mean_sd(.data[[metric]]), .groups = "drop") %>%
+      mutate(time = paste0("time: ", time)) %>%
+      pivot_wider(
+        names_from  = time,
+        values_from = value
+      ) %>%
+      arrange(setting, n) %>%
+      rename(Setting = setting, N = n) %>%
+      select(Setting, N, any_of(time_cols))   # enforce column order
+    
+    tables[[metric]] <- wide_df
+    
+    file_prefix <- if (!is.null(fig_title)) paste0(fig_title, "_") else ""
+    file_name   <- paste0(file_prefix, metric, ".csv")
+    write.csv(wide_df, file.path(output_folder, file_name), row.names = FALSE)
+    
+    message("Saved: ", file_name)
+  }
+  
+  invisible(tables)
+  
   
 }
