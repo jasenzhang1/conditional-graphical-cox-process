@@ -294,9 +294,9 @@ convert_data_for_storage <- function(LGCP_data, df_brain_region, ID, y_c_structu
   
   while (!converged) {
     
-    print(paste0('(1/3) Length of table: ', nrow(dt)))
-    print(paste0('(2/3) Num subjects: ', length(unique(dt$subject_num))))
-    print(paste0('(3/3) Num processes: ', length(unique(dt$feature_id))))
+    print(paste0('(1/6) Before, length of table: ', nrow(dt)))
+    print(paste0('(2/6) Before, num subjects: ', length(unique(dt$subject_num))))
+    print(paste0('(3/6) Before, num processes: ', length(unique(dt$feature_id))))
     
     n_start <- nrow(dt)
     
@@ -330,6 +330,10 @@ convert_data_for_storage <- function(LGCP_data, df_brain_region, ID, y_c_structu
         dt <- dt[0] # Empty if no cliques
       }
     }
+    
+    print(paste0('(4/6) After, length of table: ', nrow(dt)))
+    print(paste0('(5/6) After, num subjects: ', length(unique(dt$subject_num))))
+    print(paste0('(6/6) After, num processes: ', length(unique(dt$feature_id))))
     
     # Check if any rows were removed in this iteration
     if (nrow(dt) == n_start) {
