@@ -297,6 +297,8 @@ convert_data_for_storage <- function(LGCP_data, df_brain_region, ID, y_c_structu
     print(paste0('(1/6) Before, length of table: ', nrow(dt)))
     print(paste0('(2/6) Before, num subjects: ', length(unique(dt$subject_num))))
     print(paste0('(3/6) Before, num processes: ', length(unique(dt$feature_id))))
+    print(paste0('min events class: ', class(min_events)))
+    print(paste0('min events: ', min_events))
     
     n_start <- nrow(dt)
     
