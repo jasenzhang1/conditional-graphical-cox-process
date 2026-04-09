@@ -120,6 +120,8 @@ for ID in "${IDs[@]}"; do
         rm -rf "mice_data/$y_c_structure"   # delete old datasets
         
         wait_for_slot
+        
+        # creates mice_data/week_only/Data.RData
         Rscript script_preprocess_mice_data.R "$ID" "$y_c_structure" "$time_scale" "$method" "$m" "$mov" "$vr" "$region" "$min_events" "$max_processes" "$n_weeks" >> "$outfile" 2>&1 
 
         
@@ -245,6 +247,7 @@ for ID in "${IDs[@]}"; do
                 echo "At GIC local" >> "$outfile"
     
                 # PART 1: Precompute tau_c quantiles and get num_k
+                # data stored in temp_data/simu/GIC_local_folder/file.name
                 output=$(Rscript script_GIC_local_part1.R \
                          "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" \
                          2>&1 | tee -a "$outfile")
@@ -275,6 +278,7 @@ for ID in "${IDs[@]}"; do
                           wait_for_slot
                           # Launch one R process per tau_c. 
                           # Inside this R script, it will loop through all tau_p (l=1...num_l)
+                          # data stored in temp_data/simu/GIC_local_folder/file.name
                           Rscript script_GIC_local_part2and3_serial.R \
                               "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" \
                               "$j" "$id_suffix" "$k" >> "$outfile" 2>&1 &                              
@@ -290,18 +294,21 @@ for ID in "${IDs[@]}"; do
                 echo "All GIC local tasks complete. Combining." >> "$outfile"
                 
                 # PART 4: Finalize and combine results
+                # temp_data/simu/GIC_local_folder/GIC_final_combined.RData
                 Rscript script_GIC_local_part4.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" >> "$outfile" 2>&1
     
                 # ---------------------------------------------------------
                 
-                # estimation after GIC
-                # temp_data/simu/part3...
+
                 
                 echo "" | tee -a "$outfile"
                 echo "===================================================" >> "$outfile"
                 echo "" | tee -a "$outfile"
                 echo "Merging GIC local info with part2b" >> "$outfile"
                 
+                # estimation after GIC
+                # merge part2b with GIC_final results
+                # temp_data/simu/part3...
                 Rscript script_fit_mice_data_part2b_after_GIC.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" >> "$outfile" 2>&1
                 
                   
@@ -411,6 +418,7 @@ for ID in "${IDs[@]}"; do
         
         wait_for_slot
         
+        # updating /part3 with more info
         Rscript script_fit_mice_data_part2d.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_queries" >> "$outfile" 2>&1
               
         
@@ -423,7 +431,7 @@ for ID in "${IDs[@]}"; do
         echo "At part 3" >> "$outfile"
         
         # mice_results/adj_type/CPGM/... .RData
-        Rscript script_fit_mice_data_part3.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_queries" >> "$outfile" 2>&1
+        Rscript script_fit_mice_data_part3.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_queries" "$y_c_bandwidth" "$region" >> "$outfile" 2>&1
         
         echo "" | tee -a "$outfile"
         echo "[DONE] Estimating all y_cs" >> "$outfile"
