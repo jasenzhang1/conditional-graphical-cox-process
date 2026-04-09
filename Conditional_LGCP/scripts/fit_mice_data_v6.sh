@@ -33,23 +33,24 @@ IDs=("WT3" "Tau3" "WT1" "WT2" "Tau1" "Tau2")
 movement=(0 0 1 1)
 VR=(0 1 0 1)
 
-IDs=("Tau3")
-movement=(1)
-VR=(1)
+IDs=("WT3" "Tau3")
+movement=(0 0 1 1)
+VR=(0 1 0 1)
+
 
 y_c_structure="week_only"
 method="CPGM"
 model_type="mice"  # simu or mice
 max_jobs=60
 
-y_c_bandwidth=0.0001 # usually its 0.3, exp(-gamma * y_c_diff^2)
+y_c_bandwidth=0.0003 # usually its 0.3, exp(-gamma * y_c_diff^2)
 m=30
 
 time_scale=10 
 min_freq=0.5
 
 min_events=$(echo "$time_scale * $min_freq" | bc | xargs printf "%.0f")
-max_processes=10
+max_processes=10000
 
 region="HIP"   # "HIP", "EHC", or "HIP_EHC"
 n_weeks=50
