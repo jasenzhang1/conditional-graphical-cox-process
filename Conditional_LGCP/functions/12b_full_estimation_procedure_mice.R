@@ -262,8 +262,6 @@ full_conditional_estimation_with_no_truth_part1 <- function(dataset, setting_inf
   p <- length(feature_sel)
   
   step_0_events <- step_0_keep_events(dataset, k_vec = 1:n, i_vec = 1:p)
-  
-
 
   # ----------------------------------------------------------------------------
   # Step 1 - Log intensities
@@ -321,7 +319,8 @@ full_conditional_estimation_with_no_truth_part1 <- function(dataset, setting_inf
   if(mouse){
     results[['time_grid_est']] <- time_grid_est
     results[['m_est']] <- m_est
-    results[['n']] <- n    
+    results[['n']] <- n  
+    results[['recovery_params']] <- recovery_params
   } else{
     results[['time_grid_est']] <- time_grid_est
     results[['time_grid']] <- time_grid
