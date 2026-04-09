@@ -450,7 +450,7 @@ for ID in "${IDs[@]}"; do
         
         MICE_FOLDER="temp_data/mice/${ID}_m${mov}vr${vr}_t${time_scale}"
         
-        rm -rf "$MICE_FOLDER"
+        # rm -rf "$MICE_FOLDER"
         
         echo "Cleanup complete for $ID, m${mov}vr${vr}, t=$time_scale." >> "$outfile"
         
