@@ -33,7 +33,7 @@ IDs=("WT3" "Tau3" "WT1" "WT2" "Tau1" "Tau2")
 movement=(0 0 1 1)
 VR=(0 1 0 1)
 
-IDs=("WT3" "Tau3")
+IDs=("WT1" "WT2" "Tau1" "Tau2")
 movement=(0 0 1 1)
 VR=(0 1 0 1)
 
