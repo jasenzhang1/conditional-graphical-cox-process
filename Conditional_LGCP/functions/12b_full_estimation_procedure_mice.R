@@ -320,7 +320,7 @@ full_conditional_estimation_with_no_truth_part1 <- function(dataset, setting_inf
     results[['time_grid_est']] <- time_grid_est
     results[['m_est']] <- m_est
     results[['n']] <- n  
-    results[['recovery_params']] <- recovery_params
+    results[['recovery_params']] <- dataset$recovery_params
   } else{
     results[['time_grid_est']] <- time_grid_est
     results[['time_grid']] <- time_grid
