@@ -347,7 +347,8 @@ convert_data_for_storage <- function(LGCP_data, df_brain_region, ID, y_c_structu
   # Final IDs for recovery
   final_subjects <- sort(unique(dt$subject_num))
   final_features <- sort(unique(dt$feature_id))
-  
+  final_brain_region <- df_brain_region$Brain_Region[df_brain_region$ID2 == ID & df_brain_region$Neuron_Num %in% final_features]
+    
   # Remap to continuous integers (1...n, 1...p)
   dt[, subject_num_map := match(subject_num, final_subjects)]
   dt[, feature_id_map := match(feature_id, final_features)]
@@ -408,6 +409,7 @@ convert_data_for_storage <- function(LGCP_data, df_brain_region, ID, y_c_structu
     recovery_params = list(
       p_og = p_og,
       kept_neurons = final_features,
+      kept_neuron_regions = final_brain_region,
       kept_subjects = final_subjects
     )
   )
