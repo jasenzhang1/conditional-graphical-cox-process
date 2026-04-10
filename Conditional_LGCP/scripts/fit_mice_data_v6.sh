@@ -37,7 +37,7 @@ IDs=("WT1" "WT2" "Tau1" "Tau2")
 movement=(0 0 1 1)
 VR=(0 1 0 1)
 
-
+cluster="hoffman" # hoffman or andrew
 y_c_structure="week_only"
 method="CPGM"
 model_type="mice"  # simu or mice
@@ -185,36 +185,51 @@ for ID in "${IDs[@]}"; do
         # Part 2 - getting raw rho_i, rho_ij values without weighing 
         # ----------------
         
-        echo "[PART 2] Calculating Rho_i ..." >> "$outfile"
-        echo "" | tee -a "$outfile"
+
       
-      
-        for k in $(seq 1 "$n_i"); do
-            wait_for_slot
+        if [ "$cluster" == "andrew" ]; then
+        
+        
+            echo "[PART 2] Calculating Rho_i ..." >> "$outfile"
+            echo "" | tee -a "$outfile"
             
-            # temp_data/simu/step_2_v5_rho_i...
-            Rscript script_step2_part1_v5.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$k" >> "$outfile" 2>&1 &
-        done
-      
-      
-        echo "[PART 3] Calculating Rho_ij ..." >> "$outfile"
-        echo "" | tee -a "$outfile"
-      
-        for kl in $(seq 1 "$n_ij"); do
-            wait_for_slot
+            for k in $(seq 1 "$n_i"); do
+                wait_for_slot
+                
+                # temp_data/simu/step_2_v5_rho_i...
+                Rscript script_step2_part1_v5.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$k" >> "$outfile" 2>&1 &
+            done
             
-            # temp_data/simu/step_2_rho_ij...
-            Rscript script_step2_part2_v5.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$kl" >> "$outfile" 2>&1 &
-        done
-        wait  
+            echo "[PART 3] Calculating Rho_ij ..." >> "$outfile"
+            echo "" | tee -a "$outfile"
+          
+            for kl in $(seq 1 "$n_ij"); do
+                wait_for_slot
+                
+                # temp_data/simu/step_2_rho_ij...
+                Rscript script_step2_part2_v5.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$kl" >> "$outfile" 2>&1 &
+            done
+            wait  
+            
+            echo "[PART 4] Merging all Rho_i and Rho_ij ..." >> "$outfile"
+            echo "" | tee -a "$outfile"
+            
+            
+            # temp_data/simu/step_2_v5_raw_rho_list...
+            Rscript script_step2_part3_v5.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_i" "$n_ij" >> "$outfile" 2>&1
         
-        echo "[PART 4] Merging all Rho_i and Rho_ij ..." >> "$outfile"
-        echo "" | tee -a "$outfile"
+        else
         
+            # on hoffman, estimate rho_i and rho_ij using ncores instead of manually parallelizing
+            
+            echo "[PART 2+3+4] Calculating Rho_i and Rho_ij in parallel and merging" >> "$outfile"
+            echo "" | tee -a "$outfile"
         
-        # temp_data/simu/step_2_v5_raw_rho_list...
-        Rscript script_step2_part3_v5.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_i" "$n_ij" >> "$outfile" 2>&1
+            Rscript script_step2_hoffman.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_i" "$n_ij" "$ncores" >> "$outfile" 2>&1
+
+        fi
         
+
       
         echo "[PART 5] Downstream estimation for all y_c values ..." >> "$outfile"
         echo "" | tee -a "$outfile"

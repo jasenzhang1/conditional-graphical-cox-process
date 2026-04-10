@@ -1176,6 +1176,78 @@ estimate_intensities_stratum_parallel_with_yc_part3_v5 <- function(temp_file_dir
   
 }
 
+# hoffman version (rho_i, rho_ij, merge all)
+estimate_intensities_stratum_parallel_with_yc_hoffman <- function(temp_file_dir, setting_info_list, n_i, n_ij, ncores, mouse, X_truth) {
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: run part1, part2, and part3 together using parallel package
+  #
+  # inputs:
+  #
+  # - temp_file_dir       (string)    'temp_data/simu'
+  # - setting_info_list   (list)
+  # - n_i                 (integer)   number of univariate tasks (p)
+  # - n_ij                (integer)   number of bivariate tasks (pc2 + p)
+  # - ncores              (integer)   number of cores to use
+  # - mouse               (boolean)
+  # - X_truth             (boolean)
+  #
+  # ----------------------------------------------------------------------------
+  
+  library(parallel)
+  
+  cl <- makeCluster(ncores)
+  
+  # export everything workers need
+  clusterExport(cl, varlist = c(
+    "estimate_intensities_stratum_parallel_with_yc_part1_v5",
+    "estimate_intensities_stratum_parallel_with_yc_part2_v5",
+    "estimate_density",
+    "estimate_bivariate_density",
+    "estimate_rho_ij_from_Lambda_v5",
+    "temp_file_dir",
+    "setting_info_list",
+    "mouse",
+    "X_truth"
+  ), envir = environment())
+  
+  clusterEvalQ(cl, {
+    library(data.table)
+    library(dplyr)
+  })
+  
+  # ---- Part 1: rho_i ----
+  message("[PART 2] Calculating Rho_i ...")
+  
+  parLapply(cl, 1:n_i, function(i) {
+    estimate_intensities_stratum_parallel_with_yc_part1_v5(
+      temp_file_dir, setting_info_list, i, mouse, X_truth
+    )
+  })
+  
+  # ---- Part 2: rho_ij ----
+  message("[PART 3] Calculating Rho_ij ...")
+  
+  parLapply(cl, 1:n_ij, function(k) {
+    estimate_intensities_stratum_parallel_with_yc_part2_v5(
+      temp_file_dir, setting_info_list, k, mouse, X_truth
+    )
+  })
+  
+  stopCluster(cl)
+  
+  # ---- Part 3: merge ----  (no parallelism needed, just reads and combines)
+  message("[PART 4] Merging all Rho_i and Rho_ij ...")
+  
+  estimate_intensities_stratum_parallel_with_yc_part3_v5(
+    temp_file_dir, setting_info_list, n_i, n_ij, mouse
+  )
+  
+  message("[DONE] All parts complete.")
+  
+}
+
 estimate_intensities_stratum_parallel_with_yc_part4_helper <- function(results, n_large, n, cont_ind, gamma_c_manual = NULL){
   
   # ----------------------------------------------------------------------------
