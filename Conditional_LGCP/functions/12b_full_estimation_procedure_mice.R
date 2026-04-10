@@ -2206,6 +2206,7 @@ full_conditional_estimation_with_no_truth_part3 <- function(temp_file_dir, temp_
   
   # 2c) attach items that are constant throughout each y_c
   
+  estimated_graphs[['y_c_bandwidth']] <- step_2_all_data[[1]]$y_c_bandwidth
   estimated_graphs[['step_0_events']] <- step_2_all_data[[1]]$step_0_events
   estimated_graphs[['step_1']] <- step_2_all_data[[1]]$step_1
   estimated_graphs[['step_1b']] <- step_2_all_data[[1]]$step_1b

@@ -21,7 +21,11 @@ if(model_type == 'mice'){
   movement <- as.numeric(args[6])     # movement <- 0
   VR <- as.numeric(args[7])           # VR <- 0
   cont_inds <- as.numeric(args[8])    # cont_inds <- 1  
-  bandwidth <- as.numeric(args[9])    # bandwidth <- 0.0003
+  if(args[9] == ''){
+    bandwidth <- NULL
+  } else{
+    bandwidth <- as.numeric(args[9])
+  }
   region <- args[10]                  # region <- 'HIP'
   
   discrete_level <- paste0('m', movement, 'vr', VR)
@@ -40,7 +44,12 @@ if(model_type == 'mice'){
   folder_1_name <- 'mice_results'
   if (!dir.exists(folder_1_name)) dir.create(folder_1_name)  # /mice_results
   
-  bw_string <- sub(".*\\.", "", format(bandwidth, scientific = FALSE))
+  if(is.null(bandwidth)){
+    bw_string <- 'default'
+  } else{
+    bw_string <- sub(".*\\.", "", format(bandwidth, scientific = FALSE))
+  }
+  
   folder_2_name <- paste0(folder_1_name, "/", y_c_structure, '_bw_', bw_string)
   if (!dir.exists(folder_2_name)) dir.create(folder_2_name)   # /mice_results/week_only_bw_0001
   
