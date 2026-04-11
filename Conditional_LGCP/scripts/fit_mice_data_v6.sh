@@ -343,7 +343,7 @@ for ID in "${IDs[@]}"; do
             echo "[PARTS 2-4 + GIC] Running full pipeline for all y_c queries (hoffman) ..." >> "$outfile"
             echo "" | tee -a "$outfile"
         
-            Rscript script_step3_hoffman.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_queries" >> "$outfile" 2>&1
+            Rscript script_step3_hoffman.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_queries" "$y_c_bandwidth" >> "$outfile" 2>&1
         
         fi
         
