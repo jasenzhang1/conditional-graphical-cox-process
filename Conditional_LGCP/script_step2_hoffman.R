@@ -1,8 +1,4 @@
-library(RhpcBLASctl)
 
-# limit threads in BLAS/LAPACK
-blas_set_num_threads(1)   # limit BLAS
-omp_set_num_threads(1)    # limit OpenMP
 
 
 source('functions/00_function_wrapper.R')

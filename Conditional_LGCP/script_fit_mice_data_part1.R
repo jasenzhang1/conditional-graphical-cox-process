@@ -21,11 +21,7 @@
 # ------------------------------------------------------------------------------
 
 
-library(RhpcBLASctl)
 
-# limit threads in BLAS/LAPACK
-blas_set_num_threads(1)   # limit BLAS
-omp_set_num_threads(1)    # limit OpenMP
 
 
 source('functions/00_function_wrapper.R')
@@ -42,6 +38,15 @@ if(model_type == 'mice'){
   method <- args[5]                   # method <- 'CPGM'
   movement <- as.numeric(args[6])     # movement <- 0
   VR <- as.numeric(args[7])           # VR <- 0
+  cluster <- args[8]
+  
+  if(cluster == 'andrew'){
+    library(RhpcBLASctl)
+    
+    # limit threads in BLAS/LAPACK
+    blas_set_num_threads(1)   # limit BLAS
+    omp_set_num_threads(1)    # limit OpenMP
+  }
   
   discrete_level <- paste0('m', movement, 'vr', VR)
   

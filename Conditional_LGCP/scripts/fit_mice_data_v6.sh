@@ -120,7 +120,7 @@ for ID in "${IDs[@]}"; do
         rm -rf "mice_data/$y_c_structure"   # delete old datasets
         
         # creates mice_data/week_only/Data.RData
-        Rscript script_preprocess_mice_data.R "$ID" "$y_c_structure" "$time_scale" "$method" "$m" "$mov" "$vr" "$region" "$min_events" "$max_processes" "$n_weeks" >> "$outfile" 2>&1 
+        Rscript script_preprocess_mice_data.R "$ID" "$y_c_structure" "$time_scale" "$method" "$m" "$mov" "$vr" "$region" "$min_events" "$max_processes" "$n_weeks" "$cluster" >> "$outfile" 2>&1 
 
         
         end_time=$(date +%s)
@@ -151,7 +151,7 @@ for ID in "${IDs[@]}"; do
         
         # temp_data/simu/part1_hub_block_v2_n_100 
         output=$(Rscript script_fit_mice_data_part1.R \
-                  "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" \
+                  "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$cluster" \
                   2>&1 | tee -a "$outfile")
         
         
@@ -443,7 +443,7 @@ for ID in "${IDs[@]}"; do
         
         
         # updating /part3 with more info
-        Rscript script_fit_mice_data_part2d.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_queries" >> "$outfile" 2>&1
+        Rscript script_fit_mice_data_part2d.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_queries" "$cluster" >> "$outfile" 2>&1
               
         
         # ----------------

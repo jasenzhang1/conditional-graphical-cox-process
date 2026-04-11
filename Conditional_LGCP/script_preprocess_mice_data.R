@@ -22,11 +22,7 @@
 # 
 # ------------------------------------------------------------------------------
 
-library(RhpcBLASctl)
 
-# limit threads in BLAS/LAPACK
-blas_set_num_threads(1)   # limit BLAS
-omp_set_num_threads(1)    # limit OpenMP
 
 
 source('functions/00_function_wrapper.R')
@@ -45,6 +41,16 @@ region         <- args[8]
 min_events     <- as.numeric(args[9])
 max_processes  <- as.numeric(args[10])
 n_weeks        <- as.numeric(args[11])
+cluster        <- args[12]
+
+if(cluster == 'andrew'){
+  library(RhpcBLASctl)
+  
+  # limit threads in BLAS/LAPACK
+  blas_set_num_threads(1)   # limit BLAS
+  omp_set_num_threads(1)    # limit OpenMP
+}
+
 
 # ID <- 'Tau3'
 # y_c_structure <- 'week_only'
