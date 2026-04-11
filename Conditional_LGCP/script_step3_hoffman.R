@@ -21,6 +21,7 @@ if(model_type == 'mice'){
   } else{
     y_c_bandwidth <- as.numeric(args[9])
   }
+  eigen_setting <- args[10]
   
   ncores <- parallel::detectCores() - 1
   
@@ -36,6 +37,7 @@ if(model_type == 'mice'){
                             y_c_bandwidth = y_c_bandwidth)
   
   temp_file_dirs <- c(paste0('temp_data/mice/', ID, '_', discrete_level, '_t', time_scale), 'temp_data/mice_data')
+  
   mouse <- T
   
 } else if(model_type == 'simu'){
@@ -56,6 +58,7 @@ if(model_type == 'mice'){
   
   simu_dir <- paste0('temp_data/simu_', adj_type, '_n_', n_large, '_rep_', rep_i)
   simu_data_dir <- paste0('temp_data/simu_data_', adj_type, '_n_', n_large, '_rep_', rep_i)
+  
   temp_file_dirs <- c(simu_dir, simu_data_dir)
   
   mouse <- F

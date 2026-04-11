@@ -1278,7 +1278,7 @@ run_pipeline_all_queries_hoffman <- function(temp_file_dirs, setting_info_list,
     
     # ---- Step 2: part2b before GIC ----
     full_conditional_estimation_with_no_truth_part2b_before_GIC(
-      temp_file_dir, setting_info_list, j, mouse, X_truth, eigen_setting
+      temp_file_dirs[1], setting_info_list, j, mouse, X_truth, eigen_setting
     )
     
     # ---- Step 3: GIC part 1 (precompute tau_c quantiles, build task map) ----
@@ -1286,14 +1286,14 @@ run_pipeline_all_queries_hoffman <- function(temp_file_dirs, setting_info_list,
     
     if (mouse) {
       file_name  <- paste0('part2b_', ID, '_', discrete_level, '_t', time_scale, '_nquery', j, '.rds')
-      GIC_folder <- paste0(temp_file_dir, '/GIC_local_', ID, '_', discrete_level, '_t', time_scale, '_nquery', j)
+      GIC_folder <- paste0(temp_file_dirs[1], '/GIC_local_', ID, '_', discrete_level, '_t', time_scale, '_nquery', j)
     } else {
       file_name  <- paste0("part2b_", adj_type, '_n_', n, '_nquery', j, '_rep_', rep_i, '.rds')
-      GIC_folder <- paste0(temp_file_dir, '/GIC_local_', adj_type, '_n_', n, '_nquery', j, '_rep', rep_i)
+      GIC_folder <- paste0(temp_file_dirs[1], '/GIC_local_', adj_type, '_n_', n, '_nquery', j, '_rep', rep_i)
     }
     if (!dir.exists(GIC_folder)) dir.create(GIC_folder)
     
-    estimated_graphs <- readRDS(file.path(temp_file_dir, file_name))
+    estimated_graphs <- readRDS(file.path(temp_file_dirs[1], file_name))
     list2env(estimated_graphs, envir = environment())
     
     core_names  <- step_00_grab_ID(names(step_5b), 'KL_cor')
@@ -1327,16 +1327,17 @@ run_pipeline_all_queries_hoffman <- function(temp_file_dirs, setting_info_list,
         "GIC_evalulation",
         "assemble_block_matrix_irregular",
         "extract_block_matrix_irregular",
+        "hilbert_schmidt_norm",
+        "GIC_local_loss",
+        "GIC_pseudo_logdet",
         "ginv",
+        "sym",
         "GIC_folder",
         "id_suffix"
       ), envir = environment())
       
       clusterEvalQ(cl, {
         library(MASS)
-        library(RhpcBLASctl)
-        blas_set_num_threads(1)
-        omp_set_num_threads(1)
       })
       
       parLapply(cl, 1:num_k_suffix, function(k) {
@@ -1354,7 +1355,7 @@ run_pipeline_all_queries_hoffman <- function(temp_file_dirs, setting_info_list,
     
     # ---- Step 6: part2b after GIC ----
     full_conditional_estimation_with_no_truth_part2b_after_GIC(
-      c(temp_file_dir, GIC_folder), setting_info_list, j, mouse, X_truth
+      c(temp_file_dirs[1], GIC_folder), setting_info_list, j, mouse, X_truth
     )
     
     message(sprintf("[END] y_c = %d", j))
