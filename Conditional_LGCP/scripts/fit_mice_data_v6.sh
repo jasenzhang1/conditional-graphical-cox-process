@@ -33,9 +33,9 @@ IDs=("WT3" "Tau3" "WT1" "WT2" "Tau1" "Tau2")
 movement=(0 0 1 1)
 VR=(0 1 0 1)
 
-IDs=("WT1" "WT2" "Tau1" "Tau2")
-movement=(0 0 1 1)
-VR=(0 1 0 1)
+IDs=("Tau1")
+movement=(1)
+VR=(1)
 
 cluster="hoffman" # hoffman or andrew
 y_c_structure="week_only"
@@ -43,14 +43,14 @@ method="CPGM"
 model_type="mice"  # simu or mice
 max_jobs=60
 
-y_c_bandwidth=0.0003 # usually its 0.3, exp(-gamma * y_c_diff^2)
+y_c_bandwidth=0.001 # usually its 0.3, exp(-gamma * y_c_diff^2)
 m=30
 
 time_scale=10 
 min_freq=0.5
 
 min_events=$(echo "$time_scale * $min_freq" | bc | xargs printf "%.0f")
-max_processes=10000
+max_processes=10
 
 region="HIP"   # "HIP", "EHC", or "HIP_EHC"
 n_weeks=50
@@ -119,8 +119,6 @@ for ID in "${IDs[@]}"; do
         
         rm -rf "mice_data/$y_c_structure"   # delete old datasets
         
-        wait_for_slot
-        
         # creates mice_data/week_only/Data.RData
         Rscript script_preprocess_mice_data.R "$ID" "$y_c_structure" "$time_scale" "$method" "$m" "$mov" "$vr" "$region" "$min_events" "$max_processes" "$n_weeks" >> "$outfile" 2>&1 
 
@@ -150,7 +148,6 @@ for ID in "${IDs[@]}"; do
         
         echo "[PART 1] Collecting parameters ..." >> "$outfile"
         
-        wait_for_slot
         
         # temp_data/simu/part1_hub_block_v2_n_100 
         output=$(Rscript script_fit_mice_data_part1.R \
@@ -358,7 +355,6 @@ for ID in "${IDs[@]}"; do
         #         - joint calculation of global tau_c and individual tau_p across all timepoints
         # ----------------
         
-        wait_for_slot 
         
         # Check for joint or both
         if [[ "$global_thresh_method" == "joint" || "$global_thresh_method" == "both" || "$global_thresh_method" == "tau_c" ]]; then
@@ -445,7 +441,6 @@ for ID in "${IDs[@]}"; do
         
         echo "At part 2d" >> "$outfile"
         
-        wait_for_slot
         
         # updating /part3 with more info
         Rscript script_fit_mice_data_part2d.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_queries" >> "$outfile" 2>&1
@@ -455,7 +450,6 @@ for ID in "${IDs[@]}"; do
         # Part 3- when all part 2's are done, do part 3
         # ----------------
         
-        wait_for_slot
         
         echo "At part 3" >> "$outfile"
         
@@ -478,10 +472,7 @@ for ID in "${IDs[@]}"; do
         echo "[STEP 3] Graphing results... " >> "$outfile"
         echo "" | tee -a "$outfile"
         
-        wait_for_slot
     
-
-
         Rscript script_unpack_mice_results.R "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$eigen_setting"  >> "$outfile" 2>&1
         
         echo "Deleting Files ..." >> "$outfile"
