@@ -1248,6 +1248,118 @@ estimate_intensities_stratum_parallel_with_yc_hoffman <- function(temp_file_dir,
   
 }
 
+run_pipeline_all_queries_hoffman <- function(temp_file_dir, temp_file_dirs, setting_info_list,
+                                             n_queries, ncores, mouse, X_truth, eigen_setting) {
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: for each y_c query j = 1...n_queries, run the full pipeline in series.
+  #       Within each j, parallelize GIC part 2+3 over k using ncores.
+  #
+  #   for j in 1:n_queries:
+  #     part4 --> part2b_before_GIC --> GIC_part1 --> GIC_part2and3 (parallel over k) --> GIC_part4 --> part2b_after_GIC
+  #
+  # ----------------------------------------------------------------------------
+  
+  library(parallel)
+  
+  for (j in 1:n_queries) {
+    
+    message(sprintf("[START] y_c = %d", j))
+    
+    # ---- Step 1: part4 (weights + pad rho_i, rho_ij) ----
+    estimate_intensities_stratum_parallel_with_yc_part4_v5(
+      temp_file_dirs, setting_info_list, j, mouse
+    )
+    
+    # ---- Step 2: part2b before GIC ----
+    full_conditional_estimation_with_no_truth_part2b_before_GIC(
+      temp_file_dir, setting_info_list, j, mouse, X_truth, eigen_setting
+    )
+    
+    # ---- Step 3: GIC part 1 (precompute tau_c quantiles, build task map) ----
+    list2env(setting_info_list, envir = environment())
+    
+    if (mouse) {
+      file_name  <- paste0('part2b_', ID, '_', discrete_level, '_t', time_scale, '_nquery', j, '.rds')
+      GIC_folder <- paste0(temp_file_dir, '/GIC_local_', ID, '_', discrete_level, '_t', time_scale, '_nquery', j)
+    } else {
+      file_name  <- paste0("part2b_", adj_type, '_n_', n, '_nquery', j, '_rep_', rep_i, '.rds')
+      GIC_folder <- paste0(temp_file_dir, '/GIC_local_', adj_type, '_n_', n, '_nquery', j, '_rep', rep_i)
+    }
+    if (!dir.exists(GIC_folder)) dir.create(GIC_folder)
+    
+    estimated_graphs <- readRDS(file.path(temp_file_dir, file_name))
+    list2env(estimated_graphs, envir = environment())
+    
+    core_names  <- step_00_grab_ID(names(step_5b), 'KL_cor')
+    input_names <- names(step_5b)
+    task_map    <- data.frame()
+    max_k       <- 0
+    
+    for (i in seq_along(core_names)) {
+      C_cond_i <- step_5b[[input_names[i]]]
+      id_i     <- core_names[i]
+      num_k_i  <- GIC_step1_precompute(C_cond_i, p, W_y, GIC_folder, id_i)
+      task_map <- rbind(task_map, data.frame(id = id_i, num_k = num_k_i))
+      if (num_k_i > max_k) max_k <- num_k_i
+    }
+    
+    num_suffixes <- nrow(task_map)
+    write.csv(task_map, paste0(GIC_folder, "/task_map.csv"), row.names = FALSE)
+    message(sprintf("[GIC part1 done] y_c = %d, max_k = %d, num_suffixes = %d", j, max_k, num_suffixes))
+    
+    # ---- Step 4: GIC part 2+3 (parallelize over k, per suffix) ----
+    for (id_suffix in task_map$id) {
+      
+      num_k_suffix <- task_map$num_k[task_map$id == id_suffix]
+      
+      cl <- makeCluster(ncores)
+      
+      clusterExport(cl, varlist = c(
+        "GIC_step2and3_serial_tau_c",
+        "GIC_get_percentile_info",
+        "GIC_edge_count",
+        "GIC_evalulation",
+        "assemble_block_matrix_irregular",
+        "extract_block_matrix_irregular",
+        "ginv",
+        "GIC_folder",
+        "id_suffix"
+      ), envir = environment())
+      
+      clusterEvalQ(cl, {
+        library(MASS)
+        library(RhpcBLASctl)
+        blas_set_num_threads(1)
+        omp_set_num_threads(1)
+      })
+      
+      parLapply(cl, 1:num_k_suffix, function(k) {
+        GIC_step2and3_serial_tau_c(GIC_folder, id_suffix, k)
+      })
+      
+      stopCluster(cl)
+      
+      message(sprintf("[GIC part2+3 done] y_c = %d, suffix = %s", j, id_suffix))
+    }
+    
+    # ---- Step 5: GIC part 4 (combine results) ----
+    GIC_step4_finalize(GIC_folder)
+    message(sprintf("[GIC part4 done] y_c = %d", j))
+    
+    # ---- Step 6: part2b after GIC ----
+    full_conditional_estimation_with_no_truth_part2b_after_GIC(
+      c(temp_file_dir, GIC_folder), setting_info_list, j, mouse, X_truth
+    )
+    
+    message(sprintf("[END] y_c = %d", j))
+  }
+  
+  message("[DONE] All y_c queries complete.")
+  
+}
+
 estimate_intensities_stratum_parallel_with_yc_part4_helper <- function(results, n_large, n, cont_ind, gamma_c_manual = NULL){
   
   # ----------------------------------------------------------------------------
