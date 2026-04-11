@@ -27,6 +27,8 @@ if(model_type == 'mice'){
     bandwidth <- as.numeric(args[9])
   }
   region <- args[10]                  # region <- 'HIP'
+  cluster <- args[11]                 # cluster <- 'hoffman' 
+  
   
   discrete_level <- paste0('m', movement, 'vr', VR)
   
@@ -105,7 +107,12 @@ if(method == 'CPGM'){
 }
 
 if(mouse){
-  file_dir <- paste0(results_folder_name, '/', ID, '_', discrete_level, '_t', time_scale, '.RData')
+  if(cluster == 'andrew'){
+    file_dir <- paste0(results_folder_name, '/', ID, '_', discrete_level, '_t', time_scale, '.RData')
+  } else{
+    file_dir <- paste0('../../../project-biostat-chair/', results_folder_name, '/', ID, '_', discrete_level, '_t', time_scale, '.RData')
+  }
+  
 } else{
   file_dir <- paste0(results_folder_name, '/', adj_type, '_n_', n, '_rep_', rep_i, '.RData')
 }

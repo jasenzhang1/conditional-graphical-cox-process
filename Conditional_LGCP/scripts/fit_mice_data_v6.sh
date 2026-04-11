@@ -460,7 +460,7 @@ for ID in "${IDs[@]}"; do
         echo "At part 3" >> "$outfile"
         
         # mice_results/adj_type/CPGM/... .RData
-        Rscript script_fit_mice_data_part3.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_queries" "$y_c_bandwidth" "$region" >> "$outfile" 2>&1
+        Rscript script_fit_mice_data_part3.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_queries" "$y_c_bandwidth" "$region" "$cluster" >> "$outfile" 2>&1
         
         echo "" | tee -a "$outfile"
         echo "[DONE] Estimating all y_cs" >> "$outfile"
