@@ -43,20 +43,39 @@ if(model_type == 'mice'){
   temp_file_dir <- paste0('temp_data/mice/', ID, '_', discrete_level, '_t', time_scale)
   temp_file_dir2 <- NA
   
-  folder_1_name <- 'mice_results'
-  if (!dir.exists(folder_1_name)) dir.create(folder_1_name)  # /mice_results
-  
-  if(is.null(bandwidth)){
-    bw_string <- 'default'
+  if(cluster == 'andrew'){
+    folder_1_name <- 'mice_results'
+    if (!dir.exists(folder_1_name)) dir.create(folder_1_name)  # /mice_results
+    
+    if(is.null(bandwidth)){
+      bw_string <- 'default'
+    } else{
+      bw_string <- sub(".*\\.", "", format(bandwidth, scientific = FALSE))
+    }
+    
+    folder_2_name <- paste0(folder_1_name, "/", y_c_structure, '_bw_', bw_string)
+    if (!dir.exists(folder_2_name)) dir.create(folder_2_name)   # /mice_results/week_only_bw_0001
+    
+    results_folder_name <- paste0(folder_2_name, "/", method, '_', region) 
+    if (!dir.exists(results_folder_name)) dir.create(results_folder_name)  # /mice_results/week_only_bw_0001/CPGM_HIP
   } else{
-    bw_string <- sub(".*\\.", "", format(bandwidth, scientific = FALSE))
+    folder_1_name <- '../../../project-biostat-chair/mice_results_hoffman'
+    if (!dir.exists(folder_1_name)) dir.create(folder_1_name)  # /mice_results
+    
+    if(is.null(bandwidth)){
+      bw_string <- 'default'
+    } else{
+      bw_string <- sub(".*\\.", "", format(bandwidth, scientific = FALSE))
+    }
+    
+    folder_2_name <- paste0(folder_1_name, "/", y_c_structure, '_bw_', bw_string)
+    if (!dir.exists(folder_2_name)) dir.create(folder_2_name)   # /mice_results/week_only_bw_0001
+    
+    results_folder_name <- paste0(folder_2_name, "/", method, '_', region) 
+    if (!dir.exists(results_folder_name)) dir.create(results_folder_name)  # /mice_results/week_only_bw_0001/CPGM_HIP
   }
   
-  folder_2_name <- paste0(folder_1_name, "/", y_c_structure, '_bw_', bw_string)
-  if (!dir.exists(folder_2_name)) dir.create(folder_2_name)   # /mice_results/week_only_bw_0001
-  
-  results_folder_name <- paste0(folder_2_name, "/", method, '_', region) 
-  if (!dir.exists(results_folder_name)) dir.create(results_folder_name)  # /mice_results/week_only_bw_0001/CPGM_HIP
+
   
   
 } else if(model_type == 'simu'){
@@ -107,12 +126,7 @@ if(method == 'CPGM'){
 }
 
 if(mouse){
-  if(cluster == 'andrew'){
-    file_dir <- paste0(results_folder_name, '/', ID, '_', discrete_level, '_t', time_scale, '.RData')
-  } else{
-    file_dir <- paste0('../../../project-biostat-chair/', results_folder_name, '/', ID, '_', discrete_level, '_t', time_scale, '.RData')
-  }
-  
+  file_dir <- paste0(results_folder_name, '/', ID, '_', discrete_level, '_t', time_scale, '.RData')
 } else{
   file_dir <- paste0(results_folder_name, '/', adj_type, '_n_', n, '_rep_', rep_i, '.RData')
 }
