@@ -225,7 +225,7 @@ for ID in "${IDs[@]}"; do
             echo "[PART 2+3+4] Calculating Rho_i and Rho_ij in parallel and merging" >> "$outfile"
             echo "" | tee -a "$outfile"
         
-            Rscript script_step2_hoffman.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_i" "$n_ij" "$ncores" >> "$outfile" 2>&1
+            Rscript script_step2_hoffman.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_i" "$n_ij" >> "$outfile" 2>&1
 
         fi
         
@@ -346,7 +346,7 @@ for ID in "${IDs[@]}"; do
             echo "[PARTS 2-4 + GIC] Running full pipeline for all y_c queries (hoffman) ..." >> "$outfile"
             echo "" | tee -a "$outfile"
         
-            Rscript script_step3_hoffman.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_i" "$n_ij" "$n_queries" "$ncores" >> "$outfile" 2>&1
+            Rscript script_step3_hoffman.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_i" "$n_ij" "$n_queries" >> "$outfile" 2>&1
         
         fi
         

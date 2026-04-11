@@ -21,7 +21,8 @@ if(model_type == 'mice'){
   VR <- as.numeric(args[7])           # VR <- 0
   n_i <- as.numeric(args[8])          # n_i <- 12
   n_ij <- as.numeric(args[9])         # n_ij <- 78
-  ncores <- as.numeric(args[10])      # ncores <- 100
+  
+  ncores <- parallel::detectCores() - 1
   
   X_truth <- F
   
