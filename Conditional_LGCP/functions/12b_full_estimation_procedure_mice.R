@@ -1206,6 +1206,10 @@ estimate_intensities_stratum_parallel_with_yc_hoffman <- function(temp_file_dir,
     "estimate_density",
     "estimate_bivariate_density",
     "estimate_rho_ij_from_Lambda_v5",
+    "get_gamma_adaptive",
+    "gaussian_kernel",
+    "truncNorm_denom",
+    "get_gamma",
     "temp_file_dir",
     "setting_info_list",
     "mouse",
@@ -1248,7 +1252,7 @@ estimate_intensities_stratum_parallel_with_yc_hoffman <- function(temp_file_dir,
   
 }
 
-run_pipeline_all_queries_hoffman <- function(temp_file_dir, temp_file_dirs, setting_info_list,
+run_pipeline_all_queries_hoffman <- function(temp_file_dirs, setting_info_list,
                                              n_queries, ncores, mouse, X_truth, eigen_setting) {
   
   # ----------------------------------------------------------------------------
