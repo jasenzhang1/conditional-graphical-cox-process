@@ -2100,7 +2100,7 @@ full_conditional_estimation_with_no_truth_part2b_after_GIC <- function(temp_file
     file_name <- paste0("part3_", adj_type, '_n_', n, '_nquery', cont_ind, '_rep_', rep_i, '.rds')
   }
   
-  saveRDS(estimated_graphs, file = file.path(temp_file_dir, file_name))  
+  saveRDS(estimated_graphs, file = file.path(temp_file_dirs[1], file_name))  
   
 }
 

@@ -28,22 +28,16 @@
 
 cd "$(dirname "$0")/.."   # go one level up (from /scripts to /)
 
-
-IDs=("WT3" "Tau3" "WT1" "WT2" "Tau1" "Tau2")
-movement=(0 0 1 1)
-VR=(0 1 0 1)
-
-IDs=("Tau1")
-movement=(1)
-VR=(1)
-
 cluster="hoffman" # hoffman or andrew
+model_type="mice"  # simu or mice
+
+eigen_setting="only_joint"  #only_joint, trig_and_joint, trig_simple
+global_thresh_method="neither" # both, joint, tau_c, or neither
+
 y_c_structure="week_only"
 method="CPGM"
-model_type="mice"  # simu or mice
-max_jobs=60
 
-y_c_bandwidth=0.001 # usually its 0.3, exp(-gamma * y_c_diff^2)
+max_jobs=60
 m=30
 
 time_scale=10 
@@ -52,10 +46,27 @@ min_freq=0.5
 min_events=$(echo "$time_scale * $min_freq" | bc | xargs printf "%.0f")
 max_processes=10
 
-region="HIP"   # "HIP", "EHC", or "HIP_EHC"
 n_weeks=50
-eigen_setting="only_joint"  #only_joint, trig_and_joint, trig_simple
-global_thresh_method="neither" # both, joint, tau_c, or neither
+
+if [ "$cluster" == "hoffman" ]; then
+    IDs=($1)
+    movement=($2)
+    VR=($3)
+    y_c_bandwidth=$4
+    region=$5
+else
+    IDs=("WT3" "Tau3" "WT1" "WT2" "Tau1" "Tau2")
+    movement=(0 0 1 1)
+    VR=(0 1 0 1)
+    
+    IDs=("Tau1")
+    movement=(1)
+    VR=(1)
+    
+    y_c_bandwidth=0.001 # usually its 0.3, exp(-gamma * y_c_diff^2)
+    region="HIP"   # "HIP", "EHC", or "HIP_EHC"
+fi
+
 
 
 
