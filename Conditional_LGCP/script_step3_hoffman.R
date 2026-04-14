@@ -23,7 +23,8 @@ if(model_type == 'mice'){
   }
   eigen_setting <- args[10]
   
-  ncores <- parallel::detectCores() - 1
+  #ncores <- parallel::detectCores() - 1
+  ncores <- as.integer(Sys.getenv("NSLOTS"))
   
   X_truth <- F
   

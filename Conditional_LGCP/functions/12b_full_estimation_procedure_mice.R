@@ -1197,6 +1197,8 @@ estimate_intensities_stratum_parallel_with_yc_hoffman <- function(temp_file_dir,
   
   library(parallel)
   
+  print(paste0('Number of cores in step 2: ', ncores))
+  
   cl <- makeCluster(ncores)
   
   # export everything workers need

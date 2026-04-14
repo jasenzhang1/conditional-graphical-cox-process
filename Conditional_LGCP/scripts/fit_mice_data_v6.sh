@@ -1,4 +1,12 @@
 #!/bin/bash
+#$ -cwd
+#$ -l h_rt=24:00:00              # walltime
+#$ -l h_data=4G                  # memory per job - adjust as needed
+#$ -pe shared 16                 # number of cores - match your ncores in R
+# Email address to notify
+#$ -M $USER@mail #don't change this line, finds your email in the system 
+# Notify when
+#$ -m bea
 
 # ------------------------------------------------------------------------------
 #
@@ -26,7 +34,14 @@
 # 
 # ------------------------------------------------------------------------------
 
-cd "$(dirname "$0")/.."   # go one level up (from /scripts to /)
+cd ..   # go one level up (from /scripts to /)
+
+# load the job environment:
+. /u/local/Modules/default/init/modules.sh
+## Edit the line below as needed:
+
+module load apptainer
+module load R
 
 cluster="hoffman" # hoffman or andrew
 model_type="mice"  # simu or mice
@@ -37,21 +52,22 @@ global_thresh_method="neither" # both, joint, tau_c, or neither
 y_c_structure="week_only"
 method="CPGM"
 
-max_jobs=60
-m=30
 
+m=30
 time_scale=10 
 min_freq=0.5
-
 min_events=$(echo "$time_scale * $min_freq" | bc | xargs printf "%.0f")
-max_processes=10
 
+
+max_processes=10000
 n_weeks=50
 
 if [ "$cluster" == "hoffman" ]; then
-    IDs=($1)
-    movement=($2)
-    VR=($3)
+
+    module load R
+    ID=$1
+    mov=$2
+    vr=$3
     y_c_bandwidth=$4
     region=$5
 else
@@ -65,23 +81,26 @@ else
     
     y_c_bandwidth=0.001 # usually its 0.3, exp(-gamma * y_c_diff^2)
     region="HIP"   # "HIP", "EHC", or "HIP_EHC"
+    
+    max_jobs=60
+    
+    function wait_for_slot {
+        while true; do
+            running=$(pgrep -u "$USER" -x "R|Rscript" | wc -l)
+            if (( running < max_jobs )); then
+                # Small sleep to allow the process you're about to launch 
+                # to actually show up in the process table for the next check.
+                sleep 0.1 
+                break
+            fi
+            sleep 1
+        done
+    }
+    
 fi
 
 
 
-
-function wait_for_slot {
-    while true; do
-        running=$(pgrep -u "$USER" -x "R|Rscript" | wc -l)
-        if (( running < max_jobs )); then
-            # Small sleep to allow the process you're about to launch 
-            # to actually show up in the process table for the next check.
-            sleep 0.1 
-            break
-        fi
-        sleep 1
-    done
-}
 
 print_bar() {
     local current=$1 total=$2 width=40
@@ -100,104 +119,295 @@ mkdir -p script_outputs/mice
 # preprocess
 # -------------------------------------------------
 
+if [ "$cluster" == "hoffman" ]; then
 
-# Loop over all mice
-for ID in "${IDs[@]}"; do
-
-    # Loop over all combinations of movement and VR
-    for i in "${!movement[@]}"; do
+        
+    outfile="script_outputs/mice/${ID}_m${mov}vr${vr}_t${time_scale}.log"   #Tau1_m0vr0_t10.log
+    rm -f "$outfile"   # delete old log if it exists
     
-        mov=${movement[i]}
-        vr=${VR[i]}
-            
-        outfile="script_outputs/mice/${ID}_m${mov}vr${vr}_t${time_scale}.log"   #Tau1_m0vr0_t10.log
-        rm -f "$outfile"   # delete old log if it exists
+    echo "===================================================" | tee -a "$outfile"
+    echo "Starting full pipeline for mouse=$ID, region=$region, movement=$mov, VR=$vr, time_scale=$time_scale" | tee -a "$outfile"
+    echo "Logging to: $outfile" | tee -a "$outfile"
+    echo "Start time: $(date)" | tee -a "$outfile"
+    echo "===================================================" | tee -a "$outfile"
+    echo "" | tee -a "$outfile"
+    
+    start_time=$(date +%s)
+    
+    # -------------------
+    # Step 1: Preprocess - divide the dataset by discrete covariates
+    # -------------------
+    
+    echo "[STEP 1] Preprocess dataset..." | tee -a "$outfile"
+    
+    rm -rf "mice_data/$y_c_structure"   # delete old datasets
+    
+    # creates mice_data/week_only/Data.RData
+    Rscript script_preprocess_mice_data.R "$ID" "$y_c_structure" "$time_scale" "$method" "$m" "$mov" "$vr" "$region" "$min_events" "$max_processes" "$n_weeks" "$cluster" >> "$outfile" 2>&1 
+    
+    
+    end_time=$(date +%s)
+    runtime=$((end_time - start_time))
+    
+    echo "[STEP 1] Finished" | tee -a "$outfile"
+    echo "Total elapsed time: ${runtime} seconds (~$((runtime/60)) minutes)." >> "$outfile"
+    echo "" | tee -a "$outfile"
+    echo "===========================================" >> "$outfile"
+    echo "" | tee -a "$outfile"
+    
+    # -----------------------
+    # Step 2: Fit
+    # -----------------------
+    
+    step_2_start_time=$(date +%s)
+    echo "[STEP 2] Fitting dataset ..." | tee -a "$outfile"
+    echo "" | tee -a "$outfile"
+    echo "===================================================" >> "$outfile"
+    echo "" | tee -a "$outfile"
+    
         
-        echo "===================================================" | tee -a "$outfile"
-        echo "Starting full pipeline for mouse=$ID, region=$region, movement=$mov, VR=$vr, time_scale=$time_scale" | tee -a "$outfile"
-        echo "Logging to: $outfile" | tee -a "$outfile"
-        echo "Start time: $(date)" | tee -a "$outfile"
-        echo "===================================================" | tee -a "$outfile"
-        echo "" | tee -a "$outfile"
-        
-        start_time=$(date +%s)
-      
-        # -------------------
-        # Step 1: Preprocess - divide the dataset by discrete covariates
-        # -------------------
-        
-        echo "[STEP 1] Preprocess dataset..." | tee -a "$outfile"
-        
-        rm -rf "mice_data/$y_c_structure"   # delete old datasets
-        
-        # creates mice_data/week_only/Data.RData
-        Rscript script_preprocess_mice_data.R "$ID" "$y_c_structure" "$time_scale" "$method" "$m" "$mov" "$vr" "$region" "$min_events" "$max_processes" "$n_weeks" "$cluster" >> "$outfile" 2>&1 
+    # ----------------
+    # Part 1 - get all outer products before re-weighting by y_c
+    # ----------------
+    
+    echo "[PART 1] Collecting parameters ..." >> "$outfile"
+    
+    
+    # temp_data/simu/part1_hub_block_v2_n_100 
+    output=$(Rscript script_fit_mice_data_part1.R \
+              "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$cluster" \
+              2>&1 | tee -a "$outfile")
+    
+    
+    echo "" | tee -a "$outfile"
+    echo "===================================================" >> "$outfile"
+    echo "" | tee -a "$outfile"
+    
+    # Extract n_queries, n_i and n_ij from output
+    
+    n_queries=$(echo "$output" | grep "n_queries" | awk -F= '{print $2}')
+    n_queries=$(echo "$n_queries" | xargs)
+    
+    n_i=$(echo "$output" | grep "n_processes" | awk -F= '{print $2}')
+    n_i=$(echo "$n_i" | xargs)
+    
+    n_ij=$(echo "$output" | grep "n_bivariate_processes" | awk -F= '{print $2}')
+    n_ij=$(echo "$n_ij" | xargs)
+    
+    
+    echo "num queries=$n_queries" >> "$outfile"
+    echo "num processes=$n_i" >> "$outfile"
+    echo "num pairwise processes=$n_ij" >> "$outfile"
+    echo "" | tee -a "$outfile"
+    echo "===================================================" >> "$outfile"
+    echo "" | tee -a "$outfile"
+    
+    # ----------------
+    # Part 2 - getting raw rho_i, rho_ij values without weighing 
+    # ----------------    
+    
+    echo "[PART 2+3+4] Calculating Rho_i and Rho_ij in parallel and merging" >> "$outfile"
+    echo "" | tee -a "$outfile"
 
+    Rscript script_step2_hoffman.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_i" "$n_ij" >> "$outfile" 2>&1   
+
+    step_2_end_time=$(date +%s)
+    step_2_runtime=$((step_2_end_time - step_2_start_time))
+    
+    echo "[STEP 2] Finished" | tee -a "$outfile"
+    echo "" | tee -a "$outfile"
+    echo "Step 2 elapsed time: ${runtime} seconds (~$((step_2_runtime/60)) minutes)." >> "$outfile"
+    echo "" | tee -a "$outfile"
+    echo "===================================================" >> "$outfile"
+    echo "" | tee -a "$outfile"
+
+    # on hoffman, run y_c queries in series, parallelizing GIC part 2+3 over k using ncores
+    
+    step_3_start_time=$(date +%s)
+    echo "[PARTS 2-4 + GIC] Running full pipeline for all y_c queries (hoffman) ..." >> "$outfile"
+    echo "" | tee -a "$outfile"
+
+    Rscript script_step3_hoffman.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_queries" "$y_c_bandwidth" "$eigen_setting" >> "$outfile" 2>&1
+
+    step_3_end_time=$(date +%s)
+    step_3_runtime=$((step_3_end_time - step_3_start_time))
+    
+    
+    echo "[STEP 3] Finished" | tee -a "$outfile"
+    echo "" | tee -a "$outfile"
+    echo "Step 3 elapsed time: ${runtime} seconds (~$((step_3_runtime/60)) minutes)." >> "$outfile"
+    echo "" | tee -a "$outfile"
+    echo "===================================================" >> "$outfile"
+    echo "" | tee -a "$outfile"
+
+    # ----------------
+    # Part 2d - get step_12 and step_12b, ROC and edge set after all w_mats have been calculated                     
+    # ----------------
+    
+    step_4_start_time=$(date +%s)
+    echo "At part 2d" >> "$outfile"
+    
+    
+    # updating /part3 with more info
+    Rscript script_fit_mice_data_part2d.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_queries" "$cluster" >> "$outfile" 2>&1
+          
+    
+    # ----------------
+    # Part 3- when all part 2's are done, do part 3
+    # ----------------
+    
+    
+    echo "At part 3" >> "$outfile"
+    
+    # mice_results/adj_type/CPGM/... .RData
+    Rscript script_fit_mice_data_part3.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_queries" "$y_c_bandwidth" "$region" "$cluster" >> "$outfile" 2>&1
+    
+    echo "" | tee -a "$outfile"
+    echo "[DONE] Estimating all y_cs" >> "$outfile"
         
-        end_time=$(date +%s)
-        runtime=$((end_time - start_time))
+  
+    wait
+    
+    # ----------------
+    # Last step - visualize results
+    # ----------------
+    
+    echo "" | tee -a "$outfile"
+    echo "===================================================" >> "$outfile"
+    echo "" | tee -a "$outfile"
+    echo "[STEP 3] Graphing results... " >> "$outfile"
+    echo "" | tee -a "$outfile"
+    
+
+    Rscript script_unpack_mice_results.R "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$eigen_setting"  >> "$outfile" 2>&1
+    
+    step_4_end_time=$(date +%s)
+    step_4_runtime=$((step_4_end_time - step_4_start_time))
+    
+    echo "[STEP 4] Finished" | tee -a "$outfile"
+    echo "Step 4 elapsed time: ${runtime} seconds (~$((step_4_runtime/60)) minutes)." >> "$outfile"
+    
+    # -------------------------
+    # Deleting files
+    # -------------------------
+    
+    echo "Deleting Files ..." >> "$outfile"
+    
+    MICE_FOLDER="temp_data/mice/${ID}_m${mov}vr${vr}_t${time_scale}"
+    
+    rm -rf "$MICE_FOLDER"
+    
+    echo "Cleanup complete for $ID, m${mov}vr${vr}, t=$time_scale." >> "$outfile"
+    
+    # ============================================================
+    # END TIMER
+    # ============================================================
+    
+    echo "" | tee -a "$outfile"
+    echo "===================================================" >> "$outfile"
+    
+    
+    end_time=$(date +%s)
+    runtime=$((end_time - start_time))
+    
+    echo "Pipeline finished at: $(date)" >> "$outfile"
+    echo "Total runtime: ${runtime} seconds (~$((runtime/60)) minutes)." >> "$outfile"
+
+else
+
+    # Loop over all mice
+    for ID in "${IDs[@]}"; do
+    
+        # Loop over all combinations of movement and VR
+        for i in "${!movement[@]}"; do
         
-        echo "[STEP 1] Finished" | tee -a "$outfile"
-        echo "Total elapsed time: ${runtime} seconds (~$((runtime/60)) minutes)." >> "$outfile"
-        echo "" | tee -a "$outfile"
-        echo "===========================================" >> "$outfile"
-        echo "" | tee -a "$outfile"
-        
-        # -----------------------
-        # Step 2: Fit
-        # -----------------------
-        
-        echo "[STEP 2] Fitting dataset ..." | tee -a "$outfile"
-        echo "" | tee -a "$outfile"
-        echo "===================================================" >> "$outfile"
-        echo "" | tee -a "$outfile"
+            mov=${movement[i]}
+            vr=${VR[i]}
+                
+            outfile="script_outputs/mice/${ID}_m${mov}vr${vr}_t${time_scale}.log"   #Tau1_m0vr0_t10.log
+            rm -f "$outfile"   # delete old log if it exists
+            
+            echo "===================================================" | tee -a "$outfile"
+            echo "Starting full pipeline for mouse=$ID, region=$region, movement=$mov, VR=$vr, time_scale=$time_scale" | tee -a "$outfile"
+            echo "Logging to: $outfile" | tee -a "$outfile"
+            echo "Start time: $(date)" | tee -a "$outfile"
+            echo "===================================================" | tee -a "$outfile"
+            echo "" | tee -a "$outfile"
+            
+            start_time=$(date +%s)
+          
+            # -------------------
+            # Step 1: Preprocess - divide the dataset by discrete covariates
+            # -------------------
+            
+            echo "[STEP 1] Preprocess dataset..." | tee -a "$outfile"
+            
+            rm -rf "mice_data/$y_c_structure"   # delete old datasets
+            
+            # creates mice_data/week_only/Data.RData
+            Rscript script_preprocess_mice_data.R "$ID" "$y_c_structure" "$time_scale" "$method" "$m" "$mov" "$vr" "$region" "$min_events" "$max_processes" "$n_weeks" "$cluster" >> "$outfile" 2>&1 
     
             
-        # ----------------
-        # Part 1 - get all outer products before re-weighting by y_c
-        # ----------------
+            end_time=$(date +%s)
+            runtime=$((end_time - start_time))
+            
+            echo "[STEP 1] Finished" | tee -a "$outfile"
+            echo "Total elapsed time: ${runtime} seconds (~$((runtime/60)) minutes)." >> "$outfile"
+            echo "" | tee -a "$outfile"
+            echo "===========================================" >> "$outfile"
+            echo "" | tee -a "$outfile"
+            
+            # -----------------------
+            # Step 2: Fit
+            # -----------------------
+            
+            echo "[STEP 2] Fitting dataset ..." | tee -a "$outfile"
+            echo "" | tee -a "$outfile"
+            echo "===================================================" >> "$outfile"
+            echo "" | tee -a "$outfile"
         
-        echo "[PART 1] Collecting parameters ..." >> "$outfile"
-        
-        
-        # temp_data/simu/part1_hub_block_v2_n_100 
-        output=$(Rscript script_fit_mice_data_part1.R \
-                  "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$cluster" \
-                  2>&1 | tee -a "$outfile")
-        
-        
-        echo "" | tee -a "$outfile"
-        echo "===================================================" >> "$outfile"
-        echo "" | tee -a "$outfile"
-        
-        # Extract n_queries, n_i and n_ij from output
-  
-        n_queries=$(echo "$output" | grep "n_queries" | awk -F= '{print $2}')
-        n_queries=$(echo "$n_queries" | xargs)
-  
-        n_i=$(echo "$output" | grep "n_processes" | awk -F= '{print $2}')
-        n_i=$(echo "$n_i" | xargs)
-        
-        n_ij=$(echo "$output" | grep "n_bivariate_processes" | awk -F= '{print $2}')
-        n_ij=$(echo "$n_ij" | xargs)
-        
-        
-        echo "num queries=$n_queries" >> "$outfile"
-        echo "num processes=$n_i" >> "$outfile"
-        echo "num pairwise processes=$n_ij" >> "$outfile"
-        echo "" | tee -a "$outfile"
-        echo "===================================================" >> "$outfile"
-        echo "" | tee -a "$outfile"
-        
-        # ----------------
-        # Part 2 - getting raw rho_i, rho_ij values without weighing 
-        # ----------------
-        
-
+                
+            # ----------------
+            # Part 1 - get all outer products before re-weighting by y_c
+            # ----------------
+            
+            echo "[PART 1] Collecting parameters ..." >> "$outfile"
+            
+            
+            # temp_data/simu/part1_hub_block_v2_n_100 
+            output=$(Rscript script_fit_mice_data_part1.R \
+                      "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$cluster" \
+                      2>&1 | tee -a "$outfile")
+            
+            
+            echo "" | tee -a "$outfile"
+            echo "===================================================" >> "$outfile"
+            echo "" | tee -a "$outfile"
+            
+            # Extract n_queries, n_i and n_ij from output
       
-        if [ "$cluster" == "andrew" ]; then
-        
-        
+            n_queries=$(echo "$output" | grep "n_queries" | awk -F= '{print $2}')
+            n_queries=$(echo "$n_queries" | xargs)
+      
+            n_i=$(echo "$output" | grep "n_processes" | awk -F= '{print $2}')
+            n_i=$(echo "$n_i" | xargs)
+            
+            n_ij=$(echo "$output" | grep "n_bivariate_processes" | awk -F= '{print $2}')
+            n_ij=$(echo "$n_ij" | xargs)
+            
+            
+            echo "num queries=$n_queries" >> "$outfile"
+            echo "num processes=$n_i" >> "$outfile"
+            echo "num pairwise processes=$n_ij" >> "$outfile"
+            echo "" | tee -a "$outfile"
+            echo "===================================================" >> "$outfile"
+            echo "" | tee -a "$outfile"
+            
+            # ----------------
+            # Part 2 - getting raw rho_i, rho_ij values without weighing 
+            # ----------------
+            
+
             echo "[PART 2] Calculating Rho_i ..." >> "$outfile"
             echo "" | tee -a "$outfile"
             
@@ -225,29 +435,17 @@ for ID in "${IDs[@]}"; do
             
             # temp_data/simu/step_2_v5_raw_rho_list...
             Rscript script_step2_part3_v5.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_i" "$n_ij" >> "$outfile" 2>&1
-        
-        else
-        
-            # on hoffman, estimate rho_i and rho_ij using ncores instead of manually parallelizing
             
-            echo "[PART 2+3+4] Calculating Rho_i and Rho_ij in parallel and merging" >> "$outfile"
+ 
+          
+            echo "[PART 5] Downstream estimation for all y_c values ..." >> "$outfile"
             echo "" | tee -a "$outfile"
-        
-            Rscript script_step2_hoffman.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_i" "$n_ij" >> "$outfile" 2>&1
+            
+            echo "Number of queries: $n_queries" >> "$outfile"
+            echo "" | tee -a "$outfile"
+            
+            
 
-        fi
-        
-
-      
-        echo "[PART 5] Downstream estimation for all y_c values ..." >> "$outfile"
-        echo "" | tee -a "$outfile"
-        
-        echo "Number of queries: $n_queries" >> "$outfile"
-        echo "" | tee -a "$outfile"
-        
-        
-        if [ "$cluster" == "andrew" ]; then
-        
             # Loop over all subsets of y_c
       
             for j in $(seq 1 "$n_queries"); do
@@ -346,172 +544,164 @@ for ID in "${IDs[@]}"; do
                 
             done
             wait 
-            
-        else
-        
-            # on hoffman, run y_c queries in series, parallelizing GIC part 2+3 over k using ncores
 
-            echo "[PARTS 2-4 + GIC] Running full pipeline for all y_c queries (hoffman) ..." >> "$outfile"
-            echo "" | tee -a "$outfile"
-        
-            Rscript script_step3_hoffman.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_queries" "$y_c_bandwidth" "$eigen_setting" >> "$outfile" 2>&1
-        
-        fi
-        
-        # ----------------
-        # Part 2c - joint calculation of tau_c and tau_p across all timepoints                      
-        #           
-        #           AND/OR
-        #
-        #         - joint calculation of global tau_c and individual tau_p across all timepoints
-        # ----------------
-        
-        
-        # Check for joint or both
-        if [[ "$global_thresh_method" == "joint" || "$global_thresh_method" == "both" || "$global_thresh_method" == "tau_c" ]]; then
-        
-            echo "" | tee -a "$outfile"
-            echo "===================================================" >> "$outfile"
-            echo "" | tee -a "$outfile"
-            echo "Running global/hybrid script..." >> "$outfile"
-            echo "" | tee -a "$outfile"
-            echo "===================================================" >> "$outfile"
-            echo "" | tee -a "$outfile"
-            
-
-            # PART 1: Precompute tau_c quantiles and get num_k
-            output=$(Rscript script_GIC_global_part1.R \
-                     "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_queries" \
-                     2>&1 | tee -a "$outfile")
             
 
             
-            # retrieve variables
-                        
-            num_k=$(echo "$output" | grep "max_k" | awk -F= '{print $2}')
-            num_k=$(echo "$num_k" | xargs)
-            
-            num_suffixes=$(echo "$output" | grep "num_suffixes" | awk -F= '{print $2}')
-            num_suffixes=$(echo "$num_suffixes" | xargs)
-
-            echo "The Max K is: $num_k" >> "$outfile"
-            echo "The Number of Suffixes is: $num_suffixes" >> "$outfile"
+            # ----------------
+            # Part 2c - joint calculation of tau_c and tau_p across all timepoints                      
+            #           
+            #           AND/OR
+            #
+            #         - joint calculation of global tau_c and individual tau_p across all timepoints
+            # ----------------
             
             
-            # Loop through the IDs found in the map
-            for id_suffix in $(seq 1 "$num_suffixes"); do
-
-                echo "suffix="$id_suffix >> "$outfile"
+            # Check for joint or both
+            if [[ "$global_thresh_method" == "joint" || "$global_thresh_method" == "both" || "$global_thresh_method" == "tau_c" ]]; then
+            
+                echo "" | tee -a "$outfile"
+                echo "===================================================" >> "$outfile"
+                echo "" | tee -a "$outfile"
+                echo "Running global/hybrid script..." >> "$outfile"
+                echo "" | tee -a "$outfile"
+                echo "===================================================" >> "$outfile"
+                echo "" | tee -a "$outfile"
                 
-                for ((k=1; k<=num_k; k++)); do
+    
+                # PART 1: Precompute tau_c quantiles and get num_k
+                output=$(Rscript script_GIC_global_part1.R \
+                         "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_queries" \
+                         2>&1 | tee -a "$outfile")
+                
+    
+                
+                # retrieve variables
+                            
+                num_k=$(echo "$output" | grep "max_k" | awk -F= '{print $2}')
+                num_k=$(echo "$num_k" | xargs)
+                
+                num_suffixes=$(echo "$output" | grep "num_suffixes" | awk -F= '{print $2}')
+                num_suffixes=$(echo "$num_suffixes" | xargs)
+    
+                echo "The Max K is: $num_k" >> "$outfile"
+                echo "The Number of Suffixes is: $num_suffixes" >> "$outfile"
+                
+                
+                # Loop through the IDs found in the map
+                for id_suffix in $(seq 1 "$num_suffixes"); do
+    
+                    echo "suffix="$id_suffix >> "$outfile"
                     
-                    # Run JOINT if requested
-                    wait_for_slot
-                    
-                    if [[ "$global_thresh_method" == "joint" || "$global_thresh_method" == "both" ]]; then
-                        Rscript script_GIC_global_part2and3_serial.R \
-                            "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" \
-                            "$id_suffix" "$k" >> "$outfile" 2>&1 &
-                    fi
-                    
-                    # Run HYBRID if requested
-                    wait_for_slot
-                    
-                    if [[ "$global_thresh_method" == "tau_c" || "$global_thresh_method" == "both" ]]; then
-                        Rscript script_GIC_hybrid_part2and3_serial.R \
-                            "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" \
-                            "$id_suffix" "$k" >> "$outfile" 2>&1 &
-                    fi
-
+                    for ((k=1; k<=num_k; k++)); do
+                        
+                        # Run JOINT if requested
+                        wait_for_slot
+                        
+                        if [[ "$global_thresh_method" == "joint" || "$global_thresh_method" == "both" ]]; then
+                            Rscript script_GIC_global_part2and3_serial.R \
+                                "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" \
+                                "$id_suffix" "$k" >> "$outfile" 2>&1 &
+                        fi
+                        
+                        # Run HYBRID if requested
+                        wait_for_slot
+                        
+                        if [[ "$global_thresh_method" == "tau_c" || "$global_thresh_method" == "both" ]]; then
+                            Rscript script_GIC_hybrid_part2and3_serial.R \
+                                "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" \
+                                "$id_suffix" "$k" >> "$outfile" 2>&1 &
+                        fi
+    
+                    done
+    
                 done
-
-            done
+                wait
+                
+                echo "All GIC global/hybrid tasks complete. Combining." >> "$outfile"
+                
+                # PART 4: Finalize and combine results
+                
+                if [[ "$global_thresh_method" == "joint" || "$global_thresh_method" == "both" ]]; then
+                    Rscript script_GIC_global_part4.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_queries" >> "$outfile" 2>&1
+                fi
+                
+                if [[ "$global_thresh_method" == "tau_c" || "$global_thresh_method" == "both" ]]; then
+                    Rscript script_GIC_hybrid_part4.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_queries" >> "$outfile" 2>&1
+                fi
+                
+                
+                
+    
+            fi
+            
+            
+            # ----------------
+            # Part 2d - get step_12 and step_12b, ROC and edge set after all w_mats have been calculated                     
+            # ----------------
+            
+            echo "At part 2d" >> "$outfile"
+            
+            
+            # updating /part3 with more info
+            Rscript script_fit_mice_data_part2d.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_queries" "$cluster" >> "$outfile" 2>&1
+                  
+            
+            # ----------------
+            # Part 3- when all part 2's are done, do part 3
+            # ----------------
+            
+            
+            echo "At part 3" >> "$outfile"
+            
+            # mice_results/adj_type/CPGM/... .RData
+            Rscript script_fit_mice_data_part3.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_queries" "$y_c_bandwidth" "$region" "$cluster" >> "$outfile" 2>&1
+            
+            echo "" | tee -a "$outfile"
+            echo "[DONE] Estimating all y_cs" >> "$outfile"
+                
+          
             wait
             
-            echo "All GIC global/hybrid tasks complete. Combining." >> "$outfile"
+            # ----------------
+            # Last step - visualize results
+            # ----------------
             
-            # PART 4: Finalize and combine results
+            echo "" | tee -a "$outfile"
+            echo "===================================================" >> "$outfile"
+            echo "" | tee -a "$outfile"
+            echo "[STEP 3] Graphing results... " >> "$outfile"
+            echo "" | tee -a "$outfile"
             
-            if [[ "$global_thresh_method" == "joint" || "$global_thresh_method" == "both" ]]; then
-                Rscript script_GIC_global_part4.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_queries" >> "$outfile" 2>&1
-            fi
+        
+            Rscript script_unpack_mice_results.R "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$eigen_setting"  >> "$outfile" 2>&1
             
-            if [[ "$global_thresh_method" == "tau_c" || "$global_thresh_method" == "both" ]]; then
-                Rscript script_GIC_hybrid_part4.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_queries" >> "$outfile" 2>&1
-            fi
+            echo "Deleting Files ..." >> "$outfile"
+            
+            MICE_FOLDER="temp_data/mice/${ID}_m${mov}vr${vr}_t${time_scale}"
+            
+            rm -rf "$MICE_FOLDER"
+            
+            echo "Cleanup complete for $ID, m${mov}vr${vr}, t=$time_scale." >> "$outfile"
+            
+            # ============================================================
+            # END TIMER
+            # ============================================================
+            
+            echo "" | tee -a "$outfile"
+            echo "===================================================" >> "$outfile"
             
             
+            end_time=$(date +%s)
+            runtime=$((end_time - start_time))
             
-
-        fi
-        
-        
-        # ----------------
-        # Part 2d - get step_12 and step_12b, ROC and edge set after all w_mats have been calculated                     
-        # ----------------
-        
-        echo "At part 2d" >> "$outfile"
-        
-        
-        # updating /part3 with more info
-        Rscript script_fit_mice_data_part2d.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_queries" "$cluster" >> "$outfile" 2>&1
-              
-        
-        # ----------------
-        # Part 3- when all part 2's are done, do part 3
-        # ----------------
-        
-        
-        echo "At part 3" >> "$outfile"
-        
-        # mice_results/adj_type/CPGM/... .RData
-        Rscript script_fit_mice_data_part3.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_queries" "$y_c_bandwidth" "$region" "$cluster" >> "$outfile" 2>&1
-        
-        echo "" | tee -a "$outfile"
-        echo "[DONE] Estimating all y_cs" >> "$outfile"
-            
-      
+            echo "Pipeline finished at: $(date)" >> "$outfile"
+            echo "Total runtime: ${runtime} seconds (~$((runtime/60)) minutes)." >> "$outfile"
+    
+        done  # discrete strata loop
         wait
         
-        # ----------------
-        # Last step - visualize results
-        # ----------------
-        
-        echo "" | tee -a "$outfile"
-        echo "===================================================" >> "$outfile"
-        echo "" | tee -a "$outfile"
-        echo "[STEP 3] Graphing results... " >> "$outfile"
-        echo "" | tee -a "$outfile"
-        
-    
-        Rscript script_unpack_mice_results.R "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$eigen_setting"  >> "$outfile" 2>&1
-        
-        echo "Deleting Files ..." >> "$outfile"
-        
-        MICE_FOLDER="temp_data/mice/${ID}_m${mov}vr${vr}_t${time_scale}"
-        
-        rm -rf "$MICE_FOLDER"
-        
-        echo "Cleanup complete for $ID, m${mov}vr${vr}, t=$time_scale." >> "$outfile"
-        
-        # ============================================================
-        # END TIMER
-        # ============================================================
-        
-        echo "" | tee -a "$outfile"
-        echo "===================================================" >> "$outfile"
-        
-        
-        end_time=$(date +%s)
-        runtime=$((end_time - start_time))
-        
-        echo "Pipeline finished at: $(date)" >> "$outfile"
-        echo "Total runtime: ${runtime} seconds (~$((runtime/60)) minutes)." >> "$outfile"
+    done  # mouse loop
 
-    done  # discrete strata loop
-    wait
-    
-done  # mouse loop
-
-
+fi
 
