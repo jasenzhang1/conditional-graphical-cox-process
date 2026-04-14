@@ -132,7 +132,7 @@ if [ "$cluster" == "hoffman" ]; then
     echo "===================================================" | tee -a "$outfile"
     echo "" | tee -a "$outfile"
     
-    start_time=$(date +%s)
+    step_1_start_time=$(date +%s)
     
     # -------------------
     # Step 1: Preprocess - divide the dataset by discrete covariates
@@ -146,11 +146,11 @@ if [ "$cluster" == "hoffman" ]; then
     Rscript script_preprocess_mice_data.R "$ID" "$y_c_structure" "$time_scale" "$method" "$m" "$mov" "$vr" "$region" "$min_events" "$max_processes" "$n_weeks" "$cluster" >> "$outfile" 2>&1 
     
     
-    end_time=$(date +%s)
-    runtime=$((end_time - start_time))
+    step_1_end_time=$(date +%s)
+    step_1_runtime=$((step_1_end_time - step_1_start_time))
     
     echo "[STEP 1] Finished" | tee -a "$outfile"
-    echo "Total elapsed time: ${runtime} seconds (~$((runtime/60)) minutes)." >> "$outfile"
+    echo "Total elapsed time: ${step_1_runtime} seconds (~$((step_1_runtime/60)) minutes)." >> "$outfile"
     echo "" | tee -a "$outfile"
     echo "===========================================" >> "$outfile"
     echo "" | tee -a "$outfile"
@@ -222,7 +222,7 @@ if [ "$cluster" == "hoffman" ]; then
     
     echo "[STEP 2] Finished" | tee -a "$outfile"
     echo "" | tee -a "$outfile"
-    echo "Step 2 elapsed time: ${runtime} seconds (~$((step_2_runtime/60)) minutes)." >> "$outfile"
+    echo "Step 2 elapsed time: ${step_2_runtime} seconds (~$((step_2_runtime/60)) minutes)." >> "$outfile"
     echo "" | tee -a "$outfile"
     echo "===================================================" >> "$outfile"
     echo "" | tee -a "$outfile"
@@ -241,7 +241,7 @@ if [ "$cluster" == "hoffman" ]; then
     
     echo "[STEP 3] Finished" | tee -a "$outfile"
     echo "" | tee -a "$outfile"
-    echo "Step 3 elapsed time: ${runtime} seconds (~$((step_3_runtime/60)) minutes)." >> "$outfile"
+    echo "Step 3 elapsed time: ${step_3_runtime} seconds (~$((step_3_runtime/60)) minutes)." >> "$outfile"
     echo "" | tee -a "$outfile"
     echo "===================================================" >> "$outfile"
     echo "" | tee -a "$outfile"
@@ -291,7 +291,7 @@ if [ "$cluster" == "hoffman" ]; then
     step_4_runtime=$((step_4_end_time - step_4_start_time))
     
     echo "[STEP 4] Finished" | tee -a "$outfile"
-    echo "Step 4 elapsed time: ${runtime} seconds (~$((step_4_runtime/60)) minutes)." >> "$outfile"
+    echo "Step 4 elapsed time: ${step_4_runtime} seconds (~$((step_4_runtime/60)) minutes)." >> "$outfile"
     
     # -------------------------
     # Deleting files
@@ -313,11 +313,11 @@ if [ "$cluster" == "hoffman" ]; then
     echo "===================================================" >> "$outfile"
     
     
-    end_time=$(date +%s)
-    runtime=$((end_time - start_time))
+    final_end_time=$(date +%s)
+    final_runtime=$((final_end_time - step_1_start_time))
     
     echo "Pipeline finished at: $(date)" >> "$outfile"
-    echo "Total runtime: ${runtime} seconds (~$((runtime/60)) minutes)." >> "$outfile"
+    echo "Total runtime: ${final_runtime} seconds (~$((final_runtime/60)) minutes)." >> "$outfile"
 
 else
 
