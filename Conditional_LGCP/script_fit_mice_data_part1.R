@@ -62,7 +62,12 @@ if(model_type == 'mice'){
   data_folder <- paste0(data_folder, '/', y_c_structure) 
   if (!dir.exists(data_folder)) dir.create(data_folder)  # /mice_data/week_only
   
-  temp_file_dir <- 'temp_data'
+  if(cluster == 'andrew'){
+    temp_file_dir <- 'temp_data'
+  } else{
+    temp_file_dir <- '../../../temp_data'
+  }
+  
   if (!dir.exists(temp_file_dir)) dir.create(temp_file_dir)  # /temp_data
   
   temp_file_dir <- paste0(temp_file_dir, '/mice')

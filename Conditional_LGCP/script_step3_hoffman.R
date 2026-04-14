@@ -37,7 +37,10 @@ if(model_type == 'mice'){
                             discrete_level = discrete_level,
                             y_c_bandwidth = y_c_bandwidth)
   
-  temp_file_dirs <- c(paste0('temp_data/mice/', ID, '_', discrete_level, '_t', time_scale), 'temp_data/mice_data')
+  # temp_data/mice/Tau3_m0vr0_t10/
+  # no data folder needed
+  temp_file_dirs <- c(paste0('../../../temp_data/mice/', ID, '_', discrete_level, '_t', time_scale), 
+                      NA)
   
   mouse <- T
   
