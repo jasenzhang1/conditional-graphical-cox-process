@@ -1,7 +1,7 @@
 #!/bin/bash
 #$ -cwd
 #$ -l h_rt=24:00:00              # walltime
-#$ -l h_data=4G                  # memory per job - adjust as needed
+#$ -l h_data=8G                  # memory per job - adjust as needed
 #$ -pe shared 16                 # number of cores - match your ncores in R
 # Email address to notify
 #$ -M $USER@mail #don't change this line, finds your email in the system 
@@ -209,7 +209,13 @@ if [ "$cluster" == "hoffman" ]; then
     echo "[PART 2+3+4] Calculating Rho_i and Rho_ij in parallel and merging" >> "$outfile"
     echo "" | tee -a "$outfile"
 
+    # it may have aborted
     Rscript script_step2_hoffman.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_i" "$n_ij" >> "$outfile" 2>&1   
+    if [ $? -ne 0 ]; then
+        echo "[ERROR] script_step2_hoffman.R failed. Aborting." | tee -a "$outfile"
+        exit 1
+    fi
+
 
     step_2_end_time=$(date +%s)
     step_2_runtime=$((step_2_end_time - step_2_start_time))

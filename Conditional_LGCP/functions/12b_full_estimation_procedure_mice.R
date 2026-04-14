@@ -1235,10 +1235,15 @@ estimate_intensities_stratum_parallel_with_yc_hoffman <- function(temp_file_dir,
   # ---- Part 2: rho_ij ----
   message("[PART 3] Calculating Rho_ij ...")
   
-  parLapply(cl, 1:n_ij, function(k) {
-    estimate_intensities_stratum_parallel_with_yc_part2_v5(
-      temp_file_dir, setting_info_list, k, mouse, X_truth
-    )
+  result <- tryCatch({
+    parLapply(cl, 1:n_ij, function(k) {
+      estimate_intensities_stratum_parallel_with_yc_part2_v5(
+        temp_file_dir, setting_info_list, k, mouse, X_truth
+      )
+    })
+  }, error = function(e) {
+    message("[ERROR in parLapply rho_ij]: ", conditionMessage(e))
+    NULL
   })
   
   stopCluster(cl)
