@@ -43,7 +43,7 @@ cd ..   # go one level up (from /scripts to /)
 module load apptainer
 module load R
 MEM_PER_SLOT="1G"
-cluster="hoffman" # hoffman or andrew
+cluster="andrew" # hoffman or andrew
 model_type="mice"  # simu or mice
 
 eigen_setting="only_joint"  #only_joint, trig_and_joint, trig_simple
