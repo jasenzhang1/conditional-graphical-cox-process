@@ -1,8 +1,8 @@
 #!/bin/bash
 #$ -cwd
-#$ -l h_rt=24:00:00              # walltime
-#$ -l h_data=8G                  # memory per job - adjust as needed
-#$ -pe shared 16                 # number of cores - match your ncores in R
+#$ -l h_rt=48:00:00              # walltime
+#$ -l h_data=1G                  # memory per job - adjust as needed
+#$ -pe shared 50                 # number of cores - match your ncores in R
 # Email address to notify
 #$ -M $USER@mail #don't change this line, finds your email in the system 
 # Notify when
@@ -42,7 +42,7 @@ cd ..   # go one level up (from /scripts to /)
 
 module load apptainer
 module load R
-
+MEM_PER_SLOT="1G"
 cluster="hoffman" # hoffman or andrew
 model_type="mice"  # simu or mice
 
@@ -59,7 +59,7 @@ min_freq=0.5
 min_events=$(echo "$time_scale * $min_freq" | bc | xargs printf "%.0f")
 
 
-max_processes=10000
+max_processes=10
 n_weeks=50
 
 if [ "$cluster" == "hoffman" ]; then
@@ -129,6 +129,13 @@ if [ "$cluster" == "hoffman" ]; then
     echo "Starting full pipeline for mouse=$ID, region=$region, movement=$mov, VR=$vr, time_scale=$time_scale" | tee -a "$outfile"
     echo "Logging to: $outfile" | tee -a "$outfile"
     echo "Start time: $(date)" | tee -a "$outfile"
+    echo "---------------------------------------------------" | tee -a "$outfile"
+    echo "Job ID: $JOB_ID" | tee -a "$outfile"
+    echo "Host: $HOSTNAME" | tee -a "$outfile"
+    echo "Cores: $NSLOTS" | tee -a "$outfile"
+    total_mem=$(echo "$NSLOTS * ${MEM_PER_SLOT%G}" | bc)
+    echo "Memory per slot: $MEM_PER_SLOT  =>  Total: ${total_mem}G" | tee -a "$outfile"
+    echo "Walltime: 48:00:00" | tee -a "$outfile"
     echo "===================================================" | tee -a "$outfile"
     echo "" | tee -a "$outfile"
     
