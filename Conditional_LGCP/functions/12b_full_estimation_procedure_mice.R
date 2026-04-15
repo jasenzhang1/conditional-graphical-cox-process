@@ -1276,7 +1276,7 @@ run_pipeline_all_queries_hoffman <- function(temp_file_dirs, setting_info_list,
   
   for (j in 1:n_queries) {
     
-    message(sprintf("[START] y_c = %d", j))
+    message(sprintf("[START] y_c = %d / %d", j, n_queries))
     
     # ---- Step 1: part4 (weights + pad rho_i, rho_ij) ----
     estimate_intensities_stratum_parallel_with_yc_part4_v5(
@@ -1348,10 +1348,27 @@ run_pipeline_all_queries_hoffman <- function(temp_file_dirs, setting_info_list,
       })
       
       parLapply(cl, 1:num_k_suffix, function(k) {
-        GIC_step2and3_serial_tau_c(GIC_folder, id_suffix, k)
+        tryCatch({
+          GIC_step2and3_serial_tau_c(GIC_folder, id_suffix, k)
+        }, error = function(e) {
+          saveRDS(
+            list(k = k, error = conditionMessage(e)),
+            file = file.path(GIC_folder, paste0("ERROR_k", k, ".rds"))
+          )
+        })
       })
       
       stopCluster(cl)
+      
+      # report any errors
+      err_files <- list.files(GIC_folder, pattern = "^ERROR_k", full.names = TRUE)
+      if (length(err_files) > 0) {
+        for (f in err_files) {
+          err <- readRDS(f)
+          message(sprintf("[ERROR] k=%d: %s", err$k, err$error))
+        }
+        stop(sprintf("%d workers failed in GIC part2+3 for y_c=%d", length(err_files), j))
+      }
       
       message(sprintf("[GIC part2+3 done] y_c = %d, suffix = %s", j, id_suffix))
     }
