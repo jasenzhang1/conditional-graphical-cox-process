@@ -42,7 +42,7 @@ cd ..   # go one level up (from /scripts to /)
 
 module load apptainer
 module load R
-MEM_PER_SLOT="1G"
+MEM_PER_SLOT="2G"
 cluster="andrew" # hoffman or andrew
 model_type="mice"  # simu or mice
 
@@ -59,7 +59,7 @@ min_freq=0.5
 min_events=$(echo "$time_scale * $min_freq" | bc | xargs printf "%.0f")
 
 
-max_processes=10
+max_processes=10000
 n_weeks=50
 
 if [ "$cluster" == "hoffman" ]; then
@@ -75,14 +75,10 @@ else
     movement=(0 0 1 1)
     VR=(0 1 0 1)
     
-    IDs=("Tau1")
-    movement=(1)
-    VR=(1)
+    y_c_bandwidth=0.0003 # usually its 0.3, exp(-gamma * y_c_diff^2)
+    region="EHC"   # "HIP", "EHC", or "HIP_EHC"
     
-    y_c_bandwidth=0.001 # usually its 0.3, exp(-gamma * y_c_diff^2)
-    region="HIP"   # "HIP", "EHC", or "HIP_EHC"
-    
-    max_jobs=60
+    max_jobs=75
     
     function wait_for_slot {
         while true; do
