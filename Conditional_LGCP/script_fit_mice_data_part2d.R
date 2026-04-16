@@ -19,14 +19,7 @@ if(model_type == 'mice'){
   cont_inds <- as.numeric(args[8])    # cont_ind <- 1  
   cluster <- args[9]
   
-  if(cluster == 'andrew'){
-    library(RhpcBLASctl)
-    
-    # limit threads in BLAS/LAPACK
-    blas_set_num_threads(1)   # limit BLAS
-    omp_set_num_threads(1)    # limit OpenMP
-  }
-  
+  mouse <- T
   discrete_level <- paste0('m', movement, 'vr', VR)
   
   setting_info_list <- list(ID = ID,
@@ -35,8 +28,24 @@ if(model_type == 'mice'){
                             method = method,
                             discrete_level = discrete_level)
   
-  temp_file_dir <- paste0('temp_data/mice/', ID, '_', discrete_level, '_t', time_scale)
-  mouse <- T
+  if(cluster == 'andrew'){
+    library(RhpcBLASctl)
+    
+    # limit threads in BLAS/LAPACK
+    blas_set_num_threads(1)   # limit BLAS
+    omp_set_num_threads(1)    # limit OpenMP
+    
+    temp_file_dir <- paste0('temp_data/mice/', ID, '_', discrete_level, '_t', time_scale)
+  } else{
+    temp_file_dir <- paste0('../../../temp_data/mice/', ID, '_', discrete_level, '_t', time_scale) # biostat_dir for hoffman
+  }
+  
+  
+  
+
+  
+  
+  
   
 } else if(model_type == 'simu'){
   

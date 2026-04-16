@@ -25,14 +25,6 @@ if(model_type == 'mice'){
   region <- args[10]                  # region <- 'HIP'
   cluster <- args[11]                 # cluster <- 'hoffman' 
   
-  if(cluster == 'andrew'){
-    library(RhpcBLASctl)
-    
-    # limit threads in BLAS/LAPACK
-    blas_set_num_threads(1)   # limit BLAS
-    omp_set_num_threads(1)    # limit OpenMP
-  }
-  
   discrete_level <- paste0('m', movement, 'vr', VR)
   
   setting_info_list <- list(ID = ID,
@@ -43,7 +35,21 @@ if(model_type == 'mice'){
   
   
   mouse <- T
-  temp_file_dir <- paste0('temp_data/mice/', ID, '_', discrete_level, '_t', time_scale)
+  
+  if(cluster == 'andrew'){
+    library(RhpcBLASctl)
+    
+    # limit threads in BLAS/LAPACK
+    blas_set_num_threads(1)   # limit BLAS
+    omp_set_num_threads(1)    # limit OpenMP
+    
+    temp_file_dir <- paste0('temp_data/mice/', ID, '_', discrete_level, '_t', time_scale)
+  } else{
+    temp_file_dir <- paste0('../../../temp_data/mice/', ID, '_', discrete_level, '_t', time_scale)  # hoffman uses biostat-project
+  }
+  
+
+  
   temp_file_dir2 <- NA
   
   if(cluster == 'andrew'){
