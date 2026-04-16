@@ -1,8 +1,8 @@
 #!/bin/bash
 #$ -cwd
-#$ -l h_rt=48:00:00              # walltime
-#$ -l h_data=1G                  # memory per job - adjust as needed
-#$ -pe shared 50                 # number of cores - match your ncores in R
+#$ -l h_rt=200:00:00              # walltime
+#$ -l h_data=4G                  # memory per job - adjust as needed
+#$ -pe shared 36                 # number of cores - match your ncores in R
 # Email address to notify
 #$ -M $USER@mail #don't change this line, finds your email in the system 
 # Notify when
@@ -75,7 +75,7 @@ else
     movement=(0 0 1 1)
     VR=(0 1 0 1)
     
-    y_c_bandwidth=0.0003 # usually its 0.3, exp(-gamma * y_c_diff^2)
+    y_c_bandwidth=0.001 # usually its 0.3, exp(-gamma * y_c_diff^2)
     region="EHC"   # "HIP", "EHC", or "HIP_EHC"
     
     max_jobs=75
