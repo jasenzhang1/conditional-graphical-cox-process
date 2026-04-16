@@ -1196,6 +1196,9 @@ estimate_intensities_stratum_parallel_with_yc_hoffman <- function(temp_file_dir,
   # ----------------------------------------------------------------------------
   
   library(parallel)
+  library(RhpcBLASctl)
+  blas_set_num_threads(1)
+  omp_set_num_threads(1)
   
   print(paste0('Number of cores in step 2: ', ncores))
   
@@ -1221,6 +1224,9 @@ estimate_intensities_stratum_parallel_with_yc_hoffman <- function(temp_file_dir,
   clusterEvalQ(cl, {
     library(data.table)
     library(dplyr)
+    library(RhpcBLASctl)
+    blas_set_num_threads(1)
+    omp_set_num_threads(1)
   })
   
   # ---- Part 1: rho_i ----
@@ -1273,6 +1279,9 @@ run_pipeline_all_queries_hoffman <- function(temp_file_dirs, setting_info_list,
   # ----------------------------------------------------------------------------
   
   library(parallel)
+  library(RhpcBLASctl)
+  blas_set_num_threads(1)
+  omp_set_num_threads(1)
   
   for (j in 1:n_queries) {
     
@@ -1345,8 +1354,12 @@ run_pipeline_all_queries_hoffman <- function(temp_file_dirs, setting_info_list,
       
       clusterEvalQ(cl, {
         library(MASS)
+        library(RhpcBLASctl)
+        blas_set_num_threads(1)
+        omp_set_num_threads(1)
       })
       
+      message(sprintf("[GIC part 2+3] parallelizing over %d tasks across %d cores", num_k_suffix, ncores))
       parLapply(cl, 1:num_k_suffix, function(k) {
         tryCatch({
           GIC_step2and3_serial_tau_c(GIC_folder, id_suffix, k)
