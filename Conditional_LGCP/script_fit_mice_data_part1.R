@@ -65,7 +65,7 @@ if(model_type == 'mice'){
   if(cluster == 'andrew'){
     temp_file_dir <- 'temp_data'
   } else{
-    temp_file_dir <- '../../../temp_data'
+    temp_file_dir <- '../../../project-biostat-chair/temp_data'
   }
   
   if (!dir.exists(temp_file_dir)) dir.create(temp_file_dir)  # /temp_data

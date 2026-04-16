@@ -33,7 +33,7 @@ if(model_type == 'mice'){
   
 
   
-  temp_file_dir <- paste0('../../../temp_data/mice/', ID, '_', discrete_level, '_t', time_scale) # temp_data/mice/Tau3_m0vr0_t10/
+  temp_file_dir <- paste0('../../../project-biostat-chair/temp_data/mice/', ID, '_', discrete_level, '_t', time_scale) # temp_data/mice/Tau3_m0vr0_t10/
   mouse <- T
   
 } else if(model_type == 'simu'){

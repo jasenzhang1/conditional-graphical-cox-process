@@ -37,7 +37,7 @@ if(model_type == 'mice'){
     
     temp_file_dir <- paste0('temp_data/mice/', ID, '_', discrete_level, '_t', time_scale)
   } else{
-    temp_file_dir <- paste0('../../../temp_data/mice/', ID, '_', discrete_level, '_t', time_scale) # biostat_dir for hoffman
+    temp_file_dir <- paste0('../../../project-biostat-chair/temp_data/mice/', ID, '_', discrete_level, '_t', time_scale) # biostat_dir for hoffman
   }
   
   

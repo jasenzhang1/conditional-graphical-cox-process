@@ -39,7 +39,7 @@ if(model_type == 'mice'){
   
   # temp_data/mice/Tau3_m0vr0_t10/
   # no data folder needed
-  temp_file_dirs <- c(paste0('../../../temp_data/mice/', ID, '_', discrete_level, '_t', time_scale), 
+  temp_file_dirs <- c(paste0('../../../project-biostat-chair/temp_data/mice/', ID, '_', discrete_level, '_t', time_scale), 
                       NA)
   
   mouse <- T

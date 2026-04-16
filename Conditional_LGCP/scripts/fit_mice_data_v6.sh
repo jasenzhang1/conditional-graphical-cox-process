@@ -1,6 +1,6 @@
 #!/bin/bash
 #$ -cwd
-#$ -l h_rt=200:00:00              # walltime
+#$ -l h_rt=48:00:00              # walltime
 #$ -l h_data=4G                  # memory per job - adjust as needed
 #$ -pe shared 36                 # number of cores - match your ncores in R
 # Email address to notify
@@ -70,6 +70,10 @@ if [ "$cluster" == "hoffman" ]; then
     vr=$3
     y_c_bandwidth=$4
     region=$5
+    
+    mkdir -p ../../../project-biostat-chair/script_outputs
+    mkdir -p ../../../project-biostat-chair/script_outputs/mice
+    
 else
     IDs=("WT3" "Tau3" "WT1" "WT2" "Tau1" "Tau2")
     movement=(0 0 1 1)
@@ -79,6 +83,9 @@ else
     region="EHC"   # "HIP", "EHC", or "HIP_EHC"
     
     max_jobs=75
+    
+    mkdir -p script_outputs
+    mkdir -p script_outputs/mice
     
     function wait_for_slot {
         while true; do
@@ -108,8 +115,7 @@ print_bar() {
     printf "] %3d / %3d" "$current" "$total"
 }
 
-mkdir -p script_outputs
-mkdir -p script_outputs/mice
+
 
 # -------------------------------------------------
 # preprocess
@@ -118,11 +124,11 @@ mkdir -p script_outputs/mice
 if [ "$cluster" == "hoffman" ]; then
 
         
-    outfile="script_outputs/mice/${ID}_m${mov}vr${vr}_t${time_scale}.log"   #Tau1_m0vr0_t10.log
+    outfile="../../../project-biostat-chair/script_outputs/mice/${ID}_m${mov}vr${vr}_t${time_scale}.log"   #Tau1_m0vr0_t10.log
     rm -f "$outfile"   # delete old log if it exists
     
     echo "===================================================" | tee -a "$outfile"
-    echo "Starting full pipeline for mouse=$ID, region=$region, movement=$mov, VR=$vr, time_scale=$time_scale" | tee -a "$outfile"
+    echo "Starting full pipeline for mouse=$ID, region=$region, bandwidth=$y_c_bandwidth, movement=$mov, VR=$vr, time_scale=$time_scale" | tee -a "$outfile"
     echo "Logging to: $outfile" | tee -a "$outfile"
     echo "Start time: $(date)" | tee -a "$outfile"
     echo "---------------------------------------------------" | tee -a "$outfile"
@@ -301,9 +307,9 @@ if [ "$cluster" == "hoffman" ]; then
     # -------------------------
     
     echo "Deleting Files ..." >> "$outfile"
-    
+
     MICE_FOLDER="temp_data/mice/${ID}_m${mov}vr${vr}_t${time_scale}"
-    
+
     rm -rf "$MICE_FOLDER"
     
     echo "Cleanup complete for $ID, m${mov}vr${vr}, t=$time_scale." >> "$outfile"
@@ -337,13 +343,13 @@ else
             rm -f "$outfile"   # delete old log if it exists
             
             echo "===================================================" | tee -a "$outfile"
-            echo "Starting full pipeline for mouse=$ID, region=$region, movement=$mov, VR=$vr, time_scale=$time_scale" | tee -a "$outfile"
+            echo "Starting full pipeline for mouse=$ID, region=$region, bandwidth=$y_c_bandwidth, movement=$mov, VR=$vr, time_scale=$time_scale" | tee -a "$outfile"
             echo "Logging to: $outfile" | tee -a "$outfile"
             echo "Start time: $(date)" | tee -a "$outfile"
             echo "===================================================" | tee -a "$outfile"
             echo "" | tee -a "$outfile"
             
-            start_time=$(date +%s)
+            step_1_start_time=$(date +%s)
           
             # -------------------
             # Step 1: Preprocess - divide the dataset by discrete covariates
@@ -357,11 +363,11 @@ else
             Rscript script_preprocess_mice_data.R "$ID" "$y_c_structure" "$time_scale" "$method" "$m" "$mov" "$vr" "$region" "$min_events" "$max_processes" "$n_weeks" "$cluster" >> "$outfile" 2>&1 
     
             
-            end_time=$(date +%s)
-            runtime=$((end_time - start_time))
+            step_1_end_time=$(date +%s)
+            step_1_runtime=$((step_1_end_time - step_1_start_time))
             
             echo "[STEP 1] Finished" | tee -a "$outfile"
-            echo "Total elapsed time: ${runtime} seconds (~$((runtime/60)) minutes)." >> "$outfile"
+            echo "Total elapsed time: ${step_1_runtime} seconds (~$((step_1_runtime/60)) minutes)." >> "$outfile"
             echo "" | tee -a "$outfile"
             echo "===========================================" >> "$outfile"
             echo "" | tee -a "$outfile"
@@ -370,6 +376,7 @@ else
             # Step 2: Fit
             # -----------------------
             
+            step_2_start_time=$(date +%s)
             echo "[STEP 2] Fitting dataset ..." | tee -a "$outfile"
             echo "" | tee -a "$outfile"
             echo "===================================================" >> "$outfile"
@@ -445,7 +452,17 @@ else
             # temp_data/simu/step_2_v5_raw_rho_list...
             Rscript script_step2_part3_v5.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_i" "$n_ij" >> "$outfile" 2>&1
             
- 
+            step_2_end_time=$(date +%s)
+            step_2_runtime=$((step_2_end_time - step_2_start_time))
+          
+            echo "[STEP 2] Finished" | tee -a "$outfile"
+            echo "Total elapsed time: ${step_2_runtime} seconds (~$((step_2_runtime/60)) minutes)." >> "$outfile"
+            echo "" | tee -a "$outfile"
+            echo "===========================================" >> "$outfile"
+            echo "" | tee -a "$outfile"
+          
+            
+            step_3_start_time=$(date +%s)
           
             echo "[PART 5] Downstream estimation for all y_c values ..." >> "$outfile"
             echo "" | tee -a "$outfile"
@@ -668,7 +685,15 @@ else
             
             echo "" | tee -a "$outfile"
             echo "[DONE] Estimating all y_cs" >> "$outfile"
+            
+            step_3_end_time=$(date +%s)
+            step_3_runtime=$((step_3_end_time - step_3_start_time))
                 
+            echo "[STEP 3] Finished" | tee -a "$outfile"
+            echo "Total elapsed time: ${step_3_runtime} seconds (~$((step_3_runtime/60)) minutes)." >> "$outfile"
+            echo "" | tee -a "$outfile"
+            echo "===========================================" >> "$outfile"
+            echo "" | tee -a "$outfile"
           
             wait
             
@@ -701,11 +726,11 @@ else
             echo "===================================================" >> "$outfile"
             
             
-            end_time=$(date +%s)
-            runtime=$((end_time - start_time))
+            total_end_time=$(date +%s)
+            total_runtime=$((total_end_time - step_1_start_time))
             
             echo "Pipeline finished at: $(date)" >> "$outfile"
-            echo "Total runtime: ${runtime} seconds (~$((runtime/60)) minutes)." >> "$outfile"
+            echo "Total runtime: ${total_runtime} seconds (~$((total_runtime/60)) minutes)." >> "$outfile"
     
         done  # discrete strata loop
         wait
