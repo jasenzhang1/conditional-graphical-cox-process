@@ -80,7 +80,7 @@ else
     VR=(0 1 0 1)
     
     y_c_bandwidth=0.001 # usually its 0.3, exp(-gamma * y_c_diff^2)
-    region="EHC"   # "HIP", "EHC", or "HIP_EHC"
+    region="HIP"   # "HIP", "EHC", or "HIP_EHC"
     
     max_jobs=75
     

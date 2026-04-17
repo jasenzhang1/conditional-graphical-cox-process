@@ -7,16 +7,16 @@
 #     done
 #   done
 # done
+# -l highp \
 
 for ID in "Tau1" "Tau2" "Tau3"; do
   for mov in "0" "1"; do
     for vr in "0" "1"; do
       qsub -N "${ID}_m${mov}vr${vr}" \
-          # -l highp \
           fit_mice_data_v6.sh "$ID" "$mov" "$vr" "0.0003" "HIP"
     done
   done
 done
 
 # to run:
-# qsub submit_mice_jobs_hoffman.sh
+# ./submit_mice_jobs_hoffman.sh
