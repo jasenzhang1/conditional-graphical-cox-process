@@ -35,13 +35,26 @@ y_c_structure  <- args[2]               # y_c_structure <- "week_only" or "time_
 time_scale     <- as.numeric(args[3])   # time_scale <- 10   (each replicate is 5 seconds)
 method         <- args[4]               # method <- 'CPGM'
 m              <- as.numeric(args[5])   # m <- 20
-movement       <- as.numeric(args[6])
+movement       <- as.numeric(args[6])   
 VR             <- as.numeric(args[7])
 region         <- args[8]
 min_events     <- as.numeric(args[9])
 max_processes  <- as.numeric(args[10])
 n_weeks        <- as.numeric(args[11])
 cluster        <- args[12]
+
+# ID <- 'Tau3'
+# y_c_structure <- 'week_only'
+# time_scale <- 10
+# method <- 'CPGM'
+# m <- 30
+# movement <- 1
+# VR <- 1
+# region <- 'BOTH_100'
+# min_events <- 5
+# max_processes <- 10000
+# n_weeks <- 50
+# cluster <- 'andrew'
 
 if(cluster == 'andrew'){
   library(RhpcBLASctl)
@@ -50,19 +63,6 @@ if(cluster == 'andrew'){
   blas_set_num_threads(1)   # limit BLAS
   omp_set_num_threads(1)    # limit OpenMP
 }
-
-
-# ID <- 'Tau3'
-# y_c_structure <- 'week_only'
-# time_scale <- 10
-# method <- 'CPGM'
-# m <- 30
-# movement <- 0
-# VR <- 0
-# region <- 'HIP'
-# min_events <- 5
-# max_processes <- 12
-# n_weeks <- 6
 
 # 2) create folder and print settings
 

@@ -168,9 +168,9 @@ for(k in 1:length(reg_graphs)){
 
 
 
-y_c_structure <- "week_only_bw_0003"
+y_c_structure <- "week_only_bw_001"
 method <- 'CPGM'
-region <- 'HIP'
+region <- 'EHC'
 time_scale <- 10
 
 base_folder <- '../../../project-biostat-chair/mice_results'
@@ -189,19 +189,18 @@ if (!dir.exists(results_folder_2)) {
 
 
 IDs <- c('Tau1', 'Tau2', 'Tau3', 'WT1', 'WT2', 'WT3')
-IDs <- c('Tau3', 'WT3')
+
 
 discrete_levels <- paste0('m', c(0, 0, 1, 1), 'vr', c(0, 1, 0, 1))
 
-discrete_levels_list <- list(discrete_levels[c(1,2,4)],
+discrete_levels_list <- list(discrete_levels,
                              discrete_levels,
                              discrete_levels,
                              discrete_levels,
-                             discrete_levels[3:4],
+                             discrete_levels[c(1,3,4)],
                              discrete_levels)
 
-discrete_levels_list <- list(discrete_levels,
-                             discrete_levels)
+
 
 for(i in 1:length(IDs)){
   print(IDs[i])

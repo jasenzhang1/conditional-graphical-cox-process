@@ -265,9 +265,22 @@ convert_data_for_storage <- function(LGCP_data, df_brain_region, ID, y_c_structu
     relevant_neurons <- df_brain_region$Neuron_Num[df_brain_region$ID2 == ID & df_brain_region$Brain_Region == 'Hippocampus']
   } else if(region == 'EHC'){
     relevant_neurons <- df_brain_region$Neuron_Num[df_brain_region$ID2 == ID & df_brain_region$Brain_Region == 'Entorhinal_Cortex']
+  } else if(region == 'BOTH_100'){
+    
+    # keep top 50 neurons from each region based on total spike output for the entire mouse.
+    # this doesn't guarantee 100 neurons. Pruning may happen afterwards too
+    
+    relevant_neurons <- do.call(c, lapply(c("Hippocampus", "Entorhinal_Cortex"), function(br) {
+      ids <- df_brain_region$Neuron_Num[df_brain_region$Brain_Region == br]
+      tbl <- sort(table(LGCP_data[[1]]$feature_id[LGCP_data[[1]]$feature_id %in% ids]), decreasing = TRUE)
+      as.integer(names(head(tbl, 50)))
+    })) %>% sort()
+    
   } else{
     relevant_neurons <- df_brain_region$Neuron_Num[df_brain_region$ID2 == ID]
   }
+  
+
   
   print(paste0('Num relevant neurons: ', length(relevant_neurons)))
   
