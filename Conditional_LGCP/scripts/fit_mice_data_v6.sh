@@ -82,7 +82,7 @@ else
     y_c_bandwidth=0.0003 # usually its 0.3, exp(-gamma * y_c_diff^2)
     region="BOTH_100"   # "HIP", "EHC", or "HIP_EHC" "BOTH_100"
     
-    max_jobs=50
+    max_jobs=35
     
     mkdir -p script_outputs
     mkdir -p script_outputs/mice
