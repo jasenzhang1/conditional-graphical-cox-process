@@ -79,7 +79,7 @@ else
     movement=(0 0 1 1)
     VR=(0 1 0 1)
     
-    y_c_bandwidth=0.001 # usually its 0.3, exp(-gamma * y_c_diff^2)
+    y_c_bandwidth=0.0003 # usually its 0.3, exp(-gamma * y_c_diff^2)
     region="BOTH_100"   # "HIP", "EHC", or "HIP_EHC" "BOTH_100"
     
     max_jobs=30
