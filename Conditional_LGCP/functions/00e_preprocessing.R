@@ -276,6 +276,12 @@ convert_data_for_storage <- function(LGCP_data, df_brain_region, ID, y_c_structu
       as.integer(names(head(tbl, 50)))
     })) %>% sort()
     
+  } else if(region == 'BOTH_150'){
+    relevant_neurons <- do.call(c, lapply(c("Hippocampus", "Entorhinal_Cortex"), function(br) {
+      ids <- df_brain_region$Neuron_Num[df_brain_region$Brain_Region == br]
+      tbl <- sort(table(LGCP_data[[1]]$feature_id[LGCP_data[[1]]$feature_id %in% ids]), decreasing = TRUE)
+      as.integer(names(head(tbl, 75)))
+    })) %>% sort()
   } else{
     relevant_neurons <- df_brain_region$Neuron_Num[df_brain_region$ID2 == ID]
   }
