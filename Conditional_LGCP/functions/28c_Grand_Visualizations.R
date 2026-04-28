@@ -993,8 +993,8 @@ visualize_adj_grid <- function(sparse_data_list, all_weeks, absent_week_list, ou
   # Layer 3: borders
   if (length(boundaries) > 0) {
     g <- g + 
-      geom_vline(xintercept = boundaries - 0.5, color = "black", alpha = 1, size = 0.7) +
-      geom_hline(yintercept = -boundaries + 0.5, color = "black", alpha = 1, size = 0.7)
+      geom_vline(xintercept = boundaries - 0.5, color = "black", alpha = 1, size = 0.5) +
+      geom_hline(yintercept = -boundaries + 0.5, color = "black", alpha = 1, size = 0.5)
   }
   
   # 4. Final Formatting
