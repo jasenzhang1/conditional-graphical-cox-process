@@ -845,7 +845,7 @@ visualize_over_time <- function(graph_results_i, graph_ids, ground_truth, beta_t
 
 
 
-visualize_adj_grid <- function(sparse_data_list, all_weeks, absent_week_list, output) {
+visualize_adj_grid <- function(sparse_data_list, all_weeks, absent_week_list, output, boundaries) {
   
   # ----------------------------------------------------------------------------
   #
@@ -859,6 +859,7 @@ visualize_adj_grid <- function(sparse_data_list, all_weeks, absent_week_list, ou
   # - all_weeks          (vector)             all weeks in vector form
   # - absent_week_list   (list of vectors)    for each setting, which weeks are absent so we can gray them out 
   # - output             (string)             'adj', or 'P_HS', or 'C_HS'
+  # - boundaries         (vector)             vector of border values, but if not present, it will be numeric(0)
   #
   #
   # ----------------------------------------------------------------------------
@@ -989,6 +990,13 @@ visualize_adj_grid <- function(sparse_data_list, all_weeks, absent_week_list, ou
       theme(legend.position = "right")      # We actually want the legend here
   }
   
+  # Layer 3: borders
+  if (length(boundaries) > 0) {
+    g <- g + 
+      geom_vline(xintercept = boundaries - 0.5, color = "black", alpha = 0.2, size = 0.5) +
+      geom_hline(yintercept = -boundaries + 0.5, color = "black", alpha = 0.2, size = 0.5)
+  }
+  
   # 4. Final Formatting
   g <- g + 
     facet_grid(Row_ID ~ Col_ID, drop = FALSE) + 
@@ -1011,7 +1019,20 @@ visualize_adj_grid <- function(sparse_data_list, all_weeks, absent_week_list, ou
 
 }
 
-visualize_discrete_comparison <- function(results_folder, ID, time_scale, discrete_levels, output) {
+# helper for boundaries
+
+get_factor_boundaries <- function(f) {
+  # Get the integer positions where the level changes
+  level_int <- as.integer(f)
+  change_idx <- which(diff(level_int) != 0)
+  # Boundary is midpoint between last member of one level and first of next
+  change_idx + 0.5
+}
+
+
+
+
+visualize_discrete_comparison <- function(results_folder, ID, time_scale, discrete_levels, output, region_border) {
   
   # ----------------------------------------------------------------------------
   #
@@ -1026,6 +1047,7 @@ visualize_discrete_comparison <- function(results_folder, ID, time_scale, discre
   # - time_scale       (integer)   10 
   # - discrete_levels  (vector of strings)  'm0vr0', 'm1vr1' etc
   # - output           (string)  what to look at. For example 'adj', 'P_HS', 'C_HS'
+  # - region_border    (boolean)  should we look for region borders?
   #
   #
   #
@@ -1053,6 +1075,12 @@ visualize_discrete_comparison <- function(results_folder, ID, time_scale, discre
     tmp_env <- new.env()
     load(file_path, envir = tmp_env)
     res_i <- tmp_env$graph_results_i
+    
+    if(region_border){
+      boundaries <- get_factor_boundaries(res_i$recovery_params$kept_neuron_regions)
+    } else{
+      boundaries <- numeric(0)
+    }
     
     if(output == 'adj'){
       
@@ -1183,8 +1211,8 @@ visualize_discrete_comparison <- function(results_folder, ID, time_scale, discre
 
   
   # 4. Assembly and returning
-  
-  return(visualize_adj_grid(sparse_data_list, 17:38, absent_week_list, output))
+  print(boundaries)
+  return(visualize_adj_grid(sparse_data_list, 17:38, absent_week_list, output, boundaries))
   
 }
 

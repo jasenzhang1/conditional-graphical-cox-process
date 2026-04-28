@@ -17,7 +17,7 @@ time_scale <- 10
 
 base_folder <- 'mice_results'
 
-
+# base_folder <- '../../../project-biostat-chair/mice_results'
 
 
 results_folder <- paste0(base_folder, '/', y_c_structure, '/', method, '_', region)
@@ -42,7 +42,7 @@ discrete_levels_list <- list(discrete_levels,
                              discrete_levels,
                              discrete_levels)
 
-
+region_border <- T
 
 for(i in 1:length(IDs)){
   print(IDs[i])
@@ -50,7 +50,7 @@ for(i in 1:length(IDs)){
   
   png(png_name, width = 45, height = 15, units = "in", res = 100)
   
-  g <- visualize_discrete_comparison(results_folder, IDs[i], time_scale, discrete_levels_list[[i]], 'adj')
+  g <- visualize_discrete_comparison(results_folder, IDs[i], time_scale, discrete_levels_list[[i]], 'adj', region_border)
   print(g)
   dev.off()
 }
