@@ -990,11 +990,38 @@ visualize_adj_grid <- function(sparse_data_list, all_weeks, absent_week_list, ou
       theme(legend.position = "right")      # We actually want the legend here
   }
   
-  # Layer 3: borders
+  # Layer 3: borders (only in non-absent panels)
   if (length(boundaries) > 0) {
-    g <- g + 
-      geom_vline(xintercept = boundaries - 0.5, color = "black", alpha = 1, size = 0.5) +
-      geom_hline(yintercept = -boundaries + 0.5, color = "black", alpha = 1, size = 0.5)
+    
+    # Build a data frame of all facet combinations that are NOT absent
+    all_combos <- expand.grid(
+      Row_ID = discrete_strata,
+      Col_ID = all_weeks,
+      stringsAsFactors = FALSE
+    )
+    
+    # Identify absent combos
+    if (!is.null(bg_gray_data)) {
+      absent_keys <- paste(bg_gray_data$Row_ID, bg_gray_data$Col_ID)
+      all_keys    <- paste(all_combos$Row_ID, all_combos$Col_ID)
+      present_combos <- all_combos[!all_keys %in% absent_keys, ]
+    } else {
+      present_combos <- all_combos
+    }
+    
+    present_combos$Col_ID <- factor(present_combos$Col_ID, levels = all_weeks)
+    present_combos$Row_ID <- factor(present_combos$Row_ID, levels = discrete_strata)
+    
+    # Expand boundaries across present panels
+    boundary_data <- merge(present_combos, data.frame(boundary = boundaries))
+    
+    g <- g +
+      geom_vline(data = boundary_data,
+                 aes(xintercept = boundary - 0.5),
+                 color = "black", alpha = 1, size = 0.5) +
+      geom_hline(data = boundary_data,
+                 aes(yintercept = -boundary + 0.5),
+                 color = "black", alpha = 1, size = 0.5)
   }
   
   # 4. Final Formatting
