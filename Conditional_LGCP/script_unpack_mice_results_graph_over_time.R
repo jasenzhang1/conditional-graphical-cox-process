@@ -10,7 +10,7 @@ source('functions/20_simulation_function_wrapper.R')
 # for all 4 discrete settings, group them and plot adjacency matrices over time
 
 
-y_c_structure <- "week_only_bw_0003"
+y_c_structure <- "week_only_bw_001"
 method <- 'CPGM'
 region <- 'BOTH_100'  # HIP, EHC, BOTH_100
 time_scale <- 10
