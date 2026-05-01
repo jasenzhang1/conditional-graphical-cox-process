@@ -56,4 +56,4 @@ if(model_type == 'mice'){
 }
 
 
-GIC_step4_finalize(temp_file_dir, min_connect)
+GIC_step4_finalize(temp_file_dir)
