@@ -56,7 +56,7 @@ for(i in 1:length(IDs)){
 # ------------------------------------------------------------------------------
 # plot graphs comparing the same discrete strata across two mice
 
-WT_IDs  <- c('WT1', 'WT2', 'WT3')
+WT_IDs  <- c('WT3')
 Tau_IDs <- c('Tau1', 'Tau2', 'Tau3')
 
 for (wt in WT_IDs) {

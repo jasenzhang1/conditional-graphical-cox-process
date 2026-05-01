@@ -51,7 +51,7 @@ global_thresh_method="neither" # both, joint, tau_c, or neither
 
 y_c_structure="week_only"
 method="CPGM"
-
+min_connect=1    # 1 for at least one edge, 0 for at least 0 edges
 
 m=30
 time_scale=10 
@@ -75,7 +75,7 @@ if [ "$cluster" == "hoffman" ]; then
     mkdir -p ../../../project-biostat-chair/script_outputs/mice
     
 else
-    IDs=("WT3" "Tau1" "Tau2" "Tau3")
+    IDs=("WT3" "Tau1" "Tau2" "Tau3" "WT1" "WT2")
     movement=(0 0 1 1)
     VR=(0 1 0 1)
     
@@ -87,7 +87,7 @@ else
     # I have done 0.001 and 0.0003, next try 0.003
     region="BOTH_150"   # "HIP", "EHC", or "HIP_EHC" "BOTH_100", "BOTH_150"
     
-    max_jobs=50
+    max_jobs=30
     
     mkdir -p script_outputs
     mkdir -p script_outputs/mice
@@ -442,6 +442,7 @@ else
                 # temp_data/simu/step_2_v5_rho_i...
                 Rscript script_step2_part1_v5.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$k" >> "$outfile" 2>&1 &
             done
+            wait
             
             echo "[PART 3] Calculating Rho_ij ..." >> "$outfile"
             echo "" | tee -a "$outfile"
@@ -486,95 +487,92 @@ else
             for j in $(seq 1 "$n_queries"); do
                 echo "[START] y_c = $j" >> "$outfile"
       
-                wait_for_slot
-                (
-                    # gets weights and pads rho_i and rho_ii
-                    # temp_data/simu/step_2_rho_list...
-                    # temp_data/simu/part2_...
-                    Rscript script_step2_part4_v5.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" "$y_c_bandwidth" >> "$outfile" 2>&1
-                    
-            
-                    # estimation until GIC
-                    # temp_data/simu/part2b...
-                    Rscript script_fit_mice_data_part2b_before_GIC.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" "$eigen_setting" "$y_c_bandwidth" >> "$outfile" 2>&1
-                    
-                    
-                    # ---------------------------------------------------------
-                    # GIC_LOCAL PROCEDURE
-                    # ---------------------------------------------------------
-                    
-                    echo "At GIC local" >> "$outfile"
+                # gets weights and pads rho_i and rho_ii
+                # temp_data/simu/step_2_rho_list...
+                # temp_data/simu/part2_...
+                Rscript script_step2_part4_v5.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" "$y_c_bandwidth" >> "$outfile" 2>&1
+                
         
-                    # PART 1: Precompute tau_c quantiles and get num_k
-                    # data stored in temp_data/simu/GIC_local_folder/file.name
-                    output=$(Rscript script_GIC_local_part1.R \
-                             "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" \
-                             2>&1 | tee -a "$outfile")
-                    
+                # estimation until GIC
+                # temp_data/simu/part2b...
+                Rscript script_fit_mice_data_part2b_before_GIC.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" "$eigen_setting" "$y_c_bandwidth" >> "$outfile" 2>&1
+                
+                
+                # ---------------------------------------------------------
+                # GIC_LOCAL PROCEDURE
+                # ---------------------------------------------------------
+                
+                echo "At GIC local" >> "$outfile"
     
-                    
-                    # retrieve variables
-                                
-                    num_k=$(echo "$output" | grep "max_k" | awk -F= '{print $2}')
-                    num_k=$(echo "$num_k" | xargs)
-                    
-                    num_suffixes=$(echo "$output" | grep "num_suffixes" | awk -F= '{print $2}')
-                    num_suffixes=$(echo "$num_suffixes" | xargs)
-    
-                    echo "The Max K is: $num_k" >> "$outfile"
-                    echo "The Number of Suffixes is: $num_suffixes" >> "$outfile"
-    
-    
-                    # Loop through the IDs found in the map
-                    for id_suffix in $(seq 1 "$num_suffixes"); do
-                    
-                        wait_for_slot
-                        (
-                            echo "[GIC] y_c = $j, suffix ID = $id_suffix" >> "$outfile"
-                        
-                            for ((k=1; k<=num_k; k++)); do
+                # PART 1: Precompute tau_c quantiles and get num_k
+                # data stored in temp_data/simu/GIC_local_folder/file.name
+                output=$(Rscript script_GIC_local_part1.R \
+                         "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" \
+                         2>&1 | tee -a "$outfile")
+                
+
+                
+                # retrieve variables
                             
-                              wait_for_slot
-                              # Launch one R process per tau_c. 
-                              # Inside this R script, it will loop through all tau_p (l=1...num_l)
-                              # data stored in temp_data/simu/GIC_local_folder/file.name
-                              Rscript script_GIC_local_part2and3_serial.R \
-                                  "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" \
-                                  "$j" "$id_suffix" "$k" >> "$outfile" 2>&1 &                              
-    
-                                    
-                            done
-                            wait
-                            echo "[GIC DONE] Processing suffix ID: $id_suffix" >> "$outfile"
-                        ) &
+                num_k=$(echo "$output" | grep "max_k" | awk -F= '{print $2}')
+                num_k=$(echo "$num_k" | xargs)
+                
+                num_suffixes=$(echo "$output" | grep "num_suffixes" | awk -F= '{print $2}')
+                num_suffixes=$(echo "$num_suffixes" | xargs)
+
+                echo "The Max K is: $num_k" >> "$outfile"
+                echo "The Number of Suffixes is: $num_suffixes" >> "$outfile"
+
+
+                # Loop through the IDs found in the map
+                for id_suffix in $(seq 1 "$num_suffixes"); do
+                
+
+                    echo "[GIC] y_c = $j, suffix ID = $id_suffix" >> "$outfile"
+                
+                    for ((k=1; k<=num_k; k++)); do
+                    
+                      wait_for_slot
+                      # Launch one R process per tau_c. 
+                      # Inside this R script, it will loop through all tau_p (l=1...num_l)
+                      # data stored in temp_data/simu/GIC_local_folder/file.name
+                      Rscript script_GIC_local_part2and3_serial.R \
+                          "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" \
+                          "$j" "$id_suffix" "$k" >> "$outfile" 2>&1 &                              
+
+                            
                     done
                     wait
-                    
-                    echo "All GIC local tasks complete. Combining." >> "$outfile"
-                    
-                    # PART 4: Finalize and combine results
-                    # temp_data/simu/GIC_local_folder/GIC_final_combined.RData
-                    Rscript script_GIC_local_part4.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" >> "$outfile" 2>&1
-        
-                    # ---------------------------------------------------------
-                    
+                    echo "[GIC DONE] Processing suffix ID: $id_suffix" >> "$outfile"
+
+                done
+                wait
+                
+                echo "All GIC local tasks complete. Combining." >> "$outfile"
+                
+                # PART 4: Finalize and combine results
+                # temp_data/simu/GIC_local_folder/GIC_final_combined.RData
+                Rscript script_GIC_local_part4.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" >> "$outfile" 2>&1
     
-                    
-                    echo "" | tee -a "$outfile"
-                    echo "===================================================" >> "$outfile"
-                    echo "" | tee -a "$outfile"
-                    echo "Merging GIC local info with part2b" >> "$outfile"
-                    
-                    # estimation after GIC
-                    # merge part2b with GIC_final results
-                    # temp_data/simu/part3...
-                    Rscript script_fit_mice_data_part2b_after_GIC.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" >> "$outfile" 2>&1
-                    
-                      
-                    
-                    
-                    echo "[END] y_c = $j" >> "$outfile"
-                ) &
+                # ---------------------------------------------------------
+                
+
+                
+                echo "" | tee -a "$outfile"
+                echo "===================================================" >> "$outfile"
+                echo "" | tee -a "$outfile"
+                echo "Merging GIC local info with part2b" >> "$outfile"
+                
+                # estimation after GIC
+                # merge part2b with GIC_final results
+                # temp_data/simu/part3...
+                Rscript script_fit_mice_data_part2b_after_GIC.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" >> "$outfile" 2>&1
+                
+                  
+                
+                
+                echo "[END] y_c = $j" >> "$outfile"
+
             
                 
             done
