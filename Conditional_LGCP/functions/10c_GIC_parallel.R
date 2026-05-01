@@ -204,8 +204,10 @@ GIC_step2and3_serial_tau_c <- function(temp_file_dir, id_suffix, k, min_connect)
                   GIC_edge_count(Theta_cond_thresh, p)
                 }), collapse = ", ")))
   } else {
-    cat(sprintf("[GIC] id_suffix=%s, k=%d: best l=%d, num_edges=%d, GIC=%.4f\n",
-                id_suffix, k, best_result$l, best_result$num_edges, best_result$GIC))
+    cat(sprintf("[GIC] id_suffix=%s, k=%s: best l=%s, num_edges=%s, GIC=%.4f\n",
+                as.character(id_suffix), as.character(k), 
+                as.character(best_result$l), as.character(best_result$num_edges), 
+                best_result$GIC))
     save(best_result, file = paste0(temp_file_dir, "/GIC_local_best_k_", id_suffix, "_k", k, ".RData"))
   }
 }
@@ -257,7 +259,7 @@ GIC_step4_finalize <- function(temp_file_dir) {
       # Load 'best_result' (saved in script_GIC_local_part2and3_serial.R)
       load(f)
       
-      cat(sprintf("[GIC step4] Loaded %s: k=%d, l=%d, num_edges=%d, GIC=%.4f\n",
+      cat(sprintf("[GIC step4] Loaded %s: k=%s, l=%s, num_edges=%s, GIC=%.4f\n",
                   basename(f), best_result$k, best_result$l, best_result$num_edges, best_result$GIC))
       
       df_GIC_id <- rbind(df_GIC_id, data.frame(k = best_result$k,
@@ -277,7 +279,7 @@ GIC_step4_finalize <- function(temp_file_dir) {
       next
     }
     
-    cat(sprintf("[GIC step4] Best for suffix=%s: k=%d, l=%d, num_edges=%d, GIC=%.4f\n",
+    cat(sprintf("[GIC step4] Best for suffix=%s: k=%s, l=%s, num_edges=%s, GIC=%.4f\n",
                 name_entry, best_data$k, best_data$l, best_data$num_edges, best_data$GIC))
     
     # 4) Reconstruction
