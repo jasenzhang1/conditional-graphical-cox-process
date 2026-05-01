@@ -12,7 +12,7 @@ source('functions/20_simulation_function_wrapper.R')
 
 y_c_structure <- "week_only_bw_001"
 method <- 'CPGM'
-region <- 'BOTH_100'  # HIP, EHC, BOTH_100
+region <- 'BOTH_150'  # HIP, EHC, BOTH_100, BOTH_150
 time_scale <- 10
 
 base_folder <- 'mice_results'
@@ -30,14 +30,12 @@ if (!dir.exists(results_folder_2)) {
 }
 
 
-IDs <- c('Tau1', 'Tau2', 'Tau3', 'WT1', 'WT2', 'WT3')
+IDs <- c('Tau1', 'Tau2', 'Tau3', 'WT3')
 
 
 discrete_levels <- paste0('m', c(0, 0, 1, 1), 'vr', c(0, 1, 0, 1))
 
 discrete_levels_list <- list(discrete_levels,
-                             discrete_levels,
-                             discrete_levels,
                              discrete_levels,
                              discrete_levels,
                              discrete_levels)
