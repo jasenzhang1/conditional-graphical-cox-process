@@ -1243,7 +1243,131 @@ visualize_discrete_comparison <- function(results_folder, ID, time_scale, discre
   
 }
 
-
+visualize_discrete_comparison_two_mice <- function(results_folder, ID1, ID2, time_scale, discrete_levels, output, region_border) {
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: For each discrete level, plot a 2-row heatmap grid comparing two mice.
+  #       Row 1 = ID1, Row 2 = ID2. Columns = weeks.
+  #       Returns a named list of ggplots, one per discrete level.
+  #
+  # claude wrote, adapted from visualize_discrete_comparison
+  #
+  # inputs:
+  #
+  # - results_folder   (string)
+  # - ID1              (string)   e.g. 'WT3'
+  # - ID2              (string)   e.g. 'Tau1'
+  # - time_scale       (integer)  e.g. 10
+  # - discrete_levels  (vector of strings)
+  # - output           (string)   'adj', 'P_HS', or 'C_HS'
+  # - region_border    (boolean)
+  #
+  # returns: named list of ggplot objects, one per discrete level
+  #
+  # ----------------------------------------------------------------------------
+  
+  load_sparse_data <- function(ID, d_level) {
+    
+    file_path <- paste0(results_folder, '/', ID, '_', d_level, '_t', time_scale, '.RData')
+    
+    if (!file.exists(file_path)) {
+      warning(paste("File not found:", file_path))
+      return(NULL)
+    }
+    
+    tmp_env <- new.env()
+    load(file_path, envir = tmp_env)
+    res_i <- tmp_env$graph_results_i
+    
+    if (region_border) {
+      boundaries <- get_factor_boundaries(res_i$recovery_params$kept_neuron_regions)
+    } else {
+      boundaries <- numeric(0)
+    }
+    
+    y_c_weeks <- as.numeric(res_i$y_c_query)
+    absent_weeks <- setdiff(17:38, y_c_weeks)
+    sparse_data  <- list()
+    
+    if (output == 'adj') {
+      step_data <- res_i$step_12b
+      for (idx in seq_along(y_c_weeks)) {
+        current_week <- y_c_weeks[idx]
+        adj_mat <- step_data[[idx]][["adj_mat_KL_GIC_local_est_eig3"]]
+        if (is.null(adj_mat)) next
+        coords <- which(adj_mat == 1, arr.ind = TRUE)
+        if (nrow(coords) > 0) coords <- coords[coords[, 2] > coords[, 1], , drop = FALSE]
+        if (nrow(coords) > 0) {
+          df_coords <- as.data.frame(coords)
+          colnames(df_coords) <- c("Node_Row", "Node_Col")
+          sparse_data[[as.character(current_week)]] <- df_coords
+        } else {
+          sparse_data[[as.character(current_week)]] <- data.frame(Node_Row = integer(0), Node_Col = integer(0))
+        }
+      }
+    } else if (output == 'P_HS') {
+      step_data <- res_i$step_11
+      for (idx in seq_along(y_c_weeks)) {
+        current_week <- y_c_weeks[idx]
+        P_HS_log <- log(step_data[[idx]][["w_mat_KL_est_eig3"]])
+        if (is.null(P_HS_log)) next
+        upper_tri_idx <- which(col(P_HS_log) >= row(P_HS_log), arr.ind = TRUE)
+        df_coords <- as.data.frame(upper_tri_idx)
+        colnames(df_coords) <- c("Node_Row", "Node_Col")
+        df_coords$Value <- P_HS_log[upper_tri_idx]
+        sparse_data[[as.character(current_week)]] <- df_coords
+      }
+    } else if (output == 'C_HS') {
+      step_data <- res_i$step_11b
+      for (idx in seq_along(y_c_weeks)) {
+        current_week <- y_c_weeks[idx]
+        C_HS_log <- log(step_data[[idx]][["C_HS_KL_est_eig3"]])
+        if (is.null(C_HS_log)) next
+        upper_tri_idx <- which(col(C_HS_log) >= row(C_HS_log), arr.ind = TRUE)
+        df_coords <- as.data.frame(upper_tri_idx)
+        colnames(df_coords) <- c("Node_Row", "Node_Col")
+        df_coords$Value <- C_HS_log[upper_tri_idx]
+        sparse_data[[as.character(current_week)]] <- df_coords
+      }
+    } else {
+      stop('error in visualize_discrete_comparison_two_mice: unknown output type')
+    }
+    
+    rm(tmp_env, res_i, step_data)
+    
+    return(list(sparse_data = sparse_data, absent_weeks = absent_weeks, boundaries = boundaries))
+  }
+  
+  plot_list <- list()
+  
+  for (d_level in discrete_levels) {
+    
+    res1 <- load_sparse_data(ID1, d_level)
+    res2 <- load_sparse_data(ID2, d_level)
+    
+    if (is.null(res1) && is.null(res2)) next
+    
+    # Package into the format visualize_adj_grid expects, but with mouse IDs as row labels
+    sparse_data_list <- list()
+    absent_week_list <- list()
+    
+    if (!is.null(res1)) {
+      sparse_data_list[[ID1]] <- res1$sparse_data
+      absent_week_list[[ID1]] <- res1$absent_weeks
+      boundaries <- res1$boundaries  # assume same region structure
+    }
+    if (!is.null(res2)) {
+      sparse_data_list[[ID2]] <- res2$sparse_data
+      absent_week_list[[ID2]] <- res2$absent_weeks
+      if (is.null(res1)) boundaries <- res2$boundaries
+    }
+    
+    plot_list[[d_level]] <- visualize_adj_grid(sparse_data_list, 17:38, absent_week_list, output, boundaries)
+  }
+  
+  return(plot_list)
+}
 
 plot_edge_proportion_comparison <- function(results_folder, ID1, ID2, time_scale, discrete_levels) {
   

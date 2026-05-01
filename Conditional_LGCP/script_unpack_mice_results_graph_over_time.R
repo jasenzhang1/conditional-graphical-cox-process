@@ -54,6 +54,26 @@ for(i in 1:length(IDs)){
 }
 
 # ------------------------------------------------------------------------------
+# plot graphs comparing the same discrete strata across two mice
+
+WT_IDs  <- c('WT1', 'WT2', 'WT3')
+Tau_IDs <- c('Tau1', 'Tau2', 'Tau3')
+
+for (wt in WT_IDs) {
+  for (tau in Tau_IDs) {
+    
+    plot_list <- visualize_discrete_comparison_two_mice(results_folder, wt, tau, time_scale, discrete_levels, 'adj', region_border)
+    
+    for (d_level in names(plot_list)) {
+      png_name <- paste0(results_folder_2, '/', wt, '_vs_', tau, '_', d_level, '_t', time_scale, '_edge_sets.png')
+      png(png_name, width = 45, height = 8, units = "in", res = 100)
+      print(plot_list[[d_level]])
+      dev.off()
+    }
+  }
+}
+
+# ------------------------------------------------------------------------------
 # plot proportion of connected edges over time with a line graph
 
 WT_IDs  <- c('WT3')
