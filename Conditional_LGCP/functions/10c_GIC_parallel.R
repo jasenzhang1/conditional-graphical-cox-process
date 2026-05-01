@@ -186,6 +186,7 @@ GIC_step2and3_serial_tau_c <- function(temp_file_dir, id_suffix, k) {
         tau_c = tau_c, 
         tau_p = tau_p, 
         GIC = current_GIC,
+        num_edges = num_edges,  
         Theta_cond_thresh = Theta_cond_thresh 
       )
     }
@@ -197,7 +198,7 @@ GIC_step2and3_serial_tau_c <- function(temp_file_dir, id_suffix, k) {
   }
 }
 
-GIC_step4_finalize <- function(temp_file_dir) {
+GIC_step4_finalize <- function(temp_file_dir, min_connect) {
   # 1) Load the task map to know which IDs were processed
   task_map_path <- paste0(temp_file_dir, '/task_map.csv')
   
@@ -244,10 +245,16 @@ GIC_step4_finalize <- function(temp_file_dir) {
                                                tau_p = best_result$tau_p, 
                                                GIC = best_result$GIC))
       
-      if (!is.na(best_result$GIC) && best_result$GIC < lowest_GIC) {
+      has_edge <- best_result$num_edges > 0   # or GIC_edge_count(best_result$Theta_cond_thresh, p) > 0
+      # recall min_connect = 1 means we need at least 1 edge, min_connect = 0 means anything goes
+      passes_connect <- (min_connect == 0) || (has_edge >= min_connect)  
+      
+      # if lowest GIC AND checks for edge minimum criteria
+      if (!is.na(best_result$GIC) && best_result$GIC < lowest_GIC && passes_connect) {
         lowest_GIC <- best_result$GIC
         best_data <- best_result
       }
+      
     }
     
     if (is.null(best_data)) next

@@ -15,6 +15,7 @@ if(model_type == 'mice'){
   movement <- as.numeric(args[6])     # movement <- 0
   VR <- as.numeric(args[7])           # VR <- 0
   cont_ind <- as.numeric(args[8])     # cont_ind <- 1  
+  min_connect <- as.numeric(args[9])  
   
   X_truth <- F
   
@@ -55,4 +56,4 @@ if(model_type == 'mice'){
 }
 
 
-GIC_step4_finalize(temp_file_dir)
+GIC_step4_finalize(temp_file_dir, min_connect)
