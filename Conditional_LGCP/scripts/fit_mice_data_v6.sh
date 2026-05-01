@@ -60,7 +60,7 @@ min_events=$(echo "$time_scale * $min_freq" | bc | xargs printf "%.0f")
 
 
 max_processes=10
-n_weeks=50
+n_weeks=1
 
 if [ "$cluster" == "hoffman" ]; then
 
@@ -681,7 +681,8 @@ else
             
             
             # updating /part3 with more info
-            Rscript script_fit_mice_data_part2d.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_queries" "$cluster" >> "$outfile" 2>&1
+            Rscript script_fit_mice_data_part2d.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" \
+                                                  "$n_queries" "$cluster" >> "$outfile" 2>&1
                   
             
             # ----------------
@@ -692,7 +693,8 @@ else
             echo "At part 3" >> "$outfile"
             
             # mice_results/adj_type/CPGM/... .RData
-            Rscript script_fit_mice_data_part3.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_queries" "$y_c_bandwidth" "$region" "$cluster" >> "$outfile" 2>&1
+            Rscript script_fit_mice_data_part3.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" \
+                                                 "$n_queries" "$y_c_bandwidth" "$region" "$cluster" "$min_connect_pct" >> "$outfile" 2>&1
             
             echo "" | tee -a "$outfile"
             echo "[DONE] Estimating all y_cs" >> "$outfile"
