@@ -131,7 +131,7 @@ GIC_step3_iterate_tau_p <- function(temp_file_dir, id_suffix, k, l){
   
 }
 
-GIC_step2and3_serial_tau_c <- function(temp_file_dir, id_suffix, k, min_connect) {
+GIC_step2and3_serial_tau_c <- function(temp_file_dir, id_suffix, k, min_connect_pct) {
   
   # temp_file_dir = folder name
   # id_suffix = suffix name
@@ -141,6 +141,10 @@ GIC_step2and3_serial_tau_c <- function(temp_file_dir, id_suffix, k, min_connect)
   # --- Step 1: Logic from your original GIC_step2 ---
   # Load the ID-specific initial data (contains C_cond, p, W_y, threshold_list_c)
   load(paste0(temp_file_dir, "/GIC_local_initial_data_", id_suffix, ".RData"))
+  
+  # convert pct to minimum edge count
+  max_edges <- p * (p - 1) / 2
+  min_connect <- ceiling(min_connect_pct * max_edges)
   
   tau_c <- threshold_list_c$hs_vals[k]
   excluded_indices <- threshold_list_c$index_path[[k]]

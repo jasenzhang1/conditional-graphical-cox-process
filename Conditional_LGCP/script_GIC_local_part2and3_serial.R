@@ -16,7 +16,7 @@ if(model_type == 'mice'){
   cont_ind <- as.numeric(args[8])     # cont_ind <- 1  
   id_suffix <- args[9]               # est or X_truth
   k         <- args[10]               # tau_c index
-  min_connect <- as.numeric(args[11])
+  min_connect_pct <- as.numeric(args[11])
   
   
   X_truth <- F
@@ -57,6 +57,6 @@ if(model_type == 'mice'){
 task_csv <- read.csv(paste0(temp_file_dir, '/task_map.csv'))
 
 suffix_name <- task_csv[id_suffix, 1]
-GIC_step2and3_serial_tau_c(temp_file_dir, suffix_name, k, min_connect)
+GIC_step2and3_serial_tau_c(temp_file_dir, suffix_name, k, min_connect_pct)
 
 

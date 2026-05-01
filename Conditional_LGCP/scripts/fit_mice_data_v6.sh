@@ -51,7 +51,7 @@ global_thresh_method="neither" # both, joint, tau_c, or neither
 
 y_c_structure="week_only"
 method="CPGM"
-min_connect=1    # 1 for at least one edge, 0 for at least 0 edges
+min_connect_pct=0.01    # at least 1 percent
 
 m=30
 time_scale=10 
@@ -59,7 +59,7 @@ min_freq=0.5
 min_events=$(echo "$time_scale * $min_freq" | bc | xargs printf "%.0f")
 
 
-max_processes=20
+max_processes=10
 n_weeks=50
 
 if [ "$cluster" == "hoffman" ]; then
@@ -542,7 +542,7 @@ else
                       # data stored in temp_data/simu/GIC_local_folder/file.name
                       Rscript script_GIC_local_part2and3_serial.R \
                           "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" \
-                          "$j" "$id_suffix" "$k" "$min_connect" >> "$outfile" 2>&1 &                              
+                          "$j" "$id_suffix" "$k" "$min_connect_pct" >> "$outfile" 2>&1 &                              
 
                             
                     done
