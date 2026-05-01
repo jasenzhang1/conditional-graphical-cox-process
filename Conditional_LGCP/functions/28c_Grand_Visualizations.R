@@ -1251,8 +1251,6 @@ visualize_discrete_comparison_two_mice <- function(results_folder, ID1, ID2, tim
   #       Row 1 = ID1, Row 2 = ID2. Columns = weeks.
   #       Returns a named list of ggplots, one per discrete level.
   #
-  # claude wrote, adapted from visualize_discrete_comparison
-  #
   # inputs:
   #
   # - results_folder   (string)
@@ -1286,7 +1284,7 @@ visualize_discrete_comparison_two_mice <- function(results_folder, ID1, ID2, tim
       boundaries <- numeric(0)
     }
     
-    y_c_weeks <- as.numeric(res_i$y_c_query)
+    y_c_weeks    <- as.numeric(res_i$y_c_query)
     absent_weeks <- setdiff(17:38, y_c_weeks)
     sparse_data  <- list()
     
@@ -1348,20 +1346,26 @@ visualize_discrete_comparison_two_mice <- function(results_folder, ID1, ID2, tim
     
     if (is.null(res1) && is.null(res2)) next
     
-    # Package into the format visualize_adj_grid expects, but with mouse IDs as row labels
     sparse_data_list <- list()
     absent_week_list <- list()
     
     if (!is.null(res1)) {
       sparse_data_list[[ID1]] <- res1$sparse_data
       absent_week_list[[ID1]] <- res1$absent_weeks
-      boundaries <- res1$boundaries  # assume same region structure
+      boundaries_1 <- res1$boundaries
+    } else {
+      boundaries_1 <- numeric(0)
     }
+    
     if (!is.null(res2)) {
       sparse_data_list[[ID2]] <- res2$sparse_data
       absent_week_list[[ID2]] <- res2$absent_weeks
-      if (is.null(res1)) boundaries <- res2$boundaries
+      boundaries_2 <- res2$boundaries
+    } else {
+      boundaries_2 <- numeric(0)
     }
+    
+    boundaries <- union(boundaries_1, boundaries_2)
     
     plot_list[[d_level]] <- visualize_adj_grid(sparse_data_list, 17:38, absent_week_list, output, boundaries)
   }
