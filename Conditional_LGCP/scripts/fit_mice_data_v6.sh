@@ -542,7 +542,7 @@ else
                       # data stored in temp_data/simu/GIC_local_folder/file.name
                       Rscript script_GIC_local_part2and3_serial.R \
                           "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" \
-                          "$j" "$id_suffix" "$k" >> "$outfile" 2>&1 &                              
+                          "$j" "$id_suffix" "$k" "$min_connect" >> "$outfile" 2>&1 &                              
 
                             
                     done
@@ -556,7 +556,7 @@ else
                 
                 # PART 4: Finalize and combine results
                 # temp_data/simu/GIC_local_folder/GIC_final_combined.RData
-                Rscript script_GIC_local_part4.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" "$min_connect" >> "$outfile" 2>&1
+                Rscript script_GIC_local_part4.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" >> "$outfile" 2>&1
     
                 # ---------------------------------------------------------
                 

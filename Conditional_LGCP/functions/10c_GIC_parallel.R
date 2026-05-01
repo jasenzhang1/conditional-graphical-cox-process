@@ -131,12 +131,13 @@ GIC_step3_iterate_tau_p <- function(temp_file_dir, id_suffix, k, l){
   
 }
 
-GIC_step2and3_serial_tau_c <- function(temp_file_dir, id_suffix, k) {
+GIC_step2and3_serial_tau_c <- function(temp_file_dir, id_suffix, k, min_connect) {
   
   
   # temp_file_dir = folder name
   # id_suffix = suffix name
   # k = tau_c index
+  # min_connect = min edges (0 for nothing, 1 for something)
   
   # --- Step 1: Logic from your original GIC_step2 ---
   # Load the ID-specific initial data (contains C_cond, p, W_y, threshold_list_c)
@@ -178,7 +179,9 @@ GIC_step2and3_serial_tau_c <- function(temp_file_dir, id_suffix, k) {
                                    num_edges)
     
     # Keep only the best l for this k
-    if (current_GIC < best_GIC) {
+    passes_connect <- (min_connect == 0) || (num_edges >= min_connect)
+    
+    if (current_GIC < best_GIC && passes_connect) {
       best_GIC <- current_GIC
       best_result <- list(
         k = k, 
@@ -198,7 +201,7 @@ GIC_step2and3_serial_tau_c <- function(temp_file_dir, id_suffix, k) {
   }
 }
 
-GIC_step4_finalize <- function(temp_file_dir, min_connect) {
+GIC_step4_finalize <- function(temp_file_dir) {
   # 1) Load the task map to know which IDs were processed
   task_map_path <- paste0(temp_file_dir, '/task_map.csv')
   
@@ -245,12 +248,7 @@ GIC_step4_finalize <- function(temp_file_dir, min_connect) {
                                                tau_p = best_result$tau_p, 
                                                GIC = best_result$GIC))
       
-      has_edge <- best_result$num_edges > 0   # or GIC_edge_count(best_result$Theta_cond_thresh, p) > 0
-      # recall min_connect = 1 means we need at least 1 edge, min_connect = 0 means anything goes
-      passes_connect <- (min_connect == 0) || (has_edge >= min_connect)  
-      
-      # if lowest GIC AND checks for edge minimum criteria
-      if (!is.na(best_result$GIC) && best_result$GIC < lowest_GIC && passes_connect) {
+      if (!is.na(best_result$GIC) && best_result$GIC < lowest_GIC) {
         lowest_GIC <- best_result$GIC
         best_data <- best_result
       }
