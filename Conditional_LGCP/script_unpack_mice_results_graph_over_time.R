@@ -53,5 +53,25 @@ for(i in 1:length(IDs)){
   dev.off()
 }
 
+# ------------------------------------------------------------------------------
+# plot proportion of connected edges over time with a line graph
+
+WT_IDs  <- c('WT3')
+Tau_IDs <- c('Tau1', 'Tau2', 'Tau3')
+
+for (wt in WT_IDs) {
+  for (tau in Tau_IDs) {
+    
+    plot_list <- plot_edge_proportion_comparison(results_folder, wt, tau, time_scale, discrete_levels)
+    
+    for (d_level in names(plot_list)) {
+      png_name <- paste0(results_folder_2, '/', wt, '_vs_', tau, '_', d_level, '_t', time_scale, '_edge_proportion.png')
+      png(png_name, width = 10, height = 6, units = "in", res = 100)
+      print(plot_list[[d_level]])
+      dev.off()
+    }
+  }
+}
+
 
   

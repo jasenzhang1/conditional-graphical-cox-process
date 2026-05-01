@@ -1245,5 +1245,106 @@ visualize_discrete_comparison <- function(results_folder, ID, time_scale, discre
 
 
 
-
-
+plot_edge_proportion_comparison <- function(results_folder, ID1, ID2, time_scale, discrete_levels) {
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: For each discrete stratum, plot edge proportion over weeks for two
+  #       mice (ID1 and ID2) on the same graph. Returns a named list of ggplots,
+  #       one per discrete level.
+  #
+  # claude wrote this
+  #
+  # inputs:
+  #
+  # - results_folder   (string)
+  # - ID1              (string)   e.g. 'WT3'
+  # - ID2              (string)   e.g. 'Tau1'
+  # - time_scale       (integer)  e.g. 10
+  # - discrete_levels  (vector of strings)  e.g. c('m0vr0', 'm1vr1', ...)
+  #
+  # returns: named list of ggplot objects, one per discrete level
+  #
+  # ----------------------------------------------------------------------------
+  
+  load_proportions <- function(ID) {
+    
+    result <- list()
+    
+    for (d_level in discrete_levels) {
+      
+      file_path <- paste0(results_folder, '/', ID, '_', d_level, '_t', time_scale, '.RData')
+      
+      if (!file.exists(file_path)) {
+        warning(paste("File not found:", file_path))
+        next
+      }
+      
+      tmp_env <- new.env()
+      load(file_path, envir = tmp_env)
+      res_i <- tmp_env$graph_results_i
+      
+      step_data <- res_i$step_12b
+      y_c_weeks <- as.numeric(res_i$y_c_query)
+      
+      proportions <- numeric(length(y_c_weeks))
+      
+      for (idx in seq_along(y_c_weeks)) {
+        adj_mat <- step_data[[idx]][["adj_mat_KL_GIC_local_est_eig3"]]
+        
+        if (is.null(adj_mat)) {
+          proportions[idx] <- NA
+          next
+        }
+        
+        m           <- nrow(adj_mat)
+        max_edges   <- m * (m - 1) / 2
+        n_edges     <- sum(adj_mat) / 2
+        proportions[idx] <- n_edges / max_edges
+      }
+      
+      result[[d_level]] <- data.frame(
+        week       = y_c_weeks,
+        proportion = proportions,
+        mouse      = ID
+      )
+      
+      rm(tmp_env, res_i, step_data)
+    }
+    
+    return(result)
+  }
+  
+  data1 <- load_proportions(ID1)
+  data2 <- load_proportions(ID2)
+  
+  plot_list <- list()
+  
+  for (d_level in discrete_levels) {
+    
+    if (is.null(data1[[d_level]]) && is.null(data2[[d_level]])) next
+    
+    plot_df <- rbind(data1[[d_level]], data2[[d_level]])
+    
+    g <- ggplot(plot_df, aes(x = week, y = proportion, color = mouse, group = mouse)) +
+      geom_line(linewidth = 0.8) +
+      geom_point(size = 2) +
+      scale_x_continuous(breaks = 17:38) +
+      scale_y_continuous(labels = scales::percent_format(accuracy = 1), limits = c(0, NA)) +
+      labs(
+        title  = paste0("Edge Proportion — ", d_level, "  (", ID1, " vs ", ID2, ")"),
+        x      = "Week",
+        y      = "Edge Proportion",
+        color  = "Mouse"
+      ) +
+      theme_bw() +
+      theme(
+        axis.text.x     = element_text(angle = 45, hjust = 1),
+        legend.position = "bottom"
+      )
+    
+    plot_list[[d_level]] <- g
+  }
+  
+  return(plot_list)
+}
