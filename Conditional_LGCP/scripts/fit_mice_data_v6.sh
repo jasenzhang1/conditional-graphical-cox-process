@@ -91,7 +91,7 @@ else
     # I have done 0.001 and 0.0003, next try 0.003
     region="BOTH_150"   # "HIP", "EHC", or "HIP_EHC" "BOTH_100", "BOTH_150"
     
-    max_jobs=30
+    max_jobs=40
     
     mkdir -p script_outputs
     mkdir -p script_outputs/mice
@@ -284,7 +284,7 @@ if [ "$cluster" == "hoffman" ]; then
     echo "At part 3" >> "$outfile"
     
     # mice_results/adj_type/CPGM/... .RData
-    Rscript script_fit_mice_data_part3.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_queries" "$y_c_bandwidth" "$region" "$cluster" >> "$outfile" 2>&1
+    Rscript script_fit_mice_data_part3.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_queries" "$y_c_bandwidth" "$region" "$cluster" "$min_connect_pct" >> "$outfile" 2>&1
     
     echo "" | tee -a "$outfile"
     echo "[DONE] Estimating all y_cs" >> "$outfile"

@@ -23,7 +23,8 @@ if(model_type == 'mice'){
     bandwidth <- as.numeric(args[9])
   }
   region <- args[10]                  # region <- 'HIP'
-  cluster <- args[11]                 # cluster <- 'hoffman' 
+  cluster <- args[11]                 # cluster <- 'hoffman'
+  min_connect_pct <- as.numeric(args[12])
   
   discrete_level <- paste0('m', movement, 'vr', VR)
   
@@ -77,11 +78,17 @@ if(model_type == 'mice'){
       bw_string <- sub(".*\\.", "", format(bandwidth, scientific = FALSE))
     }
     
-    folder_2_name <- paste0(folder_1_name, "/", y_c_structure, '_bw_', bw_string)
-    if (!dir.exists(folder_2_name)) dir.create(folder_2_name)   # /mice_results/week_only_bw_0001
+    if(min_connect_pct == 0){
+      min_connect_string <- 'min_00'
+    } else{
+      min_connect_string <- paste0('min_', sub(".*\\.", "", format(min_connect_pct, scientific = FALSE)))
+    }
+    
+    folder_2_name <- paste0(folder_1_name, "/", y_c_structure, '_bw_', bw_string, '_', min_connect_string)
+    if (!dir.exists(folder_2_name)) dir.create(folder_2_name)   # /mice_results/week_only_bw_0001_min_01
     
     results_folder_name <- paste0(folder_2_name, "/", method, '_', region) 
-    if (!dir.exists(results_folder_name)) dir.create(results_folder_name)  # /mice_results/week_only_bw_0001/CPGM_HIP
+    if (!dir.exists(results_folder_name)) dir.create(results_folder_name)  # /mice_results/week_only_bw_0001_min_00/CPGM_HIP
   }
   
 
