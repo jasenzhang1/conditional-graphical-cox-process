@@ -56,44 +56,31 @@ if(model_type == 'mice'){
   if(cluster == 'andrew'){
     folder_1_name <- 'mice_results'
     if (!dir.exists(folder_1_name)) dir.create(folder_1_name)  # /mice_results
-    
-    if(is.null(bandwidth)){
-      bw_string <- 'default'
-    } else{
-      bw_string <- sub(".*\\.", "", format(bandwidth, scientific = FALSE))
-    }
-    
-    folder_2_name <- paste0(folder_1_name, "/", y_c_structure, '_bw_', bw_string)
-    if (!dir.exists(folder_2_name)) dir.create(folder_2_name)   # /mice_results/week_only_bw_0001
-    
-    results_folder_name <- paste0(folder_2_name, "/", method, '_', region) 
-    if (!dir.exists(results_folder_name)) dir.create(results_folder_name)  # /mice_results/week_only_bw_0001/CPGM_HIP
   } else{
     folder_1_name <- '../../../project-biostat-chair/mice_results_hoffman'
     if (!dir.exists(folder_1_name)) dir.create(folder_1_name)  # /mice_results
+  }
     
-    if(is.null(bandwidth)){
-      bw_string <- 'default'
-    } else{
-      bw_string <- sub(".*\\.", "", format(bandwidth, scientific = FALSE))
-    }
-    
-    if(min_connect_pct == 0){
-      min_connect_string <- 'min_00'
-    } else{
-      min_connect_string <- paste0('min_', sub(".*\\.", "", format(min_connect_pct, scientific = FALSE)))
-    }
-    
-    folder_2_name <- paste0(folder_1_name, "/", y_c_structure, '_bw_', bw_string, '_', min_connect_string)
-    if (!dir.exists(folder_2_name)) dir.create(folder_2_name)   # /mice_results/week_only_bw_0001_min_01
-    
-    results_folder_name <- paste0(folder_2_name, "/", method, '_', region) 
-    if (!dir.exists(results_folder_name)) dir.create(results_folder_name)  # /mice_results/week_only_bw_0001_min_00/CPGM_HIP
+  # bw string
+  if(is.null(bandwidth)){
+    bw_string <- 'default'
+  } else{
+    bw_string <- sub(".*\\.", "", format(bandwidth, scientific = FALSE))
   }
   
+  # min_pct string
+  if(min_connect_pct == 0){
+    min_connect_string <- 'min_00'
+  } else{
+    min_connect_string <- paste0('min_', sub(".*\\.", "", format(min_connect_pct, scientific = FALSE)))
+  }
+  
+  folder_2_name <- paste0(folder_1_name, "/", y_c_structure, '_bw_', bw_string, '_', min_connect_string)
+  if (!dir.exists(folder_2_name)) dir.create(folder_2_name)   # /mice_results/week_only_bw_0001_min_01
+    
+  results_folder_name <- paste0(folder_2_name, "/", method, '_', region) 
+  if (!dir.exists(results_folder_name)) dir.create(results_folder_name)  # /mice_results/week_only_bw_0001_min_00/CPGM_HIP
 
-  
-  
 } else if(model_type == 'simu'){
   
   n_large <- as.numeric(args[2])
