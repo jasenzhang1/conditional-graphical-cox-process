@@ -1389,7 +1389,9 @@ visualize_strata_all_mice <- function(results_folder, time_scale, discrete_level
   # - output           (string)   'adj', 'P_HS', or 'C_HS'
   # - region_border    (boolean)
   #
-  # returns: named list of ggplot objects, one per discrete level
+  # returns: named list with two elements:
+  #   - plots   : named list of ggplot objects, one per discrete level
+  #   - n_mice  : named integer vector of mouse counts, one per discrete level
   #
   # ----------------------------------------------------------------------------
   
@@ -1397,9 +1399,9 @@ visualize_strata_all_mice <- function(results_folder, time_scale, discrete_level
   # Discover all IDs present in the folder for a given discrete level
   # --------------------------------------------------------------------------
   discover_IDs <- function(d_level) {
-    pattern <- paste0("^(.+)_", d_level, "_t", time_scale, "\\.RData$")
+    pattern   <- paste0("^(.+)_", d_level, "_t", time_scale, "\\.RData$")
     all_files <- list.files(results_folder, pattern = pattern, full.names = FALSE)
-    ids <- sub(paste0("_", d_level, "_t", time_scale, "\\.RData$"), "", all_files)
+    ids       <- sub(paste0("_", d_level, "_t", time_scale, "\\.RData$"), "", all_files)
     
     # Sort: Tau first, then WT, each group in alphanumeric order
     tau_ids <- sort(ids[grepl("^Tau", ids)])
@@ -1409,7 +1411,7 @@ visualize_strata_all_mice <- function(results_folder, time_scale, discrete_level
   }
   
   # --------------------------------------------------------------------------
-  # Load sparse data for one mouse × one discrete level (same as two_mice fn)
+  # Load sparse data for one mouse x one discrete level
   # --------------------------------------------------------------------------
   load_sparse_data <- function(ID, d_level) {
     
@@ -1486,7 +1488,8 @@ visualize_strata_all_mice <- function(results_folder, time_scale, discrete_level
   # --------------------------------------------------------------------------
   # Build one plot per discrete stratum
   # --------------------------------------------------------------------------
-  plot_list <- list()
+  plot_list          <- list()
+  n_mice_per_stratum <- list()
   
   for (d_level in discrete_levels) {
     
@@ -1513,10 +1516,14 @@ visualize_strata_all_mice <- function(results_folder, time_scale, discrete_level
     
     if (length(sparse_data_list) == 0) next
     
-    plot_list[[d_level]] <- visualize_adj_grid(sparse_data_list, 17:38, absent_week_list, output, all_boundaries)
+    n_mice_per_stratum[[d_level]] <- length(sparse_data_list)
+    plot_list[[d_level]]          <- visualize_adj_grid(sparse_data_list, 17:38, absent_week_list, output, all_boundaries)
   }
   
-  return(plot_list)
+  return(list(
+    plots  = plot_list,
+    n_mice = n_mice_per_stratum
+  ))
 }
 
 plot_edge_proportion_comparison <- function(results_folder, ID1, ID2, time_scale, discrete_levels) {
