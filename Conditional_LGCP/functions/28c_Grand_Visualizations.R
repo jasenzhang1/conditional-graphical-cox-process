@@ -870,8 +870,8 @@ visualize_adj_grid <- function(sparse_data_list, all_weeks, absent_week_list, ou
   row_names <- names(sparse_data_list)
   
   new_palette <- hcl.colors(3, palette = 'Blue-Red 2')
-  c_low <- new_palette[1]
-  c_mid <- new_palette[2]
+  c_low  <- new_palette[1]
+  c_mid  <- new_palette[2]
   c_high <- new_palette[3]  
   
   # 1. Process the Edge Data
@@ -882,20 +882,13 @@ visualize_adj_grid <- function(sparse_data_list, all_weeks, absent_week_list, ou
       df_coords <- row_content[[c_idx]]
       if (is.null(df_coords) || nrow(df_coords) == 0) next
       
-      # Determine if we are handling weighted data
       is_weighted <- output %in% c("P_HS", "C_HS")
       
-      # Mirroring logic
-      # For 'adj', we just have coords. For weighted, we have Node_Row, Node_Col, and Value.
       original <- df_coords
-      
-      # Create mirrored copy: Swap Row and Col
-      # For weighted data, this preserves the 'Value' column correctly
       mirrored <- original
       mirrored$Node_Row <- original$Node_Col
       mirrored$Node_Col <- original$Node_Row
       
-      # Combine and remove duplicates (especially important for the diagonal entries)
       combined_df <- unique(rbind(original, mirrored))
       
       combined_df$Row_ID <- r_name
@@ -920,7 +913,7 @@ visualize_adj_grid <- function(sparse_data_list, all_weeks, absent_week_list, ou
   
   has_edges <- any(!is.na(plot_data$Node_Row))
   
-  # After building plot_data and before the plot, pad missing strata
+  # Pad missing strata
   all_strata_in_data <- unique(as.character(plot_data$Row_ID))
   missing_strata <- setdiff(discrete_strata, all_strata_in_data)
   
@@ -929,15 +922,12 @@ visualize_adj_grid <- function(sparse_data_list, all_weeks, absent_week_list, ou
       Node_Row = NA,
       Node_Col = NA,
       Row_ID   = missing_strata,
-      Col_ID   = all_weeks[1]   # arbitrary week, just needs a valid level
+      Col_ID   = all_weeks[1]
     )
-    # Add Value column if weighted
     if (output %in% c("P_HS", "C_HS")) dummy_rows$Value <- NA
-    
     plot_data <- rbind(plot_data, dummy_rows)
   }
   
-  # Re-apply factor with correct levels after padding
   plot_data$Row_ID <- factor(plot_data$Row_ID, levels = discrete_strata)
   plot_data$Col_ID <- factor(plot_data$Col_ID, levels = all_weeks)
   
@@ -952,58 +942,53 @@ visualize_adj_grid <- function(sparse_data_list, all_weeks, absent_week_list, ou
       )
     }
   }
-  bg_gray_data <- do.call(rbind, bg_gray_list)
   
-  # 3. Build the Plot
-  plot_data$Col_ID <- factor(plot_data$Col_ID, levels = all_weeks)
-  if (!is.null(bg_gray_data)) {
+  if (length(bg_gray_list) > 0) {
+    bg_gray_data <- do.call(rbind, bg_gray_list)
     bg_gray_data$Col_ID <- factor(bg_gray_data$Col_ID, levels = all_weeks)
+    bg_gray_data$Row_ID <- factor(bg_gray_data$Row_ID, levels = discrete_strata)
+  } else {
+    bg_gray_data <- NULL
   }
   
-  # Initialize the ggplot object
-  g <- ggplot() + 
-    # Layer 1: Gray out absent weeks
-    geom_rect(data = bg_gray_data, 
-              aes(xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Inf),
-              fill = "gray80", alpha = 0.5)
+  # 3. Build the Plot — initialize without any data layer
+  g <- ggplot()
+  
+  # Layer 1: Gray out absent weeks — only added if there are absent weeks
+  if (!is.null(bg_gray_data) && nrow(bg_gray_data) > 0) {
+    g <- g + geom_rect(data = bg_gray_data,
+                       aes(xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Inf),
+                       fill = "gray80", alpha = 0.5)
+  }
   
   # Layer 2: Plot the actual edges (Binary vs Weighted)
   if (output == "adj") {
     g <- g + geom_tile(data = plot_data, aes(x = Node_Col, y = -Node_Row), fill = "red")
   } else {
-    # Weighted plots: Use the Value column for fill
-    # viridis or scale_fill_gradient2 (useful if values are log-probs or centered at 0)
-    
-
-    zmin <- min(plot_data$Value)
-    zmax <- max(plot_data$Value)
-    
+    zmin <- min(plot_data$Value, na.rm = TRUE)
+    zmax <- max(plot_data$Value, na.rm = TRUE)
     zmax <- zmax + 0.1 * (zmax - zmin)
     zmin <- zmin - 0.1 * (zmax - zmin)
     
-    
     g <- g + geom_tile(data = plot_data, aes(x = Node_Col, y = -Node_Row, fill = Value)) +
-      # scale_fill_viridis_c(option = "magma") + # Good for log densities
       scale_fill_gradient2(low = c_low, mid = c_mid, high = c_high,
                            midpoint = 0,
-                           limits = c(zmin, zmax)) + 
-      theme(legend.position = "right")      # We actually want the legend here
+                           limits = c(zmin, zmax)) +
+      theme(legend.position = "right")
   }
   
-  # Layer 3: borders (only in non-absent panels)
+  # Layer 3: Borders (only in non-absent panels)
   if (length(boundaries) > 0) {
     
-    # Build a data frame of all facet combinations that are NOT absent
     all_combos <- expand.grid(
       Row_ID = discrete_strata,
       Col_ID = all_weeks,
       stringsAsFactors = FALSE
     )
     
-    # Identify absent combos
-    if (!is.null(bg_gray_data)) {
-      absent_keys <- paste(bg_gray_data$Row_ID, bg_gray_data$Col_ID)
-      all_keys    <- paste(all_combos$Row_ID, all_combos$Col_ID)
+    if (!is.null(bg_gray_data) && nrow(bg_gray_data) > 0) {
+      absent_keys    <- paste(bg_gray_data$Row_ID, bg_gray_data$Col_ID)
+      all_keys       <- paste(all_combos$Row_ID, all_combos$Col_ID)
       present_combos <- all_combos[!all_keys %in% absent_keys, ]
     } else {
       present_combos <- all_combos
@@ -1012,7 +997,6 @@ visualize_adj_grid <- function(sparse_data_list, all_weeks, absent_week_list, ou
     present_combos$Col_ID <- factor(present_combos$Col_ID, levels = all_weeks)
     present_combos$Row_ID <- factor(present_combos$Row_ID, levels = discrete_strata)
     
-    # Expand boundaries across present panels
     boundary_data <- merge(present_combos, data.frame(boundary = boundaries))
     
     g <- g +
@@ -1025,37 +1009,25 @@ visualize_adj_grid <- function(sparse_data_list, all_weeks, absent_week_list, ou
   }
   
   # 4. Final Formatting
-  g <- g + 
-    facet_grid(Row_ID ~ Col_ID, drop = FALSE) + 
-    { if (has_edges) coord_fixed() else coord_cartesian() } + 
-    theme_minimal(base_size = 15) + 
+  g <- g +
+    facet_grid(Row_ID ~ Col_ID, drop = FALSE) +
+    { if (has_edges) coord_fixed() else coord_cartesian() } +
+    theme_minimal(base_size = 15) +
     theme(
-      axis.text = element_blank(),
-      axis.title = element_blank(),
-      axis.ticks = element_blank(),
-      panel.grid = element_blank(),
-      panel.background = element_rect(fill = "white", color = "gray90"), 
-      plot.background = element_rect(fill = "transparent", color = NA),
+      axis.text        = element_blank(),
+      axis.title       = element_blank(),
+      axis.ticks       = element_blank(),
+      panel.grid       = element_blank(),
+      panel.background = element_rect(fill = "white", color = "gray90"),
+      plot.background  = element_rect(fill = "transparent", color = NA),
       strip.background = element_rect(fill = "gray95"),
-      strip.text = element_text(face = "bold", size = rel(2))
+      strip.text       = element_text(face = "bold", size = rel(2))
     )
   
-  if(output == "adj") g <- g + theme(legend.position = "none")
+  if (output == "adj") g <- g + theme(legend.position = "none")
   
   return(g)
-
 }
-
-# helper for boundaries
-
-get_factor_boundaries <- function(f) {
-  # Get the integer positions where the level changes
-  level_int <- as.integer(f)
-  change_idx <- which(diff(level_int) != 0)
-  # Boundary is midpoint between last member of one level and first of next
-  change_idx + 0.5
-}
-
 
 
 
