@@ -957,7 +957,8 @@ visualize_adj_grid <- function(sparse_data_list, all_weeks, absent_week_list, ou
   # Layer 1: Gray out absent weeks — only added if there are absent weeks
   if (!is.null(bg_gray_data) && nrow(bg_gray_data) > 0) {
     g <- g + geom_rect(data = bg_gray_data,
-                       aes(xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Inf),
+                       mapping = aes(group = interaction(Row_ID, Col_ID)),
+                       xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Inf,
                        fill = "gray80", alpha = 0.5)
   }
   
@@ -1002,10 +1003,10 @@ visualize_adj_grid <- function(sparse_data_list, all_weeks, absent_week_list, ou
     g <- g +
       geom_vline(data = boundary_data,
                  aes(xintercept = boundary - 0.5),
-                 color = "black", alpha = 1, size = 0.5) +
+                 color = "black", alpha = 1, linewidth = 0.5) +
       geom_hline(data = boundary_data,
                  aes(yintercept = -boundary + 0.5),
-                 color = "black", alpha = 1, size = 0.5)
+                 color = "black", alpha = 1, linewidth = 0.5)
   }
   
   # 4. Final Formatting
@@ -1359,7 +1360,8 @@ visualize_strata_all_mice <- function(results_folder, time_scale, discrete_level
   #
   # GOAL: For each discrete level, plot all available mice as rows in a single
   #       facet_grid. Rows = mouse ID, Columns = week. One set of axis labels.
-  #       Each mouse has its own borders and node space.
+  #       Each mouse has its own borders, node space, and fills its own panel.
+  #       A visual separator is inserted between Tau and WT groups.
   #
   # inputs:
   #
@@ -1375,7 +1377,8 @@ visualize_strata_all_mice <- function(results_folder, time_scale, discrete_level
   #
   # ----------------------------------------------------------------------------
   
-  all_weeks <- 17:38
+  all_weeks    <- 17:38
+  separator_id <- "———"   # phantom row label acting as visual divider
   
   # --------------------------------------------------------------------------
   # Discover all IDs present in the folder for a given discrete level
@@ -1429,7 +1432,8 @@ visualize_strata_all_mice <- function(results_folder, time_scale, discrete_level
           colnames(df_coords) <- c("Node_Row", "Node_Col")
           sparse_data[[as.character(current_week)]] <- df_coords
         } else {
-          sparse_data[[as.character(current_week)]] <- data.frame(Node_Row = integer(0), Node_Col = integer(0))
+          sparse_data[[as.character(current_week)]] <- data.frame(Node_Row = integer(0),
+                                                                  Node_Col = integer(0))
         }
       }
     } else if (output == 'P_HS') {
@@ -1465,6 +1469,17 @@ visualize_strata_all_mice <- function(results_folder, time_scale, discrete_level
   }
   
   # --------------------------------------------------------------------------
+  # Helper: get max node index for a mouse from its sparse data
+  # --------------------------------------------------------------------------
+  get_max_node <- function(sparse_data) {
+    max_node <- 0
+    for (wk in sparse_data) {
+      if (nrow(wk) > 0) max_node <- max(max_node, max(wk$Node_Row, wk$Node_Col))
+    }
+    max(max_node, 1)
+  }
+  
+  # --------------------------------------------------------------------------
   # Build one plot per discrete stratum
   # --------------------------------------------------------------------------
   plot_list          <- list()
@@ -1487,7 +1502,17 @@ visualize_strata_all_mice <- function(results_folder, time_scale, discrete_level
     }
     if (length(loaded_data) == 0) next
     
-    present_IDs <- names(loaded_data)
+    present_IDs  <- names(loaded_data)
+    tau_present  <- present_IDs[grepl("^Tau", present_IDs)]
+    wt_present   <- present_IDs[grepl("^WT",  present_IDs)]
+    has_both_groups <- length(tau_present) > 0 && length(wt_present) > 0
+    
+    # Insert separator between Tau and WT if both groups are present
+    if (has_both_groups) {
+      present_IDs_with_sep <- c(tau_present, separator_id, wt_present)
+    } else {
+      present_IDs_with_sep <- present_IDs
+    }
     
     # ------------------------------------------------------------------------
     # Build plot_data: all edge tiles across all mice
@@ -1499,12 +1524,11 @@ visualize_strata_all_mice <- function(results_folder, time_scale, discrete_level
       for (c_idx in seq_along(row_content)) {
         df_coords <- row_content[[c_idx]]
         if (is.null(df_coords) || nrow(df_coords) == 0) next
-        
-        original        <- df_coords
-        mirrored        <- original
+        original          <- df_coords
+        mirrored          <- original
         mirrored$Node_Row <- original$Node_Col
         mirrored$Node_Col <- original$Node_Row
-        combined_df     <- unique(rbind(original, mirrored))
+        combined_df        <- unique(rbind(original, mirrored))
         combined_df$Row_ID <- ID
         combined_df$Col_ID <- as.numeric(names(row_content)[c_idx])
         plot_data_list[[length(plot_data_list) + 1]] <- combined_df
@@ -1528,10 +1552,50 @@ visualize_strata_all_mice <- function(results_folder, time_scale, discrete_level
       plot_data <- rbind(plot_data, dummy)
     }
     
-    plot_data$Row_ID <- factor(plot_data$Row_ID, levels = present_IDs)
+    # Add phantom row for separator
+    if (has_both_groups) {
+      separator_dummy <- data.frame(Node_Row = NA, Node_Col = NA,
+                                    Row_ID = separator_id, Col_ID = all_weeks[1])
+      if (output %in% c("P_HS", "C_HS")) separator_dummy$Value <- NA
+      plot_data <- rbind(plot_data, separator_dummy)
+    }
+    
+    plot_data$Row_ID <- factor(plot_data$Row_ID, levels = present_IDs_with_sep)
     plot_data$Col_ID <- factor(plot_data$Col_ID, levels = all_weeks)
     
     has_edges <- any(!is.na(plot_data$Node_Row))
+    
+    # ------------------------------------------------------------------------
+    # Build anchor tiles: force each mouse row to fill its own node space
+    # ------------------------------------------------------------------------
+    anchor_list <- list()
+    for (ID in present_IDs) {
+      max_node           <- get_max_node(loaded_data[[ID]]$sparse_data)
+      first_present_week <- as.numeric(names(loaded_data[[ID]]$sparse_data)[1])
+      anchor_list[[ID]]  <- data.frame(
+        Node_Row = c(1, max_node),
+        Node_Col = c(1, max_node),
+        Row_ID   = ID,
+        Col_ID   = first_present_week
+      )
+      if (output %in% c("P_HS", "C_HS")) anchor_list[[ID]]$Value <- NA
+    }
+    
+    anchor_df <- do.call(rbind, anchor_list)
+    
+    # Phantom anchor for separator row
+    if (has_both_groups) {
+      separator_anchor <- data.frame(
+        Node_Row = 1, Node_Col = 1,
+        Row_ID   = separator_id,
+        Col_ID   = all_weeks[1]
+      )
+      if (output %in% c("P_HS", "C_HS")) separator_anchor$Value <- NA
+      anchor_df <- rbind(anchor_df, separator_anchor)
+    }
+    
+    anchor_df$Row_ID <- factor(anchor_df$Row_ID, levels = present_IDs_with_sep)
+    anchor_df$Col_ID <- factor(anchor_df$Col_ID, levels = all_weeks)
     
     # ------------------------------------------------------------------------
     # Build bg_gray_data
@@ -1546,30 +1610,21 @@ visualize_strata_all_mice <- function(results_folder, time_scale, discrete_level
     
     if (length(bg_gray_list) > 0) {
       bg_gray_data        <- do.call(rbind, bg_gray_list)
-      bg_gray_data$Row_ID <- factor(bg_gray_data$Row_ID, levels = present_IDs)
+      bg_gray_data$Row_ID <- factor(bg_gray_data$Row_ID, levels = present_IDs_with_sep)
       bg_gray_data$Col_ID <- factor(bg_gray_data$Col_ID, levels = all_weeks)
     } else {
       bg_gray_data <- NULL
     }
     
     # ------------------------------------------------------------------------
-    # Build per-mouse boundary data (each mouse only gets its own borders)
+    # Build per-mouse boundary data
     # ------------------------------------------------------------------------
-    all_combos <- expand.grid(
-      Row_ID = present_IDs,
-      Col_ID = all_weeks,
-      stringsAsFactors = FALSE
-    )
-    
     boundary_data_list <- list()
     for (ID in present_IDs) {
-      boundaries_i <- loaded_data[[ID]]$boundaries
+      boundaries_i    <- loaded_data[[ID]]$boundaries
       if (length(boundaries_i) == 0) next
-      
-      # Present weeks for this mouse only
-      absent_i       <- loaded_data[[ID]]$absent_weeks
+      absent_i        <- loaded_data[[ID]]$absent_weeks
       present_weeks_i <- setdiff(all_weeks, absent_i)
-      
       bd <- expand.grid(
         Row_ID   = ID,
         Col_ID   = present_weeks_i,
@@ -1581,7 +1636,7 @@ visualize_strata_all_mice <- function(results_folder, time_scale, discrete_level
     
     if (length(boundary_data_list) > 0) {
       boundary_data        <- do.call(rbind, boundary_data_list)
-      boundary_data$Row_ID <- factor(boundary_data$Row_ID, levels = present_IDs)
+      boundary_data$Row_ID <- factor(boundary_data$Row_ID, levels = present_IDs_with_sep)
       boundary_data$Col_ID <- factor(boundary_data$Col_ID, levels = all_weeks)
     } else {
       boundary_data <- NULL
@@ -1597,10 +1652,16 @@ visualize_strata_all_mice <- function(results_folder, time_scale, discrete_level
     
     g <- ggplot()
     
+    # Anchor layer: forces each row to scale to its own node space
+    g <- g + geom_tile(data = anchor_df,
+                       aes(x = Node_Col, y = -Node_Row),
+                       alpha = 0)
+    
     # Layer 1: grey out absent weeks
     if (!is.null(bg_gray_data) && nrow(bg_gray_data) > 0) {
       g <- g + geom_rect(data = bg_gray_data,
-                         aes(xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Inf),
+                         mapping = aes(group = interaction(Row_ID, Col_ID)),
+                         xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Inf,
                          fill = "gray80", alpha = 0.5)
     }
     
@@ -1623,16 +1684,26 @@ visualize_strata_all_mice <- function(results_folder, time_scale, discrete_level
       g <- g +
         geom_vline(data = boundary_data,
                    aes(xintercept = boundary - 0.5),
-                   color = "black", alpha = 1, size = 0.5) +
+                   color = "black", alpha = 1, linewidth = 0.5) +
         geom_hline(data = boundary_data,
                    aes(yintercept = -boundary + 0.5),
-                   color = "black", alpha = 1, size = 0.5)
+                   color = "black", alpha = 1, linewidth = 0.5)
     }
     
-    # Layer 4: facet + formatting
+    # Layer 4: separator line between Tau and WT groups
+    if (has_both_groups) {
+      sep_line_df <- data.frame(
+        Row_ID     = factor(separator_id, levels = present_IDs_with_sep),
+        yintercept = 0
+      )
+      g <- g + geom_hline(data = sep_line_df,
+                          aes(yintercept = yintercept),
+                          color = "black", linewidth = 1.2)
+    }
+    
+    # Layer 5: facet + formatting
     g <- g +
       facet_grid(Row_ID ~ Col_ID, drop = FALSE) +
-      { if (has_edges) coord_fixed() else coord_cartesian() } +
       theme_minimal(base_size = 15) +
       theme(
         axis.text        = element_blank(),
@@ -1791,13 +1862,19 @@ plot_edge_proportion_all_mice <- function(results_folder, time_scale, discrete_l
   return(plot_list)
 }
 
-plot_edge_stability_all_mice <- function(results_folder, time_scale, discrete_levels) {
+plot_edge_instability_all_mice <- function(results_folder, time_scale, discrete_levels) {
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: For each discrete stratum, plot the percentage of edges at week t
-  #       that are also present at week t+1, for all available mice.
-  #       This captures longitudinal network stability.
+  # GOAL: For each discrete stratum, plot edge instability over weeks for all
+  #       available mice discovered automatically from results_folder.
+  #       Instability at week t is defined as:
+  #
+  #         |E(t) △ E(t+1)| / max(|E(t)|, |E(t+1)|)
+  #
+  #       i.e. the fraction of edges that changed relative to the larger
+  #       of the two edge sets. Value of 0 = identical graphs, 1 = fully
+  #       disjoint. Only computed for consecutive present weeks (gap = 1).
   #
   # inputs:
   #
@@ -1823,12 +1900,9 @@ plot_edge_stability_all_mice <- function(results_folder, time_scale, discrete_le
   }
   
   # --------------------------------------------------------------------------
-  # Load edge stability for one mouse across all discrete levels
-  # Stability at week t = |E(t) ∩ E(t+1)| / |E(t)|
-  # i.e. what fraction of edges at week t survived to week t+1
-  # Returns NA if E(t) is empty or t+1 is absent
+  # Load edge instability for one mouse across all discrete levels
   # --------------------------------------------------------------------------
-  load_stability <- function(ID) {
+  load_instability <- function(ID) {
     
     result <- list()
     
@@ -1844,7 +1918,7 @@ plot_edge_stability_all_mice <- function(results_folder, time_scale, discrete_le
       step_data <- res_i$step_12b
       y_c_weeks <- as.numeric(res_i$y_c_query)
       
-      # Build a named list of adjacency matrices keyed by week
+      # Build named list of adjacency matrices keyed by week
       adj_by_week <- list()
       for (idx in seq_along(y_c_weeks)) {
         adj_mat <- step_data[[idx]][["adj_mat_KL_GIC_local_est_eig3"]]
@@ -1853,10 +1927,9 @@ plot_edge_stability_all_mice <- function(results_folder, time_scale, discrete_le
         }
       }
       
-      # For each consecutive pair of present weeks, compute stability
-      present_weeks  <- sort(as.numeric(names(adj_by_week)))
-      stability_vals <- c()
-      stability_weeks <- c()
+      present_weeks    <- sort(as.numeric(names(adj_by_week)))
+      instability_vals <- c()
+      instability_weeks <- c()
       
       for (w_idx in seq_len(length(present_weeks) - 1)) {
         w_curr <- present_weeks[w_idx]
@@ -1868,31 +1941,32 @@ plot_edge_stability_all_mice <- function(results_folder, time_scale, discrete_le
         A_curr <- adj_by_week[[as.character(w_curr)]]
         A_next <- adj_by_week[[as.character(w_next)]]
         
-        # Align dimensions if neuron count differs across weeks (take intersection)
-        n_curr <- nrow(A_curr)
-        n_next <- nrow(A_next)
-        n_min  <- min(n_curr, n_next)
+        # Align dimensions if neuron count differs across weeks
+        n_min  <- min(nrow(A_curr), nrow(A_next))
         A_curr <- A_curr[1:n_min, 1:n_min]
         A_next <- A_next[1:n_min, 1:n_min]
         
-        edges_curr <- sum(A_curr) / 2   # upper triangle count
+        edges_curr <- sum(A_curr) / 2
+        edges_next <- sum(A_next) / 2
+        denom      <- max(edges_curr, edges_next)
         
-        if (edges_curr == 0) {
-          stability_vals  <- c(stability_vals, NA)
+        if (denom == 0) {
+          # Both graphs are empty — perfectly stable, no change
+          instability_vals <- c(instability_vals, 0)
         } else {
-          # Edges that survived: present in both weeks
-          edges_survived  <- sum(A_curr * A_next) / 2
-          stability_vals  <- c(stability_vals, edges_survived / edges_curr)
+          # Symmetric difference: edges present in one week but not the other
+          sym_diff         <- sum(abs(A_curr - A_next)) / 2
+          instability_vals <- c(instability_vals, sym_diff / denom)
         }
         
-        stability_weeks <- c(stability_weeks, w_curr)
+        instability_weeks <- c(instability_weeks, w_curr)
       }
       
-      if (length(stability_weeks) > 0) {
+      if (length(instability_weeks) > 0) {
         result[[d_level]] <- data.frame(
-          week      = stability_weeks,
-          stability = stability_vals,
-          mouse     = ID
+          week        = instability_weeks,
+          instability = instability_vals,
+          mouse       = ID
         )
       }
       
@@ -1906,18 +1980,21 @@ plot_edge_stability_all_mice <- function(results_folder, time_scale, discrete_le
   # Collect data across all mice
   # --------------------------------------------------------------------------
   all_IDs  <- unique(unlist(lapply(discrete_levels, discover_IDs)))
-  all_data <- lapply(all_IDs, load_stability)
+  all_data <- lapply(all_IDs, load_instability)
   names(all_data) <- all_IDs
+  
+  # --------------------------------------------------------------------------
+  # Color palette: Tau in warm tones, WT in cool tones
+  # --------------------------------------------------------------------------
+  tau_mice  <- all_IDs[grepl("^Tau", all_IDs)]
+  wt_mice   <- all_IDs[grepl("^WT",  all_IDs)]
+  tau_cols  <- setNames(scales::hue_pal(h = c(0, 60))(length(tau_mice)),   tau_mice)
+  wt_cols   <- setNames(scales::hue_pal(h = c(200, 260))(length(wt_mice)), wt_mice)
+  color_map <- c(tau_cols, wt_cols)
   
   # --------------------------------------------------------------------------
   # Build one plot per discrete level
   # --------------------------------------------------------------------------
-  tau_mice <- all_IDs[grepl("^Tau", all_IDs)]
-  wt_mice  <- all_IDs[grepl("^WT",  all_IDs)]
-  tau_cols <- setNames(scales::hue_pal(h = c(0, 60))(length(tau_mice)),  tau_mice)
-  wt_cols  <- setNames(scales::hue_pal(h = c(200, 260))(length(wt_mice)), wt_mice)
-  color_map <- c(tau_cols, wt_cols)
-  
   plot_list <- list()
   
   for (d_level in discrete_levels) {
@@ -1930,7 +2007,7 @@ plot_edge_stability_all_mice <- function(results_folder, time_scale, discrete_le
     plot_df       <- do.call(rbind, df_list)
     plot_df$mouse <- factor(plot_df$mouse, levels = all_IDs)
     
-    g <- ggplot(plot_df, aes(x = week, y = stability, color = mouse, group = mouse)) +
+    g <- ggplot(plot_df, aes(x = week, y = instability, color = mouse, group = mouse)) +
       geom_line(linewidth = 0.8) +
       geom_point(size = 2) +
       scale_color_manual(values = color_map) +
@@ -1942,7 +2019,7 @@ plot_edge_stability_all_mice <- function(results_folder, time_scale, discrete_le
       labs(
         title  = d_level,
         x      = "Week t",
-        y      = "Edge Retention (t → t+1)",
+        y      = "Edge Instability (t → t+1)",
         color  = "Mouse"
       ) +
       theme_bw() +

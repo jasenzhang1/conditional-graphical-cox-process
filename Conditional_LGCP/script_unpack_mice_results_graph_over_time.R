@@ -79,33 +79,33 @@ for (d_level in names(strata_results$plots)) {
 # ------------------------------------------------------------------------------
 # plot proportion of connected edges over time with a line graph
 
-prop_plots <- plot_edge_proportion_all_mice(
-  results_folder  = results_folder,
-  time_scale      = time_scale,
-  discrete_levels = discrete_levels
-)
-
-for (d_level in names(prop_plots)) {
-  png_name <- paste0(results_folder_2, '/all_mice_', d_level, '_t', time_scale, '_edge_proportion.png')
-  png(png_name, width = 10, height = 6, units = "in", res = 100)
-  print(prop_plots[[d_level]])
-  dev.off()
-}
+# prop_plots <- plot_edge_proportion_all_mice(
+#   results_folder  = results_folder,
+#   time_scale      = time_scale,
+#   discrete_levels = discrete_levels
+# )
+# 
+# for (d_level in names(prop_plots)) {
+#   png_name <- paste0(results_folder_2, '/all_mice_', d_level, '_t', time_scale, '_edge_proportion.png')
+#   png(png_name, width = 10, height = 6, units = "in", res = 100)
+#   print(prop_plots[[d_level]])
+#   dev.off()
+# }
 
 
 # ------------------------------------------------------------------------------
-# plot edge stability (if they were still present in the next week) over time with a line graph  
+# plot edge instability (if they were still present in the next week) over time with a line graph  
 
 
-stability_plots <- plot_edge_stability_all_mice(
+instability_plots <- plot_edge_instability_all_mice(
   results_folder  = results_folder,
   time_scale      = time_scale,
   discrete_levels = discrete_levels
 )
 
-for (d_level in names(stability_plots)) {
-  png_name <- paste0(results_folder_2, '/all_mice_', d_level, '_t', time_scale, '_edge_stability.png')
+for (d_level in names(instability_plots)) {
+  png_name <- paste0(results_folder_2, '/all_mice_', d_level, '_t', time_scale, '_edge_instability.png')
   png(png_name, width = 10, height = 6, units = "in", res = 100)
-  print(stability_plots[[d_level]])
+  print(instability_plots[[d_level]])
   dev.off()
 }
