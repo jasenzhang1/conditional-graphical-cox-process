@@ -1357,10 +1357,9 @@ visualize_strata_all_mice <- function(results_folder, time_scale, discrete_level
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: For each discrete level, plot all available mice as rows in a heatmap
-  #       grid. Mice are discovered automatically by scanning results_folder for
-  #       matching files — no ID list required.
-  #       Each mouse gets its own panel with its own node space and boundaries.
+  # GOAL: For each discrete level, plot all available mice as rows in a single
+  #       facet_grid. Rows = mouse ID, Columns = week. One set of axis labels.
+  #       Each mouse has its own borders and node space.
   #
   # inputs:
   #
@@ -1371,10 +1370,12 @@ visualize_strata_all_mice <- function(results_folder, time_scale, discrete_level
   # - region_border    (boolean)
   #
   # returns: named list with two elements:
-  #   - plots   : named list of patchwork objects, one per discrete level
+  #   - plots   : named list of ggplot objects, one per discrete level
   #   - n_mice  : named integer list of mouse counts, one per discrete level
   #
   # ----------------------------------------------------------------------------
+  
+  all_weeks <- 17:38
   
   # --------------------------------------------------------------------------
   # Discover all IDs present in the folder for a given discrete level
@@ -1383,11 +1384,9 @@ visualize_strata_all_mice <- function(results_folder, time_scale, discrete_level
     pattern   <- paste0("^(.+)_", d_level, "_t", time_scale, "\\.RData$")
     all_files <- list.files(results_folder, pattern = pattern, full.names = FALSE)
     ids       <- sub(paste0("_", d_level, "_t", time_scale, "\\.RData$"), "", all_files)
-    
-    # Sort: Tau first, then WT, each group in alphanumeric order
-    tau_ids <- sort(ids[grepl("^Tau", ids)])
-    wt_ids  <- sort(ids[grepl("^WT",  ids)])
-    other   <- sort(ids[!grepl("^(Tau|WT)", ids)])
+    tau_ids   <- sort(ids[grepl("^Tau", ids)])
+    wt_ids    <- sort(ids[grepl("^WT",  ids)])
+    other     <- sort(ids[!grepl("^(Tau|WT)", ids)])
     c(tau_ids, wt_ids, other)
   }
   
@@ -1414,7 +1413,7 @@ visualize_strata_all_mice <- function(results_folder, time_scale, discrete_level
     }
     
     y_c_weeks    <- as.numeric(res_i$y_c_query)
-    absent_weeks <- setdiff(17:38, y_c_weeks)
+    absent_weeks <- setdiff(all_weeks, y_c_weeks)
     sparse_data  <- list()
     
     if (output == 'adj') {
@@ -1462,21 +1461,7 @@ visualize_strata_all_mice <- function(results_folder, time_scale, discrete_level
     }
     
     rm(tmp_env, res_i, step_data)
-    
     return(list(sparse_data = sparse_data, absent_weeks = absent_weeks, boundaries = boundaries))
-  }
-  
-  # --------------------------------------------------------------------------
-  # Extract max node index from a sparse_data list (proxy for neuron count)
-  # --------------------------------------------------------------------------
-  get_max_node <- function(sparse_data) {
-    max_node <- 0
-    for (wk in sparse_data) {
-      if (nrow(wk) > 0) {
-        max_node <- max(max_node, max(wk$Node_Row, wk$Node_Col))
-      }
-    }
-    max(max_node, 1)
   }
   
   # --------------------------------------------------------------------------
@@ -1488,55 +1473,182 @@ visualize_strata_all_mice <- function(results_folder, time_scale, discrete_level
   for (d_level in discrete_levels) {
     
     IDs <- discover_IDs(d_level)
-    
     if (length(IDs) == 0) {
       message(sprintf("No files found for stratum %s — skipping.", d_level))
       next
     }
-    
     message(sprintf("Stratum %s: found mice — %s", d_level, paste(IDs, collapse = ", ")))
     
-    # Load all mice data first so we only read each file once
+    # Load all mice data
     loaded_data <- list()
     for (ID in IDs) {
       res <- load_sparse_data(ID, d_level)
       if (!is.null(res)) loaded_data[[ID]] <- res
     }
-    
     if (length(loaded_data) == 0) next
     
-    # Build one panel per mouse with its own node space and boundaries
-    per_mouse_plots <- list()
-    node_counts     <- c()
+    present_IDs <- names(loaded_data)
     
-    for (ID in names(loaded_data)) {
-      res <- loaded_data[[ID]]
-      
-      sparse_data_list_i <- setNames(list(res$sparse_data), ID)
-      absent_week_list_i <- setNames(list(res$absent_weeks), ID)
-      
-      message(sprintf("  %s: absent_weeks = %s", ID, paste(res$absent_weeks, collapse = ", ")))
-      
-      per_mouse_plots[[ID]] <- visualize_adj_grid(
-        sparse_data_list_i,
-        17:38,
-        absent_week_list_i,
-        output,
-        res$boundaries
-      )
-      
-      node_counts[ID] <- get_max_node(res$sparse_data)
+    # ------------------------------------------------------------------------
+    # Build plot_data: all edge tiles across all mice
+    # ------------------------------------------------------------------------
+    plot_data_list <- list()
+    
+    for (ID in present_IDs) {
+      row_content <- loaded_data[[ID]]$sparse_data
+      for (c_idx in seq_along(row_content)) {
+        df_coords <- row_content[[c_idx]]
+        if (is.null(df_coords) || nrow(df_coords) == 0) next
+        
+        original        <- df_coords
+        mirrored        <- original
+        mirrored$Node_Row <- original$Node_Col
+        mirrored$Node_Col <- original$Node_Row
+        combined_df     <- unique(rbind(original, mirrored))
+        combined_df$Row_ID <- ID
+        combined_df$Col_ID <- as.numeric(names(row_content)[c_idx])
+        plot_data_list[[length(plot_data_list) + 1]] <- combined_df
+      }
     }
     
-    # Stack panels vertically, height proportional to each mouse's neuron count
-    combined <- patchwork::wrap_plots(per_mouse_plots, ncol = 1, heights = node_counts) &
+    if (length(plot_data_list) > 0) {
+      plot_data <- do.call(rbind, plot_data_list)
+    } else {
+      plot_data <- data.frame(Node_Row = NA, Node_Col = NA,
+                              Row_ID = present_IDs[1], Col_ID = all_weeks[1])
+      if (output %in% c("P_HS", "C_HS")) plot_data$Value <- NA
+    }
+    
+    # Pad missing mice
+    missing_IDs <- setdiff(present_IDs, unique(as.character(plot_data$Row_ID)))
+    if (length(missing_IDs) > 0) {
+      dummy <- data.frame(Node_Row = NA, Node_Col = NA,
+                          Row_ID = missing_IDs, Col_ID = all_weeks[1])
+      if (output %in% c("P_HS", "C_HS")) dummy$Value <- NA
+      plot_data <- rbind(plot_data, dummy)
+    }
+    
+    plot_data$Row_ID <- factor(plot_data$Row_ID, levels = present_IDs)
+    plot_data$Col_ID <- factor(plot_data$Col_ID, levels = all_weeks)
+    
+    has_edges <- any(!is.na(plot_data$Node_Row))
+    
+    # ------------------------------------------------------------------------
+    # Build bg_gray_data
+    # ------------------------------------------------------------------------
+    bg_gray_list <- list()
+    for (ID in present_IDs) {
+      absent_weeks <- loaded_data[[ID]]$absent_weeks
+      if (length(absent_weeks) > 0) {
+        bg_gray_list[[ID]] <- data.frame(Row_ID = ID, Col_ID = absent_weeks)
+      }
+    }
+    
+    if (length(bg_gray_list) > 0) {
+      bg_gray_data        <- do.call(rbind, bg_gray_list)
+      bg_gray_data$Row_ID <- factor(bg_gray_data$Row_ID, levels = present_IDs)
+      bg_gray_data$Col_ID <- factor(bg_gray_data$Col_ID, levels = all_weeks)
+    } else {
+      bg_gray_data <- NULL
+    }
+    
+    # ------------------------------------------------------------------------
+    # Build per-mouse boundary data (each mouse only gets its own borders)
+    # ------------------------------------------------------------------------
+    all_combos <- expand.grid(
+      Row_ID = present_IDs,
+      Col_ID = all_weeks,
+      stringsAsFactors = FALSE
+    )
+    
+    boundary_data_list <- list()
+    for (ID in present_IDs) {
+      boundaries_i <- loaded_data[[ID]]$boundaries
+      if (length(boundaries_i) == 0) next
+      
+      # Present weeks for this mouse only
+      absent_i       <- loaded_data[[ID]]$absent_weeks
+      present_weeks_i <- setdiff(all_weeks, absent_i)
+      
+      bd <- expand.grid(
+        Row_ID   = ID,
+        Col_ID   = present_weeks_i,
+        boundary = boundaries_i,
+        stringsAsFactors = FALSE
+      )
+      boundary_data_list[[ID]] <- bd
+    }
+    
+    if (length(boundary_data_list) > 0) {
+      boundary_data        <- do.call(rbind, boundary_data_list)
+      boundary_data$Row_ID <- factor(boundary_data$Row_ID, levels = present_IDs)
+      boundary_data$Col_ID <- factor(boundary_data$Col_ID, levels = all_weeks)
+    } else {
+      boundary_data <- NULL
+    }
+    
+    # ------------------------------------------------------------------------
+    # Build the plot
+    # ------------------------------------------------------------------------
+    new_palette <- hcl.colors(3, palette = 'Blue-Red 2')
+    c_low  <- new_palette[1]
+    c_mid  <- new_palette[2]
+    c_high <- new_palette[3]
+    
+    g <- ggplot()
+    
+    # Layer 1: grey out absent weeks
+    if (!is.null(bg_gray_data) && nrow(bg_gray_data) > 0) {
+      g <- g + geom_rect(data = bg_gray_data,
+                         aes(xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Inf),
+                         fill = "gray80", alpha = 0.5)
+    }
+    
+    # Layer 2: edge tiles
+    if (output == "adj") {
+      g <- g + geom_tile(data = plot_data, aes(x = Node_Col, y = -Node_Row), fill = "red")
+    } else {
+      zmin <- min(plot_data$Value, na.rm = TRUE)
+      zmax <- max(plot_data$Value, na.rm = TRUE)
+      zmax <- zmax + 0.1 * (zmax - zmin)
+      zmin <- zmin - 0.1 * (zmax - zmin)
+      g <- g + geom_tile(data = plot_data, aes(x = Node_Col, y = -Node_Row, fill = Value)) +
+        scale_fill_gradient2(low = c_low, mid = c_mid, high = c_high,
+                             midpoint = 0, limits = c(zmin, zmax)) +
+        theme(legend.position = "right")
+    }
+    
+    # Layer 3: per-mouse borders
+    if (!is.null(boundary_data) && nrow(boundary_data) > 0) {
+      g <- g +
+        geom_vline(data = boundary_data,
+                   aes(xintercept = boundary - 0.5),
+                   color = "black", alpha = 1, size = 0.5) +
+        geom_hline(data = boundary_data,
+                   aes(yintercept = -boundary + 0.5),
+                   color = "black", alpha = 1, size = 0.5)
+    }
+    
+    # Layer 4: facet + formatting
+    g <- g +
+      facet_grid(Row_ID ~ Col_ID, drop = FALSE) +
+      { if (has_edges) coord_fixed() else coord_cartesian() } +
+      theme_minimal(base_size = 15) +
       theme(
-        plot.margin   = margin(0, 0, 0, 0),
-        aspect.ratio  = NULL
+        axis.text        = element_blank(),
+        axis.title       = element_blank(),
+        axis.ticks       = element_blank(),
+        panel.grid       = element_blank(),
+        panel.background = element_rect(fill = "white", color = "gray90"),
+        plot.background  = element_rect(fill = "transparent", color = NA),
+        strip.background = element_rect(fill = "gray95"),
+        strip.text       = element_text(face = "bold", size = rel(2))
       )
     
-    n_mice_per_stratum[[d_level]] <- length(per_mouse_plots)
-    plot_list[[d_level]]          <- combined
+    if (output == "adj") g <- g + theme(legend.position = "none")
+    
+    n_mice_per_stratum[[d_level]] <- length(present_IDs)
+    plot_list[[d_level]]          <- g
   }
   
   return(list(
