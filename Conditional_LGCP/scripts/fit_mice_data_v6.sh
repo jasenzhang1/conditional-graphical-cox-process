@@ -59,8 +59,8 @@ min_freq=0.5
 min_events=$(echo "$time_scale * $min_freq" | bc | xargs printf "%.0f")
 
 
-max_processes=15
-n_weeks=2
+max_processes=10000
+n_weeks=50
 
 if [ "$cluster" == "hoffman" ]; then
 
@@ -79,10 +79,6 @@ else
     movement=(0 0 1 1)
     VR=(0 1 0 1)
     
-    IDs=("WT2")
-    movement=(1)
-    VR=(1)
-    
     # EHC, 0.001,  WT2_m0vr1
     # HIP, 0.001,  Tau2_m0vr1, WT1_m0vr0, WT2_m0vr1
     # EHC, 0.0003, WT2_m0vr1
@@ -91,7 +87,7 @@ else
     # I have done 0.001 and 0.0003, next try 0.003
     region="BOTH_150"   # "HIP", "EHC", or "HIP_EHC" "BOTH_100", "BOTH_150"
     
-    max_jobs=40
+    max_jobs=50
     
     mkdir -p script_outputs
     mkdir -p script_outputs/mice
