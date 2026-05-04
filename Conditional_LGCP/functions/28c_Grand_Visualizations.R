@@ -1029,7 +1029,15 @@ visualize_adj_grid <- function(sparse_data_list, all_weeks, absent_week_list, ou
   return(g)
 }
 
+# helper for boundaries
 
+get_factor_boundaries <- function(f) {
+  # Get the integer positions where the level changes
+  level_int <- as.integer(f)
+  change_idx <- which(diff(level_int) != 0)
+  # Boundary is midpoint between last member of one level and first of next
+  change_idx + 0.5
+}
 
 visualize_discrete_comparison <- function(results_folder, ID, time_scale, discrete_levels, output, region_border) {
   
