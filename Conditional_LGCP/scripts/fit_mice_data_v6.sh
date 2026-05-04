@@ -75,9 +75,11 @@ if [ "$cluster" == "hoffman" ]; then
     mkdir -p ../../../project-biostat-chair/script_outputs/mice
     
 else
-    IDs=("WT3" "Tau1" "Tau2" "Tau3" "WT1" "WT2")
+    IDs=("Tau1" "Tau2" "Tau3" "WT1" "WT2")
     movement=(0 0 1 1)
     VR=(0 1 0 1)
+    
+    # finished WT3 m0vr0
     
     # EHC, 0.001,  WT2_m0vr1
     # HIP, 0.001,  Tau2_m0vr1, WT1_m0vr0, WT2_m0vr1
@@ -723,7 +725,7 @@ else
             
             MICE_FOLDER="temp_data/mice/${ID}_m${mov}vr${vr}_t${time_scale}"
             
-            # rm -rf "$MICE_FOLDER"
+            rm -rf "$MICE_FOLDER"
             
             echo "Cleanup complete for $ID, m${mov}vr${vr}, t=$time_scale." >> "$outfile"
             
