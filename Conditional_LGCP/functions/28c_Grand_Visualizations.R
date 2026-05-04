@@ -1535,6 +1535,8 @@ visualize_strata_all_mice <- function(results_folder, time_scale, discrete_level
       sparse_data_list_i <- setNames(list(res$sparse_data), ID)
       absent_week_list_i <- setNames(list(res$absent_weeks), ID)
       
+      message(sprintf("  %s: absent_weeks = %s", ID, paste(res$absent_weeks, collapse = ", ")))
+      
       per_mouse_plots[[ID]] <- visualize_adj_grid(
         sparse_data_list_i,
         17:38,
@@ -1547,7 +1549,9 @@ visualize_strata_all_mice <- function(results_folder, time_scale, discrete_level
     }
     
     # Stack panels vertically, height proportional to each mouse's neuron count
-    combined <- patchwork::wrap_plots(per_mouse_plots, ncol = 1, heights = node_counts)
+    combined <- patchwork::wrap_plots(per_mouse_plots, ncol = 1, heights = node_counts) +
+      patchwork::plot_layout(guides = 'collect') &
+      theme(plot.margin = margin(0, 0, 0, 0))
     
     n_mice_per_stratum[[d_level]] <- length(per_mouse_plots)
     plot_list[[d_level]]          <- combined
