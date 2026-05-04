@@ -1373,6 +1373,152 @@ visualize_discrete_comparison_two_mice <- function(results_folder, ID1, ID2, tim
   return(plot_list)
 }
 
+visualize_strata_all_mice <- function(results_folder, time_scale, discrete_levels, output, region_border) {
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: For each discrete level, plot all available mice as rows in a heatmap
+  #       grid. Mice are discovered automatically by scanning results_folder for
+  #       matching files — no ID list required.
+  #
+  # inputs:
+  #
+  # - results_folder   (string)
+  # - time_scale       (integer)  e.g. 10
+  # - discrete_levels  (vector of strings)
+  # - output           (string)   'adj', 'P_HS', or 'C_HS'
+  # - region_border    (boolean)
+  #
+  # returns: named list of ggplot objects, one per discrete level
+  #
+  # ----------------------------------------------------------------------------
+  
+  # --------------------------------------------------------------------------
+  # Discover all IDs present in the folder for a given discrete level
+  # --------------------------------------------------------------------------
+  discover_IDs <- function(d_level) {
+    pattern <- paste0("^(.+)_", d_level, "_t", time_scale, "\\.RData$")
+    all_files <- list.files(results_folder, pattern = pattern, full.names = FALSE)
+    ids <- sub(paste0("_", d_level, "_t", time_scale, "\\.RData$"), "", all_files)
+    
+    # Sort: Tau first, then WT, each group in alphanumeric order
+    tau_ids <- sort(ids[grepl("^Tau", ids)])
+    wt_ids  <- sort(ids[grepl("^WT",  ids)])
+    other   <- sort(ids[!grepl("^(Tau|WT)", ids)])
+    c(tau_ids, wt_ids, other)
+  }
+  
+  # --------------------------------------------------------------------------
+  # Load sparse data for one mouse × one discrete level (same as two_mice fn)
+  # --------------------------------------------------------------------------
+  load_sparse_data <- function(ID, d_level) {
+    
+    file_path <- paste0(results_folder, '/', ID, '_', d_level, '_t', time_scale, '.RData')
+    
+    if (!file.exists(file_path)) {
+      warning(paste("File not found:", file_path))
+      return(NULL)
+    }
+    
+    tmp_env <- new.env()
+    load(file_path, envir = tmp_env)
+    res_i <- tmp_env$graph_results_i
+    
+    if (region_border) {
+      boundaries <- get_factor_boundaries(res_i$recovery_params$kept_neuron_regions)
+    } else {
+      boundaries <- numeric(0)
+    }
+    
+    y_c_weeks    <- as.numeric(res_i$y_c_query)
+    absent_weeks <- setdiff(17:38, y_c_weeks)
+    sparse_data  <- list()
+    
+    if (output == 'adj') {
+      step_data <- res_i$step_12b
+      for (idx in seq_along(y_c_weeks)) {
+        current_week <- y_c_weeks[idx]
+        adj_mat <- step_data[[idx]][["adj_mat_KL_GIC_local_est_eig3"]]
+        if (is.null(adj_mat)) next
+        coords <- which(adj_mat == 1, arr.ind = TRUE)
+        if (nrow(coords) > 0) coords <- coords[coords[, 2] > coords[, 1], , drop = FALSE]
+        if (nrow(coords) > 0) {
+          df_coords <- as.data.frame(coords)
+          colnames(df_coords) <- c("Node_Row", "Node_Col")
+          sparse_data[[as.character(current_week)]] <- df_coords
+        } else {
+          sparse_data[[as.character(current_week)]] <- data.frame(Node_Row = integer(0), Node_Col = integer(0))
+        }
+      }
+    } else if (output == 'P_HS') {
+      step_data <- res_i$step_11
+      for (idx in seq_along(y_c_weeks)) {
+        current_week <- y_c_weeks[idx]
+        P_HS_log <- log(step_data[[idx]][["w_mat_KL_est_eig3"]])
+        if (is.null(P_HS_log)) next
+        upper_tri_idx <- which(col(P_HS_log) >= row(P_HS_log), arr.ind = TRUE)
+        df_coords <- as.data.frame(upper_tri_idx)
+        colnames(df_coords) <- c("Node_Row", "Node_Col")
+        df_coords$Value <- P_HS_log[upper_tri_idx]
+        sparse_data[[as.character(current_week)]] <- df_coords
+      }
+    } else if (output == 'C_HS') {
+      step_data <- res_i$step_11b
+      for (idx in seq_along(y_c_weeks)) {
+        current_week <- y_c_weeks[idx]
+        C_HS_log <- log(step_data[[idx]][["C_HS_KL_est_eig3"]])
+        if (is.null(C_HS_log)) next
+        upper_tri_idx <- which(col(C_HS_log) >= row(C_HS_log), arr.ind = TRUE)
+        df_coords <- as.data.frame(upper_tri_idx)
+        colnames(df_coords) <- c("Node_Row", "Node_Col")
+        df_coords$Value <- C_HS_log[upper_tri_idx]
+        sparse_data[[as.character(current_week)]] <- df_coords
+      }
+    } else {
+      stop('error in visualize_strata_all_mice: unknown output type')
+    }
+    
+    rm(tmp_env, res_i, step_data)
+    
+    return(list(sparse_data = sparse_data, absent_weeks = absent_weeks, boundaries = boundaries))
+  }
+  
+  # --------------------------------------------------------------------------
+  # Build one plot per discrete stratum
+  # --------------------------------------------------------------------------
+  plot_list <- list()
+  
+  for (d_level in discrete_levels) {
+    
+    IDs <- discover_IDs(d_level)
+    
+    if (length(IDs) == 0) {
+      message(sprintf("No files found for stratum %s — skipping.", d_level))
+      next
+    }
+    
+    message(sprintf("Stratum %s: found mice — %s", d_level, paste(IDs, collapse = ", ")))
+    
+    sparse_data_list <- list()
+    absent_week_list <- list()
+    all_boundaries   <- numeric(0)
+    
+    for (ID in IDs) {
+      res <- load_sparse_data(ID, d_level)
+      if (is.null(res)) next
+      sparse_data_list[[ID]] <- res$sparse_data
+      absent_week_list[[ID]] <- res$absent_weeks
+      all_boundaries         <- union(all_boundaries, res$boundaries)
+    }
+    
+    if (length(sparse_data_list) == 0) next
+    
+    plot_list[[d_level]] <- visualize_adj_grid(sparse_data_list, 17:38, absent_week_list, output, all_boundaries)
+  }
+  
+  return(plot_list)
+}
+
 plot_edge_proportion_comparison <- function(results_folder, ID1, ID2, time_scale, discrete_levels) {
   
   # ----------------------------------------------------------------------------
