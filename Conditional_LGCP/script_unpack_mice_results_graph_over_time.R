@@ -42,16 +42,16 @@ discrete_levels_list <- list(discrete_levels,
 
 region_border <- T
 
-for(i in 1:length(IDs)){
-  print(IDs[i])
-  png_name <- paste0(results_folder_2, '/', IDs[i], '_t', time_scale, '_edge_sets.png')
-  
-  png(png_name, width = 45, height = 15, units = "in", res = 100)
-  
-  g <- visualize_discrete_comparison(results_folder, IDs[i], time_scale, discrete_levels_list[[i]], 'adj', region_border)
-  print(g)
-  dev.off()
-}
+# for(i in 1:length(IDs)){
+#   print(IDs[i])
+#   png_name <- paste0(results_folder_2, '/', IDs[i], '_t', time_scale, '_edge_sets.png')
+#   
+#   png(png_name, width = 45, height = 15, units = "in", res = 100)
+#   
+#   g <- visualize_discrete_comparison(results_folder, IDs[i], time_scale, discrete_levels_list[[i]], 'adj', region_border)
+#   print(g)
+#   dev.off()
+# }
 
 # ------------------------------------------------------------------------------
 # plot graphs comparing the same discrete strata across all mice
@@ -66,8 +66,7 @@ strata_results <- visualize_strata_all_mice(
 
 for (d_level in names(strata_results$plots)) {
   png_name <- paste0(results_folder_2, '/all_mice_', d_level, '_t', time_scale, '_edge_sets.png')
-  n_mice   <- strata_results$n_mice[[d_level]]
-  png(png_name, width = 45, height = 8 * n_mice, units = "in", res = 100)
+  png(png_name, width = 45, height = 30, units = "in", res = 100)
   print(strata_results$plots[[d_level]])
   dev.off()
 }
@@ -75,22 +74,22 @@ for (d_level in names(strata_results$plots)) {
 # ------------------------------------------------------------------------------
 # plot proportion of connected edges over time with a line graph
 
-WT_IDs  <- c('WT3')
-Tau_IDs <- c('Tau1', 'Tau2', 'Tau3')
-
-for (wt in WT_IDs) {
-  for (tau in Tau_IDs) {
-    
-    plot_list <- plot_edge_proportion_comparison(results_folder, wt, tau, time_scale, discrete_levels)
-    
-    for (d_level in names(plot_list)) {
-      png_name <- paste0(results_folder_2, '/', wt, '_vs_', tau, '_', d_level, '_t', time_scale, '_edge_proportion.png')
-      png(png_name, width = 10, height = 6, units = "in", res = 100)
-      print(plot_list[[d_level]])
-      dev.off()
-    }
-  }
-}
+# WT_IDs  <- c('WT3')
+# Tau_IDs <- c('Tau1', 'Tau2', 'Tau3')
+# 
+# for (wt in WT_IDs) {
+#   for (tau in Tau_IDs) {
+#     
+#     plot_list <- plot_edge_proportion_comparison(results_folder, wt, tau, time_scale, discrete_levels)
+#     
+#     for (d_level in names(plot_list)) {
+#       png_name <- paste0(results_folder_2, '/', wt, '_vs_', tau, '_', d_level, '_t', time_scale, '_edge_proportion.png')
+#       png(png_name, width = 10, height = 6, units = "in", res = 100)
+#       print(plot_list[[d_level]])
+#       dev.off()
+#     }
+#   }
+# }
 
 
   

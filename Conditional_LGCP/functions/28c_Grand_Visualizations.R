@@ -1380,6 +1380,7 @@ visualize_strata_all_mice <- function(results_folder, time_scale, discrete_level
   # GOAL: For each discrete level, plot all available mice as rows in a heatmap
   #       grid. Mice are discovered automatically by scanning results_folder for
   #       matching files — no ID list required.
+  #       Each mouse gets its own panel with its own node space and boundaries.
   #
   # inputs:
   #
@@ -1390,8 +1391,8 @@ visualize_strata_all_mice <- function(results_folder, time_scale, discrete_level
   # - region_border    (boolean)
   #
   # returns: named list with two elements:
-  #   - plots   : named list of ggplot objects, one per discrete level
-  #   - n_mice  : named integer vector of mouse counts, one per discrete level
+  #   - plots   : named list of patchwork objects, one per discrete level
+  #   - n_mice  : named integer list of mouse counts, one per discrete level
   #
   # ----------------------------------------------------------------------------
   
@@ -1486,6 +1487,19 @@ visualize_strata_all_mice <- function(results_folder, time_scale, discrete_level
   }
   
   # --------------------------------------------------------------------------
+  # Extract max node index from a sparse_data list (proxy for neuron count)
+  # --------------------------------------------------------------------------
+  get_max_node <- function(sparse_data) {
+    max_node <- 0
+    for (wk in sparse_data) {
+      if (nrow(wk) > 0) {
+        max_node <- max(max_node, max(wk$Node_Row, wk$Node_Col))
+      }
+    }
+    max(max_node, 1)
+  }
+  
+  # --------------------------------------------------------------------------
   # Build one plot per discrete stratum
   # --------------------------------------------------------------------------
   plot_list          <- list()
@@ -1502,22 +1516,41 @@ visualize_strata_all_mice <- function(results_folder, time_scale, discrete_level
     
     message(sprintf("Stratum %s: found mice — %s", d_level, paste(IDs, collapse = ", ")))
     
-    sparse_data_list <- list()
-    absent_week_list <- list()
-    all_boundaries   <- numeric(0)
-    
+    # Load all mice data first so we only read each file once
+    loaded_data <- list()
     for (ID in IDs) {
       res <- load_sparse_data(ID, d_level)
-      if (is.null(res)) next
-      sparse_data_list[[ID]] <- res$sparse_data
-      absent_week_list[[ID]] <- res$absent_weeks
-      all_boundaries         <- union(all_boundaries, res$boundaries)
+      if (!is.null(res)) loaded_data[[ID]] <- res
     }
     
-    if (length(sparse_data_list) == 0) next
+    if (length(loaded_data) == 0) next
     
-    n_mice_per_stratum[[d_level]] <- length(sparse_data_list)
-    plot_list[[d_level]]          <- visualize_adj_grid(sparse_data_list, 17:38, absent_week_list, output, all_boundaries)
+    # Build one panel per mouse with its own node space and boundaries
+    per_mouse_plots <- list()
+    node_counts     <- c()
+    
+    for (ID in names(loaded_data)) {
+      res <- loaded_data[[ID]]
+      
+      sparse_data_list_i <- setNames(list(res$sparse_data), ID)
+      absent_week_list_i <- setNames(list(res$absent_weeks), ID)
+      
+      per_mouse_plots[[ID]] <- visualize_adj_grid(
+        sparse_data_list_i,
+        17:38,
+        absent_week_list_i,
+        output,
+        res$boundaries
+      )
+      
+      node_counts[ID] <- get_max_node(res$sparse_data)
+    }
+    
+    # Stack panels vertically, height proportional to each mouse's neuron count
+    combined <- patchwork::wrap_plots(per_mouse_plots, ncol = 1, heights = node_counts)
+    
+    n_mice_per_stratum[[d_level]] <- length(per_mouse_plots)
+    plot_list[[d_level]]          <- combined
   }
   
   return(list(
