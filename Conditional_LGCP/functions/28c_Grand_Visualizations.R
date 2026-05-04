@@ -1657,21 +1657,17 @@ visualize_strata_all_mice <- function(results_folder, time_scale, discrete_level
   ))
 }
 
-plot_edge_proportion_comparison <- function(results_folder, ID1, ID2, time_scale, discrete_levels) {
+plot_edge_proportion_all_mice <- function(results_folder, time_scale, discrete_levels) {
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: For each discrete stratum, plot edge proportion over weeks for two
-  #       mice (ID1 and ID2) on the same graph. Returns a named list of ggplots,
-  #       one per discrete level.
-  #
-  # claude wrote this
+  # GOAL: For each discrete stratum, plot edge proportion over weeks for all
+  #       available mice discovered automatically from results_folder.
+  #       Returns a named list of ggplots, one per discrete level.
   #
   # inputs:
   #
   # - results_folder   (string)
-  # - ID1              (string)   e.g. 'WT3'
-  # - ID2              (string)   e.g. 'Tau1'
   # - time_scale       (integer)  e.g. 10
   # - discrete_levels  (vector of strings)  e.g. c('m0vr0', 'm1vr1', ...)
   #
@@ -1679,6 +1675,22 @@ plot_edge_proportion_comparison <- function(results_folder, ID1, ID2, time_scale
   #
   # ----------------------------------------------------------------------------
   
+  # --------------------------------------------------------------------------
+  # Discover all IDs for a given discrete level
+  # --------------------------------------------------------------------------
+  discover_IDs <- function(d_level) {
+    pattern   <- paste0("^(.+)_", d_level, "_t", time_scale, "\\.RData$")
+    all_files <- list.files(results_folder, pattern = pattern, full.names = FALSE)
+    ids       <- sub(paste0("_", d_level, "_t", time_scale, "\\.RData$"), "", all_files)
+    tau_ids   <- sort(ids[grepl("^Tau", ids)])
+    wt_ids    <- sort(ids[grepl("^WT",  ids)])
+    other     <- sort(ids[!grepl("^(Tau|WT)", ids)])
+    c(tau_ids, wt_ids, other)
+  }
+  
+  # --------------------------------------------------------------------------
+  # Load edge proportions for one mouse across all discrete levels
+  # --------------------------------------------------------------------------
   load_proportions <- function(ID) {
     
     result <- list()
@@ -1687,10 +1699,7 @@ plot_edge_proportion_comparison <- function(results_folder, ID1, ID2, time_scale
       
       file_path <- paste0(results_folder, '/', ID, '_', d_level, '_t', time_scale, '.RData')
       
-      if (!file.exists(file_path)) {
-        warning(paste("File not found:", file_path))
-        next
-      }
+      if (!file.exists(file_path)) next
       
       tmp_env <- new.env()
       load(file_path, envir = tmp_env)
@@ -1698,20 +1707,17 @@ plot_edge_proportion_comparison <- function(results_folder, ID1, ID2, time_scale
       
       step_data <- res_i$step_12b
       y_c_weeks <- as.numeric(res_i$y_c_query)
-      
       proportions <- numeric(length(y_c_weeks))
       
       for (idx in seq_along(y_c_weeks)) {
         adj_mat <- step_data[[idx]][["adj_mat_KL_GIC_local_est_eig3"]]
-        
         if (is.null(adj_mat)) {
           proportions[idx] <- NA
           next
         }
-        
-        m           <- nrow(adj_mat)
-        max_edges   <- m * (m - 1) / 2
-        n_edges     <- sum(adj_mat) / 2
+        m                <- nrow(adj_mat)
+        max_edges        <- m * (m - 1) / 2
+        n_edges          <- sum(adj_mat) / 2
         proportions[idx] <- n_edges / max_edges
       }
       
@@ -1727,26 +1733,216 @@ plot_edge_proportion_comparison <- function(results_folder, ID1, ID2, time_scale
     return(result)
   }
   
-  data1 <- load_proportions(ID1)
-  data2 <- load_proportions(ID2)
+  # --------------------------------------------------------------------------
+  # Collect data across all mice for each discrete level
+  # --------------------------------------------------------------------------
+  
+  # Get union of all IDs across all discrete levels
+  all_IDs <- unique(unlist(lapply(discrete_levels, discover_IDs)))
+  
+  # Load proportions for every mouse
+  all_data <- lapply(all_IDs, load_proportions)
+  names(all_data) <- all_IDs
+  
+  # --------------------------------------------------------------------------
+  # Build one plot per discrete level
+  # --------------------------------------------------------------------------
+  plot_list <- list()
+  
+  for (d_level in discrete_levels) {
+    
+    # Collect rows from all mice that have data for this stratum
+    df_list <- lapply(all_IDs, function(ID) all_data[[ID]][[d_level]])
+    df_list <- Filter(Negate(is.null), df_list)
+    
+    if (length(df_list) == 0) next
+    
+    plot_df        <- do.call(rbind, df_list)
+    plot_df$mouse  <- factor(plot_df$mouse, levels = all_IDs)  # Tau first, then WT
+    
+    # Color palette: Tau in reds/oranges, WT in blues
+    tau_mice <- all_IDs[grepl("^Tau", all_IDs)]
+    wt_mice  <- all_IDs[grepl("^WT",  all_IDs)]
+    tau_cols <- setNames(scales::hue_pal(h = c(0, 60))(length(tau_mice)),  tau_mice)
+    wt_cols  <- setNames(scales::hue_pal(h = c(200, 260))(length(wt_mice)), wt_mice)
+    color_map <- c(tau_cols, wt_cols)
+    
+    g <- ggplot(plot_df, aes(x = week, y = proportion, color = mouse, group = mouse)) +
+      geom_line(linewidth = 0.8) +
+      geom_point(size = 2) +
+      scale_color_manual(values = color_map) +
+      scale_x_continuous(breaks = 17:38) +
+      scale_y_continuous(labels = scales::percent_format(accuracy = 1), limits = c(0, NA)) +
+      labs(
+        title  = d_level,
+        x      = "Week",
+        y      = "Edge Proportion",
+        color  = "Mouse"
+      ) +
+      theme_bw() +
+      theme(
+        axis.text.x     = element_text(angle = 45, hjust = 1),
+        legend.position = "bottom"
+      )
+    
+    plot_list[[d_level]] <- g
+  }
+  
+  return(plot_list)
+}
+
+plot_edge_stability_all_mice <- function(results_folder, time_scale, discrete_levels) {
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: For each discrete stratum, plot the percentage of edges at week t
+  #       that are also present at week t+1, for all available mice.
+  #       This captures longitudinal network stability.
+  #
+  # inputs:
+  #
+  # - results_folder   (string)
+  # - time_scale       (integer)  e.g. 10
+  # - discrete_levels  (vector of strings)  e.g. c('m0vr0', 'm1vr1', ...)
+  #
+  # returns: named list of ggplot objects, one per discrete level
+  #
+  # ----------------------------------------------------------------------------
+  
+  # --------------------------------------------------------------------------
+  # Discover all IDs for a given discrete level
+  # --------------------------------------------------------------------------
+  discover_IDs <- function(d_level) {
+    pattern   <- paste0("^(.+)_", d_level, "_t", time_scale, "\\.RData$")
+    all_files <- list.files(results_folder, pattern = pattern, full.names = FALSE)
+    ids       <- sub(paste0("_", d_level, "_t", time_scale, "\\.RData$"), "", all_files)
+    tau_ids   <- sort(ids[grepl("^Tau", ids)])
+    wt_ids    <- sort(ids[grepl("^WT",  ids)])
+    other     <- sort(ids[!grepl("^(Tau|WT)", ids)])
+    c(tau_ids, wt_ids, other)
+  }
+  
+  # --------------------------------------------------------------------------
+  # Load edge stability for one mouse across all discrete levels
+  # Stability at week t = |E(t) ∩ E(t+1)| / |E(t)|
+  # i.e. what fraction of edges at week t survived to week t+1
+  # Returns NA if E(t) is empty or t+1 is absent
+  # --------------------------------------------------------------------------
+  load_stability <- function(ID) {
+    
+    result <- list()
+    
+    for (d_level in discrete_levels) {
+      
+      file_path <- paste0(results_folder, '/', ID, '_', d_level, '_t', time_scale, '.RData')
+      if (!file.exists(file_path)) next
+      
+      tmp_env <- new.env()
+      load(file_path, envir = tmp_env)
+      res_i <- tmp_env$graph_results_i
+      
+      step_data <- res_i$step_12b
+      y_c_weeks <- as.numeric(res_i$y_c_query)
+      
+      # Build a named list of adjacency matrices keyed by week
+      adj_by_week <- list()
+      for (idx in seq_along(y_c_weeks)) {
+        adj_mat <- step_data[[idx]][["adj_mat_KL_GIC_local_est_eig3"]]
+        if (!is.null(adj_mat)) {
+          adj_by_week[[as.character(y_c_weeks[idx])]] <- adj_mat
+        }
+      }
+      
+      # For each consecutive pair of present weeks, compute stability
+      present_weeks  <- sort(as.numeric(names(adj_by_week)))
+      stability_vals <- c()
+      stability_weeks <- c()
+      
+      for (w_idx in seq_len(length(present_weeks) - 1)) {
+        w_curr <- present_weeks[w_idx]
+        w_next <- present_weeks[w_idx + 1]
+        
+        # Only compute for consecutive weeks (gap of exactly 1)
+        if (w_next - w_curr != 1) next
+        
+        A_curr <- adj_by_week[[as.character(w_curr)]]
+        A_next <- adj_by_week[[as.character(w_next)]]
+        
+        # Align dimensions if neuron count differs across weeks (take intersection)
+        n_curr <- nrow(A_curr)
+        n_next <- nrow(A_next)
+        n_min  <- min(n_curr, n_next)
+        A_curr <- A_curr[1:n_min, 1:n_min]
+        A_next <- A_next[1:n_min, 1:n_min]
+        
+        edges_curr <- sum(A_curr) / 2   # upper triangle count
+        
+        if (edges_curr == 0) {
+          stability_vals  <- c(stability_vals, NA)
+        } else {
+          # Edges that survived: present in both weeks
+          edges_survived  <- sum(A_curr * A_next) / 2
+          stability_vals  <- c(stability_vals, edges_survived / edges_curr)
+        }
+        
+        stability_weeks <- c(stability_weeks, w_curr)
+      }
+      
+      if (length(stability_weeks) > 0) {
+        result[[d_level]] <- data.frame(
+          week      = stability_weeks,
+          stability = stability_vals,
+          mouse     = ID
+        )
+      }
+      
+      rm(tmp_env, res_i, step_data)
+    }
+    
+    return(result)
+  }
+  
+  # --------------------------------------------------------------------------
+  # Collect data across all mice
+  # --------------------------------------------------------------------------
+  all_IDs  <- unique(unlist(lapply(discrete_levels, discover_IDs)))
+  all_data <- lapply(all_IDs, load_stability)
+  names(all_data) <- all_IDs
+  
+  # --------------------------------------------------------------------------
+  # Build one plot per discrete level
+  # --------------------------------------------------------------------------
+  tau_mice <- all_IDs[grepl("^Tau", all_IDs)]
+  wt_mice  <- all_IDs[grepl("^WT",  all_IDs)]
+  tau_cols <- setNames(scales::hue_pal(h = c(0, 60))(length(tau_mice)),  tau_mice)
+  wt_cols  <- setNames(scales::hue_pal(h = c(200, 260))(length(wt_mice)), wt_mice)
+  color_map <- c(tau_cols, wt_cols)
   
   plot_list <- list()
   
   for (d_level in discrete_levels) {
     
-    if (is.null(data1[[d_level]]) && is.null(data2[[d_level]])) next
+    df_list <- lapply(all_IDs, function(ID) all_data[[ID]][[d_level]])
+    df_list <- Filter(Negate(is.null), df_list)
     
-    plot_df <- rbind(data1[[d_level]], data2[[d_level]])
+    if (length(df_list) == 0) next
     
-    g <- ggplot(plot_df, aes(x = week, y = proportion, color = mouse, group = mouse)) +
+    plot_df       <- do.call(rbind, df_list)
+    plot_df$mouse <- factor(plot_df$mouse, levels = all_IDs)
+    
+    g <- ggplot(plot_df, aes(x = week, y = stability, color = mouse, group = mouse)) +
       geom_line(linewidth = 0.8) +
       geom_point(size = 2) +
+      scale_color_manual(values = color_map) +
       scale_x_continuous(breaks = 17:38) +
-      scale_y_continuous(labels = scales::percent_format(accuracy = 1), limits = c(0, NA)) +
+      scale_y_continuous(
+        labels = scales::percent_format(accuracy = 1),
+        limits = c(0, 1)
+      ) +
       labs(
-        title  = paste0("Edge Proportion — ", d_level, "  (", ID1, " vs ", ID2, ")"),
-        x      = "Week",
-        y      = "Edge Proportion",
+        title  = d_level,
+        x      = "Week t",
+        y      = "Edge Retention (t → t+1)",
         color  = "Mouse"
       ) +
       theme_bw() +
