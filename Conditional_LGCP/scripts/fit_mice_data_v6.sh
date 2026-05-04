@@ -59,8 +59,8 @@ min_freq=0.5
 min_events=$(echo "$time_scale * $min_freq" | bc | xargs printf "%.0f")
 
 
-max_processes=10000
-n_weeks=50
+max_processes=15
+n_weeks=2
 
 if [ "$cluster" == "hoffman" ]; then
 
@@ -78,6 +78,10 @@ else
     IDs=("WT3" "Tau1" "Tau2" "Tau3" "WT1" "WT2")
     movement=(0 0 1 1)
     VR=(0 1 0 1)
+    
+    IDs=("WT2")
+    movement=(1)
+    VR=(1)
     
     # EHC, 0.001,  WT2_m0vr1
     # HIP, 0.001,  Tau2_m0vr1, WT1_m0vr0, WT2_m0vr1

@@ -14,8 +14,8 @@ if(model_type == 'mice'){
   movement <- as.numeric(args[6])     # movement <- 0
   VR <- as.numeric(args[7])           # VR <- 0
   cont_ind <- as.numeric(args[8])     # cont_ind <- 1  
-  id_suffix <- args[9]               # est or X_truth
-  k         <- args[10]               # tau_c index
+  id_suffix <- as.numeric(args[9])    # est or X_truth
+  k         <- as.numeric(args[10])   # tau_c index
   min_connect_pct <- as.numeric(args[11])
   
   
