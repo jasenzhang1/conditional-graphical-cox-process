@@ -1034,7 +1034,7 @@ visualize_adj_grid <- function(sparse_data_list, all_weeks, absent_week_list, ou
       axis.title = element_blank(),
       axis.ticks = element_blank(),
       panel.grid = element_blank(),
-      panel.background = element_rect(fill = NA, color = "gray90"), 
+      panel.background = element_rect(fill = "white", color = "gray90"), 
       plot.background = element_rect(fill = "transparent", color = NA),
       strip.background = element_rect(fill = "gray95"),
       strip.text = element_text(face = "bold", size = rel(2))

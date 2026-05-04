@@ -66,7 +66,8 @@ strata_results <- visualize_strata_all_mice(
 
 for (d_level in names(strata_results$plots)) {
   png_name <- paste0(results_folder_2, '/all_mice_', d_level, '_t', time_scale, '_edge_sets.png')
-  png(png_name, width = 45, height = 30, units = "in", res = 100)
+  n_mice   <- strata_results$n_mice[[d_level]]
+  png(png_name, width = 45, height = 8 * n_mice, units = "in", res = 100)
   print(strata_results$plots[[d_level]])
   dev.off()
 }
