@@ -1530,7 +1530,10 @@ visualize_strata_all_mice <- function(results_folder, time_scale, discrete_level
     
     # Stack panels vertically, height proportional to each mouse's neuron count
     combined <- patchwork::wrap_plots(per_mouse_plots, ncol = 1, heights = node_counts) &
-      theme(plot.margin = margin(0, 0, 0, 0))
+      theme(
+        plot.margin   = margin(0, 0, 0, 0),
+        aspect.ratio  = NULL
+      )
     
     n_mice_per_stratum[[d_level]] <- length(per_mouse_plots)
     plot_list[[d_level]]          <- combined
