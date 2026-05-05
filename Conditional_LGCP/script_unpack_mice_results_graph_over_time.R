@@ -105,7 +105,8 @@ instability_plots <- plot_edge_instability_all_mice(
 
 for (d_level in names(instability_plots)) {
   png_name <- paste0(results_folder_2, '/all_mice_', d_level, '_t', time_scale, '_edge_instability.png')
-  png(png_name, width = 10, height = 6, units = "in", res = 100)
+  png(png_name, width = 14, height = 4, units = "in", res = 100)
   print(instability_plots[[d_level]])
   dev.off()
 }
+

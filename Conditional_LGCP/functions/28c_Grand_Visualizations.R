@@ -2023,22 +2023,20 @@ plot_edge_instability_all_mice <- function(results_folder, time_scale, discrete_
     
     g <- ggplot(plot_df, aes(x = week, y = instability, color = mouse, group = mouse)) +
       geom_line(linewidth = 0.8) +
-      geom_point(size = 2) +
       scale_color_manual(values = color_map) +
-      scale_x_continuous(breaks = 17:38) +
       scale_y_continuous(
-        labels = scales::percent_format(accuracy = 1),
+        breaks = c(0, 0.25, 0.5, 0.75, 1),
         limits = c(0, 1)
       ) +
+      scale_x_continuous(breaks = c(20, 25, 30, 35)) +
       labs(
-        title  = d_level,
-        x      = "Week t",
-        y      = "Edge Instability (t → t+1)",
+        x      = "Age (Weeks)",
+        y      = "Jaccard Distance",
         color  = "Mouse"
       ) +
       theme_bw() +
       theme(
-        axis.text.x     = element_text(angle = 45, hjust = 1),
+        panel.grid = element_blank(),
         legend.position = "bottom"
       )
     
