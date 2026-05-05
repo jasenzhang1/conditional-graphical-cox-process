@@ -2038,7 +2038,7 @@ plot_edge_instability_all_mice <- function(results_folder, time_scale, discrete_
       scale_x_continuous(breaks = 17:38) +
       scale_y_continuous(
         labels = scales::percent_format(accuracy = 1),
-        limits = c(0, 1)
+        limits = c(0, NA)
       ) +
       labs(
         title  = d_level,
