@@ -1875,6 +1875,7 @@ plot_edge_instability_all_mice <- function(results_folder, time_scale, discrete_
   #       i.e. the fraction of edges that changed relative to the larger
   #       of the two edge sets. Value of 0 = identical graphs, 1 = fully
   #       disjoint. Only computed for consecutive present weeks (gap = 1).
+  #       All computations use upper triangle only to exclude diagonal.
   #
   # inputs:
   #
@@ -1927,9 +1928,6 @@ plot_edge_instability_all_mice <- function(results_folder, time_scale, discrete_
         }
       }
       
-      message(sprintf("  %s/%s: present weeks = %s",
-                      ID, d_level, paste(names(adj_by_week), collapse = ", ")))
-      
       present_weeks     <- sort(as.numeric(names(adj_by_week)))
       instability_vals  <- c()
       instability_weeks <- c()
@@ -1944,37 +1942,25 @@ plot_edge_instability_all_mice <- function(results_folder, time_scale, discrete_
         A_curr <- adj_by_week[[as.character(w_curr)]]
         A_next <- adj_by_week[[as.character(w_next)]]
         
-        message(sprintf("    week %d -> %d: any NA in A_curr = %s, any NA in A_next = %s, nrow A_curr = %d, nrow A_next = %d",
-                        w_curr, w_next,
-                        any(is.na(A_curr)), any(is.na(A_next)),
-                        nrow(A_curr), nrow(A_next)))
-        
         # Align dimensions if neuron count differs across weeks
-        n_min  <- min(nrow(A_curr), nrow(A_next))
-        
-        if (n_min == 0) {
-          message(sprintf("    week %d -> %d: skipping — degenerate 0x0 matrix", w_curr, w_next))
-          next
-        }
-        
+        n_min <- min(nrow(A_curr), nrow(A_next))
+        if (n_min == 0) next
         A_curr <- A_curr[1:n_min, 1:n_min]
         A_next <- A_next[1:n_min, 1:n_min]
         
-        edges_curr <- sum(A_curr) / 2
-        edges_next <- sum(A_next) / 2
+        # Use upper triangle only — excludes diagonal (self-loops) and
+        # avoids double counting from symmetry
+        upper      <- upper.tri(A_curr)
+        edges_curr <- sum(A_curr[upper])
+        edges_next <- sum(A_next[upper])
         denom      <- max(edges_curr, edges_next)
         
         if (denom == 0) {
+          # Both graphs are empty — perfectly stable
           instability_vals <- c(instability_vals, 0)
         } else {
-          sym_diff         <- sum(abs(A_curr - A_next), na.rm = TRUE) / 2
-          instability_val  <- sym_diff / denom
-          
-          if (is.na(instability_val)) {
-            message(sprintf("    week %d -> %d: NA instability — edges_curr=%g, edges_next=%g, sym_diff=%g, denom=%g",
-                            w_curr, w_next, edges_curr, edges_next, sym_diff, denom))
-          }
-          
+          sym_diff        <- sum(abs(A_curr[upper] - A_next[upper]))
+          instability_val <- sym_diff / denom
           instability_vals <- c(instability_vals, instability_val)
         }
         
@@ -2026,11 +2012,6 @@ plot_edge_instability_all_mice <- function(results_folder, time_scale, discrete_
     plot_df       <- do.call(rbind, df_list)
     plot_df$mouse <- factor(plot_df$mouse, levels = all_IDs)
     
-    print(plot_df[plot_df$mouse == "Tau1", ])
-    
-    message(sprintf("  Tau1/%s instability weeks: %s", d_level,
-                    paste(plot_df$week[plot_df$mouse == "Tau1"], collapse = ", ")))
-    
     g <- ggplot(plot_df, aes(x = week, y = instability, color = mouse, group = mouse)) +
       geom_line(linewidth = 0.8) +
       geom_point(size = 2) +
@@ -2038,7 +2019,7 @@ plot_edge_instability_all_mice <- function(results_folder, time_scale, discrete_
       scale_x_continuous(breaks = 17:38) +
       scale_y_continuous(
         labels = scales::percent_format(accuracy = 1),
-        limits = c(0, NA)
+        limits = c(0, 1)
       ) +
       labs(
         title  = d_level,
