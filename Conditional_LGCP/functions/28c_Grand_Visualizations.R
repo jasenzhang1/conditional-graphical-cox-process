@@ -2026,6 +2026,11 @@ plot_edge_instability_all_mice <- function(results_folder, time_scale, discrete_
     plot_df       <- do.call(rbind, df_list)
     plot_df$mouse <- factor(plot_df$mouse, levels = all_IDs)
     
+    print(plot_df[plot_df$mouse == "Tau1", ])
+    
+    message(sprintf("  Tau1/%s instability weeks: %s", d_level,
+                    paste(plot_df$week[plot_df$mouse == "Tau1"], collapse = ", ")))
+    
     g <- ggplot(plot_df, aes(x = week, y = instability, color = mouse, group = mouse)) +
       geom_line(linewidth = 0.8) +
       geom_point(size = 2) +
