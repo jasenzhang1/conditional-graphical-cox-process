@@ -2034,7 +2034,7 @@ plot_edge_instability_all_mice <- function(results_folder, time_scale, discrete_
         y      = "Jaccard Distance",
         color  = "Mouse"
       ) +
-      theme_bw() +
+      theme_bw(base_size = 16) +
       theme(
         panel.grid = element_blank(),
         legend.position = "bottom"
