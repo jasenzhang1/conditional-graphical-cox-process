@@ -1953,7 +1953,7 @@ plot_edge_instability_all_mice <- function(results_folder, time_scale, discrete_
         upper      <- upper.tri(A_curr)
         edges_curr <- sum(A_curr[upper])
         edges_next <- sum(A_next[upper])
-        denom      <- max(edges_curr, edges_next)
+        denom      <- edges_curr + gained
         
         if (denom == 0) {
           instability_vals <- c(instability_vals, 0)
