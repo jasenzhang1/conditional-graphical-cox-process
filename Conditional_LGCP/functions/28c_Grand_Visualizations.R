@@ -1950,10 +1950,11 @@ plot_edge_instability_all_mice <- function(results_folder, time_scale, discrete_
         
         # Use upper triangle only — excludes diagonal (self-loops) and
         # avoids double counting from symmetry
-        upper      <- upper.tri(A_curr)
-        edges_curr <- sum(A_curr[upper])
-        edges_next <- sum(A_next[upper])
-        denom      <- edges_curr + gained
+        upper       <- upper.tri(A_curr)
+        edges_curr  <- sum(A_curr[upper])
+        edges_next  <- sum(A_next[upper])
+        union_edges <- sum(A_curr[upper] | A_next[upper])
+        denom       <- union_edges
         
         if (denom == 0) {
           instability_vals <- c(instability_vals, 0)
