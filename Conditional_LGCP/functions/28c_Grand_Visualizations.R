@@ -1927,8 +1927,11 @@ plot_edge_instability_all_mice <- function(results_folder, time_scale, discrete_
         }
       }
       
-      present_weeks    <- sort(as.numeric(names(adj_by_week)))
-      instability_vals <- c()
+      message(sprintf("  %s/%s: present weeks = %s",
+                      ID, d_level, paste(names(adj_by_week), collapse = ", ")))
+      
+      present_weeks     <- sort(as.numeric(names(adj_by_week)))
+      instability_vals  <- c()
       instability_weeks <- c()
       
       for (w_idx in seq_len(length(present_weeks) - 1)) {
@@ -1941,8 +1944,19 @@ plot_edge_instability_all_mice <- function(results_folder, time_scale, discrete_
         A_curr <- adj_by_week[[as.character(w_curr)]]
         A_next <- adj_by_week[[as.character(w_next)]]
         
+        message(sprintf("    week %d -> %d: any NA in A_curr = %s, any NA in A_next = %s, nrow A_curr = %d, nrow A_next = %d",
+                        w_curr, w_next,
+                        any(is.na(A_curr)), any(is.na(A_next)),
+                        nrow(A_curr), nrow(A_next)))
+        
         # Align dimensions if neuron count differs across weeks
         n_min  <- min(nrow(A_curr), nrow(A_next))
+        
+        if (n_min == 0) {
+          message(sprintf("    week %d -> %d: skipping — degenerate 0x0 matrix", w_curr, w_next))
+          next
+        }
+        
         A_curr <- A_curr[1:n_min, 1:n_min]
         A_next <- A_next[1:n_min, 1:n_min]
         
@@ -1951,12 +1965,17 @@ plot_edge_instability_all_mice <- function(results_folder, time_scale, discrete_
         denom      <- max(edges_curr, edges_next)
         
         if (denom == 0) {
-          # Both graphs are empty — perfectly stable, no change
           instability_vals <- c(instability_vals, 0)
         } else {
-          # Symmetric difference: edges present in one week but not the other
-          sym_diff         <- sum(abs(A_curr - A_next)) / 2
-          instability_vals <- c(instability_vals, sym_diff / denom)
+          sym_diff         <- sum(abs(A_curr - A_next), na.rm = TRUE) / 2
+          instability_val  <- sym_diff / denom
+          
+          if (is.na(instability_val)) {
+            message(sprintf("    week %d -> %d: NA instability — edges_curr=%g, edges_next=%g, sym_diff=%g, denom=%g",
+                            w_curr, w_next, edges_curr, edges_next, sym_diff, denom))
+          }
+          
+          instability_vals <- c(instability_vals, instability_val)
         }
         
         instability_weeks <- c(instability_weeks, w_curr)
