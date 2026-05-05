@@ -1956,12 +1956,20 @@ plot_edge_instability_all_mice <- function(results_folder, time_scale, discrete_
         denom      <- max(edges_curr, edges_next)
         
         if (denom == 0) {
-          # Both graphs are empty — perfectly stable
           instability_vals <- c(instability_vals, 0)
+          message(sprintf("    week %d -> %d: edges_curr=%g, edges_next=%g — both empty, instability=0",
+                          w_curr, w_next, edges_curr, edges_next))
         } else {
           sym_diff        <- sum(abs(A_curr[upper] - A_next[upper]))
           instability_val <- sym_diff / denom
           instability_vals <- c(instability_vals, instability_val)
+          message(sprintf("    week %d -> %d: edges_curr=%g, edges_next=%g, gained=%g, lost=%g, sym_diff=%g, denom=%g, instability=%.4f",
+                          w_curr, w_next,
+                          edges_curr, edges_next,
+                          sum(A_next[upper] > A_curr[upper]),   # edges gained
+                          sum(A_curr[upper] > A_next[upper]),   # edges lost
+                          sym_diff, denom,
+                          instability_val))
         }
         
         instability_weeks <- c(instability_weeks, w_curr)
