@@ -80,8 +80,8 @@ else
     VR=(0 1 0 1)
     
     IDs=("Tau3" "Tau3" "WT1" "WT1" "WT1" "WT1" "WT2" "WT2" "WT2" "WT2" "WT3" "WT3" "WT3")
-    movement=(1 0 0 0 1 1 0 0 1 1 0 1 1)
-    VR=(1 1 0 1 0 1 0 1 0 1 1 0 1)
+    movement=(1 1 0 0 1 1 0 0 1 1 0 1 1)
+    VR=(0 1 0 1 0 1 0 1 0 1 1 0 1)
     
     # finished WT3 m0vr0
     
