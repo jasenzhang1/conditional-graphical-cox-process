@@ -51,7 +51,7 @@ global_thresh_method="neither" # both, joint, tau_c, or neither
 
 y_c_structure="week_only"
 method="CPGM"
-min_connect_pct=1.0    # at least 1 percent = 1.0
+min_connect_pct=0.01    # 1 percent = 0.01
 
 m=30
 time_scale=10 
