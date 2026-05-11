@@ -90,7 +90,7 @@ else
     # I have done 0.001 and 0.0003, next try 0.003
     region="BOTH_150"   # "HIP", "EHC", or "HIP_EHC" "BOTH_100", "BOTH_150"
     
-    max_jobs=65
+    max_jobs=70
     
     mkdir -p script_outputs
     mkdir -p script_outputs/mice
