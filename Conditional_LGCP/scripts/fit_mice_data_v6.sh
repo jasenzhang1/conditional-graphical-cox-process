@@ -51,7 +51,7 @@ global_thresh_method="neither" # both, joint, tau_c, or neither
 
 y_c_structure="week_only"
 method="CPGM"
-min_connect_pct=0.0    # at least 1 percent
+min_connect_pct=1.0    # at least 1 percent = 1.0
 
 m=30
 time_scale=10 
@@ -90,7 +90,7 @@ else
     # I have done 0.001 and 0.0003, next try 0.003
     region="BOTH_150"   # "HIP", "EHC", or "HIP_EHC" "BOTH_100", "BOTH_150"
     
-    max_jobs=60
+    max_jobs=65
     
     mkdir -p script_outputs
     mkdir -p script_outputs/mice
