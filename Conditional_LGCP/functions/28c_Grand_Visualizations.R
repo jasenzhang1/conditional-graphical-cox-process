@@ -1011,6 +1011,7 @@ visualize_adj_grid <- function(sparse_data_list, all_weeks, absent_week_list, ou
   
   # 4. Final Formatting
   g <- g +
+    coord_fixed(ratio = 1) +                                  # heatmaps are square
     facet_grid(Row_ID ~ Col_ID, drop = FALSE) +
     { if (has_edges) coord_fixed() else coord_cartesian() } +
     theme_minimal(base_size = 15) +
@@ -1378,7 +1379,7 @@ visualize_strata_all_mice <- function(results_folder, time_scale, discrete_level
   # ----------------------------------------------------------------------------
   
   all_weeks    <- 17:38
-  separator_id <- "———"   # phantom row label acting as visual divider
+
   
   # --------------------------------------------------------------------------
   # Discover all IDs present in the folder for a given discrete level
@@ -1503,16 +1504,6 @@ visualize_strata_all_mice <- function(results_folder, time_scale, discrete_level
     if (length(loaded_data) == 0) next
     
     present_IDs  <- names(loaded_data)
-    tau_present  <- present_IDs[grepl("^Tau", present_IDs)]
-    wt_present   <- present_IDs[grepl("^WT",  present_IDs)]
-    has_both_groups <- length(tau_present) > 0 && length(wt_present) > 0
-    
-    # Insert separator between Tau and WT if both groups are present
-    if (has_both_groups) {
-      present_IDs_with_sep <- c(tau_present, separator_id, wt_present)
-    } else {
-      present_IDs_with_sep <- present_IDs
-    }
     
     # ------------------------------------------------------------------------
     # Build plot_data: all edge tiles across all mice
@@ -1552,18 +1543,8 @@ visualize_strata_all_mice <- function(results_folder, time_scale, discrete_level
       plot_data <- rbind(plot_data, dummy)
     }
     
-    # Add phantom row for separator
-    if (has_both_groups) {
-      separator_dummy <- data.frame(Node_Row = NA, Node_Col = NA,
-                                    Row_ID = separator_id, Col_ID = all_weeks[1])
-      if (output %in% c("P_HS", "C_HS")) separator_dummy$Value <- NA
-      plot_data <- rbind(plot_data, separator_dummy)
-    }
-    
-    plot_data$Row_ID <- factor(plot_data$Row_ID, levels = present_IDs_with_sep)
+    plot_data$Row_ID <- factor(plot_data$Row_ID, levels = present_IDs)
     plot_data$Col_ID <- factor(plot_data$Col_ID, levels = all_weeks)
-    
-    has_edges <- any(!is.na(plot_data$Node_Row))
     
     # ------------------------------------------------------------------------
     # Build anchor tiles: force each mouse row to fill its own node space
@@ -1583,18 +1564,7 @@ visualize_strata_all_mice <- function(results_folder, time_scale, discrete_level
     
     anchor_df <- do.call(rbind, anchor_list)
     
-    # Phantom anchor for separator row
-    if (has_both_groups) {
-      separator_anchor <- data.frame(
-        Node_Row = 1, Node_Col = 1,
-        Row_ID   = separator_id,
-        Col_ID   = all_weeks[1]
-      )
-      if (output %in% c("P_HS", "C_HS")) separator_anchor$Value <- NA
-      anchor_df <- rbind(anchor_df, separator_anchor)
-    }
-    
-    anchor_df$Row_ID <- factor(anchor_df$Row_ID, levels = present_IDs_with_sep)
+    anchor_df$Row_ID <- factor(anchor_df$Row_ID, levels = present_IDs)
     anchor_df$Col_ID <- factor(anchor_df$Col_ID, levels = all_weeks)
     
     # ------------------------------------------------------------------------
@@ -1610,7 +1580,7 @@ visualize_strata_all_mice <- function(results_folder, time_scale, discrete_level
     
     if (length(bg_gray_list) > 0) {
       bg_gray_data        <- do.call(rbind, bg_gray_list)
-      bg_gray_data$Row_ID <- factor(bg_gray_data$Row_ID, levels = present_IDs_with_sep)
+      bg_gray_data$Row_ID <- factor(bg_gray_data$Row_ID, levels = present_IDs)
       bg_gray_data$Col_ID <- factor(bg_gray_data$Col_ID, levels = all_weeks)
     } else {
       bg_gray_data <- NULL
@@ -1636,7 +1606,7 @@ visualize_strata_all_mice <- function(results_folder, time_scale, discrete_level
     
     if (length(boundary_data_list) > 0) {
       boundary_data        <- do.call(rbind, boundary_data_list)
-      boundary_data$Row_ID <- factor(boundary_data$Row_ID, levels = present_IDs_with_sep)
+      boundary_data$Row_ID <- factor(boundary_data$Row_ID, levels = present_IDs)
       boundary_data$Col_ID <- factor(boundary_data$Col_ID, levels = all_weeks)
     } else {
       boundary_data <- NULL
@@ -1684,22 +1654,12 @@ visualize_strata_all_mice <- function(results_folder, time_scale, discrete_level
       g <- g +
         geom_vline(data = boundary_data,
                    aes(xintercept = boundary - 0.5),
-                   color = "black", alpha = 1, linewidth = 0.5) +
+                   color = "gray80", alpha = 1, linewidth = 0.5) +  
         geom_hline(data = boundary_data,
                    aes(yintercept = -boundary + 0.5),
-                   color = "black", alpha = 1, linewidth = 0.5)
+                   color = "gray70", alpha = 1, linewidth = 0.5)     
     }
     
-    # Layer 4: separator line between Tau and WT groups
-    if (has_both_groups) {
-      sep_line_df <- data.frame(
-        Row_ID     = factor(separator_id, levels = present_IDs_with_sep),
-        yintercept = 0
-      )
-      g <- g + geom_hline(data = sep_line_df,
-                          aes(yintercept = yintercept),
-                          color = "black", linewidth = 1.2)
-    }
     
     # Layer 5: facet + formatting
     g <- g +
@@ -1710,7 +1670,7 @@ visualize_strata_all_mice <- function(results_folder, time_scale, discrete_level
         axis.title       = element_blank(),
         axis.ticks       = element_blank(),
         panel.grid       = element_blank(),
-        panel.background = element_rect(fill = "white", color = "gray90"),
+        panel.background = element_rect(fill = "white", color = "black"),    # heatmap border = black
         plot.background  = element_rect(fill = "transparent", color = NA),
         strip.background = element_rect(fill = "gray95"),
         strip.text       = element_text(face = "bold", size = rel(2))

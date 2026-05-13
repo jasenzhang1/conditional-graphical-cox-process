@@ -17,7 +17,7 @@ time_scale <- 10
 
 base_folder <- 'mice_results'
 
-# base_folder <- '../../../project-biostat-chair/mice_results'
+base_folder <- '../../../project-biostat-chair/mice_results'
 
 
 results_folder <- paste0(base_folder, '/', y_c_structure, '/', method, '_', region)
@@ -68,7 +68,8 @@ strata_results <- visualize_strata_all_mice(
   region_border   = region_border
 )
 
-for (d_level in names(strata_results$plots)) {
+#for (d_level in names(strata_results$plots)) {
+for (d_level in c('m0vr0')) {
   png_name <- paste0(results_folder_2, '/all_mice_', d_level, '_t', time_scale, '_edge_sets.png')
   n_mice   <- strata_results$n_mice[[d_level]]
   png(png_name, width = 45, height = 4 * n_mice, units = "in", res = 100)
@@ -97,16 +98,16 @@ for (d_level in names(strata_results$plots)) {
 # plot edge instability (if they were still present in the next week) over time with a line graph  
 
 
-instability_plots <- plot_edge_instability_all_mice(
-  results_folder  = results_folder,
-  time_scale      = time_scale,
-  discrete_levels = discrete_levels
-)
-
-for (d_level in names(instability_plots)) {
-  png_name <- paste0(results_folder_2, '/all_mice_', d_level, '_t', time_scale, '_edge_instability.png')
-  png(png_name, width = 14, height = 4, units = "in", res = 300)
-  print(instability_plots[[d_level]])
-  dev.off()
-}
+# instability_plots <- plot_edge_instability_all_mice(
+#   results_folder  = results_folder,
+#   time_scale      = time_scale,
+#   discrete_levels = discrete_levels
+# )
+# 
+# for (d_level in names(instability_plots)) {
+#   png_name <- paste0(results_folder_2, '/all_mice_', d_level, '_t', time_scale, '_edge_instability.png')
+#   png(png_name, width = 14, height = 4, units = "in", res = 300)
+#   print(instability_plots[[d_level]])
+#   dev.off()
+# }
 
