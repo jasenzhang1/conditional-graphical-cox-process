@@ -2400,13 +2400,13 @@ full_conditional_estimation_with_no_truth_part3 <- function(temp_file_dir, temp_
   
   # Step 2: Get all step names (assumes all files have same names)
   step_names <- names(all_loaded[[1]])
+  steps_to_drop <- c("step_2b", "step_3")
+  step_names     <- step_names[!step_names %in% steps_to_drop]
   
   # Step 3: Reorganize by step
   estimated_graphs <- setNames(lapply(step_names, function(step) {
     lapply(all_loaded, `[[`, step)  # collect that step from all files
   }), step_names)
-  
-
 
   
   # 2) load all y_c_query entries for part_2
