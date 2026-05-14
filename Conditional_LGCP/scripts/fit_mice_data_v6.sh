@@ -75,9 +75,9 @@ if [ "$cluster" == "hoffman" ]; then
     mkdir -p ../../../project-biostat-chair/script_outputs/mice
     
 else
-    IDs=("WT3" "Tau1" "Tau2" "Tau3" "WT1" "WT2")
-    movement=(0 0 1 1)
-    VR=(0 1 0 1)
+    IDs=("Tau1" "Tau2" "Tau3" "WT1" "WT2")
+    movement=(0 1)
+    VR=(1 1)
     
     
     # finished WT3 m0vr0
