@@ -86,7 +86,7 @@ else
     # HIP, 0.001,  Tau2_m0vr1, WT1_m0vr0, WT2_m0vr1
     # EHC, 0.0003, WT2_m0vr1
     # HIP, 0.0003, Tau2_m0vr1, WT1_m0vr0, WT2_m0vr1
-    y_c_bandwidth='' # usually its 0.3, exp(-gamma * y_c_diff^2), use NULL for default
+    y_c_bandwidth=0.003 # usually its 0.3, exp(-gamma * y_c_diff^2), use NULL for default
     # '' for default
     # I have done 0.001 and 0.0003, next try 0.003
     region="BOTH_150"   # "HIP", "EHC", or "HIP_EHC" "BOTH_100", "BOTH_150"
