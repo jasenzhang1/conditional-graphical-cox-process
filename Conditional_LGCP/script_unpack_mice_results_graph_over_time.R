@@ -17,7 +17,7 @@ time_scale <- 10
 
 base_folder <- 'mice_results'
 
-base_folder <- '../../../project-biostat-chair/mice_results'
+# base_folder <- '../../../project-biostat-chair/mice_results'
 
 
 results_folder <- paste0(base_folder, '/', y_c_structure, '/', method, '_', region)
