@@ -10,7 +10,7 @@ source('functions/20_simulation_function_wrapper.R')
 # for all 4 discrete settings, group them and plot adjacency matrices over time
 
 
-y_c_structure <- "week_only_bw_default_min_00"
+y_c_structure <- "week_only_bw_default_min_1"
 method <- 'CPGM'
 region <- 'BOTH_150'  # HIP, EHC, BOTH_100, BOTH_150
 time_scale <- 10
@@ -33,7 +33,7 @@ if (!dir.exists(results_folder_2)) {
 IDs <- c('Tau1', 'Tau2', 'Tau3', 'WT1', 'WT2', 'WT3')
 
 
-discrete_levels <- paste0('m', c(0, 0, 1, 1), 'vr', c(0, 1, 0, 1))
+discrete_levels <- paste0('m', c(0, 1), 'vr', c(1, 1))
 
 discrete_levels_list <- list(discrete_levels,
                              discrete_levels,
