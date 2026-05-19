@@ -99,16 +99,16 @@ for (d_level in names(strata_results$plots)) {
 # plot edge instability (if they were still present in the next week) over time with a line graph  
 
 
-# instability_plots <- plot_edge_instability_all_mice(
-#   results_folder  = results_folder,
-#   time_scale      = time_scale,
-#   discrete_levels = discrete_levels
-# )
-# 
-# for (d_level in names(instability_plots)) {
-#   png_name <- paste0(results_folder_2, '/all_mice_', d_level, '_t', time_scale, '_edge_instability.png')
-#   png(png_name, width = 14, height = 4, units = "in", res = 300)
-#   print(instability_plots[[d_level]])
-#   dev.off()
-# }
+instability_plots <- plot_edge_instability_all_mice(
+  results_folder  = results_folder,
+  time_scale      = time_scale,
+  discrete_levels = discrete_levels
+)
+
+for (d_level in names(instability_plots)) {
+  png_name <- paste0(results_folder_2, '/all_mice_', d_level, '_t', time_scale, '_edge_instability.png')
+  png(png_name, width = 14, height = 4, units = "in", res = 300)
+  print(instability_plots[[d_level]])
+  dev.off()
+}
 
