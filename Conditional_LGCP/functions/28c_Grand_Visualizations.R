@@ -2251,12 +2251,12 @@ plot_edge_instability_all_mice <- function(results_folder, time_scale, discrete_
         denom       <- union_edges
         
         if (denom == 0) {
-          instability_vals <- c(instability_vals, 0)
+          instability_vals <- c(instability_vals, 1)
           message(sprintf("    week %d -> %d: edges_curr=%g, edges_next=%g — both empty, instability=0",
                           w_curr, w_next, edges_curr, edges_next))
         } else {
           sym_diff        <- sum(abs(A_curr[upper] - A_next[upper]))
-          instability_val <- sym_diff / denom
+          instability_val <- 1 - sym_diff / denom
           instability_vals <- c(instability_vals, instability_val)
           message(sprintf("    week %d -> %d: edges_curr=%g, edges_next=%g, gained=%g, lost=%g, sym_diff=%g, denom=%g, instability=%.4f",
                           w_curr, w_next,
@@ -2325,7 +2325,7 @@ plot_edge_instability_all_mice <- function(results_folder, time_scale, discrete_
       scale_x_continuous(breaks = c(20, 25, 30, 35)) +
       labs(
         x      = "Age (Weeks)",
-        y      = "Jaccard Distance",
+        y      = "Jaccard Similarity",
         color  = "Mouse"
       ) +
       theme_bw(base_size = 16) +
