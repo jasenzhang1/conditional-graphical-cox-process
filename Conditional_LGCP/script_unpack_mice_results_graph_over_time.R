@@ -105,10 +105,12 @@ instability_plots <- plot_edge_instability_all_mice(
   discrete_levels = discrete_levels
 )
 
-for (d_level in names(instability_plots)) {
-  png_name <- paste0(results_folder_2, '/all_mice_', d_level, '_t', time_scale, '_edge_instability.png')
-  png(png_name, width = 14, height = 4, units = "in", res = 300)
-  print(instability_plots[[d_level]])
-  dev.off()
+for (d_level in names(instability_plots$linear)) {
+  for (scale_type in c("linear", "sqrt")) {
+    png_name <- paste0(results_folder_2, '/all_mice_', d_level, '_t', time_scale, '_edge_instability_', scale_type, '.png')
+    png(png_name, width = 14, height = 4, units = "in", res = 300)
+    print(instability_plots[[scale_type]][[d_level]])
+    dev.off()
+  }
 }
 

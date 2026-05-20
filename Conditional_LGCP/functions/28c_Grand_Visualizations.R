@@ -2303,7 +2303,8 @@ plot_edge_instability_all_mice <- function(results_folder, time_scale, discrete_
   # --------------------------------------------------------------------------
   # Build one plot per discrete level
   # --------------------------------------------------------------------------
-  plot_list <- list()
+  plot_list      <- list()
+  plot_list_sqrt <- list()
   
   for (d_level in discrete_levels) {
     
@@ -2315,27 +2316,38 @@ plot_edge_instability_all_mice <- function(results_folder, time_scale, discrete_
     plot_df       <- do.call(rbind, df_list)
     plot_df$mouse <- factor(plot_df$mouse, levels = all_IDs)
     
-    g <- ggplot(plot_df, aes(x = week, y = instability, color = mouse, group = mouse)) +
+    base_plot <- ggplot(plot_df, aes(x = week, y = instability, color = mouse, group = mouse)) +
       geom_line(linewidth = 0.8) +
       scale_color_manual(values = color_map) +
-      scale_y_continuous(
-        breaks = c(0, 0.25, 0.5, 0.75, 1),
-        limits = c(0, 1)
-      ) +
       scale_x_continuous(breaks = c(20, 25, 30, 35)) +
       labs(
-        x      = "Age (Weeks)",
-        y      = "Jaccard Similarity",
-        color  = "Mouse"
+        x     = "Age (Weeks)",
+        y     = "Jaccard Similarity",
+        color = "Mouse"
       ) +
+      guides(color = guide_legend(nrow = 1)) +
       theme_bw(base_size = 16) +
       theme(
-        panel.grid = element_blank(),
+        panel.grid      = element_blank(),
         legend.position = "bottom"
       )
     
-    plot_list[[d_level]] <- g
+    g <- base_plot +
+      scale_y_continuous(
+        breaks = c(0, 0.25, 0.5, 0.75, 1),
+        limits = c(0, 1)
+      )
+    
+    g_sqrt <- base_plot +
+      scale_y_continuous(
+        trans   = "sqrt",
+        breaks  = c(0, 0.25, 0.5, 0.75, 1),
+        limits  = c(0, 1)
+      )
+    
+    plot_list[[d_level]]      <- g
+    plot_list_sqrt[[d_level]] <- g_sqrt
   }
   
-  return(plot_list)
+  return(list(linear = plot_list, sqrt = plot_list_sqrt))
 }
