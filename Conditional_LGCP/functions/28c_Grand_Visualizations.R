@@ -1981,10 +1981,10 @@ visualize_strata_all_mice_v2 <- function(results_folder, time_scale, discrete_le
       g <- g +
         geom_vline(data = boundary_data,
                    aes(xintercept = boundary),
-                   color = "gray80", alpha = 1, size = 0.5) +
+                   color = "gray90", alpha = 1, size = 0.6) +
         geom_hline(data = boundary_data,
                    aes(yintercept = boundary),
-                   color = "gray80", alpha = 1, size = 0.5)
+                   color = "gray90", alpha = 1, size = 0.6)
     }
     
     # Layer 4: facet + formatting.
