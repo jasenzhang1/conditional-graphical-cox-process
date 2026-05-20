@@ -51,7 +51,7 @@ global_thresh_method="neither" # both, joint, tau_c, or neither
 
 y_c_structure="week_only"
 method="CPGM"
-min_connect_pct=0.10    # 1 percent = 0.01
+min_connect_pct=0.02    # 1 percent = 0.01
 
 m=30
 time_scale=10 
@@ -86,7 +86,7 @@ else
     # HIP, 0.001,  Tau2_m0vr1, WT1_m0vr0, WT2_m0vr1
     # EHC, 0.0003, WT2_m0vr1
     # HIP, 0.0003, Tau2_m0vr1, WT1_m0vr0, WT2_m0vr1
-    y_c_bandwidth=0.00003 # usually its 0.3, exp(-gamma * y_c_diff^2), use NULL for default
+    y_c_bandwidth=0.0003 # usually its 0.3, exp(-gamma * y_c_diff^2), use NULL for default
     # '' for default
     # I have done 0.001 and 0.0003, next try 0.003
     region="BOTH_150"   # "HIP", "EHC", or "HIP_EHC" "BOTH_100", "BOTH_150"
