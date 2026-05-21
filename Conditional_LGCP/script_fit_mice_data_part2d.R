@@ -18,6 +18,18 @@ if(model_type == 'mice'){
   VR <- as.numeric(args[7])           # VR <- 0
   cont_inds <- as.numeric(args[8])    # cont_ind <- 1  
   cluster <- args[9]
+  min_connect_pcts <- as.numeric(args[10:length(args)])
+  
+  min_connect_pcts_string <- sapply(min_connect_pcts, function(min_connect_pct) {
+    if (min_connect_pct == 0) {
+      'min_00'
+    } else if (min_connect_pct == 1) {
+      'min_100'
+    } else {
+      decimal_digits <- sub(".*\\.", "", format(min_connect_pct, scientific = FALSE))
+      paste0('min_', formatC(as.integer(decimal_digits), width = 2, flag = "0"))
+    }
+  })
   
   mouse <- T
   discrete_level <- paste0('m', movement, 'vr', VR)
@@ -26,7 +38,8 @@ if(model_type == 'mice'){
                             y_c_structure = y_c_structure,
                             time_scale = time_scale,
                             method = method,
-                            discrete_level = discrete_level)
+                            discrete_level = discrete_level,
+                            min_connect_pcts_string = min_connect_pcts_string)
   
   if(cluster == 'andrew'){
     library(RhpcBLASctl)
@@ -35,6 +48,7 @@ if(model_type == 'mice'){
     blas_set_num_threads(1)   # limit BLAS
     omp_set_num_threads(1)    # limit OpenMP
     
+    # temp_data/mice/WT1_m1vr1_t10
     temp_file_dir <- paste0('temp_data/mice/', ID, '_', discrete_level, '_t', time_scale)
   } else{
     temp_file_dir <- paste0('../../../project-biostat-chair/temp_data/mice/', ID, '_', discrete_level, '_t', time_scale) # biostat_dir for hoffman
@@ -74,7 +88,7 @@ if(model_type == 'mice'){
 # estimation - update the file called 'part_3....rds' in /temp_data/simu
 # ---------------------------
 
-
+#part3_WT2_m1vr1_t10_nquery1_min_01.rds
 full_conditional_estimation_with_no_truth_part2d(temp_file_dir, setting_info_list, cont_inds, mouse)
 
 

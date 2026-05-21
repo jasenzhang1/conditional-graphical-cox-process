@@ -199,6 +199,10 @@ GIC_step2and3_serial_tau_c <- function(temp_file_dir, id_suffix, k, min_connect_
       min_connect_string <- paste0('min_', formatC(as.integer(decimal_digits), width = 2, flag = "0"))
     }
     
+    # create subfolder for this min_connect_pct
+    min_connect_dir <- paste0(temp_file_dir, "/", min_connect_string)
+    if (!dir.exists(min_connect_dir)) dir.create(min_connect_dir)
+    
     min_connect <- ceiling(min_connect_pct * max_edges)
     
     # Keep only the best l for this k
@@ -223,120 +227,134 @@ GIC_step2and3_serial_tau_c <- function(temp_file_dir, id_suffix, k, min_connect_
                   as.character(id_suffix), as.character(k), min_connect_string,
                   as.character(best_result$l), as.character(best_result$num_edges),
                   best_result$GIC))
-      save(best_result, file = paste0(temp_file_dir, "/GIC_local_best_k_", id_suffix, "_k", k, "_", min_connect_string, ".RData"))
+      save(best_result, file = paste0(min_connect_dir, "/GIC_local_best_k_", id_suffix, "_k", k, ".RData"))
     }
   }
 }
 
 
-GIC_step4_finalize <- function(temp_file_dir) {
+GIC_step4_finalize <- function(temp_file_dirs) {
   
-  # 1) Load the task map to know which IDs were processed
-  task_map_path <- paste0(temp_file_dir, '/task_map.csv')
-  if (!file.exists(task_map_path)) stop("Task map not found at: ", task_map_path)
-  task_map <- read.csv(task_map_path)
+  # temp_file_dirs = vector of directories, one per min_connect_pct
+  # e.g. c('temp_data/mice/WT2_m0vr1_t10/GIC_local_WT2_m0vr1_t10_nquery1/min_00',
+  #         'temp_data/mice/WT2_m0vr1_t10/GIC_local_WT2_m0vr1_t10_nquery1/min_01')
   
-  # 2) Initialize the final result list
-  final_gic_results <- list()
-  
-  # 3) Loop through each ID (e.g., 1, 2... representing 'est', 'X_truth')
-  for (i in 1:nrow(task_map)) {
+  for (temp_file_dir in temp_file_dirs) {
     
-    name_entry <- task_map[i, 1]
-    name_i <- paste0('GIC_KL_', name_entry)
+    cat(sprintf("[GIC step4] Processing directory: %s\n", temp_file_dir))
     
-    cat(sprintf("[GIC step4] Processing suffix: %s\n", name_entry))
-    
-    initial_data_path <- paste0(temp_file_dir, "/GIC_local_initial_data_", name_entry, ".RData")
-    if (!file.exists(initial_data_path)) {
-      cat(sprintf("[GIC step4] WARNING: initial data file not found for suffix=%s, skipping\n", name_entry))
+    # 1) Load the task map to know which IDs were processed
+    task_map_path <- paste0(temp_file_dir, '/task_map.csv')
+    if (!file.exists(task_map_path)) {
+      cat(sprintf("[GIC step4] WARNING: task map not found at: %s, skipping\n", task_map_path))
       next
     }
-    load(initial_data_path)
+    task_map <- read.csv(task_map_path)
     
-    # Identify result files - Updated pattern to match the "best_k" files
-    result_files <- list.files(path = temp_file_dir,
-                               pattern = paste0("GIC_local_best_k_", name_entry, "_k\\d+\\.RData"),
-                               full.names = TRUE)
+    # 2) Initialize the final result list
+    final_gic_results <- list()
     
-    cat(sprintf("[GIC step4] Found %d result files for suffix=%s\n", length(result_files), name_entry))
-    
-    if (length(result_files) == 0) {
-      cat(sprintf("[GIC step4] WARNING: no best_k files found for suffix=%s - likely all k's had too few edges\n", name_entry))
-      next
-    }
-    
-    # Find best GIC among all k-winners
-    lowest_GIC <- Inf
-    best_data <- NULL
-    df_GIC_id <- data.frame()
-    
-    for (f in result_files) {
-      # Load 'best_result' (saved in script_GIC_local_part2and3_serial.R)
-      load(f)
+    # 3) Loop through each ID (e.g., 1, 2... representing 'est', 'X_truth')
+    for (i in 1:nrow(task_map)) {
       
-      cat(sprintf("[GIC step4] Loaded %s: k=%s, l=%s, num_edges=%s, GIC=%.4f\n",
-                  basename(f), best_result$k, best_result$l, best_result$num_edges, best_result$GIC))
+      name_entry <- task_map[i, 1]
+      name_i <- paste0('GIC_KL_', name_entry)
       
-      df_GIC_id <- rbind(df_GIC_id, data.frame(k = best_result$k,
-                                               l = best_result$l,
-                                               tau_c = best_result$tau_c,
-                                               tau_p = best_result$tau_p,
-                                               GIC = best_result$GIC))
+      cat(sprintf("[GIC step4] Processing suffix: %s\n", name_entry))
       
-      if (!is.na(best_result$GIC) && best_result$GIC < lowest_GIC) {
-        lowest_GIC <- best_result$GIC
-        best_data <- best_result
+      initial_data_path <- paste0(temp_file_dir, "/GIC_local_initial_data_", name_entry, ".RData")
+      if (!file.exists(initial_data_path)) {
+        cat(sprintf("[GIC step4] WARNING: initial data file not found for suffix=%s, skipping\n", name_entry))
+        next
       }
+      load(initial_data_path)
+      
+      # Identify result files - Updated pattern to match the "best_k" files
+      result_files <- list.files(path = temp_file_dir,
+                                 pattern = paste0("GIC_local_best_k_", name_entry, "_k\\d+\\.RData"),
+                                 full.names = TRUE)
+      
+      cat(sprintf("[GIC step4] Found %d result files for suffix=%s\n", length(result_files), name_entry))
+      
+      if (length(result_files) == 0) {
+        cat(sprintf("[GIC step4] WARNING: no best_k files found for suffix=%s - likely all k's had too few edges\n", name_entry))
+        next
+      }
+      
+      # Find best GIC among all k-winners
+      lowest_GIC <- Inf
+      best_data <- NULL
+      df_GIC_id <- data.frame()
+      
+      for (f in result_files) {
+        # Load 'best_result' (saved in script_GIC_local_part2and3_serial.R)
+        load(f)
+        
+        cat(sprintf("[GIC step4] Loaded %s: k=%s, l=%s, num_edges=%s, GIC=%.4f\n",
+                    basename(f), best_result$k, best_result$l, best_result$num_edges, best_result$GIC))
+        
+        df_GIC_id <- rbind(df_GIC_id, data.frame(k = best_result$k,
+                                                 l = best_result$l,
+                                                 tau_c = best_result$tau_c,
+                                                 tau_p = best_result$tau_p,
+                                                 GIC = best_result$GIC))
+        
+        if (!is.na(best_result$GIC) && best_result$GIC < lowest_GIC) {
+          lowest_GIC <- best_result$GIC
+          best_data <- best_result
+        }
+      }
+      
+      if (is.null(best_data)) {
+        cat(sprintf("[GIC step4] WARNING: best_data is NULL for suffix=%s after loading all files\n", name_entry))
+        next
+      }
+      
+      cat(sprintf("[GIC step4] Best for suffix=%s: k=%s, l=%s, num_edges=%s, GIC=%.4f\n",
+                  name_entry, best_data$k, best_data$l, best_data$num_edges, best_data$GIC))
+      
+      # 4) Reconstruction
+      # We use the threshold_list_c loaded from the initial_data_path
+      C_cond_thresh_final <- C_cond
+      excluded_indices_c <- threshold_list_c$index_path[[best_data$k]]
+      for (idx in excluded_indices_c) {
+        block <- C_cond_thresh_final[[idx]]
+        C_cond_thresh_final[[idx]] <- matrix(0, nrow(block), ncol(block))
+      }
+      
+      adj_results <- GIC_theta_to_adj(best_data$Theta_cond_thresh, p)
+      num_edges_final <- GIC_edge_count(best_data$Theta_cond_thresh, p)
+      
+      # 5) Store
+      final_gic_results[[name_i]] <- list(
+        tau_c = best_data$tau_c,
+        tau_p = best_data$tau_p,
+        tau_c_levels = threshold_list_c$hs_vals,
+        C_cond = C_cond_thresh_final,
+        Theta_cond = best_data$Theta_cond_thresh,
+        C_HS = hilbert_schmidt_norm_list_to_mat(C_cond_thresh_final, p),
+        w_mat = hilbert_schmidt_norm_list_to_mat(best_data$Theta_cond_thresh, p),
+        adj_mat = adj_results$adj_mat,
+        adj_list = adj_results$adj_list,
+        num_edges = num_edges_final,
+        df_GIC = df_GIC_id
+      )
     }
     
-    if (is.null(best_data)) {
-      cat(sprintf("[GIC step4] WARNING: best_data is NULL for suffix=%s after loading all files\n", name_entry))
-      next
+    # 6) Save combined results to the same min_xx subfolder
+    cat(sprintf("[GIC step4] final_gic_results has %d entries: %s\n",
+                length(final_gic_results),
+                paste(names(final_gic_results), collapse = ", ")))
+    
+    if (length(final_gic_results) == 0) {
+      cat("[GIC step4] WARNING: final_gic_results is empty - GIC_final_combined.RData will be empty\n")
     }
     
-    cat(sprintf("[GIC step4] Best for suffix=%s: k=%s, l=%s, num_edges=%s, GIC=%.4f\n",
-                name_entry, best_data$k, best_data$l, best_data$num_edges, best_data$GIC))
+    final_save_name <- "GIC_final_combined.RData"
+    save(final_gic_results, file = paste0(temp_file_dir, "/", final_save_name))
     
-    # 4) Reconstruction
-    # We use the threshold_list_c loaded from the initial_data_path
-    C_cond_thresh_final <- C_cond
-    excluded_indices_c <- threshold_list_c$index_path[[best_data$k]]
-    for (idx in excluded_indices_c) {
-      block <- C_cond_thresh_final[[idx]]
-      C_cond_thresh_final[[idx]] <- matrix(0, nrow(block), ncol(block))
-    }
-    
-    adj_results <- GIC_theta_to_adj(best_data$Theta_cond_thresh, p)
-    num_edges_final <- GIC_edge_count(best_data$Theta_cond_thresh, p)
-    
-    # 5) Store
-    final_gic_results[[name_i]] <- list(
-      tau_c = best_data$tau_c,
-      tau_p = best_data$tau_p,
-      tau_c_levels = threshold_list_c$hs_vals,
-      C_cond = C_cond_thresh_final,
-      Theta_cond = best_data$Theta_cond_thresh,
-      C_HS = hilbert_schmidt_norm_list_to_mat(C_cond_thresh_final, p),
-      w_mat = hilbert_schmidt_norm_list_to_mat(best_data$Theta_cond_thresh, p),
-      adj_mat = adj_results$adj_mat,
-      adj_list = adj_results$adj_list,
-      num_edges = num_edges_final,
-      df_GIC = df_GIC_id
-    )
+    cat(sprintf("[GIC step4] Saved to: %s/%s\n", temp_file_dir, final_save_name))
   }
-  
-  # 6) Save combined results
-  cat(sprintf("[GIC step4] final_gic_results has %d entries: %s\n",
-              length(final_gic_results),
-              paste(names(final_gic_results), collapse = ", ")))
-  
-  if (length(final_gic_results) == 0) {
-    cat("[GIC step4] WARNING: final_gic_results is empty - GIC_final_combined.RData will be empty\n")
-  }
-  
-  final_save_name <- "GIC_final_combined.RData"
-  save(final_gic_results, file = paste0(temp_file_dir, "/", final_save_name))
 }
 
 # joint

@@ -22,6 +22,17 @@ if(model_type == 'mice'){
   cluster <- args[11]                 # cluster <- 'hoffman'
   min_connect_pcts <- as.numeric(args[12:length(args)])
   
+  min_connect_pcts_string <- sapply(min_connect_pcts, function(min_connect_pct) {
+    if (min_connect_pct == 0) {
+      'min_00'
+    } else if (min_connect_pct == 1) {
+      'min_100'
+    } else {
+      decimal_digits <- sub(".*\\.", "", format(min_connect_pct, scientific = FALSE))
+      paste0('min_', formatC(as.integer(decimal_digits), width = 2, flag = "0"))
+    }
+  })
+  
   discrete_level <- paste0('m', movement, 'vr', VR)
   
   setting_info_list <- list(ID = ID,
@@ -103,30 +114,18 @@ if(model_type == 'mice'){
 #              save in simu_results/adj_type/CPGM/adj_type_n.RData
 # ---------------------------
 
-if(method == 'CPGM'){
-  graph_results_i <- full_conditional_estimation_with_no_truth_part3(temp_file_dir, temp_file_dir2, setting_info_list, cont_inds, mouse)
-} else{
-  stop('Invalid method. Must be CPGM')
-}
-
-# ---------------------------
-# save results for each min_connect_pct
-# ---------------------------
-
-for(min_connect_pct in min_connect_pcts){
+for(min_pct_string in min_connect_pcts_string){
   
-  # min_pct string
-  if (min_connect_pct == 0) {
-    min_connect_string <- 'min_00'
-  } else if (min_connect_pct == 1){
-    min_connect_string <- 'min_100'
-  } else {
-    decimal_digits <- sub(".*\\.", "", format(min_connect_pct, scientific = FALSE))
-    min_connect_string <- paste0('min_', formatC(as.integer(decimal_digits), width = 2, flag = "0"))
+  setting_info_list[[min_pct_string]] <- min_pct_string
+  
+  if(method == 'CPGM'){
+    graph_results_i <- full_conditional_estimation_with_no_truth_part3(temp_file_dir, temp_file_dir2, setting_info_list, cont_inds, mouse)
+  } else{
+    stop('Invalid method. Must be CPGM')
   }
   
   if(mouse){
-    folder_2_name <- paste0(folder_1_name, "/", y_c_structure, '_bw_', bw_string, '_', min_connect_string)
+    folder_2_name <- paste0(folder_1_name, "/", y_c_structure, '_bw_', bw_string, '_', min_pct_string)
     if (!dir.exists(folder_2_name)) dir.create(folder_2_name)   # /mice_results/week_only_bw_0001_min_01
     
     results_folder_name <- paste0(folder_2_name, "/", method, '_', region)
@@ -139,3 +138,5 @@ for(min_connect_pct in min_connect_pcts){
   
   save(graph_results_i, file = file_dir)
 }
+
+

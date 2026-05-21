@@ -2072,10 +2072,10 @@ full_conditional_estimation_with_no_truth_part2b_before_GIC <- function(temp_fil
   saveRDS(estimated_graphs, file = file.path(temp_file_dir, file_name))  
 }
 
-full_conditional_estimation_with_no_truth_part2b_after_GIC <- function(temp_file_dirs, setting_info_list, cont_ind, mouse, X_truth){
+full_conditional_estimation_with_no_truth_part2b_after_GIC <- function(temp_file_dir, GIC_min_pct_dirs, setting_info_list, cont_ind, mouse, X_truth){
   
-  # temp_file_dirs[1] = temp_data/simu
-  # temp_file_dirs[2] = temp_data/simu/GIC...
+  # temp_file_dir = temp_data/simu
+  # GIC_min_pct_dirs[1] = temp_data/simu/GIC
   
   if(mouse){
     part_2b_file_name <- paste0('part2b_', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '.rds')
@@ -2085,7 +2085,7 @@ full_conditional_estimation_with_no_truth_part2b_after_GIC <- function(temp_file
     GIC_file_name <- "GIC_final_combined.RData"
   }
   
-  results <- readRDS(file.path(temp_file_dirs[1], part_2b_file_name))  # query_y_cs, y_c_strata_full
+  results <- readRDS(file.path(temp_file_dir, part_2b_file_name))  # query_y_cs, y_c_strata_full
   list2env(results, envir = environment())
   
   
@@ -2093,51 +2093,55 @@ full_conditional_estimation_with_no_truth_part2b_after_GIC <- function(temp_file
   
   # estimate C_HS, w_mat from KL WITH thresh
   
-  load(file.path(temp_file_dirs[2], GIC_file_name))
-  
-  
-  # estimate C_HS, w_mat from KL without thresh 
-  
-  step_11_KL_no_thresh  <- step_11_HS_norms_from_KL(step_5c, p)
-  step_11b_KL_no_thresh <- step_11b_HS_norms_from_KL(step_5b, p)
-  
-  # load the bundle
-  
-  step_11_KL_yes_thresh  <- step_11_HS_norms_from_KL_GIC(final_gic_results)
-  step_11b_KL_yes_thresh <- step_11b_HS_norms_from_KL_GIC(final_gic_results)
-  
-  # step_11x = tau_c and tau_p
-  steps_11xy <- step_11xy_HS_norms_from_KL_GIC(final_gic_results)
-  step_11x <- steps_11xy$step_11x
-  step_11y <- steps_11xy$step_11y
-  
-  
-  # 7) collect all of 11 and 11b results
-  
-  step_11 <- c(step_11_KL_no_thresh,
-               step_11_KL_yes_thresh)
-  # step_11_mxm_no_thresh_bundle$step_11)
-  
-  step_11b <- c(step_11b_KL_no_thresh,
-                step_11b_KL_yes_thresh)
-  #step_11_mxm_no_thresh_bundle$step_11b)
-  
-  # save 
-  estimated_graphs <- list(step_2 = step_2, step_2b = step_2b, step_3 = step_3,
-                           step_4 = step_4, step_5 = step_5, step_5b = step_5b, step_5c = step_5c, 
-                           step_11 = step_11, step_11b = step_11b, 
-                           step_11x = step_11x, step_11y = step_11y)
-  
-  
-  
-  
-  if(mouse){
-    file_name <- paste0('part3_', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '.rds')
-  } else{
-    file_name <- paste0("part3_", adj_type, '_n_', n, '_nquery', cont_ind, '_rep_', rep_i, '.rds')
+  for(i in 1:length(GIC_min_pct_dirs)){
+    
+    load(file.path(GIC_min_pct_dirs[i], GIC_file_name))
+    
+    
+    # estimate C_HS, w_mat from KL without thresh 
+    
+    step_11_KL_no_thresh  <- step_11_HS_norms_from_KL(step_5c, p)
+    step_11b_KL_no_thresh <- step_11b_HS_norms_from_KL(step_5b, p)
+    
+    # load the bundle
+    
+    step_11_KL_yes_thresh  <- step_11_HS_norms_from_KL_GIC(final_gic_results)
+    step_11b_KL_yes_thresh <- step_11b_HS_norms_from_KL_GIC(final_gic_results)
+    
+    # step_11x = tau_c and tau_p
+    steps_11xy <- step_11xy_HS_norms_from_KL_GIC(final_gic_results)
+    step_11x <- steps_11xy$step_11x
+    step_11y <- steps_11xy$step_11y
+    
+    
+    # 7) collect all of 11 and 11b results
+    
+    step_11 <- c(step_11_KL_no_thresh,
+                 step_11_KL_yes_thresh)
+    # step_11_mxm_no_thresh_bundle$step_11)
+    
+    step_11b <- c(step_11b_KL_no_thresh,
+                  step_11b_KL_yes_thresh)
+    #step_11_mxm_no_thresh_bundle$step_11b)
+    
+    # save 
+    estimated_graphs <- list(step_2 = step_2, step_2b = step_2b, step_3 = step_3,
+                             step_4 = step_4, step_5 = step_5, step_5b = step_5b, step_5c = step_5c, 
+                             step_11 = step_11, step_11b = step_11b, 
+                             step_11x = step_11x, step_11y = step_11y)
+    
+    
+    
+    
+    if(mouse){
+      file_name <- paste0('part3_', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '_', min_connect_pcts_string[i], '.rds')
+    } else{
+      file_name <- paste0("part3_", adj_type, '_n_', n, '_nquery', cont_ind, '_rep_', rep_i, '.rds')
+    }
+    
+    # part3_WT2_m1vr1_t10_nquery1_min_01.rds
+    saveRDS(estimated_graphs, file = file.path(temp_file_dir, file_name))  
   }
-  
-  saveRDS(estimated_graphs, file = file.path(temp_file_dirs[1], file_name))  
   
 }
 
@@ -2270,7 +2274,7 @@ full_conditional_estimation_with_no_truth_part2c <- function(temp_file_dir, sett
 }
 
 # 2d: collecting all ROC's and edge sets after w_mat has been calculated
-full_conditional_estimation_with_no_truth_part2d <- function(temp_file_dir, setting_info_list, cont_inds, mouse){
+full_conditional_estimation_with_no_truth_part2d <- function(temp_file_dir, GIC_min_pct_dirs, setting_info_list, cont_inds, mouse){
   
   # ----------------------------------------------------------------------------
   #
@@ -2281,7 +2285,8 @@ full_conditional_estimation_with_no_truth_part2d <- function(temp_file_dir, sett
   # 
   # inputs
   #
-  # - temp_file_dir   (string)    temp_data/simu
+  # - temp_file_dir     (string)    temp_data/simu  (base dir, for part2 files)
+  # - GIC_min_pct_dirs  (vector)    vector of min_xx subdirs
   # - setting_info_list (list)
   # - cont_inds         (integer)   number of y_queries
   # - mouse             (boolean)
@@ -2294,44 +2299,49 @@ full_conditional_estimation_with_no_truth_part2d <- function(temp_file_dir, sett
   # 
   # ----------------------------------------------------------------------------
   
-
   # 0) load 
-  
   list2env(setting_info_list, envir = environment())
   
-  # load everything from step_1
+  # load part2 files (shared across all min_pct dirs)
   if(mouse){
-    step_3_info_list <- paste0(temp_file_dir, '/part3_', ID, '_', discrete_level, '_t', time_scale, '_nquery', 1:cont_inds, '.rds')
     step_2_list_names <- paste0(temp_file_dir, '/part2_', ID, '_', discrete_level, '_t', time_scale, '_nquery', 1:cont_inds, '.rds')
   } else{
-    step_3_info_list <- paste0(temp_file_dir, '/part3_', adj_type, '_n_', n, '_nquery', 1:cont_inds, '_rep_', rep_i, '.rds')
     step_2_list_names <- paste0(temp_file_dir, '/part2_', adj_type, '_n_', n, '_nquery', 1:cont_inds, '_rep_', rep_i, '.rds')
   }
   
   step_2_all_data <- lapply(step_2_list_names, readRDS)
-  results <- lapply(step_3_info_list, readRDS)
   
-  
-  # 1) perform step_12 and step_12b on all y_c_queries
-  
-  
-  for(i in 1:cont_inds){
+  # --- Loop over min_pct dirs ---
+  for(GIC_min_pct_dir in GIC_min_pct_dirs){
     
-    step_12b_i <- step_12b_adj_mat(results[[i]]$step_11)
-    results[[i]][['step_12b']] <- step_12b_i
-    if(! mouse){
-      step_12_i <- step_12_ROC(results[[i]]$step_11, step_2_all_data[[i]]$adj_mat_i)
-      results[[i]][['step_12']] <- step_12_i
+    cat(sprintf("[part2d] Processing: %s\n", GIC_min_pct_dir))
+    
+    # load everything from step_1
+    # part3_WT2_m1vr1_t10_nquery1.rds (now lives in min_xx subdir)
+    if(mouse){
+      step_3_info_list <- paste0(GIC_min_pct_dir, '/part3_', ID, '_', discrete_level, '_t', time_scale, '_nquery', 1:cont_inds, '.rds')
+    } else{
+      step_3_info_list <- paste0(GIC_min_pct_dir, '/part3_', adj_type, '_n_', n, '_nquery', 1:cont_inds, '_rep_', rep_i, '.rds')
+    }
+    
+    results <- lapply(step_3_info_list, readRDS)
+    
+    # 1) perform step_12 and step_12b on all y_c_queries
+    for(i in 1:cont_inds){
+      
+      step_12b_i <- step_12b_adj_mat(results[[i]]$step_11)
+      results[[i]][['step_12b']] <- step_12b_i
+      if(!mouse){
+        step_12_i <- step_12_ROC(results[[i]]$step_11, step_2_all_data[[i]]$adj_mat_i)
+        results[[i]][['step_12']] <- step_12_i
+      }
+    }
+    
+    # 7) Save each dataset's result back to its corresponding file (in min_xx subdir)
+    for(i in 1:cont_inds){
+      saveRDS(results[[i]], file = step_3_info_list[i])
     }
   }
-  
-  
-
-  # # 7) Save each dataset's result back to its corresponding file
-  for (i in 1:cont_inds) {
-    saveRDS(results[[i]], file = step_3_info_list[i])
-  }
-  
 }
 
 full_conditional_estimation_with_no_truth_part3 <- function(temp_file_dir, temp_file_dir2, setting_info_list, cont_inds, mouse){
@@ -2388,7 +2398,7 @@ full_conditional_estimation_with_no_truth_part3 <- function(temp_file_dir, temp_
   list2env(setting_info_list, envir = environment())
   
   if(mouse){
-    file_names <- paste0(temp_file_dir, '/part3_', ID, '_', discrete_level, '_t', time_scale, '_nquery', 1:cont_inds, '.rds')
+    file_names <- paste0(temp_file_dir, '/part3_', ID, '_', discrete_level, '_t', time_scale, '_nquery', 1:cont_inds, '_', min_pct_string, '.rds')
   } else{
     file_names <- paste0(temp_file_dir, '/part3_', adj_type, '_n_', n, '_nquery', 1:cont_inds, '_rep_', rep_i,  '.rds')
   }

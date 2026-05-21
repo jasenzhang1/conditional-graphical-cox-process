@@ -561,7 +561,7 @@ else
                 
                 # PART 4: Finalize and combine results
                 # temp_data/simu/GIC_local_folder/GIC_final_combined.RData
-                Rscript script_GIC_local_part4.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" >> "$outfile" 2>&1
+                Rscript script_GIC_local_part4.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" "${min_connect_pcts[@]}" >> "$outfile" 2>&1
     
                 # ---------------------------------------------------------
                 
@@ -575,7 +575,7 @@ else
                 # estimation after GIC
                 # merge part2b with GIC_final results
                 # temp_data/simu/part3...
-                Rscript script_fit_mice_data_part2b_after_GIC.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" >> "$outfile" 2>&1
+                Rscript script_fit_mice_data_part2b_after_GIC.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" "${min_connect_pcts[@]}" >> "$outfile" 2>&1
                 
                   
                 
@@ -689,7 +689,7 @@ else
             
             # updating /part3 with more info
             Rscript script_fit_mice_data_part2d.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" \
-                                                  "$n_queries" "$cluster" >> "$outfile" 2>&1
+                                                  "$n_queries" "$cluster" "${min_connect_pcts[@]}" >> "$outfile" 2>&1
                   
             
             # ----------------
