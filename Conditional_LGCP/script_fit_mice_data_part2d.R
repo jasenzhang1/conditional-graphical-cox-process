@@ -51,12 +51,13 @@ if(model_type == 'mice'){
     omp_set_num_threads(1)    # limit OpenMP
     
     # temp_data/mice/WT1_m1vr1_t10
-    temp_file_dir <- paste0('temp_data/mice/', ID, '_', discrete_level, '_t', time_scale)
+    temp_file_dir <- paste0('temp_data/mice/', ID, '_', discrete_level, '_t', time_scale) # mice/WT2_m0vr1_t10
   } else{
     temp_file_dir <- paste0('../../../project-biostat-chair/temp_data/mice/', ID, '_', discrete_level, '_t', time_scale) # biostat_dir for hoffman
   }
   
-  GIC_min_pct_dirs <- paste0(temp_file_dir, '/', min_connect_pcts_string)
+  folder_name <- paste0('/GIC_local_', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind) #GIC_local_WT2_m0vr1_t10_nquery1
+  GIC_min_pct_dirs <- paste0(temp_file_dir, '/', folder_name, '/', min_connect_pcts_string)
   
   
   
