@@ -31,6 +31,9 @@ if(model_type == 'mice'){
     }
   })
   
+  print(min_connect_pcts)
+  print(min_connect_pcts_string)
+  
   mouse <- T
   discrete_level <- paste0('m', movement, 'vr', VR)
   

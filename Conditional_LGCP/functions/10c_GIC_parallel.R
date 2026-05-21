@@ -241,7 +241,7 @@ GIC_step4_finalize <- function(temp_file_dir, min_dirs) {
   
   for (min_dir in min_dirs) {
     
-    cat(sprintf("[GIC step4] Processing directory: %s\n", temp_file_dir))
+    cat(sprintf("[GIC step4] Processing directory: %s\n", min_dir))
     
     # 1) Load the task map to know which IDs were processed
     task_map_path <- paste0(temp_file_dir, '/task_map.csv')
