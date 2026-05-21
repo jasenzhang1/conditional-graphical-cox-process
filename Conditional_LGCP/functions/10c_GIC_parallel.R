@@ -233,13 +233,13 @@ GIC_step2and3_serial_tau_c <- function(temp_file_dir, id_suffix, k, min_connect_
 }
 
 
-GIC_step4_finalize <- function(temp_file_dirs) {
+GIC_step4_finalize <- function(temp_file_dir, min_dirs) {
   
-  # temp_file_dirs = vector of directories, one per min_connect_pct
+  # min_dirs = vector of directories, one per min_connect_pct
   # e.g. c('temp_data/mice/WT2_m0vr1_t10/GIC_local_WT2_m0vr1_t10_nquery1/min_00',
   #         'temp_data/mice/WT2_m0vr1_t10/GIC_local_WT2_m0vr1_t10_nquery1/min_01')
   
-  for (temp_file_dir in temp_file_dirs) {
+  for (min_dir in min_dirs) {
     
     cat(sprintf("[GIC step4] Processing directory: %s\n", temp_file_dir))
     
@@ -270,7 +270,7 @@ GIC_step4_finalize <- function(temp_file_dirs) {
       load(initial_data_path)
       
       # Identify result files - Updated pattern to match the "best_k" files
-      result_files <- list.files(path = temp_file_dir,
+      result_files <- list.files(path = min_dir,
                                  pattern = paste0("GIC_local_best_k_", name_entry, "_k\\d+\\.RData"),
                                  full.names = TRUE)
       
@@ -351,9 +351,9 @@ GIC_step4_finalize <- function(temp_file_dirs) {
     }
     
     final_save_name <- "GIC_final_combined.RData"
-    save(final_gic_results, file = paste0(temp_file_dir, "/", final_save_name))
+    save(final_gic_results, file = paste0(min_dir, "/", final_save_name))
     
-    cat(sprintf("[GIC step4] Saved to: %s/%s\n", temp_file_dir, final_save_name))
+    cat(sprintf("[GIC step4] Saved to: %s/%s\n", min_dir, final_save_name))
   }
 }
 

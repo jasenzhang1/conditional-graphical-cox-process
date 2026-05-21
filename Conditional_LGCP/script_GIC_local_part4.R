@@ -42,7 +42,7 @@ if(model_type == 'mice'){
     }
   })
   
-  temp_file_dirs <- paste0(temp_file_dir, '/', min_connect_pcts_string) # mice/WT2_m0vr1_t10/GIC_local_WT2_m0vr1_t10_nquery1/min_xx
+  temp_file_min_dirs <- paste0(temp_file_dir, '/', min_connect_pcts_string) # mice/WT2_m0vr1_t10/GIC_local_WT2_m0vr1_t10_nquery1/min_xx
   
   mouse <- T
   
@@ -71,4 +71,4 @@ if(model_type == 'mice'){
 }
 
 
-GIC_step4_finalize(temp_file_dirs)
+GIC_step4_finalize(temp_file_dir, temp_file_min_dirs)
