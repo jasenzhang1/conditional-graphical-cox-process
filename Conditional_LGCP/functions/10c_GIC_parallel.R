@@ -131,12 +131,12 @@ GIC_step3_iterate_tau_p <- function(temp_file_dir, id_suffix, k, l){
   
 }
 
-GIC_step2and3_serial_tau_c <- function(temp_file_dir, id_suffix, k, min_connect_pct) {
+GIC_step2and3_serial_tau_c <- function(temp_file_dir, id_suffix, k, min_connect_pcts) {
   
   # temp_file_dir = folder name
   # id_suffix = suffix name
   # k = tau_c index
-  # min_connect = min edges (0 for nothing, 1 for something)
+  # min_connect_pcts = vector of min edge pcts (0 for nothing, 1 for something)
   
   # --- Step 1: Logic from your original GIC_step2 ---
   # Load the ID-specific initial data (contains C_cond, p, W_y, threshold_list_c)
@@ -144,7 +144,6 @@ GIC_step2and3_serial_tau_c <- function(temp_file_dir, id_suffix, k, min_connect_
   
   # convert pct to minimum edge count
   max_edges <- p * (p - 1) / 2
-  min_connect <- ceiling(min_connect_pct * max_edges)
   
   tau_c <- threshold_list_c$hs_vals[k]
   excluded_indices <- threshold_list_c$index_path[[k]]
@@ -160,10 +159,8 @@ GIC_step2and3_serial_tau_c <- function(temp_file_dir, id_suffix, k, min_connect_
   threshold_list_p <- GIC_get_percentile_info(Theta_cond, off_diag_indices)
   num_l <- length(threshold_list_p$hs_vals)
   
-  # --- Step 2: Serial iteration over tau_p (l) ---
-  best_GIC <- Inf
-  best_result <- NULL
-  
+  # --- Step 2: Pre-compute GIC and edge counts for all l (avoid redundant computation) ---
+  l_results <- vector("list", num_l)
   for (l in 1:num_l) {
     tau_p <- threshold_list_p$hs_vals[l]
     excluded_indices_p <- threshold_list_p$index_path[[l]]
@@ -180,39 +177,54 @@ GIC_step2and3_serial_tau_c <- function(temp_file_dir, id_suffix, k, min_connect_
                                    Theta_cond_full_final$block_matrix, 
                                    W_y, 
                                    num_edges)
-    
-    # Keep only the best l for this k
-    passes_connect <- (min_connect == 0) || (num_edges >= min_connect)
-    
-    if (current_GIC < best_GIC && passes_connect) {
-      best_GIC <- current_GIC
-      best_result <- list(
-        k = k, 
-        l = l,
-        tau_c = tau_c, 
-        tau_p = tau_p,
-        GIC = current_GIC,
-        num_edges = num_edges,
-        Theta_cond_thresh = Theta_cond_thresh
-      )
-    }
+    l_results[[l]] <- list(
+      l = l,
+      tau_p = tau_p,
+      GIC = current_GIC,
+      num_edges = num_edges,
+      Theta_cond_thresh = Theta_cond_thresh
+    )
   }
   
-  if (is.null(best_result)) {
-    cat(sprintf("[GIC WARNING] id_suffix=%s, k=%d: no valid l found across %d tau_p values with min_connect=%d\n",
-                id_suffix, k, num_l, min_connect))
-    cat(sprintf("[GIC WARNING] edge counts across l: %s\n",
-                paste(sapply(1:num_l, function(l) {
-                  Theta_cond_thresh <- Theta_cond
-                  for (idx in threshold_list_p$index_path[[l]]) { Theta_cond_thresh[[idx]][] <- 0 }
-                  GIC_edge_count(Theta_cond_thresh, p)
-                }), collapse = ", ")))
-  } else {
-    cat(sprintf("[GIC] id_suffix=%s, k=%s: best l=%s, num_edges=%s, GIC=%.4f\n",
-                as.character(id_suffix), as.character(k), 
-                as.character(best_result$l), as.character(best_result$num_edges), 
-                best_result$GIC))
-    save(best_result, file = paste0(temp_file_dir, "/GIC_local_best_k_", id_suffix, "_k", k, ".RData"))
+  # --- Step 3: Loop over min_connect_pcts, find best l for each, and save ---
+  for (min_connect_pct in min_connect_pcts) {
+    
+    # min_pct string
+    if (min_connect_pct == 0) {
+      min_connect_string <- 'min_00'
+    } else if (min_connect_pct == 1) {
+      min_connect_string <- 'min_100'
+    } else {
+      decimal_digits <- sub(".*\\.", "", format(min_connect_pct, scientific = FALSE))
+      min_connect_string <- paste0('min_', formatC(as.integer(decimal_digits), width = 2, flag = "0"))
+    }
+    
+    min_connect <- ceiling(min_connect_pct * max_edges)
+    
+    # Keep only the best l for this k
+    best_GIC <- Inf
+    best_result <- NULL
+    
+    for (res in l_results) {
+      passes_connect <- (min_connect == 0) || (res$num_edges >= min_connect)
+      if (res$GIC < best_GIC && passes_connect) {
+        best_GIC <- res$GIC
+        best_result <- c(res, list(k = k, tau_c = tau_c, min_connect_pct = min_connect_pct))
+      }
+    }
+    
+    if (is.null(best_result)) {
+      cat(sprintf("[GIC WARNING] id_suffix=%s, k=%d, %s: no valid l found across %d tau_p values with min_connect=%d\n",
+                  id_suffix, k, min_connect_string, num_l, min_connect))
+      cat(sprintf("[GIC WARNING] edge counts across l: %s\n",
+                  paste(sapply(l_results, function(r) r$num_edges), collapse = ", ")))
+    } else {
+      cat(sprintf("[GIC] id_suffix=%s, k=%s, %s: best l=%s, num_edges=%s, GIC=%.4f\n",
+                  as.character(id_suffix), as.character(k), min_connect_string,
+                  as.character(best_result$l), as.character(best_result$num_edges),
+                  best_result$GIC))
+      save(best_result, file = paste0(temp_file_dir, "/GIC_local_best_k_", id_suffix, "_k", k, "_", min_connect_string, ".RData"))
+    }
   }
 }
 
