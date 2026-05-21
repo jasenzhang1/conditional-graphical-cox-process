@@ -2320,9 +2320,9 @@ full_conditional_estimation_with_no_truth_part2d <- function(temp_file_dir, sett
     # load everything from step_1
     # part3_WT2_m1vr1_t10_nquery1.rds (now lives in min_xx subdir)
     if(mouse){
-      step_3_info_list <- paste0(GIC_min_pct_dir, '/part3_', ID, '_', discrete_level, '_t', time_scale, '_nquery', 1:cont_inds, '_', min_pct_string, '.rds')
+      step_3_info_list <- paste0(temp_file_dir, '/part3_', ID, '_', discrete_level, '_t', time_scale, '_nquery', 1:cont_inds, '_', min_pct_string, '.rds')
     } else{
-      step_3_info_list <- paste0(GIC_min_pct_dir, '/part3_', adj_type, '_n_', n, '_nquery', 1:cont_inds, '_rep_', rep_i, '.rds')
+      step_3_info_list <- paste0(temp_file_dir, '/part3_', adj_type, '_n_', n, '_nquery', 1:cont_inds, '_rep_', rep_i, '.rds')
     }
     
     results <- lapply(step_3_info_list, readRDS)
