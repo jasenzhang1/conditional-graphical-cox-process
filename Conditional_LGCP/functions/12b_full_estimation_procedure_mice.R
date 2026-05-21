@@ -2274,7 +2274,7 @@ full_conditional_estimation_with_no_truth_part2c <- function(temp_file_dir, sett
 }
 
 # 2d: collecting all ROC's and edge sets after w_mat has been calculated
-full_conditional_estimation_with_no_truth_part2d <- function(temp_file_dir, GIC_min_pct_dirs, setting_info_list, cont_inds, mouse){
+full_conditional_estimation_with_no_truth_part2d <- function(temp_file_dir, setting_info_list, cont_inds, mouse){
   
   # ----------------------------------------------------------------------------
   #
@@ -2311,15 +2311,16 @@ full_conditional_estimation_with_no_truth_part2d <- function(temp_file_dir, GIC_
   
   step_2_all_data <- lapply(step_2_list_names, readRDS)
   
+  
   # --- Loop over min_pct dirs ---
-  for(GIC_min_pct_dir in GIC_min_pct_dirs){
+  for(min_pct_string in min_connect_pcts_string){
     
-    cat(sprintf("[part2d] Processing: %s\n", GIC_min_pct_dir))
+    cat(sprintf("[part2d] Processing: %s\n", min_pct_string))
     
     # load everything from step_1
     # part3_WT2_m1vr1_t10_nquery1.rds (now lives in min_xx subdir)
     if(mouse){
-      step_3_info_list <- paste0(GIC_min_pct_dir, '/part3_', ID, '_', discrete_level, '_t', time_scale, '_nquery', 1:cont_inds, '.rds')
+      step_3_info_list <- paste0(GIC_min_pct_dir, '/part3_', ID, '_', discrete_level, '_t', time_scale, '_nquery', 1:cont_inds, '_', min_pct_string, '.rds')
     } else{
       step_3_info_list <- paste0(GIC_min_pct_dir, '/part3_', adj_type, '_n_', n, '_nquery', 1:cont_inds, '_rep_', rep_i, '.rds')
     }

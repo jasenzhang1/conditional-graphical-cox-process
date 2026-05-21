@@ -56,8 +56,6 @@ if(model_type == 'mice'){
     temp_file_dir <- paste0('../../../project-biostat-chair/temp_data/mice/', ID, '_', discrete_level, '_t', time_scale) # biostat_dir for hoffman
   }
   
-  folder_name <- paste0('/GIC_local_', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind) #GIC_local_WT2_m0vr1_t10_nquery1
-  GIC_min_pct_dirs <- paste0(temp_file_dir, '/', folder_name, '/', min_connect_pcts_string)
   
   
   
@@ -90,7 +88,7 @@ if(model_type == 'mice'){
 # ---------------------------
 
 #part3_WT2_m1vr1_t10_nquery1_min_01.rds
-full_conditional_estimation_with_no_truth_part2d(temp_file_dir, GIC_min_pct_dirs, setting_info_list, cont_inds, mouse)
+full_conditional_estimation_with_no_truth_part2d(temp_file_dir, setting_info_list, cont_inds, mouse)
 
 
 
