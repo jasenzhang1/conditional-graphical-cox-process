@@ -51,7 +51,7 @@ global_thresh_method="neither" # both, joint, tau_c, or neither
 
 y_c_structure="week_only"
 method="CPGM"
-min_connect_pct=0.02    # 1 percent = 0.01
+min_connect_pcts=(0 0.01 0.02 0.03)    # 1 percent = 0.01
 
 m=30
 time_scale=10 
@@ -59,8 +59,8 @@ min_freq=0.5
 min_events=$(echo "$time_scale * $min_freq" | bc | xargs printf "%.0f")
 
 
-max_processes=10000
-n_weeks=50
+max_processes=10 #10000 
+n_weeks=2  #50
 
 if [ "$cluster" == "hoffman" ]; then
 
@@ -79,6 +79,9 @@ else
     movement=(0 1)
     VR=(1 1)
     
+    IDs=("WT2")
+    movement=(0)
+    VR=(1)
     
     # finished WT3 m0vr0
     
@@ -86,7 +89,7 @@ else
     # HIP, 0.001,  Tau2_m0vr1, WT1_m0vr0, WT2_m0vr1
     # EHC, 0.0003, WT2_m0vr1
     # HIP, 0.0003, Tau2_m0vr1, WT1_m0vr0, WT2_m0vr1
-    y_c_bandwidth=0.0003 # usually its 0.3, exp(-gamma * y_c_diff^2), use NULL for default
+    y_c_bandwidth=0.00025 # usually its 0.3, exp(-gamma * y_c_diff^2), use NULL for default
     # '' for default
     # I have done 0.001 and 0.0003, next try 0.003
     region="BOTH_150"   # "HIP", "EHC", or "HIP_EHC" "BOTH_100", "BOTH_150"
@@ -544,7 +547,7 @@ else
                       # data stored in temp_data/simu/GIC_local_folder/file.name
                       Rscript script_GIC_local_part2and3_serial.R \
                           "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" \
-                          "$j" "$id_suffix" "$k" "$min_connect_pct" >> "$outfile" 2>&1 &                              
+                          "$j" "$id_suffix" "$k" "${min_connect_pcts[@]}" >> "$outfile" 2>&1 &                              
     
                             
                     done
@@ -698,7 +701,7 @@ else
             
             # mice_results/adj_type/CPGM/... .RData
             Rscript script_fit_mice_data_part3.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" \
-                                                 "$n_queries" "$y_c_bandwidth" "$region" "$cluster" "$min_connect_pct" >> "$outfile" 2>&1
+                                                 "$n_queries" "$y_c_bandwidth" "$region" "$cluster" "${min_connect_pcts[@]}" >> "$outfile" 2>&1
             
             echo "" | tee -a "$outfile"
             echo "[DONE] Estimating all y_cs" >> "$outfile"
