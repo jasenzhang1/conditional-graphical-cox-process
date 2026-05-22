@@ -52,7 +52,7 @@ global_thresh_method="neither" # both, joint, tau_c, or neither
 y_c_structure="week_only"
 method="CPGM"
 min_connect_pcts=(0 0.01 0.02 0.03 0.04 0.05 0.06 0.07 0.08 0.09 0.10)    # 1 percent = 0.01
-min_connect_pcts=(0.13 0.25)    # 1 percent = 0.01
+min_connect_pcts=(0 0.13 0.25 0.5 0.75)    # 1 percent = 0.01
 
 m=30
 time_scale=10 
@@ -61,7 +61,7 @@ min_events=$(echo "$time_scale * $min_freq" | bc | xargs printf "%.0f")
 
 
 max_processes=10 #10000 
-n_weeks=2  #50
+n_weeks=50  #50
 
 if [ "$cluster" == "hoffman" ]; then
 
