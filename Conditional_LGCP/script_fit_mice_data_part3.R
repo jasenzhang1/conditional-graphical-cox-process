@@ -13,11 +13,15 @@ if(model_type == 'mice'){
   movement <- as.numeric(args[6])     # movement <- 0
   VR <- as.numeric(args[7])           # VR <- 0
   cont_inds <- as.numeric(args[8])    # cont_inds <- 1  
-  if(args[9] == ''){
-    bandwidth <- NULL
-  } else{
-    bandwidth <- as.numeric(args[9])
+  
+  
+  use_default <- grepl('_default$', args[9])
+  if (use_default) {
+    y_c_bandwidth <- as.numeric(sub('_default$', '', args[9]))
+  } else {
+    y_c_bandwidth <- as.numeric(args[9])
   }
+  
   region <- args[10]                  # region <- 'HIP'
   cluster <- args[11]                 # cluster <- 'hoffman'
   min_connect_pcts <- as.numeric(args[12:length(args)])
@@ -51,7 +55,7 @@ if(model_type == 'mice'){
     blas_set_num_threads(1)   # limit BLAS
     omp_set_num_threads(1)    # limit OpenMP
     
-    temp_file_dir <- paste0('temp_data/mice/', ID, '_', discrete_level, '_t', time_scale)
+    temp_file_dir <- paste0('temp_data/mice/', ID, '_', discrete_level, '_t', time_scale) # temp_data/mice/WT1_m1vr1_t10/
   } else{
     temp_file_dir <- paste0('../../../project-biostat-chair/temp_data/mice/', ID, '_', discrete_level, '_t', time_scale)  # hoffman uses biostat-project
   }
@@ -67,11 +71,14 @@ if(model_type == 'mice'){
   }
   
   # bw string
-  if(is.null(bandwidth)){
-    bw_string <- 'default'
-  } else{
-    bw_string <- sub(".*\\.", "", format(bandwidth, scientific = FALSE))
+  # "1.0_default" or "001" given the bandwidth
+  if (use_default) {
+    bw_string <- paste0(y_c_bandwidth, '_default')
+  } else {
+    bw_string <- sub(".*\\.", "", format(y_c_bandwidth, scientific = FALSE))
   }
+  
+  
   
 } else if(model_type == 'simu'){
   

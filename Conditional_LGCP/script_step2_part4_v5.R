@@ -19,10 +19,12 @@ if(model_type == 'mice'){
   method <- args[5]                          # method <- 'CPGM'
   movement <- as.numeric(args[6])            # movement <- 0
   VR <- as.numeric(args[7])                  # VR <- 0
-  cont_ind <- as.numeric(args[8])           
-  if(args[9] == ''){
-    y_c_bandwidth <- NULL
-  } else{
+  cont_ind <- as.numeric(args[8])    
+  
+  use_default <- grepl('_default$', args[9])
+  if (use_default) {
+    y_c_bandwidth <- as.numeric(sub('_default$', '', args[9]))
+  } else {
     y_c_bandwidth <- as.numeric(args[9])
   }
   
@@ -47,9 +49,10 @@ if(model_type == 'mice'){
   method <- args[6]
   cont_ind <- as.numeric(args[7])       # which y_c query
   
-  if(args[8] == ''){
-    y_c_bandwidth <- NULL
-  } else{
+  use_default <- grepl('_default$', args[8])
+  if (use_default) {
+    y_c_bandwidth <- as.numeric(sub('_default$', '', args[8]))
+  } else {
     y_c_bandwidth <- as.numeric(args[8])
   }
 
@@ -59,7 +62,8 @@ if(model_type == 'mice'){
                             rep_i = rep_i,
                             adj_type = adj_type,
                             method = method,
-                            y_c_bandwidth = y_c_bandwidth)
+                            y_c_bandwidth = y_c_bandwidth,
+                            use_default = use_default)
   
   simu_dir <- paste0('temp_data/simu_', adj_type, '_n_', n_large, '_rep_', rep_i)
   simu_data_dir <- paste0('temp_data/simu_data_', adj_type, '_n_', n_large, '_rep_', rep_i)

@@ -1633,9 +1633,9 @@ estimate_intensities_stratum_parallel_with_yc_part4_v5 <- function(temp_file_dir
   
   # 2d) if y_c_bandwidth is null, save it
   
-  if(is.null(y_c_bandwidth)){
-    results[['y_c_bandwidth']] <- results$gamma_c
-  } else{
+  if (use_default) {
+    results[['y_c_bandwidth']] <- results$gamma_c * y_c_bandwidth
+  } else {
     results[['y_c_bandwidth']] <- y_c_bandwidth
   }
   
@@ -2055,11 +2055,9 @@ full_conditional_estimation_with_no_truth_part2b_before_GIC <- function(temp_fil
                            W_y = W_y,
                            gamma_c = gamma_c)
   
-  if(is.null(y_c_bandwidth)){
-    estimated_graphs[['y_c_bandwidth']] <- gamma_c
-  } else{
-    estimated_graphs[['y_c_bandwidth']] <- y_c_bandwidth
-  }
+  # loaded from results
+  estimated_graphs[['y_c_bandwidth']] <- y_c_bandwidth
+
   
   
   

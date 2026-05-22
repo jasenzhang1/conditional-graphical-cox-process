@@ -23,9 +23,10 @@ if(model_type == 'mice'){
   cont_ind <- as.numeric(args[8])     # cont_ind <- 1  
   eigen_setting <- args[9]            # eigen_seting <- 'only_joint'
   
-  if(args[10] == ''){
-    y_c_bandwidth <- NULL
-  } else{
+  use_default <- grepl('_default$', args[10])
+  if (use_default) {
+    y_c_bandwidth <- as.numeric(sub('_default$', '', args[10]))
+  } else {
     y_c_bandwidth <- as.numeric(args[10])
   }
   
@@ -56,9 +57,10 @@ if(model_type == 'mice'){
   cont_ind <- as.numeric(args[8])
   eigen_setting <- args[9]
 
-  if(args[10] == ''){
-    y_c_bandwidth <- NULL
-  } else{
+  use_default <- grepl('_default$', args[10])
+  if (use_default) {
+    y_c_bandwidth <- as.numeric(sub('_default$', '', args[10]))
+  } else {
     y_c_bandwidth <- as.numeric(args[10])
   }
   
@@ -68,7 +70,8 @@ if(model_type == 'mice'){
                             rep_i = rep_i,
                             adj_type = adj_type,
                             method = method,
-                            y_c_bandwidth = y_c_bandwidth)
+                            y_c_bandwidth = y_c_bandwidth,
+                            use_default = use_default)
   
   temp_file_dir <- paste0('temp_data/simu_', adj_type, '_n_', n_large, '_rep_', rep_i)
   mouse <- F
