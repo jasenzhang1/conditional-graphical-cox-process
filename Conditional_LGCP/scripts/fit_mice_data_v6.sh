@@ -51,8 +51,7 @@ global_thresh_method="neither" # both, joint, tau_c, or neither
 
 y_c_structure="week_only"
 method="CPGM"
-min_connect_pcts=(0 0.01 0.02 0.03 0.04 0.05 0.06 0.07 0.08 0.09 0.10)    # 1 percent = 0.01
-min_connect_pcts=(0 0.13 0.25 0.5 0.75)    # 1 percent = 0.01
+min_connect_pcts=($(seq 0 0.01 0.50))    # 1 percent = 0.01
 
 m=30
 time_scale=10 
@@ -60,7 +59,7 @@ min_freq=0.5
 min_events=$(echo "$time_scale * $min_freq" | bc | xargs printf "%.0f")
 
 
-max_processes=10 #10000 
+max_processes=10000 #10000 
 n_weeks=50  #50
 
 if [ "$cluster" == "hoffman" ]; then
@@ -80,9 +79,6 @@ else
     movement=(0 1)
     VR=(1 1)
     
-    IDs=("Tau1")
-    movement=(1)
-    VR=(1)
     
     # finished WT3 m0vr0
     
@@ -102,7 +98,7 @@ else
     # I have done 0.001 and 0.0003, next try 0.003
     region="BOTH_150"   # "HIP", "EHC", or "HIP_EHC" "BOTH_100", "BOTH_150"
     
-    max_jobs=72
+    max_jobs=75
     
     mkdir -p script_outputs
     mkdir -p script_outputs/mice
