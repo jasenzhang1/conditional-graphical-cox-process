@@ -195,8 +195,8 @@ GIC_step2and3_serial_tau_c <- function(temp_file_dir, id_suffix, k, min_connect_
     } else if (min_connect_pct == 1) {
       min_connect_string <- 'min_100'
     } else {
-      decimal_digits <- sub(".*\\.", "", format(min_connect_pct, scientific = FALSE))
-      min_connect_string <- paste0('min_', formatC(as.integer(decimal_digits), width = 2, flag = "0"))
+      decimal_digits <- sub(".*\\.", "", formatC(min_connect_pct, digits = 2, format = "f"))
+      min_connect_string <- paste0('min_', decimal_digits)
     }
     
     # create subfolder for this min_connect_pct

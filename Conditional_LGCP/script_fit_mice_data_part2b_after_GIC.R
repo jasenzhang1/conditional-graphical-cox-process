@@ -33,13 +33,14 @@ if(model_type == 'mice'){
   GIC_dir <- paste0(temp_file_dir, '/GIC_local_', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind) # mice/WT2_m0vr1_t10/GIC_local_WT2_m0vr1_t10_nquery1
   
   min_connect_pcts_string <- sapply(min_connect_pcts, function(min_connect_pct) {
+    # min_pct string
     if (min_connect_pct == 0) {
-      'min_00'
+      min_connect_string <- 'min_00'
     } else if (min_connect_pct == 1) {
-      'min_100'
+      min_connect_string <- 'min_100'
     } else {
-      decimal_digits <- sub(".*\\.", "", format(min_connect_pct, scientific = FALSE))
-      paste0('min_', formatC(as.integer(decimal_digits), width = 2, flag = "0"))
+      decimal_digits <- sub(".*\\.", "", formatC(min_connect_pct, digits = 2, format = "f"))
+      min_connect_string <- paste0('min_', decimal_digits)
     }
   })
   
