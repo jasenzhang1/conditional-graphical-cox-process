@@ -2570,37 +2570,15 @@ plot_strata_instability_all_mice <- function(results_folder, time_scale, discret
       )
   }
   
-  # --------------------------------------------------------------------------
-  # Build per-mouse plots (one mouse per plot, linear and sqrt)
-  # --------------------------------------------------------------------------
-  plot_list_linear <- list()
-  plot_list_sqrt   <- list()
-  
-  for (ID in present_IDs) {
-    df_id       <- all_data[[ID]]
-    df_id$mouse <- factor(df_id$mouse, levels = present_IDs)
-    
-    base_plot <- make_base_plot(df_id) +
-      labs(title = sprintf("%s — %s vs %s", ID, d_level_A, d_level_B))
-    
-    plot_list_linear[[ID]] <- base_plot +
-      scale_y_continuous(
-        breaks = c(0, 0.25, 0.5, 0.75, 1),
-        limits = c(0, 1)
-      )
-    
-    plot_list_sqrt[[ID]] <- base_plot +
-      scale_y_continuous(
-        trans  = "sqrt",
-        breaks = c(0, 0.25, 0.5, 0.75, 1),
-        limits = c(0, 1)
-      )
-  }
+
   
   # --------------------------------------------------------------------------
   # Build combined (all-mice overlay) plots
   # --------------------------------------------------------------------------
   base_combined <- make_base_plot(combined_df)
+  
+  plot_list_linear <- list()
+  plot_list_sqrt   <- list()
   
   plot_list_linear[["combined"]] <- base_combined +
     scale_y_continuous(
@@ -2617,3 +2595,118 @@ plot_strata_instability_all_mice <- function(results_folder, time_scale, discret
   
   return(list(linear = plot_list_linear, sqrt = plot_list_sqrt))
 }
+
+plot_edge_regional_proportion_all_mice <- function(results_folder, time_scale, discrete_levels) {
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: For each discrete stratum, plot edge proportion of existing edges 
+  #       that are either A-A, A-B, or B-B if we assume there are two regions.
+  # 
+  #       available mice discovered automatically from results_folder.
+  #       Returns a named list of ggplots, one per discrete level-region combination
+  #
+  #       So with 4 discrete levels, there are 12 combinations, because there are 3 regional pairings
+  #
+  #
+  # inputs:
+  #
+  # - results_folder   (string)
+  # - time_scale       (integer)  e.g. 10
+  # - discrete_levels  (vector of strings)  e.g. c('m0vr0', 'm1vr1', ...)
+  #
+  # returns: named list of ggplot objects, one per discrete level
+  #
+  # ----------------------------------------------------------------------------
+  
+  # Discover available mice from subfolder names
+  mice <- list.dirs(results_folder, full.names = FALSE, recursive = FALSE)
+  
+  # Regional pairings
+  region_pairs <- c("HIP-HIP", "HIP-EHC", "EHC-EHC")
+  
+  plot_list <- list()
+  
+  for (lvl in discrete_levels) {
+    for (rp in region_pairs) {
+      
+      # Accumulate proportions across mice for this level-region combo
+      all_data <- data.frame()
+      
+      for (mouse in mice) {
+        rdata_path <- file.path(results_folder, mouse, "CPGM_BOTH_150",
+                                paste0(lvl, ".RData"))
+        if (!file.exists(rdata_path)) next
+        
+        env <- new.env()
+        load(rdata_path, envir = env)
+        
+        # Expected object: a data frame with columns: time, n_hip, n_ehc,
+        # and edge list or adjacency info to compute regional proportions from.
+        # Adjust 'results' to whatever the actual object name is in your .RData
+        res <- env$results
+        
+        n_hip <- res$n_hip[1]  # number of HIP neurons (first group)
+        n_ehc <- res$n_ehc[1]  # number of EHC neurons (second group)
+        
+        # For each time point, compute proportion of edges that are HIP-HIP, HIP-EHC, EHC-EHC
+        # Assumes res$edges is a list of (i, j) pairs per time point, with neurons
+        # indexed so that 1:n_hip are HIP and (n_hip+1):(n_hip+n_ehc) are EHC
+        res_proportions <- lapply(seq_len(nrow(res$time_points)), function(t) {
+          edges <- res$edges[[t]]
+          is_hip <- function(idx) idx <= n_hip
+          
+          hip_hip <- sum( is_hip(edges[,1]) &  is_hip(edges[,2]))
+          hip_ehc <- sum( is_hip(edges[,1]) & !is_hip(edges[,2])) +
+            sum(!is_hip(edges[,1]) &  is_hip(edges[,2]))
+          ehc_ehc <- sum(!is_hip(edges[,1]) & !is_hip(edges[,2]))
+          total   <- hip_hip + hip_ehc + ehc_ehc
+          
+          data.frame(
+            time    = res$time_points[t] / time_scale,
+            HIP_HIP = if (total > 0) hip_hip / total else NA,
+            HIP_EHC = if (total > 0) hip_ehc / total else NA,
+            EHC_EHC = if (total > 0) ehc_ehc / total else NA,
+            mouse   = mouse
+          )
+        })
+        
+        all_data <- rbind(all_data, do.call(rbind, res_proportions))
+      }
+      
+      if (nrow(all_data) == 0) next
+      
+      # Map region pair to column name
+      col_name <- switch(rp,
+                         "HIP-HIP" = "HIP_HIP",
+                         "HIP-EHC" = "HIP_EHC",
+                         "EHC-EHC" = "EHC_EHC"
+      )
+      
+      p <- ggplot(all_data, aes(x = time, y = .data[[col_name]],
+                                color = mouse, group = mouse)) +
+        geom_line() +
+        geom_point(size = 1.5) +
+        scale_y_continuous(limits = c(0, 1), labels = scales::percent) +
+        labs(
+          title = paste("Edge Regional Proportion —", lvl, "|", rp),
+          x     = paste0("Time (scale = ", time_scale, ")"),
+          y     = paste("Proportion of", rp, "edges"),
+          color = "Mouse"
+        ) +
+        theme_minimal()
+      
+      plot_key <- paste0(lvl, "_", gsub("-", "", rp))
+      plot_list[[plot_key]] <- p
+    }
+  }
+  
+  return(plot_list)
+}
+  
+
+
+
+
+
+
