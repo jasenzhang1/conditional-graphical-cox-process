@@ -86,7 +86,7 @@ else
     # HIP, 0.001,  Tau2_m0vr1, WT1_m0vr0, WT2_m0vr1
     # EHC, 0.0003, WT2_m0vr1
     # HIP, 0.0003, Tau2_m0vr1, WT1_m0vr0, WT2_m0vr1
-    y_c_bandwidth='0.01_default' # usually its 0.3, exp(-gamma * y_c_diff^2), use NULL for default
+    y_c_bandwidth=0.001 # usually its 0.3, exp(-gamma * y_c_diff^2), use NULL for default
     
     # y_c_bandwidth='1_default'       --> 1 * default
     # y_c_bandwidth='0.1_default'     --> 0.1 * default
