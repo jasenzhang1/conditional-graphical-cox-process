@@ -11,8 +11,8 @@ source('functions/20_simulation_function_wrapper.R')
 
 
 args <- commandArgs(trailingOnly = TRUE)
-y_c_structure <- args[1] # "week_only_bw_default_min_1"
-experiment_number <- args[2] # "experiment_9"
+experiment_folder <- args[1]  # "experiment_9"
+results_folder    <- args[2]  # "experiment_9/week_only_bw_default_min_01/" etc.
 
 method <- 'CPGM'
 region <- 'BOTH_150'  # HIP, EHC, BOTH_100, BOTH_150
@@ -23,17 +23,17 @@ base_folder <- 'mice_results'
 # base_folder <- '../../../project-biostat-chair/mice_results'
 
 
-results_folder <- paste0(base_folder, '/', y_c_structure, '/', method, '_', region)  # mice_results/experiment_9/week_only_bw_default_min_1/CPGM_BOTH_150
+results_folder <- paste0(base_folder, '/', results_folder, '/', method, '_', region)  # mice_results/experiment_9/week_only_bw_default_min_1/CPGM_BOTH_150
 
-results_folder_2 <- paste0(base_folder, '/', experiment_number, '_results')
-if (!dir.exists(results_folder_2)) {
-  dir.create(results_folder_2)
+graph_folder <- paste0(base_folder, '/', experiment_number, '_results') # mice_results/experiment_9_results
+if (!dir.exists(graph_folder)) {
+  dir.create(graph_folder)
 }
 
-results_folder_2 <- paste0(results_folder_2, '/', y_c_structure)  # mice_results/experiment_9_results/week_only_bw_default_min_1
+graph_folder <- paste0(graph_folder, '/', y_c_structure)  # mice_results/experiment_9_results/week_only_bw_default_min_1
 
-if (!dir.exists(results_folder_2)) {
-  dir.create(results_folder_2)
+if (!dir.exists(graph_folder)) {
+  dir.create(graph_folder)
 }
 
 
@@ -55,7 +55,7 @@ region_border <- T
 
 # for(i in 1:length(IDs)){
 #   print(IDs[i])
-#   png_name <- paste0(results_folder_2, '/', IDs[i], '_t', time_scale, '_edge_sets.png')
+#   png_name <- paste0(graph_folder, '/', IDs[i], '_t', time_scale, '_edge_sets.png')
 #   
 #   png(png_name, width = 45, height = 15, units = "in", res = 100)
 #   
@@ -76,7 +76,7 @@ strata_results <- visualize_strata_all_mice_v2(
 )
 
 for (d_level in names(strata_results$plots)) {
-  png_name <- paste0(results_folder_2, '/all_mice_', d_level, '_t', time_scale, '_edge_sets.png')
+  png_name <- paste0(graph_folder, '/all_mice_', d_level, '_t', time_scale, '_edge_sets.png')
   n_mice   <- strata_results$n_mice[[d_level]]
   png(png_name, width = 45, height = 4 * n_mice, units = "in", res = 100)
   print(strata_results$plots[[d_level]])
@@ -93,7 +93,7 @@ for (d_level in names(strata_results$plots)) {
 # )
 # 
 # for (d_level in names(prop_plots)) {
-#   png_name <- paste0(results_folder_2, '/all_mice_', d_level, '_t', time_scale, '_edge_proportion.png')
+#   png_name <- paste0(graph_folder, '/all_mice_', d_level, '_t', time_scale, '_edge_proportion.png')
 #   png(png_name, width = 10, height = 6, units = "in", res = 100)
 #   print(prop_plots[[d_level]])
 #   dev.off()
@@ -112,7 +112,7 @@ instability_plots <- plot_edge_instability_all_mice(
 
 for (d_level in names(instability_plots$linear)) {
   for (scale_type in c("linear", "sqrt")) {
-    png_name <- paste0(results_folder_2, '/all_mice_', d_level, '_t', time_scale, '_edge_instability_', scale_type, '.png')
+    png_name <- paste0(graph_folder, '/all_mice_', d_level, '_t', time_scale, '_edge_instability_', scale_type, '.png')
     png(png_name, width = 14, height = 4, units = "in", res = 300)
     print(instability_plots[[scale_type]][[d_level]])
     dev.off()
@@ -136,7 +136,7 @@ strata_instability_plots <- plot_strata_instability_all_mice(
 
 for (plot_id in names(strata_instability_plots$linear)) {
   for (scale_type in c("linear", "sqrt")) {
-    png_name <- paste0(results_folder_2, '/all_mice_', d_level_A, '_vs_', d_level_B, '_t', time_scale, '_strata_jaccard_', plot_id, '_', scale_type, '.png')
+    png_name <- paste0(graph_folder, '/all_mice_', d_level_A, '_vs_', d_level_B, '_t', time_scale, '_strata_jaccard_', plot_id, '_', scale_type, '.png')
     png(png_name, width = 14, height = 4, units = "in", res = 300)
     print(strata_instability_plots[[scale_type]][[plot_id]])
     dev.off()
@@ -157,7 +157,7 @@ edge_regional_plots <- plot_edge_regional_proportion_all_mice(
 )
 
 for (plot_id in names(edge_regional_plots)) {
-  png_name <- paste0(results_folder_2, '/all_mice_', d_level_A, '_vs_', d_level_B, '_t', time_scale, '_edge_regional_proportion_', plot_id, '.png')
+  png_name <- paste0(graph_folder, '/all_mice_', d_level_A, '_vs_', d_level_B, '_t', time_scale, '_edge_regional_proportion_', plot_id, '.png')
   png(png_name, width = 14, height = 4, units = "in", res = 300)
   print(edge_regional_plots[[plot_id]])
   dev.off()
