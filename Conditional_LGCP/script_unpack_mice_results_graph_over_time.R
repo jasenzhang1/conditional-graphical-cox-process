@@ -11,8 +11,8 @@ source('functions/20_simulation_function_wrapper.R')
 
 
 args <- commandArgs(trailingOnly = TRUE)
-experiment_folder <- args[1]  # "experiment_9"
-results_folder    <- args[2]  # "experiment_9/week_only_bw_default_min_01/" etc.
+experiment_folder <- args[1]  # "mice_results/experiment_9"
+results_folder    <- args[2]  # "mice_results/experiment_9/week_only_bw_default_min_01/" etc.
 
 print(experiment_folder)
 print(results_folder)
@@ -21,16 +21,16 @@ method <- 'CPGM'
 region <- 'BOTH_150'  # HIP, EHC, BOTH_100, BOTH_150
 time_scale <- 10
 
-base_folder <- 'mice_results'
+
 
 # base_folder <- '../../../project-biostat-chair/mice_results'
 
 
-results_folder <- paste0(base_folder, '/', results_folder, '/', method, '_', region)  # mice_results/experiment_9/week_only_bw_default_min_1/CPGM_BOTH_150
+results_folder <- paste0(results_folder, '/', method, '_', region)  # mice_results/experiment_9/week_only_bw_default_min_1/CPGM_BOTH_150
 
-graph_folder <- sub("/", "_results/", args[2]) # experiment_9_results/week_only_bw_default_min_01/
+graph_folder <- sub("/", "_results/", args[2]) # mice_results/experiment_9_results/week_only_bw_default_min_01/
 
-graph_folder <- paste0(base_folder, '/', graph_folder) # mice_results/experiment_9_results/week_only_bw_default_min_01/
+
 if (!dir.exists(graph_folder)) {
   dir.create(graph_folder, recursive = TRUE)
 }
