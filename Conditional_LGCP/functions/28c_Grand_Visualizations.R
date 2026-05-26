@@ -2351,3 +2351,269 @@ plot_edge_instability_all_mice <- function(results_folder, time_scale, discrete_
   
   return(list(linear = plot_list, sqrt = plot_list_sqrt))
 }
+
+# jaccard distance between edge sets of the same mouse, but different discrete strata
+plot_strata_instability_all_mice <- function(results_folder, time_scale, discrete_levels) {
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: Supply two discrete strata and plot Jaccard similarity over weeks for
+  #       all available mice discovered automatically from results_folder.
+  #       Jaccard similarity at week t is defined as:
+  #
+  #         |E_i(t) ∩ E_j(t)| / |E_i(t) ∪ E_j(t)|
+  #
+  #       where i and j are the two different strata (discrete_levels[1] and
+  #       discrete_levels[2]). Value of 1 = identical graphs, 0 = fully disjoint.
+  #       When both edge sets are empty at week t, similarity is defined as 1
+  #       (both graphs agree on having no edges).
+  #       All computations use upper triangle only to exclude diagonal.
+  #
+  # inputs:
+  #
+  # - results_folder   (string)
+  # - time_scale       (integer)  e.g. 10
+  # - discrete_levels  (vector of exactly two strings)  e.g. c('m0vr1', 'm1vr1')
+  #
+  # returns: named list with two elements:
+  #   - linear : named list of ggplot objects (linear y-axis), one per mouse
+  #   - sqrt   : named list of ggplot objects (sqrt y-axis), one per mouse
+  #   Both sub-lists also contain a 'combined' entry with all mice on one plot.
+  #
+  # ----------------------------------------------------------------------------
+  
+  if (length(discrete_levels) != 2) {
+    stop("plot_strata_instability_all_mice: discrete_levels must be exactly length 2")
+  }
+  
+  d_level_A <- discrete_levels[1]
+  d_level_B <- discrete_levels[2]
+  
+  # --------------------------------------------------------------------------
+  # Discover all IDs that have files for BOTH discrete levels
+  # --------------------------------------------------------------------------
+  discover_IDs <- function() {
+    pattern_A <- paste0("^(.+)_", d_level_A, "_t", time_scale, "\\.RData$")
+    pattern_B <- paste0("^(.+)_", d_level_B, "_t", time_scale, "\\.RData$")
+    
+    files_A <- list.files(results_folder, pattern = pattern_A, full.names = FALSE)
+    files_B <- list.files(results_folder, pattern = pattern_B, full.names = FALSE)
+    
+    ids_A <- sub(paste0("_", d_level_A, "_t", time_scale, "\\.RData$"), "", files_A)
+    ids_B <- sub(paste0("_", d_level_B, "_t", time_scale, "\\.RData$"), "", files_B)
+    
+    # Only keep IDs present in BOTH strata
+    ids <- intersect(ids_A, ids_B)
+    
+    tau_ids <- sort(ids[grepl("^Tau", ids)])
+    wt_ids  <- sort(ids[grepl("^WT",  ids)])
+    other   <- sort(ids[!grepl("^(Tau|WT)", ids)])
+    c(tau_ids, wt_ids, other)
+  }
+  
+  # --------------------------------------------------------------------------
+  # Load adjacency matrices for one mouse and one discrete level,
+  # keyed by week number
+  # --------------------------------------------------------------------------
+  load_adj_by_week <- function(ID, d_level) {
+    file_path <- paste0(results_folder, '/', ID, '_', d_level, '_t', time_scale, '.RData')
+    if (!file.exists(file_path)) return(NULL)
+    
+    tmp_env <- new.env()
+    load(file_path, envir = tmp_env)
+    res_i <- tmp_env$graph_results_i
+    
+    step_data <- res_i$step_12b
+    y_c_weeks <- as.numeric(res_i$y_c_query)
+    
+    adj_by_week <- list()
+    for (idx in seq_along(y_c_weeks)) {
+      adj_mat <- step_data[[idx]][["adj_mat_KL_GIC_local_est_eig3"]]
+      if (!is.null(adj_mat)) {
+        adj_by_week[[as.character(y_c_weeks[idx])]] <- adj_mat
+      }
+    }
+    
+    rm(tmp_env, res_i, step_data)
+    return(adj_by_week)
+  }
+  
+  # --------------------------------------------------------------------------
+  # Compute cross-stratum Jaccard similarity for one mouse across all weeks
+  # --------------------------------------------------------------------------
+  load_strata_similarity <- function(ID) {
+    
+    message(sprintf("  Loading mouse %s ...", ID))
+    
+    adj_A <- load_adj_by_week(ID, d_level_A)
+    adj_B <- load_adj_by_week(ID, d_level_B)
+    
+    if (is.null(adj_A) || is.null(adj_B)) return(NULL)
+    
+    # Weeks present in both strata
+    weeks_A       <- as.numeric(names(adj_A))
+    weeks_B       <- as.numeric(names(adj_B))
+    common_weeks  <- sort(intersect(weeks_A, weeks_B))
+    
+    if (length(common_weeks) == 0) {
+      message(sprintf("    No common weeks found for mouse %s — skipping.", ID))
+      return(NULL)
+    }
+    
+    similarity_vals  <- numeric(length(common_weeks))
+    
+    for (w_idx in seq_along(common_weeks)) {
+      w      <- common_weeks[w_idx]
+      A_curr <- adj_A[[as.character(w)]]
+      B_curr <- adj_B[[as.character(w)]]
+      
+      # Align dimensions if neuron count differs between strata
+      n_min <- min(nrow(A_curr), nrow(B_curr))
+      if (n_min == 0) {
+        similarity_vals[w_idx] <- NA
+        next
+      }
+      A_curr <- A_curr[1:n_min, 1:n_min]
+      B_curr <- B_curr[1:n_min, 1:n_min]
+      
+      # Use upper triangle only — excludes diagonal (self-loops) and
+      # avoids double counting from symmetry
+      upper        <- upper.tri(A_curr)
+      edges_A      <- sum(A_curr[upper])
+      edges_B      <- sum(B_curr[upper])
+      intersection <- sum(A_curr[upper] & B_curr[upper])
+      union_edges  <- sum(A_curr[upper] | B_curr[upper])
+      
+      if (union_edges == 0) {
+        # Both graphs have no edges — define similarity as 1 (they agree)
+        jaccard_val <- 1
+        message(sprintf("    week %d: edges_A=%g, edges_B=%g — both empty, similarity=1",
+                        w, edges_A, edges_B))
+      } else {
+        jaccard_val <- intersection / union_edges
+        message(sprintf("    week %d: edges_A=%g, edges_B=%g, intersection=%g, union=%g, similarity=%.4f",
+                        w, edges_A, edges_B, intersection, union_edges, jaccard_val))
+      }
+      
+      similarity_vals[w_idx] <- jaccard_val
+    }
+    
+    data.frame(
+      week       = common_weeks,
+      similarity = similarity_vals,
+      mouse      = ID
+    )
+  }
+  
+  # --------------------------------------------------------------------------
+  # Collect data across all mice
+  # --------------------------------------------------------------------------
+  all_IDs  <- discover_IDs()
+  
+  if (length(all_IDs) == 0) {
+    message(sprintf("No mice found with files for both %s and %s.", d_level_A, d_level_B))
+    return(list(linear = list(), sqrt = list()))
+  }
+  
+  message(sprintf("Computing cross-stratum Jaccard similarity: %s vs %s", d_level_A, d_level_B))
+  message(sprintf("Mice found: %s", paste(all_IDs, collapse = ", ")))
+  
+  all_data <- lapply(all_IDs, load_strata_similarity)
+  names(all_data) <- all_IDs
+  
+  # Remove mice with no data
+  all_data <- Filter(Negate(is.null), all_data)
+  present_IDs <- names(all_data)
+  
+  if (length(present_IDs) == 0) {
+    message("No valid data found for any mouse.")
+    return(list(linear = list(), sqrt = list()))
+  }
+  
+  # --------------------------------------------------------------------------
+  # Color palette: Tau in warm tones, WT in cool tones
+  # --------------------------------------------------------------------------
+  tau_mice  <- present_IDs[grepl("^Tau", present_IDs)]
+  wt_mice   <- present_IDs[grepl("^WT",  present_IDs)]
+  tau_cols  <- setNames(scales::hue_pal(h = c(0, 60))(max(length(tau_mice), 1)),   tau_mice)
+  wt_cols   <- setNames(scales::hue_pal(h = c(200, 260))(max(length(wt_mice), 1)), wt_mice)
+  color_map <- c(tau_cols, wt_cols)
+  
+  # --------------------------------------------------------------------------
+  # Build combined data frame for the all-mice overlay plot
+  # --------------------------------------------------------------------------
+  combined_df        <- do.call(rbind, all_data)
+  combined_df$mouse  <- factor(combined_df$mouse, levels = present_IDs)
+  
+  plot_title <- sprintf("%s vs %s", d_level_A, d_level_B)
+  
+  # --------------------------------------------------------------------------
+  # Helper: build base ggplot for a given data frame
+  # --------------------------------------------------------------------------
+  make_base_plot <- function(df) {
+    ggplot(df, aes(x = week, y = similarity, color = mouse, group = mouse)) +
+      geom_line(linewidth = 0.8) +
+      geom_point(size = 2) +
+      scale_color_manual(values = color_map) +
+      scale_x_continuous(breaks = c(20, 25, 30, 35)) +
+      labs(
+        title = plot_title,
+        x     = "Age (Weeks)",
+        y     = "Jaccard Similarity",
+        color = "Mouse"
+      ) +
+      guides(color = guide_legend(nrow = 1)) +
+      theme_bw(base_size = 16) +
+      theme(
+        panel.grid      = element_blank(),
+        legend.position = "bottom"
+      )
+  }
+  
+  # --------------------------------------------------------------------------
+  # Build per-mouse plots (one mouse per plot, linear and sqrt)
+  # --------------------------------------------------------------------------
+  plot_list_linear <- list()
+  plot_list_sqrt   <- list()
+  
+  for (ID in present_IDs) {
+    df_id       <- all_data[[ID]]
+    df_id$mouse <- factor(df_id$mouse, levels = present_IDs)
+    
+    base_plot <- make_base_plot(df_id) +
+      labs(title = sprintf("%s — %s vs %s", ID, d_level_A, d_level_B))
+    
+    plot_list_linear[[ID]] <- base_plot +
+      scale_y_continuous(
+        breaks = c(0, 0.25, 0.5, 0.75, 1),
+        limits = c(0, 1)
+      )
+    
+    plot_list_sqrt[[ID]] <- base_plot +
+      scale_y_continuous(
+        trans  = "sqrt",
+        breaks = c(0, 0.25, 0.5, 0.75, 1),
+        limits = c(0, 1)
+      )
+  }
+  
+  # --------------------------------------------------------------------------
+  # Build combined (all-mice overlay) plots
+  # --------------------------------------------------------------------------
+  base_combined <- make_base_plot(combined_df)
+  
+  plot_list_linear[["combined"]] <- base_combined +
+    scale_y_continuous(
+      breaks = c(0, 0.25, 0.5, 0.75, 1),
+      limits = c(0, 1)
+    )
+  
+  plot_list_sqrt[["combined"]] <- base_combined +
+    scale_y_continuous(
+      trans  = "sqrt",
+      breaks = c(0, 0.25, 0.5, 0.75, 1),
+      limits = c(0, 1)
+    )
+  
+  return(list(linear = plot_list_linear, sqrt = plot_list_sqrt))
+}

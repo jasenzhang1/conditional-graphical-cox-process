@@ -114,3 +114,26 @@ for (d_level in names(instability_plots$linear)) {
   }
 }
 
+# ------------------------------------------------------------------------------
+# plot jaccard similarity across strata
+
+discrete_levels <- paste0('m', c(0, 1), 'vr', c(1, 1))
+
+d_level_A <- discrete_levels[1]
+d_level_B <- discrete_levels[2]
+
+strata_instability_plots <- plot_strata_instability_all_mice(
+  results_folder  = results_folder,
+  time_scale      = time_scale,
+  discrete_levels = discrete_levels
+)
+
+
+for (plot_id in names(strata_instability_plots$linear)) {
+  for (scale_type in c("linear", "sqrt")) {
+    png_name <- paste0(results_folder_2, '/all_mice_', d_level_A, '_vs_', d_level_B, '_t', time_scale, '_strata_jaccard_', plot_id, '_', scale_type, '.png')
+    png(png_name, width = 14, height = 4, units = "in", res = 300)
+    print(strata_instability_plots[[scale_type]][[plot_id]])
+    dev.off()
+  }
+}
