@@ -28,16 +28,14 @@ base_folder <- 'mice_results'
 
 results_folder <- paste0(base_folder, '/', results_folder, '/', method, '_', region)  # mice_results/experiment_9/week_only_bw_default_min_1/CPGM_BOTH_150
 
-graph_folder <- paste0(base_folder, '/', experiment_number, '_results') # mice_results/experiment_9_results
+graph_folder <- sub("/", "_results/", args[2]) # experiment_9_results/week_only_bw_default_min_01/
+
+graph_folder <- paste0(base_folder, '/', graph_folder) # mice_results/experiment_9_results/week_only_bw_default_min_01/
 if (!dir.exists(graph_folder)) {
-  dir.create(graph_folder)
+  dir.create(graph_folder, recursive = TRUE)
 }
 
-graph_folder <- paste0(graph_folder, '/', y_c_structure)  # mice_results/experiment_9_results/week_only_bw_default_min_1
 
-if (!dir.exists(graph_folder)) {
-  dir.create(graph_folder)
-}
 
 
 IDs <- c('Tau1', 'Tau2', 'Tau3', 'WT1', 'WT2', 'WT3')
