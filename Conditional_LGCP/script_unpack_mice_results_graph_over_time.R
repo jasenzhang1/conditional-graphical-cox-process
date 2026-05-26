@@ -67,7 +67,7 @@ region_border <- T
 # }
 
 # ------------------------------------------------------------------------------
-# plot graphs comparing the same discrete strata across all mice
+# plot adjacency matrices for edges, comparing the same discrete strata across all mice
 
 strata_results <- visualize_strata_all_mice_v2(
   results_folder  = results_folder,
@@ -161,5 +161,21 @@ for (plot_id in names(edge_regional_plots)) {
                         paste0('all_mice_', plot_id, '_t', time_scale, '_edge_regional_proportion.png'))
   png(png_name, width = 14, height = 4, units = "in", res = 300)
   print(edge_regional_plots[[plot_id]])
+  dev.off()
+}
+
+# ------------------------------------------------------------------------------
+# plot median non-zero degree across strata
+discrete_levels <- paste0('m', c(0, 1), 'vr', c(1, 1))
+degree_plots <- plot_median_nonzero_degree_all_mice(
+  results_folder  = results_folder,
+  time_scale      = time_scale,
+  discrete_levels = discrete_levels
+)
+for (plot_id in names(degree_plots)) {
+  png_name <- file.path(graph_folder,
+                        paste0('all_mice_', plot_id, '_t', time_scale, '_median_nonzero_degree.png'))
+  png(png_name, width = 14, height = 4, units = "in", res = 300)
+  print(degree_plots[[plot_id]])
   dev.off()
 }

@@ -572,22 +572,22 @@ plot_strata_instability_all_mice <- function(results_folder, time_scale, discret
   return(list(linear = plot_list_linear, sqrt = plot_list_sqrt))
 }
 
-plot_edge_regional_proportion_all_mice <- function(results_folder, time_scale, discrete_levels, n_hip = 50) {
+# plot % of neurons that connect HIP-HIP, HIP-EHC, or EHC-EHC
+plot_edge_regional_proportion_all_mice <- function(results_folder, time_scale, discrete_levels) {
   
   # ----------------------------------------------------------------------------
   #
   # GOAL: For each discrete stratum, plot the proportion of existing edges that
   #       are HIP-HIP, HIP-EHC, or EHC-EHC across all discovered mice.
   #
-  #       Neurons 1:n_hip are HIP, (n_hip+1):p are EHC.
-  #       n_hip defaults to 50 (BOTH_150 = top 50 per region).
+  #       n_hip inferred per mouse from res_i$recovery_params$kept_neuron_regions
+  #       (same source used by visualize_strata_all_mice_v2).
   #       All computations use upper.tri() only.
   #
   # inputs:
   #   results_folder   (string)
   #   time_scale       (integer)  e.g. 10
   #   discrete_levels  (vector of strings)  e.g. c('m0vr0', 'm1vr1', ...)
-  #   n_hip            (integer)  number of HIP neurons; default 50
   #
   # returns: named list of ggplot objects, keyed as e.g. "m0vr1_HIPHIP"
   #
@@ -610,8 +610,8 @@ plot_edge_regional_proportion_all_mice <- function(results_folder, time_scale, d
   # Color palette: Tau in warm tones, WT in cool tones
   tau_mice  <- all_IDs[grepl("^Tau", all_IDs)]
   wt_mice   <- all_IDs[grepl("^WT",  all_IDs)]
-  tau_cols  <- setNames(scales::hue_pal(h = c(0, 60))(max(length(tau_mice), 1)),    tau_mice)
-  wt_cols   <- setNames(scales::hue_pal(h = c(200, 260))(max(length(wt_mice), 1)),  wt_mice)
+  tau_cols  <- setNames(scales::hue_pal(h = c(0, 60))(max(length(tau_mice), 1)),   tau_mice)
+  wt_cols   <- setNames(scales::hue_pal(h = c(200, 260))(max(length(wt_mice), 1)), wt_mice)
   color_map <- c(tau_cols, wt_cols)
   
   plot_list <- list()
@@ -639,8 +639,11 @@ plot_edge_regional_proportion_all_mice <- function(results_folder, time_scale, d
       step_data <- res_i$step_12b
       y_c_weeks <- as.numeric(res_i$y_c_query)
       
-      p     <- nrow(step_data[[1]][["adj_mat_KL_GIC_local_est_eig3"]])
-      n_ehc <- p - n_hip
+      # Infer n_hip from the same source as visualize_strata_all_mice_v2
+      regions <- res_i$recovery_params$kept_neuron_regions
+      n_hip   <- sum(regions == regions[1])  # count of first region label
+      p       <- length(regions)
+      n_ehc   <- p - n_hip
       message(sprintf("  [%s] p=%d, n_hip=%d, n_ehc=%d, weeks=%d",
                       ID, p, n_hip, n_ehc, length(y_c_weeks)))
       
@@ -726,3 +729,142 @@ plot_edge_regional_proportion_all_mice <- function(results_folder, time_scale, d
   return(plot_list)
 }
 
+plot_median_nonzero_degree_all_mice <- function(results_folder, time_scale, discrete_levels) {
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: For each discrete stratum, and for each mouse, compute the 25th
+  #       percentile, median, and 75th percentile of degree across neurons
+  #       that have at least one edge (positive degree) at each week.
+  #       Plots one loess curve per mouse (fit to the median), with a shaded
+  #       band spanning the 25th-75th percentile loess fits. The 50% CI band
+  #       reflects the IQR of the non-zero degree distribution at each week.
+  #
+  #       Returns one ggplot per discrete level.
+  #
+  # inputs:
+  #   results_folder   (string)
+  #   time_scale       (integer)  e.g. 10
+  #   discrete_levels  (vector of strings)  e.g. c('m0vr0', 'm1vr1', ...)
+  #
+  # returns: named list of ggplot objects, one per discrete level
+  #
+  # ----------------------------------------------------------------------------
+  
+  discover_IDs <- function(d_level) {
+    pattern   <- paste0("^(.+)_", d_level, "_t", time_scale, "\\.RData$")
+    all_files <- list.files(results_folder, pattern = pattern, full.names = FALSE)
+    ids       <- sub(paste0("_", d_level, "_t", time_scale, "\\.RData$"), "", all_files)
+    tau_ids   <- sort(ids[grepl("^Tau", ids)])
+    wt_ids    <- sort(ids[grepl("^WT",  ids)])
+    other     <- sort(ids[!grepl("^(Tau|WT)", ids)])
+    c(tau_ids, wt_ids, other)
+  }
+  
+  all_IDs  <- unique(unlist(lapply(discrete_levels, discover_IDs)))
+  tau_mice <- all_IDs[grepl("^Tau", all_IDs)]
+  wt_mice  <- all_IDs[grepl("^WT",  all_IDs)]
+  tau_cols <- setNames(scales::hue_pal(h = c(0, 60))(max(length(tau_mice), 1)),   tau_mice)
+  wt_cols  <- setNames(scales::hue_pal(h = c(200, 260))(max(length(wt_mice), 1)), wt_mice)
+  color_map <- c(tau_cols, wt_cols)
+  
+  plot_list <- list()
+  
+  for (lvl in discrete_levels) {
+    
+    ids <- discover_IDs(lvl)
+    message(sprintf("[plot_median_nonzero_degree] level=%s, found %d IDs: %s",
+                    lvl, length(ids), paste(ids, collapse = ", ")))
+    
+    all_data <- data.frame()
+    
+    for (ID in ids) {
+      
+      file_path <- paste0(results_folder, '/', ID, '_', lvl, '_t', time_scale, '.RData')
+      if (!file.exists(file_path)) {
+        message(sprintf("  [SKIP] not found: %s", file_path))
+        next
+      }
+      
+      tmp_env <- new.env()
+      load(file_path, envir = tmp_env)
+      res_i <- tmp_env$graph_results_i
+      
+      step_data <- res_i$step_12b
+      y_c_weeks <- as.numeric(res_i$y_c_query)
+      
+      message(sprintf("  [%s] weeks=%d", ID, length(y_c_weeks)))
+      
+      for (idx in seq_along(y_c_weeks)) {
+        
+        week    <- y_c_weeks[idx]
+        adj_mat <- step_data[[idx]][["adj_mat_KL_GIC_local_est_eig3"]]
+        
+        if (is.null(adj_mat)) next
+        
+        # Degree = row sums of upper + lower triangle (symmetric), excluding diagonal
+        diag(adj_mat) <- 0
+        degree <- rowSums(adj_mat)
+        
+        # Keep only neurons with positive degree
+        nonzero_degree <- degree[degree > 0]
+        
+        if (length(nonzero_degree) == 0) next
+        
+        all_data <- rbind(all_data, data.frame(
+          week   = week,
+          q25    = quantile(nonzero_degree, 0.25),
+          median = quantile(nonzero_degree, 0.50),
+          q75    = quantile(nonzero_degree, 0.75),
+          mouse  = ID
+        ))
+      }
+      
+      rm(tmp_env, res_i, step_data)
+    }
+    
+    if (nrow(all_data) == 0) {
+      message(sprintf("  [WARN] no data for level=%s", lvl))
+      next
+    }
+    
+    all_data$mouse <- factor(all_data$mouse, levels = all_IDs)
+    
+    p_plot <- ggplot(all_data, aes(x = week, color = mouse, fill = mouse, group = mouse)) +
+      # Shaded IQR band via loess on q25 and q75
+      geom_ribbon(
+        aes(ymin = q25, ymax = q75),
+        stat = "smooth", method = "loess", formula = y ~ x,
+        alpha = 0.15, color = NA
+      ) +
+      # Median loess line
+      geom_smooth(
+        aes(y = median),
+        method = "loess", formula = y ~ x,
+        se = FALSE, linewidth = 0.9
+      ) +
+      scale_color_manual(values = color_map) +
+      scale_fill_manual(values = color_map) +
+      scale_x_continuous(breaks = c(20, 25, 30, 35)) +
+      scale_y_continuous(limits = c(0, NA)) +
+      labs(
+        title = lvl,
+        x     = "Age (Weeks)",
+        y     = "Degree (non-zero neurons)",
+        color = "Mouse",
+        fill  = "Mouse"
+      ) +
+      guides(color = guide_legend(nrow = 1),
+             fill  = guide_legend(nrow = 1)) +
+      theme_bw(base_size = 16) +
+      theme(
+        panel.grid      = element_blank(),
+        legend.position = "bottom"
+      )
+    
+    plot_list[[lvl]] <- p_plot
+    message(sprintf("  [OK] plot created: %s", lvl))
+  }
+  
+  return(plot_list)
+}
