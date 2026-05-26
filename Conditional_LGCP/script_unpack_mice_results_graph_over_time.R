@@ -28,7 +28,8 @@ time_scale <- 10
 
 results_folder <- paste0(results_folder, '/', method, '_', region)  # mice_results/experiment_9/week_only_bw_default_min_1/CPGM_BOTH_150
 
-graph_folder <- sub("/", "_results/", args[2]) # mice_results/experiment_9_results/week_only_bw_default_min_01/
+# place "_results" before second "/"
+graph_folder <- sub("^([^/]*/[^/]*)", "\\1_results", args[2]) # mice_results/experiment_9_results/week_only_bw_default_min_01/
 
 
 if (!dir.exists(graph_folder)) {
