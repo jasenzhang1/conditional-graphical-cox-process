@@ -12,6 +12,7 @@ source('functions/20_simulation_function_wrapper.R')
 
 args <- commandArgs(trailingOnly = TRUE)
 y_c_structure <- args[1] # "week_only_bw_default_min_1"
+experiment_number <- args[2] # "experiment_9"
 
 method <- 'CPGM'
 region <- 'BOTH_150'  # HIP, EHC, BOTH_100, BOTH_150
@@ -22,10 +23,14 @@ base_folder <- 'mice_results'
 # base_folder <- '../../../project-biostat-chair/mice_results'
 
 
-results_folder <- paste0(base_folder, '/', y_c_structure, '/', method, '_', region)
+results_folder <- paste0(base_folder, '/', y_c_structure, '/', method, '_', region)  # mice_results/experiment_9/week_only_bw_default_min_1/CPGM_BOTH_150
 
+results_folder_2 <- paste0(base_folder, '/', experiment_number, '_results')
+if (!dir.exists(results_folder_2)) {
+  dir.create(results_folder_2)
+}
 
-results_folder_2 <- paste0(results_folder, '/export')
+results_folder_2 <- paste0(results_folder_2, '/', y_c_structure)  # mice_results/experiment_9_results/week_only_bw_default_min_1
 
 if (!dir.exists(results_folder_2)) {
   dir.create(results_folder_2)
