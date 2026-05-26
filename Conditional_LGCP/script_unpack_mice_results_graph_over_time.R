@@ -149,8 +149,6 @@ for (plot_id in names(strata_instability_plots$linear)) {
 # plot edge regional proportions across strata
 
 discrete_levels <- paste0('m', c(0, 1), 'vr', c(1, 1))
-d_level_A <- discrete_levels[1]
-d_level_B <- discrete_levels[2]
 
 edge_regional_plots <- plot_edge_regional_proportion_all_mice(
   results_folder  = results_folder,
@@ -159,7 +157,8 @@ edge_regional_plots <- plot_edge_regional_proportion_all_mice(
 )
 
 for (plot_id in names(edge_regional_plots)) {
-  png_name <- paste0(graph_folder, '/all_mice_', d_level_A, '_vs_', d_level_B, '_t', time_scale, '_edge_regional_proportion_', plot_id, '.png')
+  png_name <- file.path(graph_folder,
+                        paste0('all_mice_', plot_id, '_t', time_scale, '_edge_regional_proportion.png'))
   png(png_name, width = 14, height = 4, units = "in", res = 300)
   print(edge_regional_plots[[plot_id]])
   dev.off()
