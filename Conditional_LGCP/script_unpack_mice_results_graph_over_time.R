@@ -14,6 +14,9 @@ args <- commandArgs(trailingOnly = TRUE)
 experiment_folder <- args[1]  # "experiment_9"
 results_folder    <- args[2]  # "experiment_9/week_only_bw_default_min_01/" etc.
 
+print(experiment_folder)
+print(results_folder)
+
 method <- 'CPGM'
 region <- 'BOTH_150'  # HIP, EHC, BOTH_100, BOTH_150
 time_scale <- 10
