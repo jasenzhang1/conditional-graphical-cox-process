@@ -26,6 +26,7 @@ source('functions/28_Simulation_Visualization.R')
 source('functions/28b_Simulation_Visualization_2.R')
 source('functions/28c_Grand_Visualizations.R')
 source('functions/28e_Finite_Basis_Visualization.R')
+source('functions/28f_Edge_Set_Trends.R')
 source('functions/28y_Visualization_Blocks.R')
 source('functions/28z_Visualization_helpers.R')
 
