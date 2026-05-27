@@ -12,7 +12,7 @@ source('functions/20_simulation_function_wrapper.R')
 
 args <- commandArgs(trailingOnly = TRUE)
 experiment_folder <- args[1]  # "mice_results/experiment_9"
-results_folder    <- args[2]  # "mice_results/experiment_9/week_only_bw_default_min_01/" etc.
+results_folder    <- args[2]  # "mice_results/experiment_9/week_only_bw_default_min_02" etc.
 
 print(experiment_folder)
 print(results_folder)
@@ -166,12 +166,15 @@ for (plot_id in names(edge_regional_plots)) {
 
 # ------------------------------------------------------------------------------
 # plot median non-zero degree across strata
+
 discrete_levels <- paste0('m', c(0, 1), 'vr', c(1, 1))
+
 degree_plots <- plot_median_nonzero_degree_all_mice(
   results_folder  = results_folder,
   time_scale      = time_scale,
   discrete_levels = discrete_levels
 )
+
 for (plot_id in names(degree_plots)) {
   png_name <- file.path(graph_folder,
                         paste0('all_mice_', plot_id, '_t', time_scale, '_median_nonzero_degree.png'))
@@ -179,3 +182,5 @@ for (plot_id in names(degree_plots)) {
   print(degree_plots[[plot_id]])
   dev.off()
 }
+
+

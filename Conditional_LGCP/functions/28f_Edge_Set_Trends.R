@@ -109,7 +109,7 @@ plot_edge_proportion_all_mice <- function(results_folder, time_scale, discrete_l
     color_map <- c(tau_cols, wt_cols)
     
     g <- ggplot(plot_df, aes(x = week, y = proportion, color = mouse, group = mouse)) +
-      geom_line(linewidth = 0.8) +
+      geom_line(size = 0.8) +
       geom_point(size = 2) +
       scale_color_manual(values = color_map) +
       scale_x_continuous(breaks = 17:38) +
@@ -293,7 +293,7 @@ plot_edge_instability_all_mice <- function(results_folder, time_scale, discrete_
     plot_df$mouse <- factor(plot_df$mouse, levels = all_IDs)
     
     base_plot <- ggplot(plot_df, aes(x = week, y = instability, color = mouse, group = mouse)) +
-      geom_line(linewidth = 0.8) +
+      geom_line(size = 0.8) +
       scale_color_manual(values = color_map) +
       scale_x_continuous(breaks = c(20, 25, 30, 35)) +
       labs(
@@ -528,7 +528,7 @@ plot_strata_instability_all_mice <- function(results_folder, time_scale, discret
   # --------------------------------------------------------------------------
   make_base_plot <- function(df) {
     ggplot(df, aes(x = week, y = similarity, color = mouse, group = mouse)) +
-      geom_line(linewidth = 0.8) +
+      geom_line(size = 0.8) +
       geom_point(size = 2) +
       scale_color_manual(values = color_map) +
       scale_x_continuous(breaks = c(20, 25, 30, 35)) +
@@ -702,7 +702,7 @@ plot_edge_regional_proportion_all_mice <- function(results_folder, time_scale, d
       
       p_plot <- ggplot(all_data, aes(x = week, y = .data[[col_name]],
                                      color = mouse, group = mouse)) +
-        geom_line(linewidth = 0.8) +
+        geom_line(size = 0.8) +
         geom_point(size = 2) +
         scale_color_manual(values = color_map) +
         scale_x_continuous(breaks = c(20, 25, 30, 35)) +
@@ -835,20 +835,34 @@ plot_median_nonzero_degree_all_mice <- function(results_folder, time_scale, disc
     
     all_data$mouse <- factor(all_data$mouse, levels = all_IDs)
     
+    # Pre-compute loess-smoothed q25/q75 per mouse for the ribbon.
+    # geom_ribbon does not support stat="smooth" with ymin/ymax aesthetics
+    # (it requires a y aesthetic), so we fit loess manually on a fine grid
+    # and pass the smoothed band as a separate data frame.
+    smooth_band <- do.call(rbind, lapply(split(all_data, all_data$mouse), function(df) {
+      if (nrow(df) < 4) return(NULL)
+      week_seq <- seq(min(df$week), max(df$week), length.out = 100)
+      lo25 <- tryCatch(predict(loess(q25 ~ week, data = df), newdata = data.frame(week = week_seq)), error = function(e) NULL)
+      lo75 <- tryCatch(predict(loess(q75 ~ week, data = df), newdata = data.frame(week = week_seq)), error = function(e) NULL)
+      if (is.null(lo25) || is.null(lo75)) return(NULL)
+      data.frame(week = week_seq, q25_smooth = lo25, q75_smooth = lo75, mouse = df$mouse[1])
+    }))
+    smooth_band$mouse <- factor(smooth_band$mouse, levels = all_IDs)
+    
     p_plot <- ggplot(all_data, aes(x = week, color = mouse, fill = mouse, group = mouse)) +
       # Raw points to confirm data is present
       geom_point(aes(y = median), size = 1.5, alpha = 0.5) +
-      # Shaded IQR band via loess on q25 and q75
+      # Shaded IQR band from manually pre-computed loess on q25 and q75
       geom_ribbon(
-        aes(ymin = q25, ymax = q75),
-        stat = "smooth", method = "loess", formula = y ~ x,
+        data = smooth_band,
+        aes(ymin = q25_smooth, ymax = q75_smooth),
         alpha = 0.15, color = NA
       ) +
       # Median loess line
       geom_smooth(
         aes(y = median),
         method = "loess", formula = y ~ x,
-        se = FALSE, linewidth = 0.9
+        se = FALSE, size = 0.9
       ) +
       scale_color_manual(values = color_map) +
       scale_fill_manual(values = color_map) +
@@ -875,3 +889,7 @@ plot_median_nonzero_degree_all_mice <- function(results_folder, time_scale, disc
   
   return(plot_list)
 }
+
+
+
+
