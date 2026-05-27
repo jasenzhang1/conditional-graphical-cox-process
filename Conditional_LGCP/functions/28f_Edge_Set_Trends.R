@@ -893,16 +893,16 @@ plot_edge_stability_combined <- function(results_folder, time_scale, discrete_le
   # Linear y-axis: range 0–0.5 with ticks at 0.00, 0.25, 0.50
   g <- base_plot +
     scale_y_continuous(
-      breaks = c(0, 0.25, 0.50),
-      limits = c(0, 0.5)
+      breaks = c(0, 0.125, 0.25),
+      limits = c(0, 0.25)
     )
   
   # Sqrt-transformed y-axis: same tick marks, same range
   g_sqrt <- base_plot +
     scale_y_continuous(
       trans   = "sqrt",
-      breaks  = c(0, 0.25, 0.50),
-      limits  = c(0, 0.5)
+      breaks = c(0, 0.125, 0.25),
+      limits = c(0, 0.25)
     )
   
   return(list(linear = g, sqrt = g_sqrt))
@@ -1238,7 +1238,11 @@ plot_edge_regional_proportion_all_mice_v2 <- function(results_folder, time_scale
     facet_grid(region_pair ~ stratum) +
     scale_color_manual(values = color_map) +
     scale_x_continuous(breaks = c(20, 25, 30, 35)) +
-    scale_y_continuous(limits = c(0, 1), labels = scales::percent_format(accuracy = 1)) +
+    scale_y_continuous(
+      limits = c(0, 1),
+      breaks = c(0, 0.5, 1),
+      labels = scales::percent_format(accuracy = 1)
+    ) + 
     labs(
       x     = "Age (Weeks)",
       y     = "Proportion of Edges",
@@ -1420,12 +1424,10 @@ plot_median_nonzero_degree_all_mice_v2 <- function(results_folder, time_scale, d
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: For each discrete stratum, and for each mouse, compute the 25th
-  #       percentile, median, and 75th percentile of degree across neurons
-  #       that have at least one edge (positive degree) at each week.
-  #       Plots one loess curve per mouse (fit to the median), with a shaded
-  #       band spanning the 25th-75th percentile loess fits. The 50% CI band
-  #       reflects the IQR of the non-zero degree distribution at each week.
+  # GOAL: For each discrete stratum, and for each mouse, compute the median
+  #       degree across neurons that have at least one edge (positive degree)
+  #       at each week. Plots one loess curve per mouse (fit to the median),
+  #       with no confidence interval or IQR ribbon.
   #
   #       All discrete strata are combined into a single faceted plot,
   #       stacked vertically (ncol = 1).
@@ -1462,7 +1464,9 @@ plot_median_nonzero_degree_all_mice_v2 <- function(results_folder, time_scale, d
   color_map <- c(tau_cols, wt_cols)
   
   # --------------------------------------------------------------------------
-  # Collect data across all strata into one long data frame
+  # Collect data across all strata into one long data frame.
+  # unname() on quantile() strips the "50%" name that would otherwise
+  # attach as a row name and cause silent misalignment across rbind calls.
   # --------------------------------------------------------------------------
   all_data <- data.frame()
   
@@ -1512,9 +1516,7 @@ plot_median_nonzero_degree_all_mice_v2 <- function(results_folder, time_scale, d
         
         all_data <- rbind(all_data, data.frame(
           week    = week,
-          q25     = quantile(nonzero_degree, 0.25),
-          median  = quantile(nonzero_degree, 0.50),
-          q75     = quantile(nonzero_degree, 0.75),
+          median  = unname(quantile(nonzero_degree, 0.50)),
           mouse   = ID,
           stratum = stratum_label
         ))
@@ -1541,40 +1543,19 @@ plot_median_nonzero_degree_all_mice_v2 <- function(results_folder, time_scale, d
                           discrete_levels)
   all_data$stratum <- factor(all_data$stratum, levels = stratum_order)
   
-  # Pre-compute loess-smoothed q25/q75 per mouse per stratum for the ribbon.
-  # geom_ribbon does not support stat="smooth" with ymin/ymax aesthetics
-  # (it requires a y aesthetic), so we fit loess manually on a fine grid
-  # and pass the smoothed band as a separate data frame.
-  smooth_band <- do.call(rbind, lapply(
-    split(all_data, list(all_data$mouse, all_data$stratum), drop = TRUE),
-    function(df) {
-      if (nrow(df) < 4) return(NULL)
-      week_seq <- seq(min(df$week), max(df$week), length.out = 100)
-      lo25 <- tryCatch(predict(loess(q25 ~ week, data = df), newdata = data.frame(week = week_seq)), error = function(e) NULL)
-      lo75 <- tryCatch(predict(loess(q75 ~ week, data = df), newdata = data.frame(week = week_seq)), error = function(e) NULL)
-      if (is.null(lo25) || is.null(lo75)) return(NULL)
-      data.frame(week = week_seq, q25_smooth = lo25, q75_smooth = lo75,
-                 mouse = df$mouse[1], stratum = df$stratum[1])
-    }
-  ))
-  smooth_band$mouse   <- factor(smooth_band$mouse,   levels = all_IDs)
-  smooth_band$stratum <- factor(smooth_band$stratum, levels = stratum_order)
-  
   # --------------------------------------------------------------------------
   # Build single faceted plot: stacked vertically by stratum (ncol = 1).
-  # No raw points; loess median curve with no CI; IQR shaded ribbon.
+  # Median loess curve per mouse, no CI, no ribbon, no raw points.
   # Legend placed below all panels.
   # --------------------------------------------------------------------------
-  p_plot <- ggplot(all_data, aes(x = week, color = mouse, fill = mouse, group = mouse)) +
+  p_plot <- ggplot(all_data, aes(x = week, y = median, color = mouse, group = mouse)) +
     # Median loess line, no confidence interval
     geom_smooth(
-      aes(y = median),
       method = "loess", formula = y ~ x,
       se = FALSE, size = 0.9
     ) +
     facet_wrap(~ stratum, ncol = 1) +
     scale_color_manual(values = color_map) +
-    scale_fill_manual(values = color_map) +
     scale_x_continuous(breaks = c(20, 25, 30, 35)) +
     scale_y_continuous(
       limits = c(0, 0.5),
@@ -1583,11 +1564,9 @@ plot_median_nonzero_degree_all_mice_v2 <- function(results_folder, time_scale, d
     labs(
       x     = "Age (Weeks)",
       y     = "Normalized Degree",
-      color = "Mouse",
-      fill  = "Mouse"
+      color = "Mouse"
     ) +
-    guides(color = guide_legend(nrow = 1),
-           fill  = guide_legend(nrow = 1)) +
+    guides(color = guide_legend(nrow = 1)) +
     theme_bw(base_size = 16) +
     theme(
       panel.grid      = element_blank(),
