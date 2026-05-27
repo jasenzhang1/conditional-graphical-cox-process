@@ -158,7 +158,7 @@ stability_plots <- plot_edge_stability_combined(
 
 for (scale_type in c("linear", "sqrt")) {
   png_name <- paste0(graph_folder, '/all_mice_t', time_scale, '_edge_stability_combined_', scale_type, '.png')
-  png(png_name, width = 7, height = 10, units = "in", res = 300)
+  png(png_name, width = 7, height = 7, units = "in", res = 300)
   print(stability_plots[[scale_type]])
   dev.off()
 }
@@ -192,7 +192,7 @@ edge_regional_plot <- plot_edge_regional_proportion_all_mice_v2(
 )
 png_name <- file.path(graph_folder,
                       paste0('all_mice_t', time_scale, '_edge_regional_proportion_v2.png'))
-png(png_name, width = 14, height = 10, units = "in", res = 300)
+png(png_name, width = 14, height = 7, units = "in", res = 300)
 print(edge_regional_plot)
 dev.off()
 
@@ -225,6 +225,6 @@ degree_plot <- plot_median_nonzero_degree_all_mice_v2(
 )
 png_name <- file.path(graph_folder,
                       paste0('all_mice_t', time_scale, '_median_nonzero_degree.png'))
-png(png_name, width = 7, height = 10, units = "in", res = 300)
+png(png_name, width = 14, height = 5, units = "in", res = 300)
 print(degree_plot)
 dev.off()

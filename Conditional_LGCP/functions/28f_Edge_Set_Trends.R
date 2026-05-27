@@ -653,7 +653,7 @@ plot_edge_stability_combined <- function(results_folder, time_scale, discrete_le
   panel_labels <- c(
     A_temporal   = "Temporal, Resting",
     B_temporal   = "Temporal, Running",
-    cross        = "Cross-Stratum, Same Week"
+    cross        = "Cross-Stratum"
   )
   panel_order <- unname(panel_labels)   # controls facet stacking order
   
@@ -890,19 +890,19 @@ plot_edge_stability_combined <- function(results_folder, time_scale, discrete_le
       legend.position = "bottom"
     )
   
-  # Linear y-axis: range 0–1 with ticks at 0.00, 0.25, 0.50, 0.75, 1.00
+  # Linear y-axis: range 0–0.5 with ticks at 0.00, 0.25, 0.50
   g <- base_plot +
     scale_y_continuous(
-      breaks = c(0, 0.25, 0.50, 0.75, 1.00),
-      limits = c(0, 1)
+      breaks = c(0, 0.25, 0.50),
+      limits = c(0, 0.5)
     )
   
   # Sqrt-transformed y-axis: same tick marks, same range
   g_sqrt <- base_plot +
     scale_y_continuous(
       trans   = "sqrt",
-      breaks  = c(0, 0.25, 0.50, 0.75, 1.00),
-      limits  = c(0, 1)
+      breaks  = c(0, 0.25, 0.50),
+      limits  = c(0, 0.5)
     )
   
   return(list(linear = g, sqrt = g_sqrt))
@@ -1241,7 +1241,7 @@ plot_edge_regional_proportion_all_mice_v2 <- function(results_folder, time_scale
     scale_y_continuous(limits = c(0, 1), labels = scales::percent_format(accuracy = 1)) +
     labs(
       x     = "Age (Weeks)",
-      y     = "Proportion of edges",
+      y     = "Proportion of Edges",
       color = "Mouse"
     ) +
     guides(color = guide_legend(nrow = 1)) +
@@ -1566,12 +1566,6 @@ plot_median_nonzero_degree_all_mice_v2 <- function(results_folder, time_scale, d
   # Legend placed below all panels.
   # --------------------------------------------------------------------------
   p_plot <- ggplot(all_data, aes(x = week, color = mouse, fill = mouse, group = mouse)) +
-    # Shaded IQR band from manually pre-computed loess on q25 and q75
-    geom_ribbon(
-      data = smooth_band,
-      aes(ymin = q25_smooth, ymax = q75_smooth),
-      alpha = 0.15, color = NA
-    ) +
     # Median loess line, no confidence interval
     geom_smooth(
       aes(y = median),
