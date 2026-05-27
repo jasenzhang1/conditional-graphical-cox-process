@@ -776,6 +776,7 @@ plot_median_nonzero_degree_all_mice <- function(results_folder, time_scale, disc
     message(sprintf("[plot_median_nonzero_degree] level=%s, found %d IDs: %s",
                     lvl, length(ids), paste(ids, collapse = ", ")))
     
+    # Reset for each stratum
     all_data <- data.frame()
     
     for (ID in ids) {
@@ -828,9 +829,15 @@ plot_median_nonzero_degree_all_mice <- function(results_folder, time_scale, disc
       next
     }
     
+    message(sprintf("  [%s] all_data has %d rows, mice: %s",
+                    lvl, nrow(all_data), paste(unique(all_data$mouse), collapse = ", ")))
+    print(head(all_data))
+    
     all_data$mouse <- factor(all_data$mouse, levels = all_IDs)
     
     p_plot <- ggplot(all_data, aes(x = week, color = mouse, fill = mouse, group = mouse)) +
+      # Raw points to confirm data is present
+      geom_point(aes(y = median), size = 1.5, alpha = 0.5) +
       # Shaded IQR band via loess on q25 and q75
       geom_ribbon(
         aes(ymin = q25, ymax = q75),
