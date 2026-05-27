@@ -804,7 +804,7 @@ plot_median_nonzero_degree_all_mice <- function(results_folder, time_scale, disc
         
         # Degree = row sums of upper + lower triangle (symmetric), excluding diagonal
         diag(adj_mat) <- 0
-        degree <- rowSums(adj_mat)
+        degree <- rowSums(adj_mat) / (nrow(adj_mat) - 1)
         
         # Keep only neurons with positive degree
         nonzero_degree <- degree[degree > 0]
@@ -850,7 +850,7 @@ plot_median_nonzero_degree_all_mice <- function(results_folder, time_scale, disc
       labs(
         title = lvl,
         x     = "Age (Weeks)",
-        y     = "Degree (non-zero neurons)",
+        y     = "Normalized Degree (non-zero neurons)",
         color = "Mouse",
         fill  = "Mouse"
       ) +
