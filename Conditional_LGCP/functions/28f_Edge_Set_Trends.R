@@ -626,7 +626,8 @@ plot_edge_stability_combined <- function(results_folder, time_scale, discrete_le
   #   (self-loops) and avoid double counting from symmetry.
   #   When both edge sets are empty, similarity is defined as 1
   #   (both graphs agree on having no edges).
-  #   Curves are loess-smoothed with no confidence interval.
+  #   Loess is pre-computed separately per mouse x panel to guarantee
+  #   within-panel fitting (geom_smooth pools across facets).
   #
   # inputs:
   #
@@ -865,16 +866,42 @@ plot_edge_stability_combined <- function(results_folder, time_scale, discrete_le
   color_map <- c(tau_cols, wt_cols)
   
   # --------------------------------------------------------------------------
-  # Build the shared base plot: one loess curve per mouse, no CI,
-  # faceted by panel and stacked vertically (ncol = 1).
-  # Legend placed below all panels.
+  # Pre-compute loess fits separately per mouse x panel.
+  # This is necessary because geom_smooth pools all data before faceting,
+  # so it would fit loess across all three panels rather than within each.
+  # NA rows (e.g. cross-stratum weeks with no edges in either stratum)
+  # are dropped before fitting.
   # --------------------------------------------------------------------------
-  base_plot <- ggplot(plot_df, aes(x = week, y = similarity, color = mouse, group = mouse)) +
-    geom_smooth(
-      method  = "loess", formula = y ~ x,
-      se      = FALSE,
-      size    = 0.9
-    ) +
+  loess_lines <- do.call(rbind, lapply(
+    split(plot_df, list(plot_df$mouse, plot_df$panel), drop = TRUE),
+    function(df) {
+      df <- df[!is.na(df$similarity), ]   # drop NA similarity values
+      if (nrow(df) < 4) return(NULL)
+      week_seq <- seq(min(df$week), max(df$week), length.out = 200)
+      fit <- tryCatch(
+        predict(loess(similarity ~ week, data = df), newdata = data.frame(week = week_seq)),
+        error = function(e) NULL
+      )
+      if (is.null(fit)) return(NULL)
+      data.frame(
+        week       = week_seq,
+        similarity = fit,
+        mouse      = df$mouse[1],
+        panel      = df$panel[1]
+      )
+    }
+  ))
+  loess_lines$mouse <- factor(loess_lines$mouse, levels = all_IDs)
+  loess_lines$panel <- factor(loess_lines$panel, levels = panel_order)
+  
+  # --------------------------------------------------------------------------
+  # Build the shared base plot: loess curves drawn from pre-computed
+  # predictions via geom_line, faceted by panel and stacked vertically
+  # (ncol = 1). Legend placed below all panels.
+  # --------------------------------------------------------------------------
+  base_plot <- ggplot(loess_lines, aes(x = week, y = similarity, color = mouse, group = mouse)) +
+    # Loess curves pre-computed per mouse x panel — not fit across panels
+    geom_line(size = 0.9) +
     facet_wrap(~ panel, ncol = 1) +
     scale_color_manual(values = color_map) +
     scale_x_continuous(breaks = c(20, 25, 30, 35)) +
@@ -890,7 +917,7 @@ plot_edge_stability_combined <- function(results_folder, time_scale, discrete_le
       legend.position = "bottom"
     )
   
-  # Linear y-axis: range 0–0.5 with ticks at 0.00, 0.25, 0.50
+  # Linear y-axis: range 0–0.25 with ticks at 0.00, 0.125, 0.25
   g <- base_plot +
     scale_y_continuous(
       breaks = c(0, 0.125, 0.25),
@@ -900,7 +927,7 @@ plot_edge_stability_combined <- function(results_folder, time_scale, discrete_le
   # Sqrt-transformed y-axis: same tick marks, same range
   g_sqrt <- base_plot +
     scale_y_continuous(
-      trans   = "sqrt",
+      trans  = "sqrt",
       breaks = c(0, 0.125, 0.25),
       limits = c(0, 0.25)
     )
@@ -1079,7 +1106,8 @@ plot_edge_regional_proportion_all_mice_v2 <- function(results_folder, time_scale
   #
   #       Facet layout: rows = region pair (HIP-HIP, HIP-EHC, EHC-EHC),
   #                     cols = discrete stratum (e.g. Resting, Running).
-  #       Curves are loess-smoothed with no confidence interval.
+  #       Loess is pre-computed separately per mouse x stratum x region_pair
+  #       to guarantee within-panel fitting (geom_smooth pools across facets).
   #
   # inputs:
   #   results_folder   (string)
@@ -1225,16 +1253,45 @@ plot_edge_regional_proportion_all_mice_v2 <- function(results_folder, time_scale
   long_data$stratum <- factor(long_data$stratum, levels = stratum_order)
   
   # --------------------------------------------------------------------------
-  # Build faceted plot: rows = region pair, cols = stratum
-  # Loess curve per mouse, no CI, legend below all panels
+  # Pre-compute loess fits separately per mouse x stratum x region_pair.
+  # This is necessary because geom_smooth pools all data before faceting,
+  # so it would fit loess across all strata and region pairs rather than
+  # within each panel. Manually fitting guarantees within-panel curves.
+  # NA rows (weeks with no edges) are dropped before fitting.
   # --------------------------------------------------------------------------
-  p_plot <- ggplot(long_data, aes(x = week, y = proportion,
-                                  color = mouse, group = mouse)) +
-    geom_smooth(
-      method  = "loess", formula = y ~ x,
-      se      = FALSE,
-      size    = 0.9
-    ) +
+  loess_lines <- do.call(rbind, lapply(
+    split(long_data, list(long_data$mouse, long_data$stratum, long_data$region_pair), drop = TRUE),
+    function(df) {
+      df <- df[!is.na(df$proportion), ]   # drop weeks with no edges
+      if (nrow(df) < 4) return(NULL)
+      week_seq <- seq(min(df$week), max(df$week), length.out = 200)
+      fit <- tryCatch(
+        predict(loess(proportion ~ week, data = df), newdata = data.frame(week = week_seq)),
+        error = function(e) NULL
+      )
+      if (is.null(fit)) return(NULL)
+      data.frame(
+        week        = week_seq,
+        proportion  = fit,
+        mouse       = df$mouse[1],
+        stratum     = df$stratum[1],
+        region_pair = df$region_pair[1]
+      )
+    }
+  ))
+  loess_lines$mouse       <- factor(loess_lines$mouse,       levels = all_IDs)
+  loess_lines$region_pair <- factor(loess_lines$region_pair, levels = region_pairs)
+  loess_lines$stratum     <- factor(loess_lines$stratum,     levels = stratum_order)
+  
+  # --------------------------------------------------------------------------
+  # Build faceted plot: rows = region pair, cols = stratum.
+  # Curves drawn from manually pre-computed loess predictions (geom_line)
+  # to ensure within-panel fitting. Legend below all panels.
+  # --------------------------------------------------------------------------
+  p_plot <- ggplot(loess_lines, aes(x = week, y = proportion,
+                                    color = mouse, group = mouse)) +
+    # Loess curves pre-computed per mouse x stratum x region_pair
+    geom_line(size = 0.9) +
     facet_grid(region_pair ~ stratum) +
     scale_color_manual(values = color_map) +
     scale_x_continuous(breaks = c(20, 25, 30, 35)) +
@@ -1242,7 +1299,7 @@ plot_edge_regional_proportion_all_mice_v2 <- function(results_folder, time_scale
       limits = c(0, 1),
       breaks = c(0, 0.5, 1),
       labels = scales::percent_format(accuracy = 1)
-    ) + 
+    ) +
     labs(
       x     = "Age (Weeks)",
       y     = "Proportion of Edges",
@@ -1429,6 +1486,8 @@ plot_median_nonzero_degree_all_mice_v2 <- function(results_folder, time_scale, d
   #       at each week. Plots one loess curve per mouse (fit to the median),
   #       with no confidence interval or IQR ribbon.
   #
+  #       Loess is fit separately within each mouse x stratum combination
+  #       to match the per-stratum fits of the v1 function.
   #       All discrete strata are combined into a single faceted plot,
   #       stacked vertically (ncol = 1).
   #
@@ -1544,16 +1603,42 @@ plot_median_nonzero_degree_all_mice_v2 <- function(results_folder, time_scale, d
   all_data$stratum <- factor(all_data$stratum, levels = stratum_order)
   
   # --------------------------------------------------------------------------
+  # Pre-compute loess fits separately per mouse x stratum combination.
+  # This is necessary because geom_smooth pools all data before faceting,
+  # so it would fit loess across both strata rather than within each panel.
+  # Manually fitting and passing predicted values guarantees each curve
+  # matches the per-stratum v1 fits exactly.
+  # --------------------------------------------------------------------------
+  loess_lines <- do.call(rbind, lapply(
+    split(all_data, list(all_data$mouse, all_data$stratum), drop = TRUE),
+    function(df) {
+      if (nrow(df) < 4) return(NULL)
+      week_seq  <- seq(min(df$week), max(df$week), length.out = 200)
+      fit       <- tryCatch(
+        predict(loess(median ~ week, data = df), newdata = data.frame(week = week_seq)),
+        error = function(e) NULL
+      )
+      if (is.null(fit)) return(NULL)
+      data.frame(
+        week    = week_seq,
+        median  = fit,
+        mouse   = df$mouse[1],
+        stratum = df$stratum[1]
+      )
+    }
+  ))
+  loess_lines$mouse   <- factor(loess_lines$mouse,   levels = all_IDs)
+  loess_lines$stratum <- factor(loess_lines$stratum, levels = stratum_order)
+  
+  # --------------------------------------------------------------------------
   # Build single faceted plot: stacked vertically by stratum (ncol = 1).
-  # Median loess curve per mouse, no CI, no ribbon, no raw points.
+  # Curves drawn from manually pre-computed loess predictions (geom_line)
+  # to ensure within-stratum fitting. No CI, no ribbon, no raw points.
   # Legend placed below all panels.
   # --------------------------------------------------------------------------
-  p_plot <- ggplot(all_data, aes(x = week, y = median, color = mouse, group = mouse)) +
-    # Median loess line, no confidence interval
-    geom_smooth(
-      method = "loess", formula = y ~ x,
-      se = FALSE, size = 0.9
-    ) +
+  p_plot <- ggplot(loess_lines, aes(x = week, y = median, color = mouse, group = mouse)) +
+    # Loess curves pre-computed per mouse x stratum — not fit across strata
+    geom_line(size = 0.9) +
     facet_wrap(~ stratum, ncol = 1) +
     scale_color_manual(values = color_map) +
     scale_x_continuous(breaks = c(20, 25, 30, 35)) +
