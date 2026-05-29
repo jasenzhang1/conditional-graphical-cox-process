@@ -996,8 +996,7 @@ plot_strata_instability_all_mice_v2 <- function(results_folder, time_scale, disc
   # --------------------------------------------------------------------------
   make_base_plot <- function(df) {
     ggplot(df, aes(x = week, y = similarity, color = mouse, group = mouse)) +
-      geom_line(size = 0.8) +
-      geom_point(size = 2) +
+      geom_smooth(method = "loess", se = FALSE, size = 0.8) +
       scale_color_manual(values = color_map) +
       scale_x_continuous(breaks = c(20, 25, 30, 35)) +
       labs(
