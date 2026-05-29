@@ -103,8 +103,46 @@ for (d_level in names(prop_plots)) {
 
 
 # ------------------------------------------------------------------------------
-# plot jaccard similarity temporally 
+# plot jaccard similarity temporally - loess
 
+instability_plots <- plot_edge_instability_all_mice_v2(
+  results_folder  = results_folder,
+  time_scale      = time_scale,
+  discrete_levels = discrete_levels
+)
+for (scale_type in c("linear", "sqrt")) {
+  png_name <- paste0(graph_folder, '/all_mice_t', time_scale, '_temporal_jaccard_loess_', scale_type, '.png')
+  png(png_name, width = 7, height = 10, units = "in", res = 300)
+  print(instability_plots[[scale_type]])
+  dev.off()
+}
+
+# ------------------------------------------------------------------------------
+# plot jaccard similarity across strata - loess
+
+discrete_levels <- paste0('m', c(0, 1), 'vr', c(1, 1))
+
+d_level_A <- discrete_levels[1]
+d_level_B <- discrete_levels[2]
+
+strata_instability_plots <- plot_strata_instability_all_mice_v2(
+  results_folder  = results_folder,
+  time_scale      = time_scale,
+  discrete_levels = discrete_levels
+)
+
+
+for (plot_id in names(strata_instability_plots$linear)) {
+  for (scale_type in c("linear", "sqrt")) {
+    png_name <- paste0(graph_folder, '/all_mice_', d_level_A, '_vs_', d_level_B, '_t', time_scale, '_strata_jaccard_loess_', plot_id, '_', scale_type, '.png')
+    png(png_name, width = 14, height = 4, units = "in", res = 300)
+    print(strata_instability_plots[[scale_type]][[plot_id]])
+    dev.off()
+  }
+}
+
+# ------------------------------------------------------------------------------
+# plot jaccard similarity temporally - dots and lines
 
 instability_plots <- plot_edge_instability_all_mice(
   results_folder  = results_folder,
@@ -112,14 +150,14 @@ instability_plots <- plot_edge_instability_all_mice(
   discrete_levels = discrete_levels
 )
 for (scale_type in c("linear", "sqrt")) {
-  png_name <- paste0(graph_folder, '/all_mice_t', time_scale, '_temporal_jaccard_', scale_type, '.png')
+  png_name <- paste0(graph_folder, '/all_mice_t', time_scale, '_temporal_jaccard_lines_', scale_type, '.png')
   png(png_name, width = 7, height = 10, units = "in", res = 300)
   print(instability_plots[[scale_type]])
   dev.off()
 }
 
 # ------------------------------------------------------------------------------
-# plot jaccard similarity across strata
+# plot jaccard similarity across strata - dots and lines
 
 discrete_levels <- paste0('m', c(0, 1), 'vr', c(1, 1))
 
@@ -135,7 +173,7 @@ strata_instability_plots <- plot_strata_instability_all_mice(
 
 for (plot_id in names(strata_instability_plots$linear)) {
   for (scale_type in c("linear", "sqrt")) {
-    png_name <- paste0(graph_folder, '/all_mice_', d_level_A, '_vs_', d_level_B, '_t', time_scale, '_strata_jaccard_', plot_id, '_', scale_type, '.png')
+    png_name <- paste0(graph_folder, '/all_mice_', d_level_A, '_vs_', d_level_B, '_t', time_scale, '_strata_jaccard_lines_', plot_id, '_', scale_type, '.png')
     png(png_name, width = 14, height = 4, units = "in", res = 300)
     print(strata_instability_plots[[scale_type]][[plot_id]])
     dev.off()
