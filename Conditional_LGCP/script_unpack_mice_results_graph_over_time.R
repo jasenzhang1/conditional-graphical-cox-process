@@ -112,7 +112,7 @@ instability_plots <- plot_edge_instability_all_mice(
   discrete_levels = discrete_levels
 )
 for (scale_type in c("linear", "sqrt")) {
-  png_name <- paste0(graph_folder, '/all_mice_t', time_scale, '_edge_instability_', scale_type, '.png')
+  png_name <- paste0(graph_folder, '/all_mice_t', time_scale, '_temporal_jaccard_', scale_type, '.png')
   png(png_name, width = 7, height = 10, units = "in", res = 300)
   print(instability_plots[[scale_type]])
   dev.off()
