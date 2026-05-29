@@ -154,9 +154,16 @@ plot_edge_instability_all_mice <- function(results_folder, time_scale, discrete_
   # - time_scale       (integer)  e.g. 10
   # - discrete_levels  (vector of strings)  e.g. c('m0vr0', 'm1vr1', ...)
   #
-  # returns: named list of ggplot objects, one per discrete level
+  # returns: named list with two ggplot objects (linear, sqrt), each a
+  #          single faceted plot with all discrete strata stacked vertically,
+  #          one raw geom_line per mouse
   #
   # ----------------------------------------------------------------------------
+  
+  # --------------------------------------------------------------------------
+  # Stratum display labels
+  # --------------------------------------------------------------------------
+  stratum_labels <- c(m0vr1 = "Resting", m1vr1 = "Running")
   
   # --------------------------------------------------------------------------
   # Discover all IDs for a given discrete level
@@ -278,55 +285,72 @@ plot_edge_instability_all_mice <- function(results_folder, time_scale, discrete_
   color_map <- c(tau_cols, wt_cols)
   
   # --------------------------------------------------------------------------
-  # Build one plot per discrete level
+  # Combine all strata into a single long data frame, applying display labels
+  # where available (e.g. m0vr1 -> "Resting", m1vr1 -> "Running").
+  # Strata without a label entry keep their original name.
+  # The stratum column is an ordered factor to control facet ordering
+  # (Resting on top, Running below).
   # --------------------------------------------------------------------------
-  plot_list      <- list()
-  plot_list_sqrt <- list()
-  
+  all_rows <- list()
   for (d_level in discrete_levels) {
-    
     df_list <- lapply(all_IDs, function(ID) all_data[[ID]][[d_level]])
     df_list <- Filter(Negate(is.null), df_list)
-    
     if (length(df_list) == 0) next
-    
-    plot_df       <- do.call(rbind, df_list)
-    plot_df$mouse <- factor(plot_df$mouse, levels = all_IDs)
-    
-    base_plot <- ggplot(plot_df, aes(x = week, y = instability, color = mouse, group = mouse)) +
-      geom_line(size = 0.8) +
-      scale_color_manual(values = color_map) +
-      scale_x_continuous(breaks = c(20, 25, 30, 35)) +
-      labs(
-        x     = "Age (Weeks)",
-        y     = "Jaccard Similarity",
-        color = "Mouse"
-      ) +
-      guides(color = guide_legend(nrow = 1)) +
-      theme_bw(base_size = 16) +
-      theme(
-        panel.grid      = element_blank(),
-        legend.position = "bottom"
-      )
-    
-    g <- base_plot +
-      scale_y_continuous(
-        breaks = c(0, 0.25, 0.5, 0.75, 1),
-        limits = c(0, 1)
-      )
-    
-    g_sqrt <- base_plot +
-      scale_y_continuous(
-        trans   = "sqrt",
-        breaks  = c(0, 0.25, 0.5, 0.75, 1),
-        limits  = c(0, 1)
-      )
-    
-    plot_list[[d_level]]      <- g
-    plot_list_sqrt[[d_level]] <- g_sqrt
+    df           <- do.call(rbind, df_list)
+    df$stratum   <- ifelse(d_level %in% names(stratum_labels),
+                           stratum_labels[[d_level]],
+                           d_level)
+    all_rows[[d_level]] <- df
   }
   
-  return(list(linear = plot_list, sqrt = plot_list_sqrt))
+  plot_df       <- do.call(rbind, all_rows)
+  plot_df$mouse <- factor(plot_df$mouse, levels = all_IDs)
+  
+  # Derive ordered factor levels from discrete_levels order, mapped through labels
+  stratum_level_order <- ifelse(discrete_levels %in% names(stratum_labels),
+                                stratum_labels[discrete_levels],
+                                discrete_levels)
+  plot_df$stratum <- factor(plot_df$stratum, levels = stratum_level_order)
+  
+  # --------------------------------------------------------------------------
+  # Build the shared base plot: one raw line per mouse (geom_line + geom_point),
+  # faceted by stratum and stacked vertically (ncol = 1).
+  # Legend placed below all panels.
+  # --------------------------------------------------------------------------
+  base_plot <- ggplot(plot_df, aes(x = week, y = instability, color = mouse, group = mouse)) +
+    geom_line(size = 0.8) +
+    geom_point(size = 1.5) +
+    facet_wrap(~ stratum, ncol = 1) +
+    scale_color_manual(values = color_map) +
+    scale_x_continuous(breaks = c(20, 25, 30, 35)) +
+    labs(
+      x     = "Age (Weeks)",
+      y     = "Jaccard Similarity",
+      color = "Mouse"
+    ) +
+    guides(color = guide_legend(nrow = 1)) +
+    theme_bw(base_size = 16) +
+    theme(
+      panel.grid      = element_blank(),
+      legend.position = "bottom"
+    )
+  
+  # Linear y-axis: range 0–0.5 with ticks only at 0.00, 0.25, 0.50
+  g <- base_plot +
+    scale_y_continuous(
+      breaks = c(0, 0.25, 0.50),
+      limits = c(0, 0.50)
+    )
+  
+  # Sqrt-transformed y-axis: same tick marks, same range
+  g_sqrt <- base_plot +
+    scale_y_continuous(
+      trans   = "sqrt",
+      breaks  = c(0, 0.25, 0.50),
+      limits  = c(0, 0.50)
+    )
+  
+  return(list(linear = g, sqrt = g_sqrt))
 }
 
 # temporal jaccard distance - loess
