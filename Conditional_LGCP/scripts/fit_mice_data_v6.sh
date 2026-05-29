@@ -97,7 +97,7 @@ else
     
 
     # I have done 0.001 and 0.0003, next try 0.003
-    region="BOTH_150"   # "HIP", "EHC", or "HIP_EHC" "BOTH_100", "BOTH_150", "BOTH_100_NORMALIZED"
+    region="BOTH_100_NORMALIZED"   # "HIP", "EHC", or "HIP_EHC" "BOTH_100", "BOTH_150", "BOTH_100_NORMALIZED"
     
     max_jobs=75
     
