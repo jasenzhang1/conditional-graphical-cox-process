@@ -206,17 +206,18 @@ convert_data_for_storage <- function(LGCP_data, df_brain_region, ID, y_c_structu
   
   # ----------------------------------------------------------------------------
   #
+  # GOAL: Convert data from the mice pipeline and wrap it in a format ready
+  #       for estimation.
   #
-  # GOAL: convert data from the mice pipeline and wraps it in a format ready for estimation
+  #   - Re-numbers replicates if they are discarded due to movement and VR
+  #     filtering.
+  #   - Runs iterative pruning to ensure a valid, fully-connected neuron set
+  #     (maximum clique) for the requested strata.
   #
-  #   - re-number replicates if they are discarded due to movement and VR filtering
-  #
-  # 
   # input:
   #
   # - LGCP_data   (list of 3 items)
   #
-  # 
   #   - [[1]] (data.frame with 'feature_id', 'time', and 'subject_num')
   #     - feature_id
   #     - time
@@ -224,7 +225,6 @@ convert_data_for_storage <- function(LGCP_data, df_brain_region, ID, y_c_structu
   #
   #   - [[2]] (nx3 data.frame with 'movement', 'VR', and 'subject_num')
   #   - [[3]] (nx3 data.frame with 'subject_num', 'age', and 'timestamp')
-  #
   #
   # - df_brain_region  (dataframe of)
   #
@@ -234,205 +234,295 @@ convert_data_for_storage <- function(LGCP_data, df_brain_region, ID, y_c_structu
   #   - Mouse           (string)   '346' mouse ID in string form
   #   - Strain          (string)   'Tau' or 'WT'
   #   - ID2             (factor)   'Tau1', 'Tau2', 'Tau3', 'WT1', 'WT2', 'WT3'
-  # 
+  #
   # - ID                (string)      mouse name like "Tau1"
   # - y_c_structure     (string)      "week_only" or "time_and_week"
-  # - movement_num      (0 or 1)
-  # - vr_num            (0 or 1)
-  # - region            (string)      brain region, either 'HIP', 'EHC', or 'HIP_EHC'
-  # - time_scale        (integer)     how many seconds per replicate?
+  # - movement_num      (0 or 1)      movement filter for the target stratum
+  # - vr_num            (0 or 1)      VR filter for the target stratum
+  # - region            (string)      brain region selector:
+  #                                     'HIP'               — hippocampus only
+  #                                     'EHC'               — entorhinal cortex only
+  #                                     'BOTH_100'          — top 50 per region by total spikes
+  #                                     'BOTH_150'          — top 75 per region by total spikes
+  #                                     'BOTH_100_NORMALIZED' — top 50 per region by spikes
+  #                                       within the VR-on union (m0vr1 + m1vr1), subject to
+  #                                       the constraint that every neuron pair has at least one
+  #                                       co-active replicate in BOTH m0vr1 AND m1vr1 strata.
+  #                                       A greedy maximum-clique approach is used jointly on
+  #                                       both strata before trimming to the top 50 per region.
+  # - time_scale        (integer)     seconds per replicate
   # - time_grid_est
-  # - min_events        (integer)     minimum number of spikes for a replicate-process to be included
-  # - n_weeks           (integer)     how many weeks do we want?
-  # - max_processes     (integer)     how many neurons to look at 
-  # - seed              (integer) 
+  # - min_events        (integer)     minimum spikes for a (replicate, process) to be included
+  # - n_weeks           (integer)     how many weeks to query
+  # - max_processes     (integer)     cap on number of neurons (applied after region selection)
+  # - seed              (integer)
   #
-  # 
-  # Output:
-  # 
-  # - output_list (list to replicate dataset)
+  # output:
   #
-  #   - event_times (n*p-dim list)  each item is named 'k_i' is a vector of timestamps for the i-th process and k-th subject
-  #   - Y_continuous
-  #   - simulation_params
+  # - output_list (list)
+  #
+  #   - event_times        (n*p-dim list)  each item named 'k_i' is a vector of
+  #                                        timestamps for the i-th process and k-th subject
+  #   - Y_continuous       (matrix)        continuous covariate matrix
+  #   - simulation_params  (list)          run metadata and query grid
+  #   - recovery_params    (list)          original neuron IDs, regions, and subjects kept
   #
   # ----------------------------------------------------------------------------
+  
+  # --------------------------------------------------------------------------
+  # Helper: given a set of subject_nums and feature_ids from LGCP_data[[1]],
+  # run the iterative pruning loop (min_events + maximum clique) and return
+  # the surviving data.table. Used both by the standard path and by the
+  # BOTH_100_NORMALIZED joint-strata path.
+  # --------------------------------------------------------------------------
+  run_pruning <- function(dt_input) {
+    
+    dt        <- copy(dt_input)
+    converged <- FALSE
+    
+    while (!converged) {
+      
+      n_start <- nrow(dt)
+      
+      # A) Minimum spikes per (process, replicate)
+      dt <- dt[, n_spikes := .N, by = .(feature_id, subject_num)][n_spikes >= min_events]
+      dt[, n_spikes := NULL]
+      
+      # B) Pairwise connectivity: keep the largest clique of processes such
+      #    that every pair shares at least one common replicate. This ensures
+      #    non-degenerate bivariate intensity estimates for all neuron pairs.
+      if (nrow(dt) > 0) {
+        incidence            <- table(dt$feature_id, dt$subject_num)
+        incidence[incidence > 1] <- 1
+        adj_matrix           <- incidence %*% t(incidence)
+        diag(adj_matrix)     <- 0
+        adj_matrix[adj_matrix > 0] <- 1
+        
+        g       <- graph_from_adjacency_matrix(adj_matrix, mode = "undirected")
+        cliques <- largest_cliques(g)
+        
+        if (length(cliques) > 0) {
+          # Among all largest cliques, keep the one that retains the most rows
+          clique_features <- lapply(cliques, function(cl) as.numeric(V(g)$name[cl]))
+          best_idx        <- which.max(sapply(clique_features, function(feats) nrow(dt[feature_id %in% feats])))
+          dt              <- dt[feature_id %in% clique_features[[best_idx]]]
+        } else {
+          dt <- dt[0]
+        }
+      }
+      
+      print(paste0('(4/6) After pruning, rows: ',      nrow(dt)))
+      print(paste0('(5/6) After pruning, subjects: ',  length(unique(dt$subject_num))))
+      print(paste0('(6/6) After pruning, processes: ', length(unique(dt$feature_id))))
+      
+      if (nrow(dt) == n_start) converged <- TRUE
+      if (nrow(dt) == 0)       break
+    }
+    
+    dt
+  }
   
   # --- 1) Initial Extraction and Filtering ---
   p_og <- max(LGCP_data[[1]]$feature_id)
   
-  if(region == 'HIP'){
-    relevant_neurons <- df_brain_region$Neuron_Num[df_brain_region$ID2 == ID & df_brain_region$Brain_Region == 'Hippocampus']
-  } else if(region == 'EHC'){
-    relevant_neurons <- df_brain_region$Neuron_Num[df_brain_region$ID2 == ID & df_brain_region$Brain_Region == 'Entorhinal_Cortex']
-  } else if(region == 'BOTH_100'){
+  if (region == 'HIP') {
     
-    # keep top 50 neurons from each region based on total spike output for the entire mouse.
-    # this doesn't guarantee 100 neurons. Pruning may happen afterwards too
+    relevant_neurons <- df_brain_region$Neuron_Num[
+      df_brain_region$ID2 == ID & df_brain_region$Brain_Region == 'Hippocampus']
     
+  } else if (region == 'EHC') {
+    
+    relevant_neurons <- df_brain_region$Neuron_Num[
+      df_brain_region$ID2 == ID & df_brain_region$Brain_Region == 'Entorhinal_Cortex']
+    
+  } else if (region == 'BOTH_100') {
+    
+    # Top 50 neurons per region by total spike count across all replicates.
+    # Does not guarantee exactly 100 neurons — pruning may reduce this further.
     relevant_neurons <- do.call(c, lapply(c("Hippocampus", "Entorhinal_Cortex"), function(br) {
-      ids <- df_brain_region$Neuron_Num[df_brain_region$Brain_Region == br]
+      ids <- df_brain_region$Neuron_Num[df_brain_region$ID2 == ID & df_brain_region$Brain_Region == br]
       tbl <- sort(table(LGCP_data[[1]]$feature_id[LGCP_data[[1]]$feature_id %in% ids]), decreasing = TRUE)
       as.integer(names(head(tbl, 50)))
     })) %>% sort()
     
-  } else if(region == 'BOTH_150'){
+  } else if (region == 'BOTH_150') {
+    
+    # Top 75 neurons per region by total spike count across all replicates.
+    # Does not guarantee exactly 150 neurons — pruning may reduce this further.
     relevant_neurons <- do.call(c, lapply(c("Hippocampus", "Entorhinal_Cortex"), function(br) {
-      ids <- df_brain_region$Neuron_Num[df_brain_region$Brain_Region == br]
+      ids <- df_brain_region$Neuron_Num[df_brain_region$ID2 == ID & df_brain_region$Brain_Region == br]
       tbl <- sort(table(LGCP_data[[1]]$feature_id[LGCP_data[[1]]$feature_id %in% ids]), decreasing = TRUE)
       as.integer(names(head(tbl, 75)))
     })) %>% sort()
-  } else{
+    
+  } else if (region == 'BOTH_100_NORMALIZED') {
+    
+    # -----------------------------------------------------------------------
+    # BOTH_100_NORMALIZED: Joint clique across m0vr1 and m1vr1, then trim to
+    # top 50 per region by VR-on spike counts.
+    #
+    # Strategy:
+    #   1. Pool all replicates where VR == 1 (union of m0vr1 and m1vr1) to
+    #      rank neurons by total spike activity under VR-on conditions.
+    #   2. Separately run the iterative pruning (min_events + max clique) on
+    #      the m0vr1 and m1vr1 strata independently, obtaining the set of
+    #      neurons that are non-degenerate within each stratum.
+    #   3. Take the intersection of surviving neuron sets across both strata —
+    #      this is the joint feasible set where all pairs are non-degenerate
+    #      in BOTH conditions simultaneously.
+    #   4. From that joint feasible set, select the top 50 neurons per region
+    #      ranked by VR-on spike counts (step 1).
+    # -----------------------------------------------------------------------
+    
+    # Step 1: Identify all VR-on replicates (movement = 0 or 1, VR = 1)
+    vr_on_subjects <- LGCP_data[[2]] %>%
+      filter(VR == 1) %>%
+      pull(subject_num)
+    
+    # Rank all neurons by spike count within VR-on replicates
+    dt_vr_on <- as.data.table(LGCP_data[[1]])[subject_num %in% vr_on_subjects]
+    vr_on_spike_counts <- sort(table(dt_vr_on$feature_id), decreasing = TRUE)
+    
+    # Step 2: Run pruning independently for m0vr1 and m1vr1
+    prune_stratum <- function(mov, vr) {
+      subj <- LGCP_data[[2]] %>% filter(movement == mov, VR == vr) %>% pull(subject_num)
+      dt_s <- as.data.table(LGCP_data[[1]])[subject_num %in% subj]
+      message(sprintf("  [BOTH_100_NORMALIZED] Pruning stratum m%dvr%d: %d subjects, %d neurons before pruning",
+                      mov, vr, length(subj), length(unique(dt_s$feature_id))))
+      run_pruning(dt_s)
+    }
+    
+    dt_m0vr1 <- prune_stratum(0, 1)
+    dt_m1vr1 <- prune_stratum(1, 1)
+    
+    neurons_m0vr1 <- unique(dt_m0vr1$feature_id)
+    neurons_m1vr1 <- unique(dt_m1vr1$feature_id)
+    
+    # Step 3: Joint feasible set — neurons that survive pruning in BOTH strata
+    joint_feasible <- intersect(neurons_m0vr1, neurons_m1vr1)
+    message(sprintf("  [BOTH_100_NORMALIZED] Joint feasible neuron set size: %d", length(joint_feasible)))
+    
+    if (length(joint_feasible) == 0) {
+      stop("BOTH_100_NORMALIZED: No neurons survived joint pruning across m0vr1 and m1vr1.")
+    }
+    
+    # Step 4: From the joint feasible set, pick top 50 per region by VR-on spikes
+    relevant_neurons <- do.call(c, lapply(c("Hippocampus", "Entorhinal_Cortex"), function(br) {
+      
+      # Neurons in this region that are in the joint feasible set
+      region_ids <- df_brain_region$Neuron_Num[
+        df_brain_region$ID2 == ID & df_brain_region$Brain_Region == br]
+      candidates <- intersect(joint_feasible, region_ids)
+      
+      # Rank by VR-on spike counts; neurons absent from vr_on_spike_counts get 0
+      counts     <- as.integer(vr_on_spike_counts[as.character(candidates)])
+      counts[is.na(counts)] <- 0L
+      ranked     <- candidates[order(counts, decreasing = TRUE)]
+      
+      as.integer(head(ranked, 50))
+    })) %>% sort()
+    
+    message(sprintf("  [BOTH_100_NORMALIZED] Selected %d neurons after trimming to top 50 per region.",
+                    length(relevant_neurons)))
+    
+  } else {
+    
+    # Fallback: all neurons for this mouse
     relevant_neurons <- df_brain_region$Neuron_Num[df_brain_region$ID2 == ID]
   }
   
-
-  
   print(paste0('Num relevant neurons: ', length(relevant_neurons)))
   
-  # filter by max_processes
-  n_temp <- min(length(relevant_neurons), max_processes)
+  # Apply max_processes cap (by sorted neuron index)
+  n_temp           <- min(length(relevant_neurons), max_processes)
   relevant_neurons <- sort(relevant_neurons)[1:n_temp]
   
   print(paste0('Neurons after max_processes: ', length(relevant_neurons)))
   
-  # Get valid subject pool based on Movement and VR
-  valid_subjects <- LGCP_data[[2]] %>% 
-    filter(movement == movement_num, VR == vr_num) %>% 
+  # --- 2) Filter to target stratum and relevant neurons ---
+  valid_subjects <- LGCP_data[[2]] %>%
+    filter(movement == movement_num, VR == vr_num) %>%
     pull(subject_num)
   
   print(paste0('Num subjects: ', length(valid_subjects)))
   
-  # Initial subset of the main data
   dt <- as.data.table(LGCP_data[[1]])
   dt <- dt[subject_num %in% valid_subjects & feature_id %in% relevant_neurons]
   
-  # --- 2) Iterative Pruning (The While Loop) ---
-  # We loop until the set of subjects and processes stabilizes
-  converged <- FALSE
-  
-  while (!converged) {
-    
-    n_start <- nrow(dt)
-    
-    # A) Constraint: Minimum events per (Process x Subject)
-    dt <- dt[, n_spikes := .N, by = .(feature_id, subject_num)][n_spikes >= min_events]
-    dt[, n_spikes := NULL]
-    
-    # B) Constraint: Subject must have events on at least one process
-    # (Automatically handled by data.table row removal, but we ensure subject pool is fresh)
-    current_subjects <- unique(dt$subject_num)
-    
-    # C) Constraint: Pairwise Connectivity (Maximum Clique)
-    # Build adjacency: Processes connected by shared subjects
-    if (nrow(dt) > 0) {
-      incidence <- table(dt$feature_id, dt$subject_num)
-      incidence[incidence > 1] <- 1
-      adj_matrix <- incidence %*% t(incidence)
-      diag(adj_matrix) <- 0
-      adj_matrix[adj_matrix > 0] <- 1
-      
-      # Find the largest subset of processes that are all mutually connected
-      g <- graph_from_adjacency_matrix(adj_matrix, mode = "undirected")
-      
-      cliques <- largest_cliques(g)
-      
-      if (length(cliques) > 0) {
-        # keep the largest clique that retains the most data (subjects x processes)
-        clique_features <- lapply(cliques, function(cl) as.numeric(V(g)$name[cl]))
-        best_idx <- which.max(sapply(clique_features, function(feats) nrow(dt[feature_id %in% feats])))
-        dt <- dt[feature_id %in% clique_features[[best_idx]]]
-      } else {
-        dt <- dt[0] # Empty if no cliques
-      }
-    }
-    
-    print(paste0('(4/6) After, length of table: ', nrow(dt)))
-    print(paste0('(5/6) After, num subjects: ', length(unique(dt$subject_num))))
-    print(paste0('(6/6) After, num processes: ', length(unique(dt$feature_id))))
-    
-    # Check if any rows were removed in this iteration
-    if (nrow(dt) == n_start) {
-      converged <- TRUE
-    }
-    
-    if (nrow(dt) == 0) break
-  }
+  # --- 3) Iterative Pruning for the target stratum ---
+  # For BOTH_100_NORMALIZED the relevant_neurons are already guaranteed to
+  # survive pruning in BOTH strata, but we still run pruning here to enforce
+  # min_events within the specific target stratum and to re-check the clique
+  # after the max_processes cap may have reduced the neuron set.
+  dt <- run_pruning(dt)
   
   if (nrow(dt) == 0) stop("No data left after filtering constraints.")
   
-  # --- 3) Remapping and Formatting ---
+  # --- 4) Remapping and Formatting ---
   
   # Final IDs for recovery
-  final_subjects <- sort(unique(dt$subject_num))
-  final_features <- sort(unique(dt$feature_id))
-  final_brain_region <- df_brain_region$Brain_Region[df_brain_region$ID2 == ID & df_brain_region$Neuron_Num %in% final_features]
-    
+  final_subjects     <- sort(unique(dt$subject_num))
+  final_features     <- sort(unique(dt$feature_id))
+  final_brain_region <- df_brain_region$Brain_Region[
+    df_brain_region$ID2 == ID & df_brain_region$Neuron_Num %in% final_features]
+  
   # Remap to continuous integers (1...n, 1...p)
   dt[, subject_num_map := match(subject_num, final_subjects)]
-  dt[, feature_id_map := match(feature_id, final_features)]
+  dt[, feature_id_map  := match(feature_id,  final_features)]
   
-  # Create event_times list: named "k_i" (Subject_Process)
+  # Create event_times list: each element named "k_i" (Subject_Process)
   event_times <- split(dt$time, paste0(dt$subject_num_map, "_", dt$feature_id_map))
   
-  # --- 4) Y_continuous processing ---
+  # --- 5) Y_continuous processing ---
   y_cont_raw <- as.data.table(LGCP_data[[3]])[subject_num %in% final_subjects]
-  # Ensure Y_continuous order matches the mapped subject_num_map
+  # Ensure ordering matches the mapped subject_num_map
   y_cont_raw <- y_cont_raw[order(match(subject_num, final_subjects))]
   
-  
-    
   min_age <- min(y_cont_raw$age)
   max_age <- max(y_cont_raw$age)
   
-  # 2. Check the condition
-  # The number of integers in the range [min, max] is (max - min + 1)
+  # Build the week query grid: either every integer in range or evenly spaced
   if (n_weeks >= (max_age - min_age + 1)) {
-    # Case: Count every integer
     vals <- min_age:max_age
   } else {
-    # Case: Space out the selection to get exactly n_weeks integers
-    # We use round() to ensure they remain integers
     vals <- round(seq(from = min_age, to = max_age, length.out = n_weeks))
   }
   
   if (y_c_structure == 'week_only') {
     Y_continuous <- matrix(y_cont_raw$age)
-    y_c_query <- matrix(vals, ncol = 1)
+    y_c_query    <- matrix(vals, ncol = 1)
   } else {
-    Y_continuous <- as.matrix(y_cont_raw[, .(age, timestamp)])
-    max_time <- max(LGCP_data[[3]]$timestamp)
-    y_c_query_time <- seq(0, max_time, by = 120)              # time is every 2 minutes
-    y_c_query <- expand.grid(v1 = vals, v2 = y_c_query_time)
+    Y_continuous      <- as.matrix(y_cont_raw[, .(age, timestamp)])
+    max_time          <- max(LGCP_data[[3]]$timestamp)
+    y_c_query_time    <- seq(0, max_time, by = 120)   # one query every 2 minutes
+    y_c_query         <- expand.grid(v1 = vals, v2 = y_c_query_time)
   }
   
-  
-  # --- 5) Output ---
+  # --- 6) Output ---
   list(
     event_times = event_times,
     Y_continuous = Y_continuous,
     simulation_params = list(
-      ID = ID,
-      movement = movement_num,
-      vr = vr_num,
+      ID         = ID,
+      movement   = movement_num,
+      vr         = vr_num,
       time_scale = time_scale,
       min_events = min_events,
-      n = nrow(Y_continuous),
-      p = length(final_features),
-      Tmax = 1,
+      n          = nrow(Y_continuous),
+      p          = length(final_features),
+      Tmax       = 1,
       query_y_cs = y_c_query,
-      n_query = nrow(y_c_query),
+      n_query    = nrow(y_c_query),
       time_grid_est = time_grid_est,
-      seed = seed
+      seed       = seed
     ),
     recovery_params = list(
-      p_og = p_og,
-      kept_neurons = final_features,
+      p_og                = p_og,
+      kept_neurons        = final_features,
       kept_neuron_regions = final_brain_region,
-      kept_subjects = final_subjects
+      kept_subjects       = final_subjects
     )
   )
-  
 }
 
 
