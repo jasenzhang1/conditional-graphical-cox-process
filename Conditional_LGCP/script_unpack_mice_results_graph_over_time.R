@@ -18,7 +18,7 @@ print(experiment_folder)
 print(results_folder)
 
 method <- 'CPGM'
-region <- 'BOTH_150'  # HIP, EHC, BOTH_100, BOTH_150
+region <- 'BOTH_100_NORMALIZED'  # HIP, EHC, BOTH_100, BOTH_150
 time_scale <- 10
 
 
