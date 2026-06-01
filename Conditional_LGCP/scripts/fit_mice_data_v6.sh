@@ -80,9 +80,9 @@ else
     movement=(0 1)
     VR=(1 1)
     
-    IDs=("WT2")
-    movement=(0)
-    VR=(1)
+    IDs=("Tau2")
+    movement=(0 1)
+    VR=(1 1)
     
     # finished WT3 m0vr0
     
