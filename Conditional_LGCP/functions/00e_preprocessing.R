@@ -362,19 +362,29 @@ convert_data_for_storage <- function(LGCP_data, df_brain_region, ID, y_c_structu
     # top 50 per region by VR-on spike counts.
     #
     # Strategy:
-    #   1. Pool all replicates where VR == 1 (union of m0vr1 and m1vr1) to
+    #   1. Pre-filter to top 75 neurons per region by total spike count across
+    #      all replicates (mirroring BOTH_150 selection).
+    #   2. Pool all replicates where VR == 1 (union of m0vr1 and m1vr1) to
     #      rank neurons by total spike activity under VR-on conditions.
-    #   2. Separately run the iterative pruning (min_events + max clique) on
-    #      the m0vr1 and m1vr1 strata independently, obtaining the set of
-    #      neurons that are non-degenerate within each stratum.
-    #   3. Take the intersection of surviving neuron sets across both strata —
+    #   3. Separately run the iterative pruning (min_events + max clique) on
+    #      the m0vr1 and m1vr1 strata independently, restricted to the top-75
+    #      candidate set, obtaining neurons non-degenerate within each stratum.
+    #   4. Take the intersection of surviving neuron sets across both strata —
     #      this is the joint feasible set where all pairs are non-degenerate
     #      in BOTH conditions simultaneously.
-    #   4. From that joint feasible set, select the top 50 neurons per region
-    #      ranked by VR-on spike counts (step 1).
+    #   5. From that joint feasible set, select the top 50 neurons per region
+    #      ranked by VR-on spike counts (step 2).
     # -----------------------------------------------------------------------
     
-    # Step 1: Identify all VR-on replicates (movement = 0 or 1, VR = 1)
+    # Step 1: Top 75 per region by total spike count across all replicates
+    top75_neurons <- do.call(c, lapply(c("Hippocampus", "Entorhinal_Cortex"), function(br) {
+      ids <- df_brain_region$Neuron_Num[df_brain_region$ID2 == ID & df_brain_region$Brain_Region == br]
+      tbl <- sort(table(LGCP_data[[1]]$feature_id[LGCP_data[[1]]$feature_id %in% ids]), decreasing = TRUE)
+      as.integer(names(head(tbl, 75)))
+    }))
+    message(sprintf("  [BOTH_100_NORMALIZED] Top-75-per-region candidate set size: %d", length(top75_neurons)))
+    
+    # Step 2: Identify all VR-on replicates (movement = 0 or 1, VR = 1)
     vr_on_subjects <- LGCP_data[[2]] %>%
       filter(VR == 1) %>%
       pull(subject_num)
@@ -383,10 +393,10 @@ convert_data_for_storage <- function(LGCP_data, df_brain_region, ID, y_c_structu
     dt_vr_on <- as.data.table(LGCP_data[[1]])[subject_num %in% vr_on_subjects]
     vr_on_spike_counts <- sort(table(dt_vr_on$feature_id), decreasing = TRUE)
     
-    # Step 2: Run pruning independently for m0vr1 and m1vr1
+    # Step 3: Run pruning independently for m0vr1 and m1vr1, restricted to top75
     prune_stratum <- function(mov, vr) {
       subj <- LGCP_data[[2]] %>% filter(movement == mov, VR == vr) %>% pull(subject_num)
-      dt_s <- as.data.table(LGCP_data[[1]])[subject_num %in% subj]
+      dt_s <- as.data.table(LGCP_data[[1]])[subject_num %in% subj & feature_id %in% top75_neurons]
       message(sprintf("  [BOTH_100_NORMALIZED] Pruning stratum m%dvr%d: %d subjects, %d neurons before pruning",
                       mov, vr, length(subj), length(unique(dt_s$feature_id))))
       run_pruning(dt_s)
@@ -398,7 +408,7 @@ convert_data_for_storage <- function(LGCP_data, df_brain_region, ID, y_c_structu
     neurons_m0vr1 <- unique(dt_m0vr1$feature_id)
     neurons_m1vr1 <- unique(dt_m1vr1$feature_id)
     
-    # Step 3: Joint feasible set — neurons that survive pruning in BOTH strata
+    # Step 4: Joint feasible set — neurons that survive pruning in BOTH strata
     joint_feasible <- intersect(neurons_m0vr1, neurons_m1vr1)
     message(sprintf("  [BOTH_100_NORMALIZED] Joint feasible neuron set size: %d", length(joint_feasible)))
     
@@ -406,13 +416,14 @@ convert_data_for_storage <- function(LGCP_data, df_brain_region, ID, y_c_structu
       stop("BOTH_100_NORMALIZED: No neurons survived joint pruning across m0vr1 and m1vr1.")
     }
     
-    # Step 4: From the joint feasible set, pick top 50 per region by VR-on spikes
+    # Step 5: From the joint feasible set, pick top 50 per region by VR-on spikes
     relevant_neurons <- do.call(c, lapply(c("Hippocampus", "Entorhinal_Cortex"), function(br) {
       
       # Neurons in this region that are in the joint feasible set
       region_ids <- df_brain_region$Neuron_Num[
         df_brain_region$ID2 == ID & df_brain_region$Brain_Region == br]
       candidates <- intersect(joint_feasible, region_ids)
+      message(sprintf("  [BOTH_100_NORMALIZED] %s: %d joint-feasible candidates before top-50 trim.", br, length(candidates)))
       
       # Rank by VR-on spike counts; neurons absent from vr_on_spike_counts get 0
       counts     <- as.integer(vr_on_spike_counts[as.character(candidates)])
