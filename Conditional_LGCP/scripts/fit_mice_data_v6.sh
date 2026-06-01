@@ -52,7 +52,7 @@ global_thresh_method="neither" # both, joint, tau_c, or neither
 experiment_folder='experiment_11'
 y_c_structure="week_only"
 method="CPGM"
-min_connect_pcts=($(seq 0 0.01 0.15))    # 1 percent = 0.01
+min_connect_pcts=($(seq 0.01 0.01 0.15))    # 1 percent = 0.01
 
 m=30
 time_scale=10 
@@ -80,6 +80,9 @@ else
     movement=(0 1)
     VR=(1 1)
     
+    IDs=("WT2")
+    movement=(0)
+    VR=(1)
     
     # finished WT3 m0vr0
     
