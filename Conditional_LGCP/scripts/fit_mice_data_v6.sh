@@ -80,7 +80,7 @@ else
     movement=(0 1)
     VR=(1 1)
     
-    IDs=("Tau2")
+    IDs=("WT2")
     movement=(0 1)
     VR=(1 1)
     
