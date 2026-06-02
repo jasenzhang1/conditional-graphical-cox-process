@@ -2126,4 +2126,340 @@ plot_median_nonzero_degree_all_mice_v2 <- function(results_folder, time_scale, d
   return(p_plot)
 }
 
+# median degree including zeros. Just your basic calculation.
+plot_median_degree_all_mice_v3 <- function(results_folder, time_scale, discrete_levels) {
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: For each discrete stratum, and for each mouse, compute the median
+  #       normalized degree across ALL neurons (including zero-degree nodes)
+  #       at each week. Degree is normalized by (n_neurons - 1). Plots one
+  #       loess curve per mouse, no CI or ribbon. All discrete strata combined
+  #       into a single faceted plot, stacked vertically (ncol = 1).
+  #
+  # inputs:
+  #   results_folder   (string)
+  #   time_scale       (integer)  e.g. 10
+  #   discrete_levels  (vector of strings)  e.g. c('m0vr1', 'm1vr1')
+  #
+  # returns: a single ggplot object (faceted vertically by stratum)
+  #
+  # ----------------------------------------------------------------------------
+  
+  # --------------------------------------------------------------------------
+  # Stratum display labels
+  # --------------------------------------------------------------------------
+  stratum_labels <- c(m0vr1 = "Resting", m1vr1 = "Running")
+  
+  discover_IDs <- function(d_level) {
+    pattern   <- paste0("^(.+)_", d_level, "_t", time_scale, "\\.RData$")
+    all_files <- list.files(results_folder, pattern = pattern, full.names = FALSE)
+    ids       <- sub(paste0("_", d_level, "_t", time_scale, "\\.RData$"), "", all_files)
+    tau_ids   <- sort(ids[grepl("^Tau", ids)])
+    wt_ids    <- sort(ids[grepl("^WT",  ids)])
+    other     <- sort(ids[!grepl("^(Tau|WT)", ids)])
+    c(tau_ids, wt_ids, other)
+  }
+  
+  all_IDs  <- unique(unlist(lapply(discrete_levels, discover_IDs)))
+  tau_mice <- all_IDs[grepl("^Tau", all_IDs)]
+  wt_mice  <- all_IDs[grepl("^WT",  all_IDs)]
+  tau_cols <- setNames(scales::hue_pal(h = c(0, 60))(max(length(tau_mice), 1)),   tau_mice)
+  wt_cols  <- setNames(scales::hue_pal(h = c(200, 260))(max(length(wt_mice), 1)), wt_mice)
+  color_map <- c(tau_cols, wt_cols)
+  
+  # --------------------------------------------------------------------------
+  # Collect data across all strata into one long data frame.
+  # All neurons included — zero-degree nodes are NOT filtered out.
+  # unname() on quantile() strips the "50%" name.
+  # --------------------------------------------------------------------------
+  all_data <- data.frame()
+  
+  for (lvl in discrete_levels) {
+    
+    ids <- discover_IDs(lvl)
+    message(sprintf("[plot_median_degree] level=%s, found %d IDs: %s",
+                    lvl, length(ids), paste(ids, collapse = ", ")))
+    
+    stratum_label <- ifelse(lvl %in% names(stratum_labels),
+                            stratum_labels[[lvl]],
+                            lvl)
+    
+    for (ID in ids) {
+      
+      file_path <- paste0(results_folder, '/', ID, '_', lvl, '_t', time_scale, '.RData')
+      if (!file.exists(file_path)) {
+        message(sprintf("  [SKIP] not found: %s", file_path))
+        next
+      }
+      
+      tmp_env <- new.env()
+      load(file_path, envir = tmp_env)
+      res_i <- tmp_env$graph_results_i
+      
+      step_data <- res_i$step_12b
+      y_c_weeks <- as.numeric(res_i$y_c_query)
+      
+      message(sprintf("  [%s] weeks=%d", ID, length(y_c_weeks)))
+      
+      for (idx in seq_along(y_c_weeks)) {
+        
+        week    <- y_c_weeks[idx]
+        adj_mat <- step_data[[idx]][["adj_mat_KL_GIC_local_est_eig3"]]
+        
+        if (is.null(adj_mat)) next
+        
+        # Degree = row sums, excluding diagonal; normalized by (n - 1)
+        # All neurons included — zero-degree nodes kept
+        diag(adj_mat) <- 0
+        degree <- rowSums(adj_mat) / (nrow(adj_mat) - 1)
+        
+        all_data <- rbind(all_data, data.frame(
+          week    = week,
+          median  = unname(quantile(degree, 0.50)),
+          mouse   = ID,
+          stratum = stratum_label
+        ))
+      }
+      
+      rm(tmp_env, res_i, step_data)
+    }
+  }
+  
+  if (nrow(all_data) == 0) {
+    message("[WARN] no data found across all levels")
+    return(NULL)
+  }
+  
+  message(sprintf("[plot_median_degree] all_data has %d rows, mice: %s",
+                  nrow(all_data), paste(unique(all_data$mouse), collapse = ", ")))
+  print(head(all_data))
+  
+  all_data$mouse <- factor(all_data$mouse, levels = all_IDs)
+  
+  stratum_order <- ifelse(discrete_levels %in% names(stratum_labels),
+                          stratum_labels[discrete_levels],
+                          discrete_levels)
+  all_data$stratum <- factor(all_data$stratum, levels = stratum_order)
+  
+  # --------------------------------------------------------------------------
+  # Pre-compute loess fits separately per mouse x stratum combination.
+  # --------------------------------------------------------------------------
+  loess_lines <- do.call(rbind, lapply(
+    split(all_data, list(all_data$mouse, all_data$stratum), drop = TRUE),
+    function(df) {
+      if (nrow(df) < 4) return(NULL)
+      week_seq <- seq(min(df$week), max(df$week), length.out = 200)
+      fit <- tryCatch(
+        predict(loess(median ~ week, data = df), newdata = data.frame(week = week_seq)),
+        error = function(e) NULL
+      )
+      if (is.null(fit)) return(NULL)
+      data.frame(
+        week    = week_seq,
+        median  = fit,
+        mouse   = df$mouse[1],
+        stratum = df$stratum[1]
+      )
+    }
+  ))
+  loess_lines$mouse   <- factor(loess_lines$mouse,   levels = all_IDs)
+  loess_lines$stratum <- factor(loess_lines$stratum, levels = stratum_order)
+  
+  # --------------------------------------------------------------------------
+  # Build single faceted plot: stacked vertically by stratum (ncol = 1).
+  # --------------------------------------------------------------------------
+  p_plot <- ggplot(loess_lines, aes(x = week, y = median, color = mouse, group = mouse)) +
+    geom_line(size = 0.9) +
+    facet_wrap(~ stratum, ncol = 1) +
+    scale_color_manual(values = color_map) +
+    scale_x_continuous(breaks = c(20, 25, 30, 35)) +
+    scale_y_continuous(limits = c(0, NA)) +
+    labs(
+      x     = "Age (Weeks)",
+      y     = "Median Normalized Degree",
+      color = "Mouse"
+    ) +
+    guides(color = guide_legend(nrow = 1)) +
+    theme_bw(base_size = 16) +
+    theme(
+      panel.grid      = element_blank(),
+      legend.position = "bottom"
+    )
+  
+  message("[OK] combined median degree plot created")
+  return(p_plot)
+}
 
+
+# ridgeline graph for degree distribution (cut off the part of the histogram with 0's)
+
+plot_degree_ridgeline_all_mice <- function(results_folder, time_scale, discrete_levels) {
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: For each mouse x stratum combination, plot a ridgeline (joy plot)
+  #       of the non-zero normalized degree distribution over time. Each
+  #       ridge corresponds to one week; ridges are stacked by week (oldest
+  #       at bottom, most recent at top). Area under each ridge is proportional
+  #       to the number of non-zero degree neurons at that week (i.e. density
+  #       is NOT normalized to integrate to 1 — it is scaled by count).
+  #
+  #       Layout: rows = mice (Tau first, then WT), cols = strata.
+  #       Uses ggridges::geom_density_ridges with stat="density" and
+  #       after_stat(count) scaling.
+  #
+  # inputs:
+  #   results_folder   (string)
+  #   time_scale       (integer)  e.g. 10
+  #   discrete_levels  (vector of strings)  e.g. c('m0vr1', 'm1vr1')
+  #
+  # returns: a single ggplot object (faceted by mouse x stratum)
+  #
+  # ----------------------------------------------------------------------------
+  
+  # --------------------------------------------------------------------------
+  # Stratum display labels
+  # --------------------------------------------------------------------------
+  stratum_labels <- c(m0vr1 = "Resting", m1vr1 = "Running")
+  
+  discover_IDs <- function(d_level) {
+    pattern   <- paste0("^(.+)_", d_level, "_t", time_scale, "\\.RData$")
+    all_files <- list.files(results_folder, pattern = pattern, full.names = FALSE)
+    ids       <- sub(paste0("_", d_level, "_t", time_scale, "\\.RData$"), "", all_files)
+    tau_ids   <- sort(ids[grepl("^Tau", ids)])
+    wt_ids    <- sort(ids[grepl("^WT",  ids)])
+    other     <- sort(ids[!grepl("^(Tau|WT)", ids)])
+    c(tau_ids, wt_ids, other)
+  }
+  
+  all_IDs  <- unique(unlist(lapply(discrete_levels, discover_IDs)))
+  tau_mice <- all_IDs[grepl("^Tau", all_IDs)]
+  wt_mice  <- all_IDs[grepl("^WT",  all_IDs)]
+  tau_cols <- setNames(scales::hue_pal(h = c(0, 60))(max(length(tau_mice), 1)),   tau_mice)
+  wt_cols  <- setNames(scales::hue_pal(h = c(200, 260))(max(length(wt_mice), 1)), wt_mice)
+  color_map <- c(tau_cols, wt_cols)
+  
+  # --------------------------------------------------------------------------
+  # Collect raw non-zero degree values (one row per neuron x week x mouse x
+  # stratum). We keep the individual degree values — NOT per-week summaries —
+  # so that ggridges can fit a kernel density estimate per week ridge.
+  # --------------------------------------------------------------------------
+  all_data <- data.frame()
+  
+  for (lvl in discrete_levels) {
+    
+    ids <- discover_IDs(lvl)
+    message(sprintf("[plot_degree_ridgeline] level=%s, found %d IDs: %s",
+                    lvl, length(ids), paste(ids, collapse = ", ")))
+    
+    stratum_label <- ifelse(lvl %in% names(stratum_labels),
+                            stratum_labels[[lvl]],
+                            lvl)
+    
+    for (ID in ids) {
+      
+      file_path <- paste0(results_folder, '/', ID, '_', lvl, '_t', time_scale, '.RData')
+      if (!file.exists(file_path)) {
+        message(sprintf("  [SKIP] not found: %s", file_path))
+        next
+      }
+      
+      tmp_env <- new.env()
+      load(file_path, envir = tmp_env)
+      res_i <- tmp_env$graph_results_i
+      
+      step_data <- res_i$step_12b
+      y_c_weeks <- as.numeric(res_i$y_c_query)
+      
+      message(sprintf("  [%s | %s] weeks=%d", ID, lvl, length(y_c_weeks)))
+      
+      for (idx in seq_along(y_c_weeks)) {
+        
+        week    <- y_c_weeks[idx]
+        adj_mat <- step_data[[idx]][["adj_mat_KL_GIC_local_est_eig3"]]
+        
+        if (is.null(adj_mat)) next
+        
+        # Normalized degree for all neurons; keep only positive-degree neurons
+        diag(adj_mat) <- 0
+        degree         <- rowSums(adj_mat) / (nrow(adj_mat) - 1)
+        nonzero_degree <- degree[degree > 0]
+        
+        if (length(nonzero_degree) == 0) next
+        
+        # One row per neuron — raw values needed for per-ridge KDE
+        all_data <- rbind(all_data, data.frame(
+          degree  = nonzero_degree,
+          week    = week,
+          mouse   = ID,
+          stratum = stratum_label
+        ))
+      }
+      
+      rm(tmp_env, res_i, step_data)
+    }
+  }
+  
+  if (nrow(all_data) == 0) {
+    message("[WARN] no data found across all levels")
+    return(NULL)
+  }
+  
+  message(sprintf("[plot_degree_ridgeline] all_data has %d rows, mice: %s",
+                  nrow(all_data), paste(unique(all_data$mouse), collapse = ", ")))
+  print(head(all_data))
+  
+  # Ordered factors: mice rows top-to-bottom (Tau1..Tau3, WT1..WT3),
+  # week as ordered factor so ridges stack oldest-at-bottom
+  all_data$mouse   <- factor(all_data$mouse,   levels = all_IDs)
+  all_data$week    <- factor(all_data$week,     levels = sort(unique(all_data$week)))
+  
+  stratum_order    <- ifelse(discrete_levels %in% names(stratum_labels),
+                             stratum_labels[discrete_levels],
+                             discrete_levels)
+  all_data$stratum <- factor(all_data$stratum, levels = stratum_order)
+  
+  # --------------------------------------------------------------------------
+  # Ridgeline plot.
+  # stat = "binline" + scale = "count" gives area proportional to n entries.
+  # after_stat(count) on the y-density aesthetic achieves the same with KDE;
+  # we use geom_density_ridges with after_stat(count) for a smooth curve.
+  # scale controls ridge overlap (1 = no overlap).
+  # --------------------------------------------------------------------------
+  p_plot <- ggplot(all_data,
+                   aes(x    = degree,
+                       y    = week,
+                       fill = mouse,
+                       color = mouse,
+                       height = after_stat(count),
+                       group = week)) +
+    ggridges::geom_density_ridges(
+      stat      = "density",
+      alpha     = 0.4,
+      size      = 0.4,
+      scale     = 0.9,
+      rel_min_height = 0.01   # trim negligible tails
+    ) +
+    facet_grid(mouse ~ stratum) +
+    scale_fill_manual(values  = color_map) +
+    scale_color_manual(values = color_map) +
+    scale_x_continuous(limits = c(0, NA)) +
+    labs(
+      x     = "Normalized Degree",
+      y     = "Age (Weeks)",
+      fill  = "Mouse",
+      color = "Mouse"
+    ) +
+    guides(fill  = guide_legend(nrow = 1),
+           color = guide_legend(nrow = 1)) +
+    theme_bw(base_size = 16) +
+    theme(
+      panel.grid      = element_blank(),
+      legend.position = "bottom",
+      strip.text      = element_text(size = 13)
+    )
+  
+  message("[OK] ridgeline degree plot created")
+  return(p_plot)
+}

@@ -2,7 +2,9 @@
 
 packages <- c("dplyr", 'tidyr',
               "data.table", "pROC", "grid", "abind", "future.apply", "pbmcapply",
-              "Matrix", "ggplot2", "reshape2", "gridExtra", "viridis", "MASS", 'igraph',
+              "Matrix", "ggplot2", 
+              "ggridges", # for ridgeline plot 
+              "reshape2", "gridExtra", "viridis", "MASS", 'igraph',
               'patchwork')
 
 for (package in packages) {

@@ -263,3 +263,32 @@ png_name <- file.path(graph_folder,
 png(png_name, width = 7, height = 5, units = "in", res = 300)
 print(degree_plot)
 dev.off()
+
+# v3 - median degree (including zeros)
+
+discrete_levels <- paste0('m', c(0, 1), 'vr', c(1, 1))
+degree_plot <- plot_median_degree_all_mice_v3(
+  results_folder  = results_folder,
+  time_scale      = time_scale,
+  discrete_levels = discrete_levels
+)
+png_name <- file.path(graph_folder,
+                      paste0('all_mice_t', time_scale, '_median_degree.png'))
+png(png_name, width = 7, height = 5, units = "in", res = 300)
+print(degree_plot)
+dev.off()
+
+# --------------------------------------------------------------
+# ridgeline plot of normalized degree
+
+discrete_levels <- paste0('m', c(0, 1), 'vr', c(1, 1))
+ridgeline_plot <- plot_degree_ridgeline_all_mice(
+  results_folder  = results_folder,
+  time_scale      = time_scale,
+  discrete_levels = discrete_levels
+)
+png_name <- file.path(graph_folder,
+                      paste0('all_mice_t', time_scale, '_degree_ridgeline.png'))
+png(png_name, width = 9, height = 14, units = "in", res = 300)
+print(ridgeline_plot)
+dev.off()
