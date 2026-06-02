@@ -41,7 +41,8 @@ region         <- args[8]
 min_events     <- as.numeric(args[9])
 max_processes  <- as.numeric(args[10])
 n_weeks        <- as.numeric(args[11])
-cluster        <- args[12]
+deducted_weeks <- as.integer(strsplit(args[12], ",")[[1]])
+cluster        <- args[13]
 
 # ID <- 'Tau3'
 # y_c_structure <- 'week_only'
@@ -54,6 +55,7 @@ cluster        <- args[12]
 # min_events <- 5
 # max_processes <- 10000
 # n_weeks <- 50
+# deducted_weeks <- c(1,2)
 # cluster <- 'andrew'
 
 if(cluster == 'andrew'){
@@ -94,7 +96,7 @@ load('data/Brain_Region.RData')
 time_grid_est <- make_time_grid(m)
 
 dataset_k <- convert_data_for_storage(LGCP_data, df_brain_region, ID, y_c_structure, movement, VR, region, time_scale,
-                                      time_grid_est, min_events, n_weeks, max_processes = max_processes, seed = NULL) # 00e
+                                      time_grid_est, min_events, n_weeks, deducted_weeks, max_processes = max_processes, seed = NULL) # 00e
 
 # 5) store
 discrete_name <- paste0('m', movement, 'vr', VR)

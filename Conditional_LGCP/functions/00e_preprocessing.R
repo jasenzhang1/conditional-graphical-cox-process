@@ -202,7 +202,7 @@ convert_data_adj_check <- function(process_ids, subject_ids){
 }
 
 convert_data_for_storage <- function(LGCP_data, df_brain_region, ID, y_c_structure, movement_num, vr_num, region, time_scale,
-                                     time_grid_est, min_events, n_weeks, max_processes = Inf, seed = NULL){
+                                     time_grid_est, min_events, n_weeks, deducted_weeks = NULL, max_processes = Inf, seed = NULL){
   
   # ----------------------------------------------------------------------------
   #
@@ -497,6 +497,10 @@ convert_data_for_storage <- function(LGCP_data, df_brain_region, ID, y_c_structu
     vals <- min_age:max_age
   } else {
     vals <- round(seq(from = min_age, to = max_age, length.out = n_weeks))
+  }
+  
+  if (!is.null(deducted_weeks)) {
+    vals <- setdiff(vals, deducted_weeks)
   }
   
   if (y_c_structure == 'week_only') {

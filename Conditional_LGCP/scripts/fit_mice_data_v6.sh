@@ -62,6 +62,7 @@ min_events=$(echo "$time_scale * $min_freq" | bc | xargs printf "%.0f")
 
 max_processes=10000 #10000 
 n_weeks=50  #50
+deducted_weeks='18,19' # whatever weeks we automatically want to exclude
 
 if [ "$cluster" == "hoffman" ]; then
 
@@ -172,7 +173,7 @@ if [ "$cluster" == "hoffman" ]; then
     rm -rf "mice_data/$y_c_structure"   # delete old datasets
     
     # creates mice_data/week_only/Data.RData
-    Rscript script_preprocess_mice_data.R "$ID" "$y_c_structure" "$time_scale" "$method" "$m" "$mov" "$vr" "$region" "$min_events" "$max_processes" "$n_weeks" "$cluster" >> "$outfile" 2>&1 
+    Rscript script_preprocess_mice_data.R "$ID" "$y_c_structure" "$time_scale" "$method" "$m" "$mov" "$vr" "$region" "$min_events" "$max_processes" "$n_weeks" "$deducted_weeks" "$cluster" >> "$outfile" 2>&1 
     
     
     step_1_end_time=$(date +%s)
@@ -384,7 +385,7 @@ else
             rm -rf "mice_data/$y_c_structure"   # delete old datasets
             
             # creates mice_data/week_only/Data.RData
-            Rscript script_preprocess_mice_data.R "$ID" "$y_c_structure" "$time_scale" "$method" "$m" "$mov" "$vr" "$region" "$min_events" "$max_processes" "$n_weeks" "$cluster" >> "$outfile" 2>&1 
+            Rscript script_preprocess_mice_data.R "$ID" "$y_c_structure" "$time_scale" "$method" "$m" "$mov" "$vr" "$region" "$min_events" "$max_processes" "$n_weeks" "$deducted_weeks" "$cluster" >> "$outfile" 2>&1 
     
             
             step_1_end_time=$(date +%s)
