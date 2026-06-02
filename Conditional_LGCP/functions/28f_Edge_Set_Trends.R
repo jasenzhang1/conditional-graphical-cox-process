@@ -2274,7 +2274,7 @@ plot_median_degree_all_mice_v3 <- function(results_folder, time_scale, discrete_
     facet_wrap(~ stratum, ncol = 1) +
     scale_color_manual(values = color_map) +
     scale_x_continuous(breaks = c(20, 25, 30, 35)) +
-    scale_y_continuous(limits = c(0, NA)) +
+    scale_y_continuous(limits = c(-0.05, 0.65), breaks = c(0.0, 0.2, 0.4, 0.6))
     labs(
       x     = "Age (Weeks)",
       y     = "Median Normalized Degree",
@@ -2304,6 +2304,7 @@ plot_degree_ridgeline_all_mice <- function(results_folder, time_scale, discrete_
   #       at bottom, most recent at top). Area under each ridge is proportional
   #       to the number of non-zero degree neurons at that week (i.e. density
   #       is NOT normalized to integrate to 1 — it is scaled by count).
+  #       A gray vertical segment marks the median of each ridge.
   #
   #       Layout: rows = mice (Tau first, then WT), cols = strata.
   #       Uses ggridges::geom_density_ridges with stat="density" and
@@ -2410,10 +2411,10 @@ plot_degree_ridgeline_all_mice <- function(results_folder, time_scale, discrete_
                   nrow(all_data), paste(unique(all_data$mouse), collapse = ", ")))
   print(head(all_data))
   
-  # Ordered factors: mice rows top-to-bottom (Tau1..Tau3, WT1..WT3),
-  # week as ordered factor so ridges stack oldest-at-bottom
-  all_data$mouse   <- factor(all_data$mouse,   levels = all_IDs)
-  all_data$week    <- factor(all_data$week,     levels = sort(unique(all_data$week)))
+  # Ordered factors: mice rows top-to-bottom (Tau1..Tau3, WT1..WT3)
+  # week kept numeric so scale_y_continuous breaks work correctly
+  all_data$mouse   <- factor(all_data$mouse, levels = all_IDs)
+  all_data$week    <- as.numeric(as.character(all_data$week))
   
   stratum_order    <- ifelse(discrete_levels %in% names(stratum_labels),
                              stratum_labels[discrete_levels],
@@ -2421,30 +2422,60 @@ plot_degree_ridgeline_all_mice <- function(results_folder, time_scale, discrete_
   all_data$stratum <- factor(all_data$stratum, levels = stratum_order)
   
   # --------------------------------------------------------------------------
-  # Ridgeline plot.
-  # stat = "binline" + scale = "count" gives area proportional to n entries.
-  # after_stat(count) on the y-density aesthetic achieves the same with KDE;
-  # we use geom_density_ridges with after_stat(count) for a smooth curve.
-  # scale controls ridge overlap (1 = no overlap).
+  # Pre-compute per-week median per mouse x stratum for overlay segments.
+  # geom_density_ridges stacks ridges at each y = week value; we draw a
+  # short vertical segment at x = median, centered on the ridge baseline.
+  # --------------------------------------------------------------------------
+  median_data <- do.call(rbind, lapply(
+    split(all_data, list(all_data$mouse, all_data$stratum, all_data$week), drop = TRUE),
+    function(df) {
+      data.frame(
+        week    = df$week[1],
+        median  = median(df$degree),
+        mouse   = df$mouse[1],
+        stratum = df$stratum[1]
+      )
+    }
+  ))
+  median_data$mouse   <- factor(median_data$mouse,   levels = all_IDs)
+  median_data$stratum <- factor(median_data$stratum, levels = stratum_order)
+  
+  # --------------------------------------------------------------------------
+  # Ridgeline plot with median overlay.
+  # stat = "density" + after_stat(count) gives area proportional to n entries.
+  # scale controls ridge overlap (0.9 = slight separation).
+  # rel_min_height trims negligible KDE tails.
+  # week is numeric; scale_y_continuous controls breaks and expansion.
+  # Median drawn as a gray vertical segment rising into each ridge body.
   # --------------------------------------------------------------------------
   p_plot <- ggplot(all_data,
-                   aes(x    = degree,
-                       y    = week,
-                       fill = mouse,
-                       color = mouse,
+                   aes(x      = degree,
+                       y      = week,
+                       fill   = mouse,
+                       color  = mouse,
                        height = after_stat(count),
-                       group = week)) +
+                       group  = week)) +
     ggridges::geom_density_ridges(
-      stat      = "density",
-      alpha     = 0.4,
-      size      = 0.4,
-      scale     = 0.9,
-      rel_min_height = 0.01   # trim negligible tails
+      stat           = "density",
+      alpha          = 0.4,
+      linewidth      = 0.4,
+      scale          = 0.9,
+      rel_min_height = 0.01
+    ) +
+    # Median vertical tick per ridge: segment rises from ridge baseline (y = week)
+    # to slightly above it (yend = week + 0.8); x position is the median degree
+    geom_segment(
+      data      = median_data,
+      aes(x = median, xend = median, y = week, yend = week + 0.8),
+      color     = "gray40",
+      linewidth = 0.5,
+      inherit.aes = FALSE
     ) +
     facet_grid(mouse ~ stratum) +
     scale_fill_manual(values  = color_map) +
     scale_color_manual(values = color_map) +
     scale_x_continuous(limits = c(0, NA)) +
+    scale_y_continuous(breaks = c(20, 25, 30, 35)) +
     labs(
       x     = "Normalized Degree",
       y     = "Age (Weeks)",

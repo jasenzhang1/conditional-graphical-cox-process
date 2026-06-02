@@ -289,6 +289,6 @@ ridgeline_plot <- plot_degree_ridgeline_all_mice(
 )
 png_name <- file.path(graph_folder,
                       paste0('all_mice_t', time_scale, '_degree_ridgeline.png'))
-png(png_name, width = 9, height = 14, units = "in", res = 300)
+png(png_name, width = 9, height = 20, units = "in", res = 300)
 print(ridgeline_plot)
 dev.off()
