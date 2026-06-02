@@ -49,7 +49,7 @@ model_type="mice"  # simu or mice
 eigen_setting="only_joint"  #only_joint, trig_and_joint, trig_simple
 global_thresh_method="neither" # both, joint, tau_c, or neither
 
-experiment_folder='experiment_11'
+experiment_folder='experiment_12'
 y_c_structure="week_only"
 method="CPGM"
 min_connect_pcts=($(seq 0.01 0.01 0.15))    # 1 percent = 0.01
@@ -62,7 +62,7 @@ min_events=$(echo "$time_scale * $min_freq" | bc | xargs printf "%.0f")
 
 max_processes=10000 #10000 
 n_weeks=50  #50
-deducted_weeks='18,19' # whatever weeks we automatically want to exclude
+deducted_weeks='' # whatever weeks we automatically want to exclude
 
 if [ "$cluster" == "hoffman" ]; then
 
@@ -77,13 +77,10 @@ if [ "$cluster" == "hoffman" ]; then
     mkdir -p ../../../project-biostat-chair/script_outputs/mice
     
 else
-    IDs=("Tau1" "Tau2" "Tau3" "WT1" "WT2" "WT3")
+    IDs=("Tau1" "Tau2" "Tau3" "WT1" "WT3" "WT2")
     movement=(0 1)
     VR=(1 1)
     
-    IDs=("WT2")
-    movement=(0 1)
-    VR=(1 1)
     
     # finished WT3 m0vr0
     
@@ -91,7 +88,7 @@ else
     # HIP, 0.001,  Tau2_m0vr1, WT1_m0vr0, WT2_m0vr1
     # EHC, 0.0003, WT2_m0vr1
     # HIP, 0.0003, Tau2_m0vr1, WT1_m0vr0, WT2_m0vr1
-    y_c_bandwidth='1_default' # usually its 0.3, exp(-gamma * y_c_diff^2), use NULL for default
+    y_c_bandwidth=0.001 # usually its 0.3, exp(-gamma * y_c_diff^2), use NULL for default
     
     # y_c_bandwidth='1_default'       --> 1 * default
     # y_c_bandwidth='0.1_default'     --> 0.1 * default
