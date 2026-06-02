@@ -1384,16 +1384,16 @@ plot_edge_stability_combined <- function(results_folder, time_scale, discrete_le
   # Linear y-axis: range 0–0.25 with ticks at 0.00, 0.125, 0.25
   g <- base_plot +
     scale_y_continuous(
-      breaks = c(0, 0.125, 0.25),
-      limits = c(0, 0.25)
+      breaks = c(0, 0.1, 0.2),
+      limits = c(-0.02, 0.2)
     )
   
   # Sqrt-transformed y-axis: same tick marks, same range
   g_sqrt <- base_plot +
     scale_y_continuous(
       trans  = "sqrt",
-      breaks = c(0, 0.125, 0.25),
-      limits = c(0, 0.25)
+      breaks = c(0, 0.1, 0.2),
+      limits = c(-0.02, 0.2)
     )
   
   return(list(linear = g, sqrt = g_sqrt))
@@ -1760,7 +1760,7 @@ plot_edge_regional_proportion_all_mice_v2 <- function(results_folder, time_scale
     scale_color_manual(values = color_map) +
     scale_x_continuous(breaks = c(20, 25, 30, 35)) +
     scale_y_continuous(
-      limits = c(0, 1),
+      limits = c(-0.05, 1),
       breaks = c(0, 0.5, 1),
       labels = scales::percent_format(accuracy = 1)
     ) +
@@ -2107,8 +2107,8 @@ plot_median_nonzero_degree_all_mice_v2 <- function(results_folder, time_scale, d
     scale_color_manual(values = color_map) +
     scale_x_continuous(breaks = c(20, 25, 30, 35)) +
     scale_y_continuous(
-      limits = c(0, 0.5),
-      breaks = c(0.00, 0.25, 0.50)
+      limits = c(-0.05, 0.65),
+      breaks = c(0.0, 0.3, 0.6)
     ) +
     labs(
       x     = "Age (Weeks)",
