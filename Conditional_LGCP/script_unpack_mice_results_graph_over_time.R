@@ -279,7 +279,7 @@ png(png_name, width = 7, height = 5, units = "in", res = 300)
 print(degree_plot)
 dev.off()
 
-# --------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # ridgeline plot of normalized degree
 
 discrete_levels <- paste0('m', c(0, 1), 'vr', c(1, 1))
@@ -293,3 +293,25 @@ png_name <- file.path(graph_folder,
 png(png_name, width = 9, height = 20, units = "in", res = 300)
 print(ridgeline_plot)
 dev.off()
+
+
+
+# ------------------------------------------------------------------------------
+# edge set for a single mouse across strata
+
+result <- visualize_edge_set_one_mouse_all_strata(
+  results_folder  = results_folder,
+  time_scale      = time_scale,
+  discrete_levels = discrete_levels,
+  output          = "adj",
+  region_border   = TRUE,
+  mouse_ID        = "Tau2"
+)
+
+# --- save ---
+
+png(file.path(graph_folder, paste0("Tau2_t", time_scale, "_edge_set_strata.png")),
+    width = 4800, height = 600, res = 150)
+print(result$plot)
+dev.off()
+
