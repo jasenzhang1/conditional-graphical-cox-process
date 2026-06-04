@@ -1384,16 +1384,16 @@ plot_edge_stability_combined <- function(results_folder, time_scale, discrete_le
   # Linear y-axis: range 0–0.25 with ticks at 0.00, 0.125, 0.25
   g <- base_plot +
     scale_y_continuous(
-      breaks = c(0, 0.1, 0.2),
-      limits = c(-0.02, 0.2)
+      breaks = c(0, 0.2, 0.4),
+      limits = c(-0.1, 0.5)
     )
   
   # Sqrt-transformed y-axis: same tick marks, same range
   g_sqrt <- base_plot +
     scale_y_continuous(
       trans  = "sqrt",
-      breaks = c(0, 0.1, 0.2),
-      limits = c(-0.02, 0.2)
+      breaks = c(0, 0.2, 0.4),
+      limits = c(-0.1, 0.5)
     )
   
   return(list(linear = g, sqrt = g_sqrt))
@@ -2305,6 +2305,9 @@ plot_degree_ridgeline_all_mice <- function(results_folder, time_scale, discrete_
   #       to the number of non-zero degree neurons at that week (i.e. density
   #       is NOT normalized to integrate to 1 — it is scaled by count).
   #       A gray vertical segment marks the median of each ridge.
+  #       Faint gray dotted vertical reference lines at 0, 0.25, 0.5, 0.75, 1.
+  #       A light shaded vertical band spans the IQR of per-week medians for
+  #       each mouse x stratum panel.
   #
   #       Layout: rows = mice (Tau first, then WT), cols = strata.
   #       Uses ggridges::geom_density_ridges with stat="density" and
@@ -2441,12 +2444,32 @@ plot_degree_ridgeline_all_mice <- function(results_folder, time_scale, discrete_
   median_data$stratum <- factor(median_data$stratum, levels = stratum_order)
   
   # --------------------------------------------------------------------------
-  # Ridgeline plot with median overlay.
-  # stat = "density" + after_stat(count) gives area proportional to n entries.
-  # scale controls ridge overlap (0.9 = slight separation).
-  # rel_min_height trims negligible KDE tails.
-  # week is numeric; scale_y_continuous controls breaks and expansion.
-  # Median drawn as a gray vertical segment rising into each ridge body.
+  # Pre-compute IQR of per-week medians per mouse x stratum, for the shaded
+  # vertical band. One row per panel (mouse x stratum); xmin/xmax are the
+  # 25th and 75th percentiles of the weekly median values in that panel.
+  # ymin/ymax span the full plot range so geom_rect fills the panel height.
+  # --------------------------------------------------------------------------
+  iqr_data <- do.call(rbind, lapply(
+    split(median_data, list(median_data$mouse, median_data$stratum), drop = TRUE),
+    function(df) {
+      data.frame(
+        xmin    = unname(quantile(df$median, 0.25)),
+        xmax    = unname(quantile(df$median, 0.75)),
+        mouse   = df$mouse[1],
+        stratum = df$stratum[1]
+      )
+    }
+  ))
+  iqr_data$mouse   <- factor(iqr_data$mouse,   levels = all_IDs)
+  iqr_data$stratum <- factor(iqr_data$stratum, levels = stratum_order)
+  
+  # --------------------------------------------------------------------------
+  # Ridgeline plot with median overlay and IQR shaded band.
+  # Layer order (back to front):
+  #   1. geom_vline       — dotted reference lines at 0, 0.25, 0.5, 0.75, 1
+  #   2. geom_rect        — shaded IQR band of per-week medians
+  #   3. geom_density_ridges — ridge fills and outlines
+  #   4. geom_segment     — per-ridge median tick
   # --------------------------------------------------------------------------
   p_plot <- ggplot(all_data,
                    aes(x      = degree,
@@ -2455,6 +2478,23 @@ plot_degree_ridgeline_all_mice <- function(results_folder, time_scale, discrete_
                        color  = mouse,
                        height = after_stat(count),
                        group  = week)) +
+    # 1. Faint dotted reference lines at canonical normalized-degree values
+    geom_vline(
+      xintercept = c(0, 0.25, 0.5, 0.75, 1),
+      color      = "gray80",
+      linewidth  = 0.35,
+      linetype   = "dotted"
+    ) +
+    # 2. Shaded vertical band spanning IQR of per-week medians per panel;
+    #    ymin/ymax use -Inf/Inf so the band spans the full panel height
+    geom_rect(
+      data        = iqr_data,
+      aes(xmin = xmin, xmax = xmax, ymin = -Inf, ymax = Inf),
+      fill        = "gray70",
+      alpha       = 0.25,
+      inherit.aes = FALSE
+    ) +
+    # 3. Ridge densities scaled by count
     ggridges::geom_density_ridges(
       stat           = "density",
       alpha          = 0.4,
@@ -2462,8 +2502,8 @@ plot_degree_ridgeline_all_mice <- function(results_folder, time_scale, discrete_
       scale          = 0.9,
       rel_min_height = 0.01
     ) +
-    # Median vertical tick per ridge: segment rises from ridge baseline (y = week)
-    # to slightly above it (yend = week + 0.8); x position is the median degree
+    # 4. Median vertical tick per ridge: segment rises from ridge baseline
+    #    (y = week) to slightly above it (yend = week + 0.8)
     geom_segment(
       data      = median_data,
       aes(x = median, xend = median, y = week, yend = week + 0.8),
@@ -2494,3 +2534,5 @@ plot_degree_ridgeline_all_mice <- function(results_folder, time_scale, discrete_
   message("[OK] ridgeline degree plot created")
   return(p_plot)
 }
+
+
