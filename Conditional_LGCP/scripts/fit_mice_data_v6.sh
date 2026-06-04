@@ -78,7 +78,7 @@ if [ "$cluster" == "hoffman" ]; then
     
 else
     IDs=("Tau1" "Tau2" "Tau3")
-    movement=(0 1)
+    movement=(1 0)
     VR=(1 1)
     
     
