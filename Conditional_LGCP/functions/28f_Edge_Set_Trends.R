@@ -836,6 +836,8 @@ plot_strata_instability_all_mice_v2 <- function(results_folder, time_scale, disc
   #       When both edge sets are empty at week t, similarity is defined as 1
   #       (both graphs agree on having no edges).
   #       All computations use upper triangle only to exclude diagonal.
+  #       Loess is pre-computed per mouse to avoid geom_smooth pooling across
+  #       groups.
   #
   # inputs:
   #
@@ -881,7 +883,7 @@ plot_strata_instability_all_mice_v2 <- function(results_folder, time_scale, disc
   
   # --------------------------------------------------------------------------
   # Load adjacency matrices for one mouse and one discrete level,
-  # keyed by week number
+  # keyed by week number (numeric, stored as character key)
   # --------------------------------------------------------------------------
   load_adj_by_week <- function(ID, d_level) {
     file_path <- paste0(results_folder, '/', ID, '_', d_level, '_t', time_scale, '.RData')
@@ -918,17 +920,17 @@ plot_strata_instability_all_mice_v2 <- function(results_folder, time_scale, disc
     
     if (is.null(adj_A) || is.null(adj_B)) return(NULL)
     
-    # Weeks present in both strata
-    weeks_A       <- as.numeric(names(adj_A))
-    weeks_B       <- as.numeric(names(adj_B))
-    common_weeks  <- sort(intersect(weeks_A, weeks_B))
+    # Weeks present in both strata — sorted numerically
+    weeks_A      <- as.numeric(names(adj_A))
+    weeks_B      <- as.numeric(names(adj_B))
+    common_weeks <- sort(intersect(weeks_A, weeks_B))
     
     if (length(common_weeks) == 0) {
       message(sprintf("    No common weeks found for mouse %s — skipping.", ID))
       return(NULL)
     }
     
-    similarity_vals  <- numeric(length(common_weeks))
+    similarity_vals <- numeric(length(common_weeks))
     
     for (w_idx in seq_along(common_weeks)) {
       w      <- common_weeks[w_idx]
@@ -976,7 +978,7 @@ plot_strata_instability_all_mice_v2 <- function(results_folder, time_scale, disc
   # --------------------------------------------------------------------------
   # Collect data across all mice
   # --------------------------------------------------------------------------
-  all_IDs  <- discover_IDs()
+  all_IDs <- discover_IDs()
   
   if (length(all_IDs) == 0) {
     message(sprintf("No mice found with files for both %s and %s.", d_level_A, d_level_B))
@@ -990,7 +992,7 @@ plot_strata_instability_all_mice_v2 <- function(results_folder, time_scale, disc
   names(all_data) <- all_IDs
   
   # Remove mice with no data
-  all_data <- Filter(Negate(is.null), all_data)
+  all_data    <- Filter(Negate(is.null), all_data)
   present_IDs <- names(all_data)
   
   if (length(present_IDs) == 0) {
@@ -1010,17 +1012,45 @@ plot_strata_instability_all_mice_v2 <- function(results_folder, time_scale, disc
   # --------------------------------------------------------------------------
   # Build combined data frame for the all-mice overlay plot
   # --------------------------------------------------------------------------
-  combined_df        <- do.call(rbind, all_data)
-  combined_df$mouse  <- factor(combined_df$mouse, levels = present_IDs)
+  combined_df       <- do.call(rbind, all_data)
+  combined_df$mouse <- factor(combined_df$mouse, levels = present_IDs)
   
   plot_title <- sprintf("%s vs %s", d_level_A, d_level_B)
   
   # --------------------------------------------------------------------------
-  # Helper: build base ggplot for a given data frame
+  # Pre-compute loess fits separately per mouse.
+  # Avoids geom_smooth pooling across groups; also ensures NA rows (weeks
+  # where both strata had no edges) are dropped cleanly before fitting.
+  # --------------------------------------------------------------------------
+  loess_lines <- do.call(rbind, lapply(
+    split(combined_df, combined_df$mouse, drop = TRUE),
+    function(df) {
+      df <- df[!is.na(df$similarity), ]
+      if (nrow(df) < 4) return(NULL)
+      week_seq <- seq(min(df$week), max(df$week), length.out = 200)
+      fit <- tryCatch(
+        predict(loess(similarity ~ week, data = df), newdata = data.frame(week = week_seq)),
+        error = function(e) NULL
+      )
+      if (is.null(fit)) return(NULL)
+      data.frame(
+        week       = week_seq,
+        similarity = fit,
+        mouse      = df$mouse[1]
+      )
+    }
+  ))
+  loess_lines$mouse <- factor(loess_lines$mouse, levels = present_IDs)
+  
+  message(sprintf("[plot_strata_instability] loess computed for mice: %s",
+                  paste(unique(as.character(loess_lines$mouse)), collapse = ", ")))
+  
+  # --------------------------------------------------------------------------
+  # Helper: build base ggplot for a given loess data frame
   # --------------------------------------------------------------------------
   make_base_plot <- function(df) {
     ggplot(df, aes(x = week, y = similarity, color = mouse, group = mouse)) +
-      geom_smooth(method = "loess", se = FALSE, size = 0.8) +
+      geom_line(size = 0.9) +
       scale_color_manual(values = color_map) +
       scale_x_continuous(breaks = c(20, 25, 30, 35)) +
       labs(
@@ -1037,12 +1067,10 @@ plot_strata_instability_all_mice_v2 <- function(results_folder, time_scale, disc
       )
   }
   
-  
-  
   # --------------------------------------------------------------------------
   # Build combined (all-mice overlay) plots
   # --------------------------------------------------------------------------
-  base_combined <- make_base_plot(combined_df)
+  base_combined <- make_base_plot(loess_lines)
   
   plot_list_linear <- list()
   plot_list_sqrt   <- list()
@@ -1092,6 +1120,8 @@ plot_edge_stability_combined <- function(results_folder, time_scale, discrete_le
   #   (both graphs agree on having no edges).
   #   Loess is pre-computed separately per mouse x panel to guarantee
   #   within-panel fitting (geom_smooth pools across facets).
+  #   Panel labels are assigned after rbind to prevent factor-level
+  #   contamination across row blocks.
   #
   # inputs:
   #
@@ -1116,9 +1146,9 @@ plot_edge_stability_combined <- function(results_folder, time_scale, discrete_le
   # Panel display labels
   # --------------------------------------------------------------------------
   panel_labels <- c(
-    A_temporal   = "Temporal, Resting",
-    B_temporal   = "Temporal, Running",
-    cross        = "Cross-Stratum"
+    A_temporal = "Temporal, Resting",
+    B_temporal = "Temporal, Running",
+    cross      = "Cross-Stratum"
   )
   panel_order <- unname(panel_labels)   # controls facet stacking order
   
@@ -1135,14 +1165,13 @@ plot_edge_stability_combined <- function(results_folder, time_scale, discrete_le
     c(tau_ids, wt_ids, other)
   }
   
-  # IDs present in at least one level (for temporal panels)
   all_IDs_A <- discover_IDs_for_level(d_level_A)
   all_IDs_B <- discover_IDs_for_level(d_level_B)
   all_IDs   <- unique(c(all_IDs_A, all_IDs_B))
   
   # --------------------------------------------------------------------------
   # Load adjacency matrices for one mouse and one discrete level,
-  # keyed by week number
+  # keyed by week number (numeric, stored as character key)
   # --------------------------------------------------------------------------
   load_adj_by_week <- function(ID, d_level) {
     file_path <- paste0(results_folder, '/', ID, '_', d_level, '_t', time_scale, '.RData')
@@ -1169,27 +1198,38 @@ plot_edge_stability_combined <- function(results_folder, time_scale, discrete_le
   }
   
   # --------------------------------------------------------------------------
-  # Compute temporal Jaccard similarity (consecutive weeks) for one mouse
-  # within a single discrete level. Returns a data.frame or NULL.
+  # Compute temporal Jaccard similarity (consecutive weeks, gap == 1) for
+  # one mouse within a single discrete level. Returns a data.frame or NULL.
+  # Week index assigned at w_curr (the earlier of the two weeks).
+  # present_weeks is sorted numerically to prevent lexicographic misordering.
   # --------------------------------------------------------------------------
   compute_temporal_jaccard <- function(ID, d_level) {
     
     adj_by_week <- load_adj_by_week(ID, d_level)
     if (is.null(adj_by_week) || length(adj_by_week) < 2) return(NULL)
     
-    present_weeks     <- sort(as.numeric(names(adj_by_week)))
-    similarity_vals   <- c()
-    similarity_weeks  <- c()
+    # Numeric sort is essential — string sort of week keys can misordering
+    # (e.g. "9" > "38" lexicographically), creating spurious consecutive pairs
+    present_weeks    <- sort(as.numeric(names(adj_by_week)))
+    similarity_vals  <- c()
+    similarity_weeks <- c()
     
     for (w_idx in seq_len(length(present_weeks) - 1)) {
       w_curr <- present_weeks[w_idx]
       w_next <- present_weeks[w_idx + 1]
       
-      # Only compute for consecutive weeks (gap of exactly 1)
+      # Only compute for strictly consecutive weeks (gap of exactly 1)
       if (w_next - w_curr != 1) next
       
       A_curr <- adj_by_week[[as.character(w_curr)]]
       A_next <- adj_by_week[[as.character(w_next)]]
+      
+      # Guard against NULL lookup (e.g. week stored with unexpected key format)
+      if (is.null(A_curr) || is.null(A_next)) {
+        message(sprintf("    [%s %s] week %d or %d: NULL adj_mat — skipping pair",
+                        ID, d_level, w_curr, w_next))
+        next
+      }
       
       # Align dimensions if neuron count differs across weeks
       n_min <- min(nrow(A_curr), nrow(A_next))
@@ -1241,7 +1281,7 @@ plot_edge_stability_combined <- function(results_folder, time_scale, discrete_le
     
     if (is.null(adj_A) || is.null(adj_B)) return(NULL)
     
-    # Weeks present in both strata
+    # Weeks present in both strata — sorted numerically
     common_weeks <- sort(intersect(as.numeric(names(adj_A)),
                                    as.numeric(names(adj_B))))
     
@@ -1257,6 +1297,14 @@ plot_edge_stability_combined <- function(results_folder, time_scale, discrete_le
       w      <- common_weeks[w_idx]
       A_curr <- adj_A[[as.character(w)]]
       B_curr <- adj_B[[as.character(w)]]
+      
+      # Guard against NULL lookup
+      if (is.null(A_curr) || is.null(B_curr)) {
+        message(sprintf("    [%s] week %d: NULL adj_mat in one stratum — skipping",
+                        ID, w))
+        similarity_vals[w_idx] <- NA
+        next
+      }
       
       # Align dimensions if neuron count differs between strata
       n_min <- min(nrow(A_curr), nrow(B_curr))
@@ -1296,7 +1344,10 @@ plot_edge_stability_combined <- function(results_folder, time_scale, discrete_le
   }
   
   # --------------------------------------------------------------------------
-  # Collect all three panels' data across all mice
+  # Collect all three panels' data across all mice.
+  # Panel labels are assigned AFTER rbind to prevent factor-level
+  # contamination: if labels were set before rbind as factors with different
+  # level sets, rows could silently receive wrong panel assignments.
   # --------------------------------------------------------------------------
   message(sprintf("Computing temporal Jaccard: %s", d_level_A))
   rows_A <- do.call(rbind, Filter(Negate(is.null),
@@ -1307,18 +1358,24 @@ plot_edge_stability_combined <- function(results_folder, time_scale, discrete_le
                                   lapply(all_IDs_B, compute_temporal_jaccard, d_level = d_level_B)))
   
   message(sprintf("Computing cross-stratum Jaccard: %s vs %s", d_level_A, d_level_B))
-  cross_IDs <- intersect(all_IDs_A, all_IDs_B)   # must have files for both strata
+  cross_IDs  <- intersect(all_IDs_A, all_IDs_B)
   rows_cross <- do.call(rbind, Filter(Negate(is.null),
                                       lapply(cross_IDs, compute_cross_stratum_jaccard)))
   
-  # Tag each block with its panel label, then combine
+  # Assign panel labels as plain character AFTER each block is assembled,
+  # then combine — this guarantees no row inherits a label from a different block
   if (!is.null(rows_A))     rows_A$panel     <- panel_labels[["A_temporal"]]
   if (!is.null(rows_B))     rows_B$panel     <- panel_labels[["B_temporal"]]
   if (!is.null(rows_cross)) rows_cross$panel <- panel_labels[["cross"]]
   
   plot_df       <- do.call(rbind, list(rows_A, rows_B, rows_cross))
+  # Convert to factors only after rbind, with verified level sets
   plot_df$mouse <- factor(plot_df$mouse, levels = all_IDs)
   plot_df$panel <- factor(plot_df$panel, levels = panel_order)
+  
+  # Sanity check: print row counts per mouse x panel to confirm no contamination
+  message("[plot_edge_stability_combined] row counts per mouse x panel:")
+  print(table(plot_df$mouse, plot_df$panel, useNA = "always"))
   
   # --------------------------------------------------------------------------
   # Color palette: Tau in warm tones, WT in cool tones
@@ -1332,14 +1389,13 @@ plot_edge_stability_combined <- function(results_folder, time_scale, discrete_le
   # --------------------------------------------------------------------------
   # Pre-compute loess fits separately per mouse x panel.
   # This is necessary because geom_smooth pools all data before faceting,
-  # so it would fit loess across all three panels rather than within each.
-  # NA rows (e.g. cross-stratum weeks with no edges in either stratum)
-  # are dropped before fitting.
+  # fitting loess across all three panels rather than within each.
+  # NA similarity rows are dropped before fitting.
   # --------------------------------------------------------------------------
   loess_lines <- do.call(rbind, lapply(
     split(plot_df, list(plot_df$mouse, plot_df$panel), drop = TRUE),
     function(df) {
-      df <- df[!is.na(df$similarity), ]   # drop NA similarity values
+      df <- df[!is.na(df$similarity), ]
       if (nrow(df) < 4) return(NULL)
       week_seq <- seq(min(df$week), max(df$week), length.out = 200)
       fit <- tryCatch(
@@ -1358,13 +1414,17 @@ plot_edge_stability_combined <- function(results_folder, time_scale, discrete_le
   loess_lines$mouse <- factor(loess_lines$mouse, levels = all_IDs)
   loess_lines$panel <- factor(loess_lines$panel, levels = panel_order)
   
+  # Confirm loess split respected panel boundaries
+  message("[plot_edge_stability_combined] loess row counts per mouse x panel:")
+  print(table(loess_lines$mouse, loess_lines$panel, useNA = "always"))
+  
   # --------------------------------------------------------------------------
   # Build the shared base plot: loess curves drawn from pre-computed
   # predictions via geom_line, faceted by panel and stacked vertically
   # (ncol = 1). Legend placed below all panels.
   # --------------------------------------------------------------------------
-  base_plot <- ggplot(loess_lines, aes(x = week, y = similarity, color = mouse, group = mouse)) +
-    # Loess curves pre-computed per mouse x panel — not fit across panels
+  base_plot <- ggplot(loess_lines,
+                      aes(x = week, y = similarity, color = mouse, group = mouse)) +
     geom_line(size = 0.9) +
     facet_wrap(~ panel, ncol = 1) +
     scale_color_manual(values = color_map) +
@@ -1381,14 +1441,14 @@ plot_edge_stability_combined <- function(results_folder, time_scale, discrete_le
       legend.position = "bottom"
     )
   
-  # Linear y-axis: range 0–0.25 with ticks at 0.00, 0.125, 0.25
+  # Linear y-axis
   g <- base_plot +
     scale_y_continuous(
       breaks = c(0, 0.2, 0.4),
       limits = c(-0.1, 0.5)
     )
   
-  # Sqrt-transformed y-axis: same tick marks, same range
+  # Sqrt-transformed y-axis
   g_sqrt <- base_plot +
     scale_y_continuous(
       trans  = "sqrt",
@@ -2481,9 +2541,9 @@ plot_degree_ridgeline_all_mice <- function(results_folder, time_scale, discrete_
     # 1. Faint dotted reference lines at canonical normalized-degree values
     geom_vline(
       xintercept = c(0, 0.25, 0.5, 0.75, 1),
-      color      = "gray80",
+      color      = "gray50",
       linewidth  = 0.35,
-      linetype   = "dotted"
+      linetype   = "dashed"
     ) +
     # 2. Shaded vertical band spanning IQR of per-week medians per panel;
     #    ymin/ymax use -Inf/Inf so the band spans the full panel height
