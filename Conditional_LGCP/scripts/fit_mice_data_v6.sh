@@ -49,7 +49,7 @@ model_type="mice"  # simu or mice
 eigen_setting="only_joint"  #only_joint, trig_and_joint, trig_simple
 global_thresh_method="neither" # both, joint, tau_c, or neither
 
-experiment_folder='experiment_12'
+experiment_folder='experiment_13'
 y_c_structure="week_only"
 method="CPGM"
 min_connect_pcts=($(seq 0.01 0.01 0.15))    # 1 percent = 0.01
@@ -77,7 +77,7 @@ if [ "$cluster" == "hoffman" ]; then
     mkdir -p ../../../project-biostat-chair/script_outputs/mice
     
 else
-    IDs=("Tau1" "Tau2" "Tau3")
+    IDs=("Tau1" "Tau2" "Tau3" "WT1" "WT2" "WT3")
     movement=(1 0)
     VR=(1 1)
     
@@ -88,7 +88,7 @@ else
     # HIP, 0.001,  Tau2_m0vr1, WT1_m0vr0, WT2_m0vr1
     # EHC, 0.0003, WT2_m0vr1
     # HIP, 0.0003, Tau2_m0vr1, WT1_m0vr0, WT2_m0vr1
-    y_c_bandwidth=0.001 # usually its 0.3, exp(-gamma * y_c_diff^2), use NULL for default
+    y_c_bandwidth=0.0001 # usually its 0.3, exp(-gamma * y_c_diff^2), use NULL for default
     
     # y_c_bandwidth='1_default'       --> 1 * default
     # y_c_bandwidth='0.1_default'     --> 0.1 * default

@@ -1689,6 +1689,8 @@ visualize_strata_all_mice <- function(results_folder, time_scale, discrete_level
   ))
 }
 
+
+# plot edge sets over time, bread and butter edge set visualization
 visualize_strata_all_mice_v2 <- function(results_folder, time_scale, discrete_levels, output, region_border) {
   
   # ----------------------------------------------------------------------------
@@ -1709,9 +1711,23 @@ visualize_strata_all_mice_v2 <- function(results_folder, time_scale, discrete_le
   #   - plots   : named list of ggplot objects, one per discrete level
   #   - n_mice  : named integer list of mouse counts, one per discrete level
   #
+  # Color scheme for output == 'adj':
+  #   HIP-HIP edges  -> lime green  (#39D43A)
+  #   EHC-EHC edges  -> electric blue (#0057FF)
+  #   HIP-EHC edges  -> cyan (#1BA8A8)  [additive light fusion]
+  #
+  # Region assignment: nodes 1..boundary are HIP, nodes (boundary+1)..max_node
+  # are EHC, where boundary = floor(first element of boundaries vector).
+  # If no boundary is available, all nodes are treated as HIP-HIP.
+  #
   # ----------------------------------------------------------------------------
   
   all_weeks <- 17:38
+  
+  # Color constants for adj output
+  COL_HIP_HIP <- "#39D43A"   # lime green  (HIP)
+  COL_EHC_EHC <- "#0057FF"   # electric blue (EHC)
+  COL_HIP_EHC <- "#1BA8A8"   # cyan (additive light fusion)
   
   # --------------------------------------------------------------------------
   # Discover all IDs present in the folder for a given discrete level
@@ -1806,6 +1822,23 @@ visualize_strata_all_mice_v2 <- function(results_folder, time_scale, discrete_le
   }
   
   # --------------------------------------------------------------------------
+  # Helper: classify an edge (row_node, col_node) given the HIP boundary.
+  # All nodes <= hip_boundary are HIP; nodes > hip_boundary are EHC.
+  # Returns one of: "HIP_HIP", "EHC_EHC", "HIP_EHC"
+  # If hip_boundary is NA (no boundary available), returns "HIP_HIP" for all.
+  # --------------------------------------------------------------------------
+  classify_edge <- function(row_nodes, col_nodes, hip_boundary) {
+    if (is.na(hip_boundary)) return(rep("HIP_HIP", length(row_nodes)))
+    row_is_hip <- row_nodes <= hip_boundary
+    col_is_hip <- col_nodes <= hip_boundary
+    dplyr::case_when(
+      row_is_hip &  col_is_hip ~ "HIP_HIP",
+      !row_is_hip & !col_is_hip ~ "EHC_EHC",
+      TRUE                      ~ "HIP_EHC"
+    )
+  }
+  
+  # --------------------------------------------------------------------------
   # Build one plot per discrete stratum
   # --------------------------------------------------------------------------
   plot_list          <- list()
@@ -1836,15 +1869,29 @@ visualize_strata_all_mice_v2 <- function(results_folder, time_scale, discrete_le
       present_IDs
     )
     
+    # ── per-mouse HIP boundary: floor of first boundary value, or NA ─────────
+    # boundaries vector from get_factor_boundaries contains midpoints (e.g. 50.5
+    # for a 50/50 split). floor() gives the last HIP node index.
+    hip_boundary_lookup <- setNames(
+      sapply(present_IDs, function(ID) {
+        b <- loaded_data[[ID]]$boundaries
+        if (length(b) == 0) NA_real_ else floor(b[1])
+      }),
+      present_IDs
+    )
+    message("HIP boundary lookup: ", paste(names(hip_boundary_lookup), hip_boundary_lookup, sep = "=", collapse = ", "))
+    
     # ------------------------------------------------------------------------
     # Build plot_data: tile centers at (2k-1)/(2*max_node), tile_size=1/max_node
     # so tile edges span exactly [0,1]. All mice share the same [0,1] coordinate
     # space so coord_fixed(ratio=1) enforces square panels identically for all.
+    # For output == 'adj', a Region_Type column is added for color mapping.
     # ------------------------------------------------------------------------
     plot_data_list <- list()
     
     for (ID in present_IDs) {
       max_node    <- max_node_lookup[[ID]]
+      hip_boundary <- hip_boundary_lookup[[ID]]
       tile_size   <- 1 / max_node
       row_content <- loaded_data[[ID]]$sparse_data
       for (c_idx in seq_along(row_content)) {
@@ -1856,6 +1903,12 @@ visualize_strata_all_mice_v2 <- function(results_folder, time_scale, discrete_le
         mirrored$Node_Col <- original$Node_Row
         # unique before rescaling so integer dedup is exact
         combined_df <- unique(rbind(original, mirrored))
+        # assign region type before rescaling (node indices still integer here)
+        if (output == "adj") {
+          combined_df$Region_Type <- classify_edge(
+            combined_df$Node_Row, combined_df$Node_Col, hip_boundary
+          )
+        }
         # tile center: (2k-1)/(2*max_node) maps node 1 to 1/(2n) and
         # node n to (2n-1)/(2n), so tile edges align exactly with [0,1]
         combined_df$Node_Row  <- (2 * combined_df$Node_Row - 1) / (2 * max_node)
@@ -1872,7 +1925,8 @@ visualize_strata_all_mice_v2 <- function(results_folder, time_scale, discrete_le
     } else {
       plot_data <- data.frame(Node_Row = NA, Node_Col = NA, tile_size = NA,
                               Row_ID = present_IDs[1], Col_ID = all_weeks[1])
-      if (output %in% c("P_HS", "C_HS")) plot_data$Value <- NA
+      if (output == "adj")                    plot_data$Region_Type <- NA_character_
+      if (output %in% c("P_HS", "C_HS"))     plot_data$Value       <- NA
     }
     
     # Pad missing mice
@@ -1880,12 +1934,17 @@ visualize_strata_all_mice_v2 <- function(results_folder, time_scale, discrete_le
     if (length(missing_IDs) > 0) {
       dummy <- data.frame(Node_Row = NA, Node_Col = NA, tile_size = NA,
                           Row_ID = missing_IDs, Col_ID = all_weeks[1])
-      if (output %in% c("P_HS", "C_HS")) dummy$Value <- NA
+      if (output == "adj")                    dummy$Region_Type <- NA_character_
+      if (output %in% c("P_HS", "C_HS"))     dummy$Value       <- NA
       plot_data <- rbind(plot_data, dummy)
     }
     
     plot_data$Row_ID <- factor(plot_data$Row_ID, levels = present_IDs)
     plot_data$Col_ID <- factor(plot_data$Col_ID, levels = all_weeks)
+    if (output == "adj") {
+      plot_data$Region_Type <- factor(plot_data$Region_Type,
+                                      levels = c("HIP_HIP", "EHC_EHC", "HIP_EHC"))
+    }
     
     # ------------------------------------------------------------------------
     # Build bg_gray_data: one row per (mouse, absent week) — geom_rect with
@@ -1956,12 +2015,25 @@ visualize_strata_all_mice_v2 <- function(results_folder, time_scale, discrete_le
       }
     
     # Layer 2: edge tiles — tile_size varies per mouse so all matrices fill
-    # [0,1] corner to corner regardless of adjacency matrix dimension
+    # [0,1] corner to corner regardless of adjacency matrix dimension.
+    # For adj output, Region_Type drives fill color via scale_fill_manual.
+    # For P_HS / C_HS output, continuous Value drives fill via scale_fill_gradient2.
     if (output == "adj") {
       g <- g + geom_tile(data = plot_data,
                          aes(x = Node_Col, y = Node_Row,
-                             width = tile_size, height = tile_size),
-                         fill = "red")
+                             width = tile_size, height = tile_size,
+                             fill = Region_Type)) +
+        scale_fill_manual(
+          name   = "Edge type",
+          values = c(HIP_HIP = COL_HIP_HIP,
+                     EHC_EHC = COL_EHC_EHC,
+                     HIP_EHC = COL_HIP_EHC),
+          labels = c(HIP_HIP = "HIP–HIP",
+                     EHC_EHC = "EHC–EHC",
+                     HIP_EHC = "HIP–EHC"),
+          na.value = "transparent"
+        ) +
+        theme(legend.position = "right")
     } else {
       zmin <- min(plot_data$Value, na.rm = TRUE)
       zmax <- max(plot_data$Value, na.rm = TRUE)
@@ -2009,8 +2081,6 @@ visualize_strata_all_mice_v2 <- function(results_folder, time_scale, discrete_le
         strip.background = element_rect(fill = "gray95"),
         strip.text       = element_text(face = "bold", size = rel(2))
       )
-    
-    if (output == "adj") g <- g + theme(legend.position = "none")
     
     n_mice_per_stratum[[d_level]] <- length(present_IDs)
     plot_list[[d_level]]          <- g
