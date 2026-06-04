@@ -620,16 +620,16 @@ plot_edge_instability_all_mice_v2 <- function(results_folder, time_scale, discre
   # Linear y-axis: range 0–0.5 with ticks only at 0.00, 0.25, 0.50
   g <- base_plot +
     scale_y_continuous(
-      breaks = c(0, 0.25, 0.50),
-      limits = c(0, 0.50)
+      breaks = c(0, 0.2, 0.4, 0.6),
+      limits = c(0, 0.7)
     )
   
   # Sqrt-transformed y-axis: same tick marks, same range
   g_sqrt <- base_plot +
     scale_y_continuous(
       trans  = "sqrt",
-      breaks = c(0, 0.25, 0.50),
-      limits = c(0, 0.50)
+      breaks = c(0, 0.2, 0.4, 0.6),
+      limits = c(0, 0.7)
     )
   
   return(list(linear = g, sqrt = g_sqrt))
@@ -1503,16 +1503,16 @@ plot_edge_stability_combined <- function(results_folder, time_scale, discrete_le
   # Linear y-axis
   g <- base_plot +
     scale_y_continuous(
-      breaks = c(0, 0.2, 0.4),
-      limits = c(-0.1, 0.5)
+      breaks = c(0, 0.2, 0.4, 0.6),
+      limits = c(-0.1, 0.7)
     )
   
   # Sqrt-transformed y-axis
   g_sqrt <- base_plot +
     scale_y_continuous(
       trans  = "sqrt",
-      breaks = c(0, 0.2, 0.4),
-      limits = c(-0.1, 0.5)
+      breaks = c(0, 0.2, 0.4, 0.6),
+      limits = c(-0.1, 0.7)
     )
   
   return(list(linear = g, sqrt = g_sqrt))
