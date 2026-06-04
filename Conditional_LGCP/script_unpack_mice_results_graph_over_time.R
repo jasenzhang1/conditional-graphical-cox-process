@@ -11,8 +11,8 @@ source('functions/20_simulation_function_wrapper.R')
 
 
 args <- commandArgs(trailingOnly = TRUE)
-experiment_folder <- args[1]  # "mice_results/experiment_9"
-results_folder    <- args[2]  # "mice_results/experiment_9/week_only_bw_default_min_02" etc.
+experiment_folder <- args[1]  # "mice_results/experiment_12"
+results_folder    <- args[2]  # "mice_results/experiment_12/week_only_bw_001_min_05" etc.
 
 print(experiment_folder)
 print(results_folder)
@@ -110,6 +110,7 @@ instability_plots <- plot_edge_instability_all_mice_v2(
   time_scale      = time_scale,
   discrete_levels = discrete_levels
 )
+
 for (scale_type in c("linear", "sqrt")) {
   png_name <- paste0(graph_folder, '/all_mice_t', time_scale, '_temporal_jaccard_loess_', scale_type, '.png')
   png(png_name, width = 7, height = 10, units = "in", res = 300)

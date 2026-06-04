@@ -368,6 +368,8 @@ plot_edge_instability_all_mice_v2 <- function(results_folder, time_scale, discre
   #       of the two edge sets. Value of 0 = identical graphs, 1 = fully
   #       disjoint. Only computed for consecutive present weeks (gap = 1).
   #       All computations use upper triangle only to exclude diagonal.
+  #       Loess is pre-computed separately per mouse x stratum to guarantee
+  #       within-panel fitting (geom_smooth pools across facets).
   #
   # inputs:
   #
@@ -407,8 +409,17 @@ plot_edge_instability_all_mice_v2 <- function(results_folder, time_scale, discre
     
     for (d_level in discrete_levels) {
       
+      stratum_label <- ifelse(d_level %in% names(stratum_labels),
+                              stratum_labels[[d_level]],
+                              d_level)
+      
       file_path <- paste0(results_folder, '/', ID, '_', d_level, '_t', time_scale, '.RData')
-      if (!file.exists(file_path)) next
+      if (!file.exists(file_path)) {
+        message(sprintf("  [SKIP] mouse=%s, stratum=%s: file not found", ID, stratum_label))
+        next
+      }
+      
+      message(sprintf("  [LOAD] mouse=%s, stratum=%s", ID, stratum_label))
       
       tmp_env <- new.env()
       load(file_path, envir = tmp_env)
@@ -417,7 +428,8 @@ plot_edge_instability_all_mice_v2 <- function(results_folder, time_scale, discre
       step_data <- res_i$step_12b
       y_c_weeks <- as.numeric(res_i$y_c_query)
       
-      # Build named list of adjacency matrices keyed by week
+      # Build named list of adjacency matrices keyed by week;
+      # keys stored as character but sorted numerically below
       adj_by_week <- list()
       for (idx in seq_along(y_c_weeks)) {
         adj_mat <- step_data[[idx]][["adj_mat_KL_GIC_local_est_eig3"]]
@@ -426,6 +438,8 @@ plot_edge_instability_all_mice_v2 <- function(results_folder, time_scale, discre
         }
       }
       
+      # Numeric sort is essential — string sort of week keys can misordering
+      # (e.g. "9" > "38" lexicographically), creating spurious consecutive pairs
       present_weeks     <- sort(as.numeric(names(adj_by_week)))
       instability_vals  <- c()
       instability_weeks <- c()
@@ -439,6 +453,13 @@ plot_edge_instability_all_mice_v2 <- function(results_folder, time_scale, discre
         
         A_curr <- adj_by_week[[as.character(w_curr)]]
         A_next <- adj_by_week[[as.character(w_next)]]
+        
+        # Guard against NULL lookup (e.g. week stored with unexpected key format)
+        if (is.null(A_curr) || is.null(A_next)) {
+          message(sprintf("    [%s | %s] week %d or %d: NULL adj_mat — skipping pair",
+                          ID, stratum_label, w_curr, w_next))
+          next
+        }
         
         # Align dimensions if neuron count differs across weeks
         n_min <- min(nrow(A_curr), nrow(A_next))
@@ -455,18 +476,19 @@ plot_edge_instability_all_mice_v2 <- function(results_folder, time_scale, discre
         denom       <- union_edges
         
         if (denom == 0) {
-          instability_vals <- c(instability_vals, 1)
-          message(sprintf("    week %d -> %d: edges_curr=%g, edges_next=%g — both empty, instability=0",
-                          w_curr, w_next, edges_curr, edges_next))
+          # Both graphs have no edges — instability is 0 (they agree)
+          instability_vals <- c(instability_vals, 0)
+          message(sprintf("    [%s | %s] week %d -> %d: edges_curr=%g, edges_next=%g — both empty, instability=0",
+                          ID, stratum_label, w_curr, w_next, edges_curr, edges_next))
         } else {
           sym_diff        <- sum(abs(A_curr[upper] - A_next[upper]))
-          instability_val <- 1 - sym_diff / denom
+          instability_val <- sym_diff / denom
           instability_vals <- c(instability_vals, instability_val)
-          message(sprintf("    week %d -> %d: edges_curr=%g, edges_next=%g, gained=%g, lost=%g, sym_diff=%g, denom=%g, instability=%.4f",
-                          w_curr, w_next,
+          message(sprintf("    [%s | %s] week %d -> %d: edges_curr=%g, edges_next=%g, gained=%g, lost=%g, sym_diff=%g, denom=%g, instability=%.4f",
+                          ID, stratum_label, w_curr, w_next,
                           edges_curr, edges_next,
-                          sum(A_next[upper] > A_curr[upper]),   # edges gained
-                          sum(A_curr[upper] > A_next[upper]),   # edges lost
+                          sum(A_next[upper] > A_curr[upper]),
+                          sum(A_curr[upper] > A_next[upper]),
                           sym_diff, denom,
                           instability_val))
         }
@@ -480,6 +502,9 @@ plot_edge_instability_all_mice_v2 <- function(results_folder, time_scale, discre
           instability = instability_vals,
           mouse       = ID
         )
+      } else {
+        message(sprintf("  [WARN] mouse=%s, stratum=%s: no consecutive week pairs found",
+                        ID, stratum_label))
       }
       
       rm(tmp_env, res_i, step_data)
@@ -492,7 +517,10 @@ plot_edge_instability_all_mice_v2 <- function(results_folder, time_scale, discre
   # Collect data across all mice
   # --------------------------------------------------------------------------
   all_IDs  <- unique(unlist(lapply(discrete_levels, discover_IDs)))
-  all_data <- lapply(all_IDs, load_instability)
+  
+  message(sprintf("[plot_edge_instability] mice found: %s", paste(all_IDs, collapse = ", ")))
+  
+  all_data        <- lapply(all_IDs, load_instability)
   names(all_data) <- all_IDs
   
   # --------------------------------------------------------------------------
@@ -508,8 +536,8 @@ plot_edge_instability_all_mice_v2 <- function(results_folder, time_scale, discre
   # Combine all strata into a single long data frame, applying display labels
   # where available (e.g. m0vr1 -> "Resting", m1vr1 -> "Running").
   # Strata without a label entry keep their original name.
-  # The stratum column is an ordered factor to control facet ordering
-  # (Resting on top, Running below).
+  # Panel labels assigned as plain character before rbind, then converted to
+  # ordered factor after, to prevent level contamination across blocks.
   # --------------------------------------------------------------------------
   all_rows <- list()
   for (d_level in discrete_levels) {
@@ -524,7 +552,7 @@ plot_edge_instability_all_mice_v2 <- function(results_folder, time_scale, discre
   }
   
   plot_df        <- do.call(rbind, all_rows)
-  plot_df$mouse  <- factor(plot_df$mouse,  levels = all_IDs)
+  plot_df$mouse  <- factor(plot_df$mouse, levels = all_IDs)
   
   # Derive ordered factor levels from discrete_levels order, mapped through labels
   stratum_level_order <- ifelse(discrete_levels %in% names(stratum_labels),
@@ -532,23 +560,54 @@ plot_edge_instability_all_mice_v2 <- function(results_folder, time_scale, discre
                                 discrete_levels)
   plot_df$stratum <- factor(plot_df$stratum, levels = stratum_level_order)
   
+  # Sanity check: row counts per mouse x stratum
+  message("[plot_edge_instability] row counts per mouse x stratum:")
+  print(table(plot_df$mouse, plot_df$stratum, useNA = "always"))
+  
   # --------------------------------------------------------------------------
-  # Build the shared base plot: one loess curve per mouse, no CI,
-  # faceted by stratum and stacked vertically (ncol = 1).
-  # Legend placed below all panels.
+  # Pre-compute loess fits separately per mouse x stratum.
+  # Necessary because geom_smooth pools all data before faceting,
+  # fitting loess across all strata rather than within each.
   # --------------------------------------------------------------------------
-  base_plot <- ggplot(plot_df, aes(x = week, y = instability, color = mouse, group = mouse)) +
-    geom_smooth(
-      method  = "loess", formula = y ~ x,
-      se      = FALSE,
-      size    = 0.9
-    ) +
+  loess_lines <- do.call(rbind, lapply(
+    split(plot_df, list(plot_df$mouse, plot_df$stratum), drop = TRUE),
+    function(df) {
+      df <- df[!is.na(df$instability), ]
+      if (nrow(df) < 4) return(NULL)
+      week_seq <- seq(min(df$week), max(df$week), length.out = 200)
+      fit <- tryCatch(
+        predict(loess(instability ~ week, data = df), newdata = data.frame(week = week_seq)),
+        error = function(e) NULL
+      )
+      if (is.null(fit)) return(NULL)
+      data.frame(
+        week        = week_seq,
+        instability = fit,
+        mouse       = df$mouse[1],
+        stratum     = df$stratum[1]
+      )
+    }
+  ))
+  loess_lines$mouse   <- factor(loess_lines$mouse,   levels = all_IDs)
+  loess_lines$stratum <- factor(loess_lines$stratum, levels = stratum_level_order)
+  
+  message("[plot_edge_instability] loess row counts per mouse x stratum:")
+  print(table(loess_lines$mouse, loess_lines$stratum, useNA = "always"))
+  
+  # --------------------------------------------------------------------------
+  # Build the shared base plot: loess curves drawn from pre-computed
+  # predictions via geom_line, faceted by stratum and stacked vertically
+  # (ncol = 1). Legend placed below all panels.
+  # --------------------------------------------------------------------------
+  base_plot <- ggplot(loess_lines,
+                      aes(x = week, y = instability, color = mouse, group = mouse)) +
+    geom_line(size = 0.9) +
     facet_wrap(~ stratum, ncol = 1) +
     scale_color_manual(values = color_map) +
     scale_x_continuous(breaks = c(20, 25, 30, 35)) +
     labs(
       x     = "Age (Weeks)",
-      y     = "Jaccard Similarity",
+      y     = "Edge Instability",
       color = "Mouse"
     ) +
     guides(color = guide_legend(nrow = 1)) +
@@ -568,9 +627,9 @@ plot_edge_instability_all_mice_v2 <- function(results_folder, time_scale, discre
   # Sqrt-transformed y-axis: same tick marks, same range
   g_sqrt <- base_plot +
     scale_y_continuous(
-      trans   = "sqrt",
-      breaks  = c(0, 0.25, 0.50),
-      limits  = c(0, 0.50)
+      trans  = "sqrt",
+      breaks = c(0, 0.25, 0.50),
+      limits = c(0, 0.50)
     )
   
   return(list(linear = g, sqrt = g_sqrt))
