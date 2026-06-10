@@ -81,7 +81,7 @@ result <- visualize_edge_set_one_mouse_all_strata(
 )
 # --- save ---
 png(file.path(graph_folder, paste0("Fig_1a.png")),
-    width = 3600, height = 600, res = 150)
+    width = 3000, height = 600, res = 150)
 print(result$plot)
 dev.off()
 
@@ -89,19 +89,15 @@ dev.off()
 # Figure 1b: Jaccard similarity and why it's bad
 
 discrete_levels_vr1 <- paste0('m', c(0, 1), 'vr', c(1, 1))   # c('m0vr1', 'm1vr1')
-
 stability_plots <- plot_edge_stability_combined(
   results_folder  = results_folder,
   time_scale      = time_scale,
   discrete_levels = discrete_levels_vr1
 )
 
-for (scale_type in c("linear", "sqrt")) {
-  png_name <- paste0(graph_folder, '/Fig_1b.png')
-  png(png_name, width = 7, height = 7, units = "in", res = 300)
-  print(stability_plots[[scale_type]])
-  dev.off()
-}
+png(file.path(graph_folder, "Fig_1b.png"), width = 7, height = 7, units = "in", res = 300)
+print(stability_plots[["linear"]])
+dev.off()
 
 # ------------------------------------------------------------------------------
 # plot edge regional proportions across strata
@@ -143,17 +139,17 @@ result <- visualize_strata_some_mice(
   discrete_levels = c("m0vr1", "m1vr1"),
   output          = "adj",
   region_border   = TRUE,
-  display_weeks   = 26:33,
+  display_weeks   = 19:26,
   display_mice    = c("WT1", "WT2", "WT3")
 )
 
 png(file.path(graph_folder, "Fig_3b_resting.png"),
-    width = 2400, height = 400, res = 150)
+    width = 3000, height = 800, res = 150)
 print(result$plots[["m0vr1"]])
 dev.off()
 
 png(file.path(graph_folder, "Fig_3b_running.png"),
-    width = 2400, height = 400, res = 150)
+    width = 3000, height = 800, res = 150)
 print(result$plots[["m1vr1"]])
 dev.off()
 
