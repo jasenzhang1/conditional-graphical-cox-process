@@ -1,7 +1,7 @@
 
 # for one mouse, plot its edge sets across both strata
 
-visualize_edge_set_one_mouse_all_strata <- function(results_folder, all_weeks, display_weeks, time_scale, discrete_levels, output, region_border, mouse_ID) {
+visualize_edge_set_one_mouse_all_strata <- function(results_folder, all_weeks, time_scale, discrete_levels, output, region_border, mouse_ID, display_weeks = all_weeks) {
   
   # ----------------------------------------------------------------------------
   #
@@ -15,12 +15,13 @@ visualize_edge_set_one_mouse_all_strata <- function(results_folder, all_weeks, d
   # - results_folder   (string)
   # - all_weeks        (vector)  full set of possible weeks, e.g. 17:38;
   #                              used only to compute absent_weeks
-  # - display_weeks    (vector)  subset of weeks to actually show, e.g. 17:22
   # - time_scale       (integer)  e.g. 10
   # - discrete_levels  (vector of strings)  e.g. c("m0vr1", "m1vr1")
   # - output           (string)   'adj', 'P_HS', or 'C_HS'
   # - region_border    (boolean)
   # - mouse_ID         (string)   e.g. "Tau1", "WT2"
+  # - display_weeks    (vector)  subset of weeks to actually show, e.g. 17:22;
+  #                              defaults to all_weeks
   #
   # returns: named list with two elements:
   #   - plot         : single ggplot object (all strata as rows)
@@ -72,7 +73,7 @@ visualize_edge_set_one_mouse_all_strata <- function(results_folder, all_weeks, d
     } else {
       boundaries <- numeric(0)
     }
-    y_c_weeks <- as.numeric(res_i$y_c_query)
+    y_c_weeks    <- as.numeric(res_i$y_c_query)
     # absent_weeks: weeks in display_weeks that were not estimated
     absent_weeks <- setdiff(display_weeks, y_c_weeks)
     sparse_data  <- list()
@@ -291,6 +292,7 @@ visualize_edge_set_one_mouse_all_strata <- function(results_folder, all_weeks, d
   # (e.g. 4.5 = between node 4 and 5). Apply same rescaling as tile centers:
   # b -> (2b-1)/(2*max_node), which places the line at the exact midpoint
   # between the two flanking tile centers in [0,1] space.
+  # Col_ID is factored over display_weeks so panels align with plot_data.
   # --------------------------------------------------------------------------
   boundary_data_list <- list()
   for (d_level in found_levels) {
@@ -300,7 +302,7 @@ visualize_edge_set_one_mouse_all_strata <- function(results_folder, all_weeks, d
     if (length(boundaries_i) == 0) next
     if (max_node == 1) next
     absent_i        <- loaded_data[[d_level]]$absent_weeks
-    present_weeks_i <- intersect(setdiff(display_weeks, absent_i), display_weeks)
+    present_weeks_i <- setdiff(display_weeks, absent_i)
     if (length(present_weeks_i) == 0) next
     bd <- expand.grid(
       Row_ID   = row_label,
@@ -314,6 +316,7 @@ visualize_edge_set_one_mouse_all_strata <- function(results_folder, all_weeks, d
   if (length(boundary_data_list) > 0) {
     boundary_data        <- do.call(rbind, boundary_data_list)
     boundary_data$Row_ID <- factor(boundary_data$Row_ID, levels = pretty_levels)
+    # factor over display_weeks — must match plot_data$Col_ID levels exactly
     boundary_data$Col_ID <- factor(boundary_data$Col_ID, levels = display_weeks)
   } else {
     boundary_data <- NULL
@@ -376,10 +379,10 @@ visualize_edge_set_one_mouse_all_strata <- function(results_folder, all_weeks, d
     g <- g +
       geom_vline(data = boundary_data,
                  aes(xintercept = boundary),
-                 color = "gray40", alpha = 1, size = 0.3) +
+                 color = "gray40", alpha = 1, linewidth = 0.3) +
       geom_hline(data = boundary_data,
                  aes(yintercept = boundary),
-                 color = "gray40", alpha = 1, size = 0.3)
+                 color = "gray40", alpha = 1, linewidth = 0.3)
   }
   
   # Layer 4: facet + formatting.
@@ -388,9 +391,8 @@ visualize_edge_set_one_mouse_all_strata <- function(results_folder, all_weeks, d
   # scale_x/y with expand=c(0,0) removes ggplot's default padding so tiles
   # fill the panel exactly edge to edge.
   # scale_y_reverse: node 1 at top, conventional matrix layout.
-  # plot title identifies the mouse.
-  # labeller: column strips show "Week N" instead of raw week numbers;
-  #           row strips show the pretty stratum label unchanged.
+  # plot title is blank (mouse ID removed).
+  # labeller: column strips show "Week N"; row strips show pretty stratum label.
   g <- g +
     scale_x_continuous(limits = c(0, 1), expand = c(0, 0)) +
     scale_y_reverse(limits = c(1, 0), expand = c(0, 0)) +
@@ -399,7 +401,7 @@ visualize_edge_set_one_mouse_all_strata <- function(results_folder, all_weeks, d
                scales   = "fixed",
                labeller = labeller(Col_ID = week_labels)) +
     coord_fixed(ratio = 1) +
-    ggtitle(mouse_ID) +
+    ggtitle("") +
     theme_minimal(base_size = 15) +
     theme(
       axis.text        = element_blank(),
@@ -410,8 +412,11 @@ visualize_edge_set_one_mouse_all_strata <- function(results_folder, all_weeks, d
       plot.background  = element_rect(fill = "transparent", color = NA),
       plot.title       = element_text(face = "bold", size = rel(1.4), hjust = 0.5),
       strip.background = element_rect(fill = "gray95"),
-      strip.text.x     = element_text(face = "bold", size = rel(0.7)),
-      strip.text.y     = element_text(face = "bold", size = rel(0.9))
+      strip.text.x     = element_text(face = "bold", size = rel(0.9)),
+      strip.text.y     = element_text(face = "bold", size = rel(1.1)),
+      legend.text      = element_text(size = rel(1.1)),
+      legend.title     = element_text(size = rel(1.1)),
+      legend.key.size  = unit(1.2, "lines")
     )
   
   return(list(

@@ -72,7 +72,7 @@ region_border <- T
 result <- visualize_edge_set_one_mouse_all_strata(
   results_folder  = results_folder,
   all_weeks       = 17:38,
-  display_weeks   = 17:22,
+  display_weeks   = 26:33,
   time_scale      = time_scale,
   discrete_levels = discrete_levels,
   output          = "adj",
