@@ -299,7 +299,7 @@ dev.off()
 # ------------------------------------------------------------------------------
 # edge set for a single mouse across strata
 
-result <- visualize_edge_set_one_mouse_all_strata(
+result <- visualize_edge_set_one_mouse_all_strata_v2(
   results_folder  = results_folder,
   time_scale      = time_scale,
   discrete_levels = discrete_levels,
