@@ -2636,7 +2636,7 @@ plot_degree_ridgeline_all_mice <- function(results_folder, time_scale, discrete_
     scale_fill_manual(values  = color_map) +
     scale_color_manual(values = color_map) +
     # tighter x axis: cap at 0.5 to squish horizontally
-    scale_x_continuous(limits = c(0, 0.5)) +
+    scale_x_continuous(limits = c(0, 1), breaks = c(0, 0.5, 1)) +
     scale_y_continuous(breaks = c(20, 25, 30, 35)) +
     labs(
       x     = "Normalized Degree",
