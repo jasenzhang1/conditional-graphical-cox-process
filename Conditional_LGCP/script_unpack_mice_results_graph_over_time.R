@@ -67,251 +67,271 @@ region_border <- T
 # }
 
 # ------------------------------------------------------------------------------
-# plot adjacency matrices for edges, comparing the same discrete strata across all mice
+# Figure 1a: Tau1, weeks 17-22, both strata
 
-strata_results <- visualize_strata_all_mice_v2(
+result <- visualize_edge_set_one_mouse_all_strata(
   results_folder  = results_folder,
   time_scale      = time_scale,
   discrete_levels = discrete_levels,
-  output          = 'adj',
-  region_border   = region_border
+  output          = "adj",
+  region_border   = TRUE,
+  mouse_ID        = "Tau1"
 )
 
-for (d_level in names(strata_results$plots)) {
-  png_name <- paste0(graph_folder, '/all_mice_', d_level, '_t', time_scale, '_edge_sets.png')
-  n_mice   <- strata_results$n_mice[[d_level]]
-  png(png_name, width = 45, height = 4 * n_mice, units = "in", res = 100)
-  print(strata_results$plots[[d_level]])
-  dev.off()
-}
+# --- save ---
+
+png(file.path(graph_folder, paste0("Fig1a_edge_set_strata.png")),
+    width = 4800, height = 600, res = 150)
+print(result$plot)
+dev.off()
+
+
+# ------------------------------------------------------------------------------
+# plot adjacency matrices for edges, comparing the same discrete strata across all mice
+
+# strata_results <- visualize_strata_all_mice_v2(
+#   results_folder  = results_folder,
+#   all_weeks       = 17:22,
+#   time_scale      = time_scale,
+#   discrete_levels = discrete_levels,
+#   output          = 'adj',
+#   region_border   = region_border
+# )
+# 
+# for (d_level in names(strata_results$plots)) {
+#   png_name <- paste0(graph_folder, '/all_mice_', d_level, '_t', time_scale, '_edge_sets.png')
+#   n_mice   <- strata_results$n_mice[[d_level]]
+#   png(png_name, width = 45, height = 4 * n_mice, units = "in", res = 100)
+#   print(strata_results$plots[[d_level]])
+#   dev.off()
+# }
 
 # ------------------------------------------------------------------------------
 # plot proportion of connected edges over time with a line graph
 
-prop_plots <- plot_edge_proportion_all_mice(
-  results_folder  = results_folder,
-  time_scale      = time_scale,
-  discrete_levels = discrete_levels
-)
-
-for (d_level in names(prop_plots)) {
-  png_name <- paste0(graph_folder, '/all_mice_', d_level, '_t', time_scale, '_edge_proportion.png')
-  png(png_name, width = 10, height = 6, units = "in", res = 100)
-  print(prop_plots[[d_level]])
-  dev.off()
-}
+# prop_plots <- plot_edge_proportion_all_mice(
+#   results_folder  = results_folder,
+#   time_scale      = time_scale,
+#   discrete_levels = discrete_levels
+# )
+# 
+# for (d_level in names(prop_plots)) {
+#   png_name <- paste0(graph_folder, '/all_mice_', d_level, '_t', time_scale, '_edge_proportion.png')
+#   png(png_name, width = 10, height = 6, units = "in", res = 100)
+#   print(prop_plots[[d_level]])
+#   dev.off()
+# }
 
 
 # ------------------------------------------------------------------------------
 # plot jaccard similarity temporally - loess
 
-instability_plots <- plot_edge_instability_all_mice_v2(
-  results_folder  = results_folder,
-  time_scale      = time_scale,
-  discrete_levels = discrete_levels
-)
-
-for (scale_type in c("linear", "sqrt")) {
-  png_name <- paste0(graph_folder, '/all_mice_t', time_scale, '_temporal_jaccard_loess_', scale_type, '.png')
-  png(png_name, width = 7, height = 10, units = "in", res = 300)
-  print(instability_plots[[scale_type]])
-  dev.off()
-}
+# instability_plots <- plot_edge_instability_all_mice_v2(
+#   results_folder  = results_folder,
+#   time_scale      = time_scale,
+#   discrete_levels = discrete_levels
+# )
+# 
+# for (scale_type in c("linear", "sqrt")) {
+#   png_name <- paste0(graph_folder, '/all_mice_t', time_scale, '_temporal_jaccard_loess_', scale_type, '.png')
+#   png(png_name, width = 7, height = 10, units = "in", res = 300)
+#   print(instability_plots[[scale_type]])
+#   dev.off()
+# }
 
 # ------------------------------------------------------------------------------
 # plot jaccard similarity across strata - loess
 
-discrete_levels <- paste0('m', c(0, 1), 'vr', c(1, 1))
-
-d_level_A <- discrete_levels[1]
-d_level_B <- discrete_levels[2]
-
-strata_instability_plots <- plot_strata_instability_all_mice_v2(
-  results_folder  = results_folder,
-  time_scale      = time_scale,
-  discrete_levels = discrete_levels
-)
-
-
-for (plot_id in names(strata_instability_plots$linear)) {
-  for (scale_type in c("linear", "sqrt")) {
-    png_name <- paste0(graph_folder, '/all_mice_', d_level_A, '_vs_', d_level_B, '_t', time_scale, '_strata_jaccard_loess_', plot_id, '_', scale_type, '.png')
-    png(png_name, width = 14, height = 4, units = "in", res = 300)
-    print(strata_instability_plots[[scale_type]][[plot_id]])
-    dev.off()
-  }
-}
+# discrete_levels <- paste0('m', c(0, 1), 'vr', c(1, 1))
+# 
+# d_level_A <- discrete_levels[1]
+# d_level_B <- discrete_levels[2]
+# 
+# strata_instability_plots <- plot_strata_instability_all_mice_v2(
+#   results_folder  = results_folder,
+#   time_scale      = time_scale,
+#   discrete_levels = discrete_levels
+# )
+# 
+# 
+# for (plot_id in names(strata_instability_plots$linear)) {
+#   for (scale_type in c("linear", "sqrt")) {
+#     png_name <- paste0(graph_folder, '/all_mice_', d_level_A, '_vs_', d_level_B, '_t', time_scale, '_strata_jaccard_loess_', plot_id, '_', scale_type, '.png')
+#     png(png_name, width = 14, height = 4, units = "in", res = 300)
+#     print(strata_instability_plots[[scale_type]][[plot_id]])
+#     dev.off()
+#   }
+# }
 
 # ------------------------------------------------------------------------------
 # plot jaccard similarity temporally - dots and lines
 
-instability_plots <- plot_edge_instability_all_mice(
-  results_folder  = results_folder,
-  time_scale      = time_scale,
-  discrete_levels = discrete_levels
-)
-for (scale_type in c("linear", "sqrt")) {
-  png_name <- paste0(graph_folder, '/all_mice_t', time_scale, '_temporal_jaccard_lines_', scale_type, '.png')
-  png(png_name, width = 7, height = 10, units = "in", res = 300)
-  print(instability_plots[[scale_type]])
-  dev.off()
-}
+# instability_plots <- plot_edge_instability_all_mice(
+#   results_folder  = results_folder,
+#   time_scale      = time_scale,
+#   discrete_levels = discrete_levels
+# )
+# for (scale_type in c("linear", "sqrt")) {
+#   png_name <- paste0(graph_folder, '/all_mice_t', time_scale, '_temporal_jaccard_lines_', scale_type, '.png')
+#   png(png_name, width = 7, height = 10, units = "in", res = 300)
+#   print(instability_plots[[scale_type]])
+#   dev.off()
+# }
 
 # ------------------------------------------------------------------------------
 # plot jaccard similarity across strata - dots and lines
 
-discrete_levels <- paste0('m', c(0, 1), 'vr', c(1, 1))
-
-d_level_A <- discrete_levels[1]
-d_level_B <- discrete_levels[2]
-
-strata_instability_plots <- plot_strata_instability_all_mice(
-  results_folder  = results_folder,
-  time_scale      = time_scale,
-  discrete_levels = discrete_levels
-)
-
-
-for (plot_id in names(strata_instability_plots$linear)) {
-  for (scale_type in c("linear", "sqrt")) {
-    png_name <- paste0(graph_folder, '/all_mice_', d_level_A, '_vs_', d_level_B, '_t', time_scale, '_strata_jaccard_lines_', plot_id, '_', scale_type, '.png')
-    png(png_name, width = 14, height = 4, units = "in", res = 300)
-    print(strata_instability_plots[[scale_type]][[plot_id]])
-    dev.off()
-  }
-}
+# discrete_levels <- paste0('m', c(0, 1), 'vr', c(1, 1))
+# 
+# d_level_A <- discrete_levels[1]
+# d_level_B <- discrete_levels[2]
+# 
+# strata_instability_plots <- plot_strata_instability_all_mice(
+#   results_folder  = results_folder,
+#   time_scale      = time_scale,
+#   discrete_levels = discrete_levels
+# )
+# 
+# 
+# for (plot_id in names(strata_instability_plots$linear)) {
+#   for (scale_type in c("linear", "sqrt")) {
+#     png_name <- paste0(graph_folder, '/all_mice_', d_level_A, '_vs_', d_level_B, '_t', time_scale, '_strata_jaccard_lines_', plot_id, '_', scale_type, '.png')
+#     png(png_name, width = 14, height = 4, units = "in", res = 300)
+#     print(strata_instability_plots[[scale_type]][[plot_id]])
+#     dev.off()
+#   }
+# }
 
 # ------------------------------------------------------------------------------
 # plot temporal and cross-stratum Jaccard similarity (combined faceted plot)
 
-discrete_levels_vr1 <- paste0('m', c(0, 1), 'vr', c(1, 1))   # c('m0vr1', 'm1vr1')
-
-stability_plots <- plot_edge_stability_combined(
-  results_folder  = results_folder,
-  time_scale      = time_scale,
-  discrete_levels = discrete_levels_vr1
-)
-
-for (scale_type in c("linear", "sqrt")) {
-  png_name <- paste0(graph_folder, '/all_mice_t', time_scale, '_edge_stability_combined_', scale_type, '.png')
-  png(png_name, width = 7, height = 7, units = "in", res = 300)
-  print(stability_plots[[scale_type]])
-  dev.off()
-}
+# discrete_levels_vr1 <- paste0('m', c(0, 1), 'vr', c(1, 1))   # c('m0vr1', 'm1vr1')
+# 
+# stability_plots <- plot_edge_stability_combined(
+#   results_folder  = results_folder,
+#   time_scale      = time_scale,
+#   discrete_levels = discrete_levels_vr1
+# )
+# 
+# for (scale_type in c("linear", "sqrt")) {
+#   png_name <- paste0(graph_folder, '/all_mice_t', time_scale, '_edge_stability_combined_', scale_type, '.png')
+#   png(png_name, width = 7, height = 7, units = "in", res = 300)
+#   print(stability_plots[[scale_type]])
+#   dev.off()
+# }
 
 # ------------------------------------------------------------------------------
 # plot edge regional proportions across strata
 
-discrete_levels <- paste0('m', c(0, 1), 'vr', c(1, 1))
-
-edge_regional_plots <- plot_edge_regional_proportion_all_mice(
-  results_folder  = results_folder,
-  time_scale      = time_scale,
-  discrete_levels = discrete_levels
-)
-
-for (plot_id in names(edge_regional_plots)) {
-  png_name <- file.path(graph_folder,
-                        paste0('all_mice_', plot_id, '_t', time_scale, '_edge_regional_proportion.png'))
-  png(png_name, width = 14, height = 4, units = "in", res = 300)
-  print(edge_regional_plots[[plot_id]])
-  dev.off()
-}
+# discrete_levels <- paste0('m', c(0, 1), 'vr', c(1, 1))
+# 
+# edge_regional_plots <- plot_edge_regional_proportion_all_mice(
+#   results_folder  = results_folder,
+#   time_scale      = time_scale,
+#   discrete_levels = discrete_levels
+# )
+# 
+# for (plot_id in names(edge_regional_plots)) {
+#   png_name <- file.path(graph_folder,
+#                         paste0('all_mice_', plot_id, '_t', time_scale, '_edge_regional_proportion.png'))
+#   png(png_name, width = 14, height = 4, units = "in", res = 300)
+#   print(edge_regional_plots[[plot_id]])
+#   dev.off()
+# }
 
 # v2
 
-discrete_levels <- paste0('m', c(0, 1), 'vr', c(1, 1))
-edge_regional_plot <- plot_edge_regional_proportion_all_mice_v2(
-  results_folder  = results_folder,
-  time_scale      = time_scale,
-  discrete_levels = discrete_levels
-)
-png_name <- file.path(graph_folder,
-                      paste0('all_mice_t', time_scale, '_edge_regional_proportion_v2.png'))
-png(png_name, width = 14, height = 7, units = "in", res = 300)
-print(edge_regional_plot)
-dev.off()
+# discrete_levels <- paste0('m', c(0, 1), 'vr', c(1, 1))
+# edge_regional_plot <- plot_edge_regional_proportion_all_mice_v2(
+#   results_folder  = results_folder,
+#   time_scale      = time_scale,
+#   discrete_levels = discrete_levels
+# )
+# png_name <- file.path(graph_folder,
+#                       paste0('all_mice_t', time_scale, '_edge_regional_proportion_v2.png'))
+# png(png_name, width = 14, height = 7, units = "in", res = 300)
+# print(edge_regional_plot)
+# dev.off()
 
 # ------------------------------------------------------------------------------
 # plot median non-zero degree across strata
 
-discrete_levels <- paste0('m', c(0, 1), 'vr', c(1, 1))
-
-degree_plots <- plot_median_nonzero_degree_all_mice(
-  results_folder  = results_folder,
-  time_scale      = time_scale,
-  discrete_levels = discrete_levels
-)
-
-for (plot_id in names(degree_plots)) {
-  png_name <- file.path(graph_folder,
-                        paste0('all_mice_', plot_id, '_t', time_scale, '_median_nonzero_degree.png'))
-  png(png_name, width = 14, height = 4, units = "in", res = 300)
-  print(degree_plots[[plot_id]])
-  dev.off()
-}
+# discrete_levels <- paste0('m', c(0, 1), 'vr', c(1, 1))
+# 
+# degree_plots <- plot_median_nonzero_degree_all_mice(
+#   results_folder  = results_folder,
+#   time_scale      = time_scale,
+#   discrete_levels = discrete_levels
+# )
+# 
+# for (plot_id in names(degree_plots)) {
+#   png_name <- file.path(graph_folder,
+#                         paste0('all_mice_', plot_id, '_t', time_scale, '_median_nonzero_degree.png'))
+#   png(png_name, width = 14, height = 4, units = "in", res = 300)
+#   print(degree_plots[[plot_id]])
+#   dev.off()
+# }
 
 # v2
 
-discrete_levels <- paste0('m', c(0, 1), 'vr', c(1, 1))
-degree_plot <- plot_median_nonzero_degree_all_mice_v2(
-  results_folder  = results_folder,
-  time_scale      = time_scale,
-  discrete_levels = discrete_levels
-)
-png_name <- file.path(graph_folder,
-                      paste0('all_mice_t', time_scale, '_median_nonzero_degree.png'))
-png(png_name, width = 7, height = 5, units = "in", res = 300)
-print(degree_plot)
-dev.off()
+# discrete_levels <- paste0('m', c(0, 1), 'vr', c(1, 1))
+# degree_plot <- plot_median_nonzero_degree_all_mice_v2(
+#   results_folder  = results_folder,
+#   time_scale      = time_scale,
+#   discrete_levels = discrete_levels
+# )
+# png_name <- file.path(graph_folder,
+#                       paste0('all_mice_t', time_scale, '_median_nonzero_degree.png'))
+# png(png_name, width = 7, height = 5, units = "in", res = 300)
+# print(degree_plot)
+# dev.off()
 
 # v3 - median degree (including zeros)
 
-discrete_levels <- paste0('m', c(0, 1), 'vr', c(1, 1))
-degree_plot <- plot_median_degree_all_mice_v3(
-  results_folder  = results_folder,
-  time_scale      = time_scale,
-  discrete_levels = discrete_levels
-)
-png_name <- file.path(graph_folder,
-                      paste0('all_mice_t', time_scale, '_median_degree.png'))
-png(png_name, width = 7, height = 5, units = "in", res = 300)
-print(degree_plot)
-dev.off()
+# discrete_levels <- paste0('m', c(0, 1), 'vr', c(1, 1))
+# degree_plot <- plot_median_degree_all_mice_v3(
+#   results_folder  = results_folder,
+#   time_scale      = time_scale,
+#   discrete_levels = discrete_levels
+# )
+# png_name <- file.path(graph_folder,
+#                       paste0('all_mice_t', time_scale, '_median_degree.png'))
+# png(png_name, width = 7, height = 5, units = "in", res = 300)
+# print(degree_plot)
+# dev.off()
 
 # ------------------------------------------------------------------------------
 # ridgeline plot of normalized degree
 
-discrete_levels <- paste0('m', c(0, 1), 'vr', c(1, 1))
-ridgeline_plot <- plot_degree_ridgeline_all_mice(
-  results_folder  = results_folder,
-  time_scale      = time_scale,
-  discrete_levels = discrete_levels
-)
-png_name <- file.path(graph_folder,
-                      paste0('all_mice_t', time_scale, '_degree_ridgeline.png'))
-png(png_name, width = 9, height = 20, units = "in", res = 300)
-print(ridgeline_plot)
-dev.off()
+# discrete_levels <- paste0('m', c(0, 1), 'vr', c(1, 1))
+# ridgeline_plot <- plot_degree_ridgeline_all_mice(
+#   results_folder  = results_folder,
+#   time_scale      = time_scale,
+#   discrete_levels = discrete_levels
+# )
+# png_name <- file.path(graph_folder,
+#                       paste0('all_mice_t', time_scale, '_degree_ridgeline.png'))
+# png(png_name, width = 9, height = 20, units = "in", res = 300)
+# print(ridgeline_plot)
+# dev.off()
 
 
 
 # ------------------------------------------------------------------------------
 # edge set for a single mouse across strata
 
-result <- visualize_edge_set_one_mouse_all_strata_v2(
-  results_folder  = results_folder,
-  time_scale      = time_scale,
-  discrete_levels = discrete_levels,
-  output          = "adj",
-  region_border   = TRUE,
-  mouse_ID        = "Tau2"
-)
-
-# --- save ---
-
-png(file.path(graph_folder, paste0("Tau2_t", time_scale, "_edge_set_strata.png")),
-    width = 4800, height = 600, res = 150)
-print(result$plot)
-dev.off()
+# result <- visualize_edge_set_one_mouse_all_strata_v2(
+#   results_folder  = results_folder,
+#   time_scale      = time_scale,
+#   discrete_levels = discrete_levels,
+#   output          = "adj",
+#   region_border   = TRUE,
+#   mouse_ID        = "Tau2"
+# )
+# 
+# 
+# png(file.path(graph_folder, paste0("Tau2_t", time_scale, "_edge_set_strata.png")),
+#     width = 4800, height = 600, res = 150)
+# print(result$plot)
+# dev.off()
 

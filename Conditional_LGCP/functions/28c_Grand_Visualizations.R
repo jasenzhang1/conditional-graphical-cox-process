@@ -1691,7 +1691,7 @@ visualize_strata_all_mice <- function(results_folder, time_scale, discrete_level
 
 
 # plot edge sets over time, bread and butter edge set visualization
-visualize_strata_all_mice_v2 <- function(results_folder, time_scale, discrete_levels, output, region_border) {
+visualize_strata_all_mice_v2 <- function(results_folder, all_weeks, time_scale, discrete_levels, output, region_border) {
   
   # ----------------------------------------------------------------------------
   #
@@ -1702,6 +1702,7 @@ visualize_strata_all_mice_v2 <- function(results_folder, time_scale, discrete_le
   # inputs:
   #
   # - results_folder   (string)
+  # - all_weeks        (vector)  which weeks? i.e. 17:38
   # - time_scale       (integer)  e.g. 10
   # - discrete_levels  (vector of strings)
   # - output           (string)   'adj', 'P_HS', or 'C_HS'
@@ -1722,7 +1723,6 @@ visualize_strata_all_mice_v2 <- function(results_folder, time_scale, discrete_le
   #
   # ----------------------------------------------------------------------------
   
-  all_weeks <- 17:38
   
   # Color constants for adj output
   COL_HIP_HIP <- "#00C896"   # emerald teal  (HIP)

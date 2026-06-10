@@ -1,7 +1,7 @@
 
 # for one mouse, plot its edge sets across both strata
 
-visualize_edge_set_one_mouse_all_strata <- function(results_folder, time_scale, discrete_levels, output, region_border, mouse_ID) {
+visualize_edge_set_one_mouse_all_strata <- function(results_folder, all_weeks, time_scale, discrete_levels, output, region_border, mouse_ID) {
   
   # ----------------------------------------------------------------------------
   #
@@ -13,6 +13,7 @@ visualize_edge_set_one_mouse_all_strata <- function(results_folder, time_scale, 
   # inputs:
   #
   # - results_folder   (string)
+  # - all_weeks        (vector)  which weeks? i.e. 17:38
   # - time_scale       (integer)  e.g. 10
   # - discrete_levels  (vector of strings)  e.g. c("m0vr1", "m1vr1")
   # - output           (string)   'adj', 'P_HS', or 'C_HS'
@@ -33,8 +34,6 @@ visualize_edge_set_one_mouse_all_strata <- function(results_folder, time_scale, 
   # If no boundary is available, all nodes are treated as HIP-HIP.
   #
   # ----------------------------------------------------------------------------
-  
-  all_weeks <- 17:38
   
   # Color constants for adj output
   COL_HIP_HIP <- "#39D43A"   # lime green   (HIP)
