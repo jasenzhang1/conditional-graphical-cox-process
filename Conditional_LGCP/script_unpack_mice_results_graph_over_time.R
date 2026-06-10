@@ -71,17 +71,16 @@ region_border <- T
 
 result <- visualize_edge_set_one_mouse_all_strata(
   results_folder  = results_folder,
-  all_weeks       = 17:22,
+  all_weeks       = 17:38,
+  display_weeks   = 17:22,
   time_scale      = time_scale,
   discrete_levels = discrete_levels,
   output          = "adj",
   region_border   = TRUE,
   mouse_ID        = "Tau1"
 )
-
 # --- save ---
-
-png(file.path(graph_folder, paste0("Fig1a_edge_set_strata.png")),
+png(file.path(graph_folder, paste0("Fig1a.png")),
     width = 4800, height = 600, res = 150)
 print(result$plot)
 dev.off()
