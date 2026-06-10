@@ -889,3 +889,443 @@ visualize_edge_set_one_mouse_all_strata_v2 <- function(results_folder, time_scal
     found_levels = found_levels
   ))
 }
+
+# for figure 3. Select some mice, some weeks, plot one graph for each strata
+
+visualize_strata_some_mice <- function(results_folder, all_weeks, time_scale, discrete_levels, output, region_border, display_weeks = all_weeks, display_mice = NULL) {
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: For each discrete level, plot a selected subset of mice as rows in a
+  #       single facet_grid, showing only selected weeks as columns.
+  #       Rows = mouse ID, Columns = week. One set of axis labels.
+  #       Tau mice appear before WT mice in row order.
+  #
+  # inputs:
+  #
+  # - results_folder   (string)
+  # - all_weeks        (vector)  full set of possible weeks, e.g. 17:38;
+  #                              used only to compute absent_weeks
+  # - time_scale       (integer)  e.g. 10
+  # - discrete_levels  (vector of strings)
+  # - output           (string)   'adj', 'P_HS', or 'C_HS'
+  # - region_border    (boolean)
+  # - display_weeks    (vector)  subset of weeks to actually show, e.g. 17:22;
+  #                              defaults to all_weeks
+  # - display_mice     (vector of strings or NULL)  e.g. c("Tau1", "WT2");
+  #                              if NULL, all discovered mice are shown
+  #
+  # returns: named list with two elements:
+  #   - plots   : named list of ggplot objects, one per discrete level
+  #   - n_mice  : named integer list of mouse counts, one per discrete level
+  #
+  # Color scheme for output == 'adj':
+  #   HIP-HIP edges  -> emerald teal  (#00C896)
+  #   EHC-EHC edges  -> vivid purple  (#CC3FFF)
+  #   HIP-EHC edges  -> periwinkle    (#6694CC)  [sqrt-mean-squares RGB fusion]
+  #
+  # Region assignment: nodes 1..boundary are HIP, nodes (boundary+1)..max_node
+  # are EHC, where boundary = floor(first element of boundaries vector).
+  # If no boundary is available, all nodes are treated as HIP-HIP.
+  #
+  # Col_ID factor levels are set to display_weeks so that exactly those columns
+  # appear. Weeks outside display_weeks are never rendered.
+  #
+  # ----------------------------------------------------------------------------
+  
+  # Color constants for adj output
+  COL_HIP_HIP <- "#00C896"   # emerald teal  (HIP)
+  COL_EHC_EHC <- "#CC3FFF"   # vivid purple  (EHC)
+  COL_HIP_EHC <- "#6694CC"   # periwinkle    (HIP-EHC sqrt-mean-squares fusion)
+  
+  # --------------------------------------------------------------------------
+  # Discover all IDs present in the folder for a given discrete level,
+  # then filter to display_mice if supplied.
+  # --------------------------------------------------------------------------
+  discover_IDs <- function(d_level) {
+    pattern   <- paste0("^(.+)_", d_level, "_t", time_scale, "\\.RData$")
+    all_files <- list.files(results_folder, pattern = pattern, full.names = FALSE)
+    ids       <- sub(paste0("_", d_level, "_t", time_scale, "\\.RData$"), "", all_files)
+    tau_ids   <- sort(ids[grepl("^Tau", ids)])
+    wt_ids    <- sort(ids[grepl("^WT",  ids)])
+    other     <- sort(ids[!grepl("^(Tau|WT)", ids)])
+    ids_ordered <- c(tau_ids, wt_ids, other)
+    if (!is.null(display_mice)) {
+      # preserve the Tau-first ordering but restrict to display_mice
+      ids_ordered <- ids_ordered[ids_ordered %in% display_mice]
+    }
+    ids_ordered
+  }
+  
+  # --------------------------------------------------------------------------
+  # Load sparse data for one mouse x one discrete level.
+  # Only weeks in display_weeks are retained.
+  # --------------------------------------------------------------------------
+  load_sparse_data <- function(ID, d_level) {
+    file_path <- paste0(results_folder, '/', ID, '_', d_level, '_t', time_scale, '.RData')
+    if (!file.exists(file_path)) {
+      warning(paste("File not found:", file_path))
+      return(NULL)
+    }
+    tmp_env <- new.env()
+    load(file_path, envir = tmp_env)
+    res_i <- tmp_env$graph_results_i
+    if (region_border) {
+      boundaries <- get_factor_boundaries(res_i$recovery_params$kept_neuron_regions)
+    } else {
+      boundaries <- numeric(0)
+    }
+    y_c_weeks    <- as.numeric(res_i$y_c_query)
+    # absent_weeks: weeks in display_weeks that were not estimated
+    absent_weeks <- setdiff(display_weeks, y_c_weeks)
+    sparse_data  <- list()
+    if (output == 'adj') {
+      step_data <- res_i$step_12b
+      for (idx in seq_along(y_c_weeks)) {
+        current_week <- y_c_weeks[idx]
+        # skip weeks outside the display window
+        if (!(current_week %in% display_weeks)) next
+        adj_mat <- step_data[[idx]][["adj_mat_KL_GIC_local_est_eig3"]]
+        if (is.null(adj_mat)) next
+        coords <- which(adj_mat == 1, arr.ind = TRUE)
+        if (nrow(coords) > 0) coords <- coords[coords[, 2] > coords[, 1], , drop = FALSE]
+        if (nrow(coords) > 0) {
+          df_coords <- as.data.frame(coords)
+          colnames(df_coords) <- c("Node_Row", "Node_Col")
+          sparse_data[[as.character(current_week)]] <- df_coords
+        } else {
+          sparse_data[[as.character(current_week)]] <- data.frame(Node_Row = integer(0),
+                                                                  Node_Col = integer(0))
+        }
+      }
+    } else if (output == 'P_HS') {
+      step_data <- res_i$step_11
+      for (idx in seq_along(y_c_weeks)) {
+        current_week <- y_c_weeks[idx]
+        if (!(current_week %in% display_weeks)) next
+        P_HS_log      <- log(step_data[[idx]][["w_mat_KL_est_eig3"]])
+        if (is.null(P_HS_log)) next
+        upper_tri_idx <- which(col(P_HS_log) >= row(P_HS_log), arr.ind = TRUE)
+        df_coords     <- as.data.frame(upper_tri_idx)
+        colnames(df_coords) <- c("Node_Row", "Node_Col")
+        df_coords$Value <- P_HS_log[upper_tri_idx]
+        sparse_data[[as.character(current_week)]] <- df_coords
+      }
+    } else if (output == 'C_HS') {
+      step_data <- res_i$step_11b
+      for (idx in seq_along(y_c_weeks)) {
+        current_week <- y_c_weeks[idx]
+        if (!(current_week %in% display_weeks)) next
+        C_HS_log      <- log(step_data[[idx]][["C_HS_KL_est_eig3"]])
+        if (is.null(C_HS_log)) next
+        upper_tri_idx <- which(col(C_HS_log) >= row(C_HS_log), arr.ind = TRUE)
+        df_coords     <- as.data.frame(upper_tri_idx)
+        colnames(df_coords) <- c("Node_Row", "Node_Col")
+        df_coords$Value <- C_HS_log[upper_tri_idx]
+        sparse_data[[as.character(current_week)]] <- df_coords
+      }
+    } else {
+      stop('error in visualize_strata_some_mice: unknown output type')
+    }
+    rm(tmp_env, res_i, step_data)
+    return(list(sparse_data = sparse_data, absent_weeks = absent_weeks, boundaries = boundaries))
+  }
+  
+  # --------------------------------------------------------------------------
+  # Helper: get max node index for a mouse from its sparse data
+  # --------------------------------------------------------------------------
+  get_max_node <- function(sparse_data) {
+    max_node <- 0
+    for (wk in sparse_data) {
+      if (nrow(wk) > 0) max_node <- max(max_node, max(wk$Node_Row, wk$Node_Col))
+    }
+    max(max_node, 1)
+  }
+  
+  # --------------------------------------------------------------------------
+  # Helper: classify an edge (row_node, col_node) given the HIP boundary.
+  # All nodes <= hip_boundary are HIP; nodes > hip_boundary are EHC.
+  # Returns one of: "HIP_HIP", "EHC_EHC", "HIP_EHC"
+  # If hip_boundary is NA (no boundary available), returns "HIP_HIP" for all.
+  # --------------------------------------------------------------------------
+  classify_edge <- function(row_nodes, col_nodes, hip_boundary) {
+    if (is.na(hip_boundary)) return(rep("HIP_HIP", length(row_nodes)))
+    row_is_hip <- row_nodes <= hip_boundary
+    col_is_hip <- col_nodes <= hip_boundary
+    dplyr::case_when(
+      row_is_hip &  col_is_hip ~ "HIP_HIP",
+      !row_is_hip & !col_is_hip ~ "EHC_EHC",
+      TRUE                      ~ "HIP_EHC"
+    )
+  }
+  
+  # --------------------------------------------------------------------------
+  # Build one plot per discrete stratum
+  # --------------------------------------------------------------------------
+  plot_list          <- list()
+  n_mice_per_stratum <- list()
+  
+  # "Week N" labeller for column strips
+  week_labels <- setNames(paste("Week", display_weeks), display_weeks)
+  
+  for (d_level in discrete_levels) {
+    
+    IDs <- discover_IDs(d_level)
+    if (length(IDs) == 0) {
+      message(sprintf("No files found for stratum %s — skipping.", d_level))
+      next
+    }
+    message(sprintf("Stratum %s: found mice — %s", d_level, paste(IDs, collapse = ", ")))
+    
+    # Load all mice data
+    loaded_data <- list()
+    for (ID in IDs) {
+      res <- load_sparse_data(ID, d_level)
+      if (!is.null(res)) loaded_data[[ID]] <- res
+    }
+    if (length(loaded_data) == 0) next
+    
+    present_IDs <- names(loaded_data)
+    
+    # ── per-mouse max_node lookup ────────────────────────────────────────────
+    max_node_lookup <- setNames(
+      sapply(present_IDs, function(ID) get_max_node(loaded_data[[ID]]$sparse_data)),
+      present_IDs
+    )
+    
+    # ── per-mouse HIP boundary: floor of first boundary value, or NA ─────────
+    # boundaries vector from get_factor_boundaries contains midpoints (e.g. 50.5
+    # for a 50/50 split). floor() gives the last HIP node index.
+    hip_boundary_lookup <- setNames(
+      sapply(present_IDs, function(ID) {
+        b <- loaded_data[[ID]]$boundaries
+        if (length(b) == 0) NA_real_ else floor(b[1])
+      }),
+      present_IDs
+    )
+    message("HIP boundary lookup: ", paste(names(hip_boundary_lookup), hip_boundary_lookup, sep = "=", collapse = ", "))
+    
+    # ------------------------------------------------------------------------
+    # Build plot_data: tile centers at (2k-1)/(2*max_node), tile_size=1/max_node
+    # so tile edges span exactly [0,1]. All mice share the same [0,1] coordinate
+    # space so coord_fixed(ratio=1) enforces square panels identically for all.
+    # For output == 'adj', a Region_Type column is added for color mapping.
+    # ------------------------------------------------------------------------
+    plot_data_list <- list()
+    
+    for (ID in present_IDs) {
+      max_node     <- max_node_lookup[[ID]]
+      hip_boundary <- hip_boundary_lookup[[ID]]
+      tile_size    <- 1 / max_node
+      row_content  <- loaded_data[[ID]]$sparse_data
+      for (c_idx in seq_along(row_content)) {
+        df_coords <- row_content[[c_idx]]
+        if (is.null(df_coords) || nrow(df_coords) == 0) next
+        original          <- df_coords
+        mirrored          <- original
+        mirrored$Node_Row <- original$Node_Col
+        mirrored$Node_Col <- original$Node_Row
+        # unique before rescaling so integer dedup is exact
+        combined_df <- unique(rbind(original, mirrored))
+        # assign region type before rescaling (node indices still integer here)
+        if (output == "adj") {
+          combined_df$Region_Type <- classify_edge(
+            combined_df$Node_Row, combined_df$Node_Col, hip_boundary
+          )
+        }
+        # tile center: (2k-1)/(2*max_node) maps node 1 to 1/(2n) and
+        # node n to (2n-1)/(2n), so tile edges align exactly with [0,1]
+        combined_df$Node_Row  <- (2 * combined_df$Node_Row - 1) / (2 * max_node)
+        combined_df$Node_Col  <- (2 * combined_df$Node_Col - 1) / (2 * max_node)
+        combined_df$tile_size <- tile_size
+        combined_df$Row_ID    <- ID
+        combined_df$Col_ID    <- as.numeric(names(row_content)[c_idx])
+        plot_data_list[[length(plot_data_list) + 1]] <- combined_df
+      }
+    }
+    
+    if (length(plot_data_list) > 0) {
+      plot_data <- do.call(rbind, plot_data_list)
+    } else {
+      plot_data <- data.frame(Node_Row = NA, Node_Col = NA, tile_size = NA,
+                              Row_ID = present_IDs[1], Col_ID = display_weeks[1])
+      if (output == "adj")                plot_data$Region_Type <- NA_character_
+      if (output %in% c("P_HS", "C_HS")) plot_data$Value       <- NA
+    }
+    
+    # Pad missing mice — anchor dummy Col_ID to display_weeks[1]
+    missing_IDs <- setdiff(present_IDs, unique(as.character(plot_data$Row_ID)))
+    if (length(missing_IDs) > 0) {
+      dummy <- data.frame(Node_Row = NA, Node_Col = NA, tile_size = NA,
+                          Row_ID = missing_IDs, Col_ID = display_weeks[1])
+      if (output == "adj")                dummy$Region_Type <- NA_character_
+      if (output %in% c("P_HS", "C_HS")) dummy$Value       <- NA
+      plot_data <- rbind(plot_data, dummy)
+    }
+    
+    # Factor Col_ID over display_weeks only — single source of truth for columns.
+    plot_data$Row_ID <- factor(plot_data$Row_ID, levels = present_IDs)
+    plot_data$Col_ID <- factor(plot_data$Col_ID, levels = display_weeks)
+    if (output == "adj") {
+      plot_data$Region_Type <- factor(plot_data$Region_Type,
+                                      levels = c("HIP_HIP", "HIP_EHC", "EHC_EHC"))
+    }
+    
+    # ------------------------------------------------------------------------
+    # Build bg_gray_data: one row per (mouse, absent week within display_weeks).
+    # geom_rect with -Inf/Inf floods the entire facet panel with gray.
+    # ------------------------------------------------------------------------
+    bg_gray_list <- list()
+    for (ID in present_IDs) {
+      absent_weeks <- loaded_data[[ID]]$absent_weeks   # already restricted to display_weeks
+      if (length(absent_weeks) > 0)
+        bg_gray_list[[ID]] <- data.frame(Row_ID = ID, Col_ID = absent_weeks)
+    }
+    
+    if (length(bg_gray_list) > 0) {
+      bg_gray_data        <- do.call(rbind, bg_gray_list)
+      bg_gray_data$Row_ID <- factor(bg_gray_data$Row_ID, levels = present_IDs)
+      bg_gray_data$Col_ID <- factor(bg_gray_data$Col_ID, levels = display_weeks)
+    } else {
+      bg_gray_data <- NULL
+    }
+    
+    # ------------------------------------------------------------------------
+    # Build per-mouse boundary data: boundaries are midpoints between regions
+    # (e.g. 4.5 = between node 4 and 5). Apply same rescaling as tile centers:
+    # b -> (2b-1)/(2*max_node), which places the line at the exact midpoint
+    # between the two flanking tile centers in [0,1] space.
+    # Col_ID is factored over display_weeks so panels align with plot_data.
+    # ------------------------------------------------------------------------
+    boundary_data_list <- list()
+    for (ID in present_IDs) {
+      boundaries_i <- loaded_data[[ID]]$boundaries
+      max_node     <- max_node_lookup[[ID]]
+      if (length(boundaries_i) == 0) next
+      if (max_node == 1) next
+      absent_i        <- loaded_data[[ID]]$absent_weeks
+      present_weeks_i <- setdiff(display_weeks, absent_i)
+      if (length(present_weeks_i) == 0) next
+      bd <- expand.grid(
+        Row_ID   = ID,
+        Col_ID   = present_weeks_i,
+        boundary = (2 * boundaries_i - 1) / (2 * max_node),
+        stringsAsFactors = FALSE
+      )
+      boundary_data_list[[ID]] <- bd
+    }
+    
+    if (length(boundary_data_list) > 0) {
+      boundary_data        <- do.call(rbind, boundary_data_list)
+      boundary_data$Row_ID <- factor(boundary_data$Row_ID, levels = present_IDs)
+      # factor over display_weeks — must match plot_data$Col_ID levels exactly
+      boundary_data$Col_ID <- factor(boundary_data$Col_ID, levels = display_weeks)
+    } else {
+      boundary_data <- NULL
+    }
+    
+    # ------------------------------------------------------------------------
+    # Build the plot
+    # ------------------------------------------------------------------------
+    new_palette <- hcl.colors(3, palette = 'Blue-Red 2')
+    c_low  <- new_palette[1]
+    c_mid  <- new_palette[2]
+    c_high <- new_palette[3]
+    
+    g <- ggplot() +
+      
+      # Layer 1: gray background for absent weeks — floods entire panel
+      { if (!is.null(bg_gray_data) && nrow(bg_gray_data) > 0)
+        geom_rect(data    = bg_gray_data,
+                  mapping = aes(group = interaction(Row_ID, Col_ID)),
+                  xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Inf,
+                  fill = "gray80", alpha = 0.8)
+      }
+    
+    # Layer 2: edge tiles — tile_size varies per mouse so all matrices fill
+    # [0,1] corner to corner regardless of adjacency matrix dimension.
+    # For adj output, Region_Type drives fill color via scale_fill_manual.
+    # For P_HS / C_HS output, continuous Value drives fill via scale_fill_gradient2.
+    if (output == "adj") {
+      g <- g + geom_tile(data = plot_data,
+                         aes(x = Node_Col, y = Node_Row,
+                             width = tile_size, height = tile_size,
+                             fill = Region_Type)) +
+        scale_fill_manual(
+          name   = "Edge Type",
+          values = c(HIP_HIP = COL_HIP_HIP,
+                     HIP_EHC = COL_HIP_EHC,
+                     EHC_EHC = COL_EHC_EHC),
+          labels = c(HIP_HIP = "HIP\u2013HIP",
+                     HIP_EHC = "HIP\u2013EHC",
+                     EHC_EHC = "EHC\u2013EHC"),
+          na.value = "transparent"
+        ) +
+        theme(legend.position = "right")
+    } else {
+      zmin <- min(plot_data$Value, na.rm = TRUE)
+      zmax <- max(plot_data$Value, na.rm = TRUE)
+      zmax <- zmax + 0.1 * (zmax - zmin)
+      zmin <- zmin - 0.1 * (zmax - zmin)
+      g <- g + geom_tile(data = plot_data,
+                         aes(x = Node_Col, y = Node_Row,
+                             width = tile_size, height = tile_size,
+                             fill = Value)) +
+        scale_fill_gradient2(low = c_low, mid = c_mid, high = c_high,
+                             midpoint = 0, limits = c(zmin, zmax)) +
+        theme(legend.position = "right")
+    }
+    
+    # Layer 3: per-mouse region borders in rescaled [0,1] space
+    if (!is.null(boundary_data) && nrow(boundary_data) > 0) {
+      g <- g +
+        geom_vline(data = boundary_data,
+                   aes(xintercept = boundary),
+                   color = "gray40", alpha = 1, linewidth = 0.3) +
+        geom_hline(data = boundary_data,
+                   aes(yintercept = boundary),
+                   color = "gray40", alpha = 1, linewidth = 0.3)
+    }
+    
+    # Layer 4: facet + formatting.
+    # All mice share [0,1] coordinate space so scales = "fixed" works and
+    # coord_fixed(ratio=1) enforces square panels.
+    # scale_x/y with expand=c(0,0) removes ggplot's default padding so tiles
+    # fill the panel exactly edge to edge.
+    # scale_y_reverse: node 1 at top, conventional matrix layout.
+    # labeller: column strips show "Week N"; row strips show mouse ID unchanged.
+    # drop = TRUE: only display_weeks columns appear; no NA panels.
+    g <- g +
+      scale_x_continuous(limits = c(0, 1), expand = c(0, 0)) +
+      scale_y_reverse(limits = c(1, 0), expand = c(0, 0)) +
+      facet_grid(Row_ID ~ Col_ID,
+                 drop     = TRUE,
+                 scales   = "fixed",
+                 labeller = labeller(Col_ID = week_labels)) +
+      coord_fixed(ratio = 1) +
+      theme_minimal(base_size = 15) +
+      theme(
+        axis.text        = element_blank(),
+        axis.title       = element_blank(),
+        axis.ticks       = element_blank(),
+        panel.grid       = element_blank(),
+        panel.background = element_rect(fill = "white", color = "black"),
+        plot.background  = element_rect(fill = "transparent", color = NA),
+        strip.background = element_rect(fill = "gray95"),
+        strip.text.x     = element_text(face = "bold", size = rel(1.6)),
+        strip.text.y     = element_text(face = "bold", size = rel(1.6)),
+        legend.text      = element_text(size = rel(2)),
+        legend.title     = element_text(size = rel(2)),
+        legend.key.size  = unit(1.5, "lines")
+      )
+    
+    n_mice_per_stratum[[d_level]] <- length(present_IDs)
+    plot_list[[d_level]]          <- g
+  }
+  
+  return(list(
+    plots  = plot_list,
+    n_mice = n_mice_per_stratum
+  ))
+}
+

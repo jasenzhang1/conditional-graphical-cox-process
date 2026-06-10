@@ -67,7 +67,7 @@ region_border <- T
 # }
 
 # ------------------------------------------------------------------------------
-# Figure 1a: Tau1, weeks 17-22, both strata
+# Figure 1a: Tau2, weeks 17-22, both strata
 
 result <- visualize_edge_set_one_mouse_all_strata(
   results_folder  = results_folder,
@@ -77,14 +77,85 @@ result <- visualize_edge_set_one_mouse_all_strata(
   discrete_levels = discrete_levels,
   output          = "adj",
   region_border   = TRUE,
-  mouse_ID        = "Tau1"
+  mouse_ID        = "Tau2"
 )
 # --- save ---
-png(file.path(graph_folder, paste0("Fig1a.png")),
-    width = 4800, height = 600, res = 150)
+png(file.path(graph_folder, paste0("Fig_1a.png")),
+    width = 3600, height = 600, res = 150)
 print(result$plot)
 dev.off()
 
+# ------------------------------------------------------------------------------
+# Figure 1b: Jaccard similarity and why it's bad
+
+discrete_levels_vr1 <- paste0('m', c(0, 1), 'vr', c(1, 1))   # c('m0vr1', 'm1vr1')
+
+stability_plots <- plot_edge_stability_combined(
+  results_folder  = results_folder,
+  time_scale      = time_scale,
+  discrete_levels = discrete_levels_vr1
+)
+
+for (scale_type in c("linear", "sqrt")) {
+  png_name <- paste0(graph_folder, '/Fig_1b.png')
+  png(png_name, width = 7, height = 7, units = "in", res = 300)
+  print(stability_plots[[scale_type]])
+  dev.off()
+}
+
+# ------------------------------------------------------------------------------
+# plot edge regional proportions across strata
+
+discrete_levels <- paste0('m', c(0, 1), 'vr', c(1, 1))
+edge_regional_plot <- plot_edge_regional_proportion_all_mice_v2(
+  results_folder  = results_folder,
+  time_scale      = time_scale,
+  discrete_levels = discrete_levels
+)
+png_name <- file.path(graph_folder, 'Fig_2.png')
+png(png_name, width = 14, height = 7, units = "in", res = 300)
+print(edge_regional_plot)
+dev.off()
+
+# ------------------------------------------------------------------------------
+# ridgeline plot of normalized degree
+
+discrete_levels <- paste0('m', c(0, 1), 'vr', c(1, 1))
+ridgeline_plot <- plot_degree_ridgeline_all_mice(
+  results_folder  = results_folder,
+  time_scale      = time_scale,
+  discrete_levels = discrete_levels
+)
+png_name <- file.path(graph_folder,
+                      'Fig_3a.png')
+png(png_name, width = 9, height = 20, units = "in", res = 300)
+print(ridgeline_plot)
+dev.off()
+
+# ------------------------------------------------------------------------------
+# WT3 losing degrees while resting
+# WT3 gaining degrees while running
+
+result <- visualize_strata_some_mice(
+  results_folder  = results_folder,
+  all_weeks       = 17:38,
+  time_scale      = time_scale,
+  discrete_levels = c("m0vr1", "m1vr1"),
+  output          = "adj",
+  region_border   = TRUE,
+  display_weeks   = 26:33,
+  display_mice    = c("WT1", "WT2", "WT3")
+)
+
+png(file.path(graph_folder, "Fig_3b_resting.png"),
+    width = 2400, height = 400, res = 150)
+print(result$plots[["m0vr1"]])
+dev.off()
+
+png(file.path(graph_folder, "Fig_3b_running.png"),
+    width = 2400, height = 400, res = 150)
+print(result$plots[["m1vr1"]])
+dev.off()
 
 # ------------------------------------------------------------------------------
 # plot adjacency matrices for edges, comparing the same discrete strata across all mice
