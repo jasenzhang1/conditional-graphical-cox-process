@@ -123,7 +123,7 @@ ridgeline_plot <- plot_degree_ridgeline_all_mice(
   discrete_levels = discrete_levels
 )
 png_name <- file.path(graph_folder, 'Fig_3a.png')
-png(png_name, width = 13.5, height = 30, units = "in", res = 300)
+png(png_name, width = 13.5, height = 9, units = "in", res = 300)
 print(ridgeline_plot)
 dev.off()
 

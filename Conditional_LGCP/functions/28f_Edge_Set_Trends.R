@@ -2590,6 +2590,7 @@ plot_degree_ridgeline_all_mice <- function(results_folder, time_scale, discrete_
   #   3. geom_density_ridges — ridge fills and outlines
   #   4. geom_segment     — per-ridge median tick
   # --------------------------------------------------------------------------
+
   p_plot <- ggplot(all_data,
                    aes(x      = degree,
                        y      = week,
@@ -2630,10 +2631,12 @@ plot_degree_ridgeline_all_mice <- function(results_folder, time_scale, discrete_
       linewidth = 0.5,
       inherit.aes = FALSE
     ) +
-    facet_grid(mouse ~ stratum) +
+    # cols = mice, rows = strata (2 rows x 6 cols)
+    facet_grid(stratum ~ mouse) +
     scale_fill_manual(values  = color_map) +
     scale_color_manual(values = color_map) +
-    scale_x_continuous(limits = c(0, NA)) +
+    # tighter x axis: cap at 0.5 to squish horizontally
+    scale_x_continuous(limits = c(0, 0.5)) +
     scale_y_continuous(breaks = c(20, 25, 30, 35)) +
     labs(
       x     = "Normalized Degree",
@@ -2647,7 +2650,9 @@ plot_degree_ridgeline_all_mice <- function(results_folder, time_scale, discrete_
     theme(
       panel.grid      = element_blank(),
       legend.position = "bottom",
-      strip.text      = element_text(size = 13)
+      strip.text      = element_text(size = 18, face = "bold"),
+      axis.title      = element_text(size = 18, face = "bold"),
+      axis.text       = element_text(size = 14)
     )
   
   message("[OK] ridgeline degree plot created")
