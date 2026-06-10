@@ -412,11 +412,11 @@ visualize_edge_set_one_mouse_all_strata <- function(results_folder, all_weeks, t
       plot.background  = element_rect(fill = "transparent", color = NA),
       plot.title       = element_text(face = "bold", size = rel(1.4), hjust = 0.5),
       strip.background = element_rect(fill = "gray95"),
-      strip.text.x     = element_text(face = "bold", size = rel(1.2)),
-      strip.text.y     = element_text(face = "bold", size = rel(1.2)),
-      legend.text      = element_text(size = rel(1.5)),
-      legend.title     = element_text(size = rel(1.5)),
-      legend.key.size  = unit(1.2, "lines")
+      strip.text.x     = element_text(face = "bold", size = rel(1.6)),
+      strip.text.y     = element_text(face = "bold", size = rel(1.6)),
+      legend.text      = element_text(size = rel(2)),
+      legend.title     = element_text(size = rel(2)),
+      legend.key.size  = unit(1.5, "lines")
     )
   
   return(list(
