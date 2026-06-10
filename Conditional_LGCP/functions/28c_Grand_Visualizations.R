@@ -1003,10 +1003,10 @@ visualize_adj_grid <- function(sparse_data_list, all_weeks, absent_week_list, ou
     g <- g +
       geom_vline(data = boundary_data,
                  aes(xintercept = boundary - 0.5),
-                 color = "black", alpha = 1, linewidth = 0.5) +
+                 color = "black", alpha = 1, size = 0.5) +
       geom_hline(data = boundary_data,
                  aes(yintercept = -boundary + 0.5),
-                 color = "black", alpha = 1, linewidth = 0.5)
+                 color = "black", alpha = 1, size = 0.5)
   }
   
   # 4. Final Formatting
@@ -1654,10 +1654,10 @@ visualize_strata_all_mice <- function(results_folder, time_scale, discrete_level
       g <- g +
         geom_vline(data = boundary_data,
                    aes(xintercept = boundary - 0.5),
-                   color = "gray80", alpha = 1, linewidth = 0.5) +  
+                   color = "gray80", alpha = 1, size = 0.5) +  
         geom_hline(data = boundary_data,
                    aes(yintercept = -boundary + 0.5),
-                   color = "gray70", alpha = 1, linewidth = 0.5)     
+                   color = "gray70", alpha = 1, size = 0.5)     
     }
     
     
@@ -1712,9 +1712,9 @@ visualize_strata_all_mice_v2 <- function(results_folder, time_scale, discrete_le
   #   - n_mice  : named integer list of mouse counts, one per discrete level
   #
   # Color scheme for output == 'adj':
-  #   HIP-HIP edges  -> lime green  (#39D43A)
-  #   EHC-EHC edges  -> electric blue (#0057FF)
-  #   HIP-EHC edges  -> cyan (#1BA8A8)  [additive light fusion]
+  #   HIP-HIP edges  -> emerald teal  (#00C896)
+  #   EHC-EHC edges  -> vivid purple  (#CC3FFF)
+  #   HIP-EHC edges  -> periwinkle    (#6694CC)  [sqrt-mean-squares RGB fusion]
   #
   # Region assignment: nodes 1..boundary are HIP, nodes (boundary+1)..max_node
   # are EHC, where boundary = floor(first element of boundaries vector).
@@ -1725,9 +1725,9 @@ visualize_strata_all_mice_v2 <- function(results_folder, time_scale, discrete_le
   all_weeks <- 17:38
   
   # Color constants for adj output
-  COL_HIP_HIP <- "#39D43A"   # lime green  (HIP)
-  COL_EHC_EHC <- "#0057FF"   # electric blue (EHC)
-  COL_HIP_EHC <- "#1BA8A8"   # cyan (additive light fusion)
+  COL_HIP_HIP <- "#00C896"   # emerald teal  (HIP)
+  COL_EHC_EHC <- "#CC3FFF"   # vivid purple  (EHC)
+  COL_HIP_EHC <- "#6694CC"   # periwinkle    (HIP-EHC sqrt-mean-squares fusion)
   
   # --------------------------------------------------------------------------
   # Discover all IDs present in the folder for a given discrete level
@@ -2091,6 +2091,4 @@ visualize_strata_all_mice_v2 <- function(results_folder, time_scale, discrete_le
     n_mice = n_mice_per_stratum
   ))
 }
-
-
 
