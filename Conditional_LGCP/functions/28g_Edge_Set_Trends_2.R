@@ -36,9 +36,9 @@ visualize_edge_set_one_mouse_all_strata <- function(results_folder, all_weeks, t
   # ----------------------------------------------------------------------------
   
   # Color constants for adj output
-  COL_HIP_HIP <- "#39D43A"   # lime green   (HIP)
-  COL_EHC_EHC <- "#0057FF"   # electric blue (EHC)
-  COL_HIP_EHC <- "#1BA8A8"   # cyan (additive light fusion)
+  COL_HIP_HIP <- "#00C896"   # emerald teal  (HIP)
+  COL_EHC_EHC <- "#CC3FFF"   # vivid purple  (EHC)
+  COL_HIP_EHC <- "#6694CC"   # periwinkle    (HIP-EHC sqrt-mean-squares fusion)
   
   # Human-readable stratum label lookup
   stratum_labels <- c(
