@@ -25,13 +25,17 @@ visualize_edge_set_one_mouse_all_strata <- function(results_folder, all_weeks, t
   #   - found_levels : character vector of discrete levels actually loaded
   #
   # Color scheme for output == 'adj':
-  #   HIP-HIP edges  -> lime green   (#39D43A)
-  #   EHC-EHC edges  -> electric blue (#0057FF)
-  #   HIP-EHC edges  -> cyan          (#1BA8A8)  [additive light fusion]
+  #   HIP-HIP edges  -> emerald teal  (#00C896)
+  #   EHC-EHC edges  -> vivid purple  (#CC3FFF)
+  #   HIP-EHC edges  -> periwinkle    (#6694CC)  [sqrt-mean-squares RGB fusion]
   #
   # Region assignment: nodes 1..boundary are HIP, nodes (boundary+1)..max_node
   # are EHC, where boundary = floor(first element of boundaries vector).
   # If no boundary is available, all nodes are treated as HIP-HIP.
+  #
+  # Col_ID factor levels are restricted to weeks actually present in plot_data
+  # (after rbind of all strata) so that facet_grid drop=TRUE has no phantom
+  # factor levels to render as NA columns.
   #
   # ----------------------------------------------------------------------------
   
@@ -234,18 +238,24 @@ visualize_edge_set_one_mouse_all_strata <- function(results_folder, all_weeks, t
     if (output %in% c("P_HS", "C_HS")) plot_data$Value       <- NA
   }
   
-  # Pad strata with no tiles (so all rows appear in facet_grid)
+  # Pad strata with no tiles (so all rows appear in facet_grid).
+  # Use the first week already in plot_data as the dummy Col_ID so no new
+  # week levels are introduced.
+  present_weeks  <- sort(unique(plot_data$Col_ID))
   missing_labels <- setdiff(pretty_levels, unique(as.character(plot_data$Row_ID)))
   if (length(missing_labels) > 0) {
     dummy <- data.frame(Node_Row = NA, Node_Col = NA, tile_size = NA,
-                        Row_ID = missing_labels, Col_ID = all_weeks[1])
+                        Row_ID = missing_labels, Col_ID = present_weeks[1])
     if (output == "adj")                dummy$Region_Type <- NA_character_
     if (output %in% c("P_HS", "C_HS")) dummy$Value       <- NA
     plot_data <- rbind(plot_data, dummy)
   }
   
+  # Factor Col_ID over only the weeks present in plot_data, ordered numerically.
+  # This prevents phantom factor levels from appearing as NA columns in facet_grid.
+  present_weeks    <- sort(unique(plot_data$Col_ID))
   plot_data$Row_ID <- factor(plot_data$Row_ID, levels = pretty_levels)
-  plot_data$Col_ID <- factor(plot_data$Col_ID, levels = all_weeks)
+  plot_data$Col_ID <- factor(plot_data$Col_ID, levels = present_weeks)
   if (output == "adj") {
     plot_data$Region_Type <- factor(plot_data$Region_Type,
                                     levels = c("HIP_HIP", "EHC_EHC", "HIP_EHC"))
@@ -253,11 +263,13 @@ visualize_edge_set_one_mouse_all_strata <- function(results_folder, all_weeks, t
   
   # --------------------------------------------------------------------------
   # Build bg_gray_data: one row per (stratum, absent week) — geom_rect with
-  # -Inf/Inf floods the entire facet panel with gray for that cell
+  # -Inf/Inf floods the entire facet panel with gray for that cell.
+  # Only include absent weeks within present_weeks so no new factor levels
+  # are introduced.
   # --------------------------------------------------------------------------
   bg_gray_list <- list()
   for (d_level in found_levels) {
-    absent_weeks <- loaded_data[[d_level]]$absent_weeks
+    absent_weeks <- intersect(loaded_data[[d_level]]$absent_weeks, present_weeks)
     row_label    <- pretty_label(d_level)
     if (length(absent_weeks) > 0)
       bg_gray_list[[d_level]] <- data.frame(Row_ID = row_label, Col_ID = absent_weeks)
@@ -266,7 +278,7 @@ visualize_edge_set_one_mouse_all_strata <- function(results_folder, all_weeks, t
   if (length(bg_gray_list) > 0) {
     bg_gray_data        <- do.call(rbind, bg_gray_list)
     bg_gray_data$Row_ID <- factor(bg_gray_data$Row_ID, levels = pretty_levels)
-    bg_gray_data$Col_ID <- factor(bg_gray_data$Col_ID, levels = all_weeks)
+    bg_gray_data$Col_ID <- factor(bg_gray_data$Col_ID, levels = present_weeks)
   } else {
     bg_gray_data <- NULL
   }
@@ -276,6 +288,7 @@ visualize_edge_set_one_mouse_all_strata <- function(results_folder, all_weeks, t
   # (e.g. 4.5 = between node 4 and 5). Apply same rescaling as tile centers:
   # b -> (2b-1)/(2*max_node), which places the line at the exact midpoint
   # between the two flanking tile centers in [0,1] space.
+  # Only include present_weeks so boundary data Col_ID levels stay consistent.
   # --------------------------------------------------------------------------
   boundary_data_list <- list()
   for (d_level in found_levels) {
@@ -285,7 +298,8 @@ visualize_edge_set_one_mouse_all_strata <- function(results_folder, all_weeks, t
     if (length(boundaries_i) == 0) next
     if (max_node == 1) next
     absent_i        <- loaded_data[[d_level]]$absent_weeks
-    present_weeks_i <- setdiff(all_weeks, absent_i)
+    present_weeks_i <- intersect(setdiff(all_weeks, absent_i), present_weeks)
+    if (length(present_weeks_i) == 0) next
     bd <- expand.grid(
       Row_ID   = row_label,
       Col_ID   = present_weeks_i,
@@ -298,7 +312,7 @@ visualize_edge_set_one_mouse_all_strata <- function(results_folder, all_weeks, t
   if (length(boundary_data_list) > 0) {
     boundary_data        <- do.call(rbind, boundary_data_list)
     boundary_data$Row_ID <- factor(boundary_data$Row_ID, levels = pretty_levels)
-    boundary_data$Col_ID <- factor(boundary_data$Col_ID, levels = all_weeks)
+    boundary_data$Col_ID <- factor(boundary_data$Col_ID, levels = present_weeks)
   } else {
     boundary_data <- NULL
   }
@@ -373,10 +387,11 @@ visualize_edge_set_one_mouse_all_strata <- function(results_folder, all_weeks, t
   # fill the panel exactly edge to edge.
   # scale_y_reverse: node 1 at top, conventional matrix layout.
   # plot title identifies the mouse.
+  # drop = TRUE: only weeks present in plot_data appear as columns; no NA panels.
   g <- g +
     scale_x_continuous(limits = c(0, 1), expand = c(0, 0)) +
     scale_y_reverse(limits = c(1, 0), expand = c(0, 0)) +
-    facet_grid(Row_ID ~ Col_ID, drop = FALSE, scales = "fixed") +
+    facet_grid(Row_ID ~ Col_ID, drop = TRUE, scales = "fixed") +
     coord_fixed(ratio = 1) +
     ggtitle(mouse_ID) +
     theme_minimal(base_size = 15) +
@@ -397,7 +412,6 @@ visualize_edge_set_one_mouse_all_strata <- function(results_folder, all_weeks, t
     found_levels = found_levels
   ))
 }
-
 visualize_edge_set_one_mouse_all_strata_v2 <- function(results_folder, time_scale, discrete_levels, output, region_border, mouse_ID) {
   
   # ----------------------------------------------------------------------------
