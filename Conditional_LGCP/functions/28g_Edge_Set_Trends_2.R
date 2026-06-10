@@ -264,7 +264,7 @@ visualize_edge_set_one_mouse_all_strata <- function(results_folder, all_weeks, t
   plot_data$Col_ID <- factor(plot_data$Col_ID, levels = display_weeks)
   if (output == "adj") {
     plot_data$Region_Type <- factor(plot_data$Region_Type,
-                                    levels = c("HIP_HIP", "EHC_EHC", "HIP_EHC"))
+                                    levels = c("HIP_HIP", "HIP_EHC", "EHC_EHC"))
   }
   
   # --------------------------------------------------------------------------
@@ -350,13 +350,13 @@ visualize_edge_set_one_mouse_all_strata <- function(results_folder, all_weeks, t
                            width = tile_size, height = tile_size,
                            fill = Region_Type)) +
       scale_fill_manual(
-        name   = "Edge type",
+        name   = "Edge Type",
         values = c(HIP_HIP = COL_HIP_HIP,
-                   EHC_EHC = COL_EHC_EHC,
-                   HIP_EHC = COL_HIP_EHC),
+                   HIP_EHC = COL_HIP_EHC,
+                   EHC_EHC = COL_EHC_EHC),
         labels = c(HIP_HIP = "HIP\u2013HIP",
-                   EHC_EHC = "EHC\u2013EHC",
-                   HIP_EHC = "HIP\u2013EHC"),
+                   HIP_EHC = "HIP\u2013EHC",
+                   EHC_EHC = "EHC\u2013EHC"),
         na.value = "transparent"
       ) +
       theme(legend.position = "right")
@@ -412,10 +412,10 @@ visualize_edge_set_one_mouse_all_strata <- function(results_folder, all_weeks, t
       plot.background  = element_rect(fill = "transparent", color = NA),
       plot.title       = element_text(face = "bold", size = rel(1.4), hjust = 0.5),
       strip.background = element_rect(fill = "gray95"),
-      strip.text.x     = element_text(face = "bold", size = rel(0.9)),
-      strip.text.y     = element_text(face = "bold", size = rel(1.1)),
-      legend.text      = element_text(size = rel(1.1)),
-      legend.title     = element_text(size = rel(1.1)),
+      strip.text.x     = element_text(face = "bold", size = rel(1.2)),
+      strip.text.y     = element_text(face = "bold", size = rel(1.2)),
+      legend.text      = element_text(size = rel(1.5)),
+      legend.title     = element_text(size = rel(1.5)),
       legend.key.size  = unit(1.2, "lines")
     )
   
@@ -816,13 +816,13 @@ visualize_edge_set_one_mouse_all_strata_v2 <- function(results_folder, time_scal
                            width = tile_size, height = tile_size,
                            fill = Region_Type)) +
       scale_fill_manual(
-        name   = "Edge type",
+        name   = "Edge Type",
         values = c(HIP_HIP = COL_HIP_HIP,
-                   EHC_EHC = COL_EHC_EHC,
-                   HIP_EHC = COL_HIP_EHC),
+                   HIP_EHC = COL_HIP_EHC,
+                   EHC_EHC = COL_EHC_EHC),
         labels = c(HIP_HIP = "HIP\u2013HIP",
-                   EHC_EHC = "EHC\u2013EHC",
-                   HIP_EHC = "HIP\u2013EHC"),
+                   HIP_EHC = "HIP\u2013EHC",
+                   EHC_EHC = "EHC\u2013EHC"),
         na.value = "transparent"
       ) +
       guides(fill = guide_legend(nrow = 1)) +
