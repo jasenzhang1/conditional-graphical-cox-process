@@ -2037,16 +2037,9 @@ visualize_strata_all_mice_v2 <- function(results_folder, all_weeks, time_scale, 
           direction      = "horizontal",
           title.position = "left",
           label.position = "right",
-          keywidth       = unit(2, "lines"),
-          keyheight      = unit(2, "lines")
-        )) +
-        theme(
-          legend.position    = "bottom",
-          legend.title       = element_text(size = rel(2), face = "bold"),
-          legend.text        = element_text(size = rel(2), face = "bold"),
-          legend.key.spacing = unit(0.2, "lines"),
-          legend.margin      = margin(t = 2, b = 2, unit = "pt")
-        )
+          keywidth       = unit(3, "lines"),
+          keyheight      = unit(3, "lines")
+        ))
     } else {
       zmin <- min(plot_data$Value, na.rm = TRUE)
       zmax <- max(plot_data$Value, na.rm = TRUE)
@@ -2057,8 +2050,7 @@ visualize_strata_all_mice_v2 <- function(results_folder, all_weeks, time_scale, 
                              width = tile_size, height = tile_size,
                              fill = Value)) +
         scale_fill_gradient2(low = c_low, mid = c_mid, high = c_high,
-                             midpoint = 0, limits = c(zmin, zmax)) +
-        theme(legend.position = "right")
+                             midpoint = 0, limits = c(zmin, zmax))
     }
     
     # Layer 3: per-mouse region borders in rescaled [0,1] space
@@ -2085,14 +2077,19 @@ visualize_strata_all_mice_v2 <- function(results_folder, all_weeks, time_scale, 
       coord_fixed(ratio = 1) +
       theme_minimal(base_size = 15) +
       theme(
-        axis.text        = element_blank(),
-        axis.title       = element_blank(),
-        axis.ticks       = element_blank(),
-        panel.grid       = element_blank(),
-        panel.background = element_rect(fill = "white", color = "black"),
-        plot.background  = element_rect(fill = "transparent", color = NA),
-        strip.background = element_rect(fill = "gray95"),
-        strip.text       = element_text(face = "bold", size = rel(2))
+        axis.text          = element_blank(),
+        axis.title         = element_blank(),
+        axis.ticks         = element_blank(),
+        panel.grid         = element_blank(),
+        panel.background   = element_rect(fill = "white", color = "black"),
+        plot.background    = element_rect(fill = "transparent", color = NA),
+        strip.background   = element_rect(fill = "gray95"),
+        strip.text         = element_text(face = "bold", size = rel(2)),
+        legend.position    = "bottom",
+        legend.title       = element_text(size = rel(3), face = "bold"),
+        legend.text        = element_text(size = rel(3), face = "bold"),
+        legend.key.spacing = unit(0.2, "lines"),
+        legend.margin      = margin(t = 2, b = 2, unit = "pt")
       )
     
     n_mice_per_stratum[[d_level]] <- length(present_IDs)
@@ -2104,4 +2101,3 @@ visualize_strata_all_mice_v2 <- function(results_folder, all_weeks, time_scale, 
     n_mice = n_mice_per_stratum
   ))
 }
-
