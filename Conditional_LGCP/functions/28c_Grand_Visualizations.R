@@ -2088,7 +2088,7 @@ visualize_strata_all_mice_v2 <- function(results_folder, all_weeks, time_scale, 
         legend.position    = "bottom",
         legend.title       = element_text(size = rel(3), face = "bold"),
         legend.text        = element_text(size = rel(3), face = "bold"),
-        legend.key.spacing.x = unit(1.5, "lines"),
+        legend.key.spacing.x = unit(3.5, "lines"),
         legend.key.spacing.y = unit(0.2, "lines"),
         legend.margin      = margin(t = 2, b = 2, unit = "pt")
       )
