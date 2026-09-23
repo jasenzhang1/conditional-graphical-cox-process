@@ -76,6 +76,7 @@ ns=(100 250 500)
 #n_reps=49 # 50
 rep_ids=($(seq 11 50))
 n_reps=${#rep_ids[@]}
+max_rep=${rep_ids[$((n_reps - 1))]}  # unpack loops over rep1..rep{max_rep}, skipping missing reps
 
 y_c_bandwidth=""
 #n_large=20000
@@ -124,8 +125,11 @@ print_bar() {
     printf "] %3d / %3d" "$current" "$total"
 }
 
-mkdir -p script_outputs
-mkdir -p script_outputs/simu
+# output folders (gitignored)
+mkdir -p script_outputs/simu   # logs
+mkdir -p temp_data             # intermediate files, deleted after each rep
+mkdir -p simu_data             # generated datasets and truths
+mkdir -p simu_results          # fitted results + export/ figures
 
 
 
@@ -571,7 +575,7 @@ for entry in "${adj_type_params[@]}"; do
         wait_for_slot
     
     
-        Rscript "$UNPACK_SCRIPTS/script_unpack_finite_basis_results.R" "$n_large" "${ns[*]}" "$n_reps" "$method" "$X_truth" "$beta_truth" "$eigen_setting" "$adj_type" "${adj_params[@]}" >> "$viz_log" 2>&1
+        Rscript "$UNPACK_SCRIPTS/script_unpack_finite_basis_results.R" "$n_large" "${ns[*]}" "$max_rep" "$method" "$X_truth" "$beta_truth" "$eigen_setting" "$adj_type" "${adj_params[@]}" >> "$viz_log" 2>&1
     
         echo "" | tee -a "$viz_log"
         echo "===================================================" | tee -a "$viz_log"

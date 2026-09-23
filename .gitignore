@@ -15,6 +15,15 @@ Conditional_LGCP/mice_data/
 Conditional_LGCP/temp_data/
 Conditional_LGCP/script_outputs/
 
+# pipeline outputs (run from repo root)
+temp_data/
+simu_data/
+simu_results/
+script_outputs/
+mice_data/
+mice_results/
+figures/
+
 cox_script*
 *nohup.out
 joblog*

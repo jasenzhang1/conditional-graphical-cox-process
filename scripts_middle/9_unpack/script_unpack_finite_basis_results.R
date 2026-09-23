@@ -30,13 +30,25 @@ adj_params <- as.numeric(args[9:length(args)])
 # adj_type <- 'hub_block_v2'
 # adj_params <- c()
 
-rep_i <- 1
- 
-data_folder <- paste0('simu_data/', adj_type, '_n_', n_large, '_rep_', rep_i) # simu_data/hub_block_v2_n_100_rep_1
+data_root   <- 'simu_data'
 base_folder <- 'simu_results'
 
-data_folder <- paste0('../../../project-biostat-chair/simu_data/', adj_type, '_n_', n_large, '_rep_', rep_i)
-base_folder <- '../../../project-biostat-chair/simu_results'
+# hoffman
+# data_root   <- '../../../project-biostat-chair/simu_data'
+# base_folder <- '../../../project-biostat-chair/simu_results'
+
+# first rep with saved results (reps do not necessarily start at 1)
+first_rep <- function(adj_type) {
+  rep_dirs <- list.dirs(file.path(base_folder, adj_type, method), full.names = FALSE, recursive = FALSE)
+  rep_nums <- as.numeric(sub('^rep', '', grep('^rep[0-9]+$', rep_dirs, value = TRUE)))
+  if (length(rep_nums) == 0) return(NA)
+  min(rep_nums)
+}
+
+rep_i <- first_rep(adj_type)
+if (is.na(rep_i)) stop(paste0('No results found in ', file.path(base_folder, adj_type, method)))
+ 
+data_folder <- paste0(data_root, '/', adj_type, '_n_', n_large, '_rep_', rep_i) # simu_data/hub_block_v2_n_100_rep_1
 
 truth_file_name <- paste0(data_folder, '/', adj_type, '_n_', n_large, '_rep_', rep_i, '_truths.RData')
 results_folder <- paste0(base_folder, '/', adj_type, '/', method, '/rep', rep_i)  # simu_results/hub_block_v2/CPGM/rep1
@@ -310,10 +322,7 @@ for(i in 1:length(adj_types)){
 # ------------------------------------------------------------------------------
 # 6b) loess curves but all 6 of them are in the same figure
 
-base_folder <- 'simu_results'
-base_folder <- '../../../project-biostat-chair/simu_results'
 method <- 'CPGM'
-n_reps <- 50
 
 vert_dashed_line <- list(c(F, F, F),
                          c(T, T, T))
@@ -361,9 +370,12 @@ visualize_accuracy_CI_across_yc(results_folder, 'local', n_reps, adj_type, verts
 truth_rep <- 50
 
 for(adj_type in c('hub_block_v2', 'hub_block_j2', 'complete_block_v2', 'complete_block_j2', 'flexible_block_banded_v2', 'flexible_block_banded_j2')){
-  for(rep_i in c(1)){
+  for(rep_i in first_rep(adj_type)){
     results_folder <- paste0(base_folder, '/', adj_type, '/', method, '/rep', rep_i)
-    truth_file <- paste0('../../../project-biostat-chair/simu_data/', adj_type, '_n_', n_large, '_rep_', truth_rep, '/', adj_type, '_n_', n_large, '_rep_', truth_rep, '_truths.RData')
+    truth_file <- paste0(data_root, '/', adj_type, '_n_', n_large, '_rep_', truth_rep, '/', adj_type, '_n_', n_large, '_rep_', truth_rep, '_truths.RData')
+    
+    # other adj_types may still be running
+    if (is.na(rep_i) || !file.exists(truth_file)) next
 
     visualize_accuracy_heatmap_across_yc(results_folder, truth_file, adj_type)
     print(rep_i)
