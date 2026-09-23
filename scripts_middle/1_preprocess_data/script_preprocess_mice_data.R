@@ -1,6 +1,6 @@
 # ------------------------------------------------------------------------------
 # 
-# GOAL: pre-process the data in data/with_ts to make it look just like "dataset"
+# GOAL: pre-process the data in data/ to make it look just like "dataset"
 #
 #
 # inputs:
@@ -82,7 +82,7 @@ print(paste0("estimation method: ", method))
 print(paste0("num timepoints: ", m))
 
 # 3) load `dataset`
-old_data_folder <- 'data/with_ts'
+old_data_folder <- 'data'
 load(paste0(old_data_folder, '/', ID, '_t', time_scale, '_data.rda'))
 
 # load brain region info
