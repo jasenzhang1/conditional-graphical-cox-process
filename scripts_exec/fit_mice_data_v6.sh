@@ -34,7 +34,13 @@
 # 
 # ------------------------------------------------------------------------------
 
-cd ..   # go one level up (from /scripts to /)
+cd "$(dirname "$0")/.."  # go to the repository root
+
+PREPROCESS_SCRIPTS="scripts_middle/1_preprocess_data"
+FIT_SCRIPTS="scripts_middle/2_fit_model"
+THRESHOLD_SCRIPTS="scripts_middle/3_threshold_selection"
+SAVE_SCRIPTS="scripts_middle/4_save_results"
+UNPACK_SCRIPTS="scripts_middle/9_unpack"
 
 # load the job environment:
 . /u/local/Modules/default/init/modules.sh
@@ -170,7 +176,7 @@ if [ "$cluster" == "hoffman" ]; then
     rm -rf "mice_data/$y_c_structure"   # delete old datasets
     
     # creates mice_data/week_only/Data.RData
-    Rscript script_preprocess_mice_data.R "$ID" "$y_c_structure" "$time_scale" "$method" "$m" "$mov" "$vr" "$region" "$min_events" "$max_processes" "$n_weeks" "$deducted_weeks" "$cluster" >> "$outfile" 2>&1 
+    Rscript "$PREPROCESS_SCRIPTS/script_preprocess_mice_data.R" "$ID" "$y_c_structure" "$time_scale" "$method" "$m" "$mov" "$vr" "$region" "$min_events" "$max_processes" "$n_weeks" "$deducted_weeks" "$cluster" >> "$outfile" 2>&1 
     
     
     step_1_end_time=$(date +%s)
@@ -201,7 +207,7 @@ if [ "$cluster" == "hoffman" ]; then
     
     
     # temp_data/simu/part1_hub_block_v2_n_100 
-    output=$(Rscript script_fit_mice_data_part1.R \
+    output=$(Rscript "$FIT_SCRIPTS/script_fit_mice_data_part1.R" \
               "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$cluster" \
               2>&1 | tee -a "$outfile")
     
@@ -237,7 +243,7 @@ if [ "$cluster" == "hoffman" ]; then
     echo "" | tee -a "$outfile"
 
     # it may have aborted
-    Rscript script_step2_hoffman.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_i" "$n_ij" >> "$outfile" 2>&1   
+    Rscript "$FIT_SCRIPTS/script_step2_hoffman.R" "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_i" "$n_ij" >> "$outfile" 2>&1   
     if [ $? -ne 0 ]; then
         echo "[ERROR] script_step2_hoffman.R failed. Aborting." | tee -a "$outfile"
         exit 1
@@ -260,7 +266,7 @@ if [ "$cluster" == "hoffman" ]; then
     echo "[PARTS 2-4 + GIC] Running full pipeline for all y_c queries (hoffman) ..." >> "$outfile"
     echo "" | tee -a "$outfile"
 
-    Rscript script_step3_hoffman.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_queries" "$y_c_bandwidth" "$eigen_setting" >> "$outfile" 2>&1
+    Rscript "$FIT_SCRIPTS/script_step3_hoffman.R" "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_queries" "$y_c_bandwidth" "$eigen_setting" >> "$outfile" 2>&1
 
     step_3_end_time=$(date +%s)
     step_3_runtime=$((step_3_end_time - step_3_start_time))
@@ -282,7 +288,7 @@ if [ "$cluster" == "hoffman" ]; then
     
     
     # updating /part3 with more info
-    Rscript script_fit_mice_data_part2d.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_queries" "$cluster" >> "$outfile" 2>&1
+    Rscript "$THRESHOLD_SCRIPTS/script_fit_mice_data_part2d.R" "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_queries" "$cluster" >> "$outfile" 2>&1
           
     
     # ----------------
@@ -293,7 +299,7 @@ if [ "$cluster" == "hoffman" ]; then
     echo "At part 3" >> "$outfile"
     
     # mice_results/adj_type/CPGM/... .RData
-    Rscript script_fit_mice_data_part3.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_queries" "$y_c_bandwidth" "$region" "$cluster" "$min_connect_pct" >> "$outfile" 2>&1
+    Rscript "$SAVE_SCRIPTS/script_fit_mice_data_part3.R" "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_queries" "$y_c_bandwidth" "$region" "$cluster" "$min_connect_pct" >> "$outfile" 2>&1
     
     echo "" | tee -a "$outfile"
     echo "[DONE] Estimating all y_cs" >> "$outfile"
@@ -312,7 +318,7 @@ if [ "$cluster" == "hoffman" ]; then
     echo "" | tee -a "$outfile"
     
 
-    Rscript script_unpack_mice_results.R "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$eigen_setting"  >> "$outfile" 2>&1
+    Rscript "$UNPACK_SCRIPTS/script_unpack_mice_results.R" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$eigen_setting"  >> "$outfile" 2>&1
     
     step_4_end_time=$(date +%s)
     step_4_runtime=$((step_4_end_time - step_4_start_time))
@@ -382,7 +388,7 @@ else
             rm -rf "mice_data/$y_c_structure"   # delete old datasets
             
             # creates mice_data/week_only/Data.RData
-            Rscript script_preprocess_mice_data.R "$ID" "$y_c_structure" "$time_scale" "$method" "$m" "$mov" "$vr" "$region" "$min_events" "$max_processes" "$n_weeks" "$deducted_weeks" "$cluster" >> "$outfile" 2>&1 
+            Rscript "$PREPROCESS_SCRIPTS/script_preprocess_mice_data.R" "$ID" "$y_c_structure" "$time_scale" "$method" "$m" "$mov" "$vr" "$region" "$min_events" "$max_processes" "$n_weeks" "$deducted_weeks" "$cluster" >> "$outfile" 2>&1 
     
             
             step_1_end_time=$(date +%s)
@@ -413,7 +419,7 @@ else
             
             
             # temp_data/simu/part1_hub_block_v2_n_100 
-            output=$(Rscript script_fit_mice_data_part1.R \
+            output=$(Rscript "$FIT_SCRIPTS/script_fit_mice_data_part1.R" \
                       "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$cluster" \
                       2>&1 | tee -a "$outfile")
             
@@ -453,7 +459,7 @@ else
                 wait_for_slot
                 
                 # temp_data/simu/step_2_v5_rho_i...
-                Rscript script_step2_part1_v5.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$k" >> "$outfile" 2>&1 &
+                Rscript "$FIT_SCRIPTS/script_step2_part1_v5.R" "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$k" >> "$outfile" 2>&1 &
             done
             wait
             
@@ -464,7 +470,7 @@ else
                 wait_for_slot
                 
                 # temp_data/simu/step_2_rho_ij...
-                Rscript script_step2_part2_v5.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$kl" >> "$outfile" 2>&1 &
+                Rscript "$FIT_SCRIPTS/script_step2_part2_v5.R" "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$kl" >> "$outfile" 2>&1 &
             done
             wait  
             
@@ -473,7 +479,7 @@ else
             
             
             # temp_data/simu/step_2_v5_raw_rho_list...
-            Rscript script_step2_part3_v5.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_i" "$n_ij" >> "$outfile" 2>&1
+            Rscript "$FIT_SCRIPTS/script_step2_part3_v5.R" "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_i" "$n_ij" >> "$outfile" 2>&1
             
             step_2_end_time=$(date +%s)
             step_2_runtime=$((step_2_end_time - step_2_start_time))
@@ -505,12 +511,12 @@ else
                 # gets weights and pads rho_i and rho_ii
                 # temp_data/simu/step_2_rho_list...
                 # temp_data/simu/part2_...
-                Rscript script_step2_part4_v5.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" "$y_c_bandwidth" >> "$outfile" 2>&1
+                Rscript "$FIT_SCRIPTS/script_step2_part4_v5.R" "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" "$y_c_bandwidth" >> "$outfile" 2>&1
                 
         
                 # estimation until GIC
                 # temp_data/simu/part2b...
-                Rscript script_fit_mice_data_part2b_before_GIC.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" "$eigen_setting" "$y_c_bandwidth" >> "$outfile" 2>&1
+                Rscript "$THRESHOLD_SCRIPTS/script_fit_mice_data_part2b_before_GIC.R" "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" "$eigen_setting" "$y_c_bandwidth" >> "$outfile" 2>&1
                 
                 
                 # ---------------------------------------------------------
@@ -521,7 +527,7 @@ else
     
                 # PART 1: Precompute tau_c quantiles and get num_k
                 # data stored in temp_data/simu/GIC_local_folder/file.name
-                output=$(Rscript script_GIC_local_part1.R \
+                output=$(Rscript "$THRESHOLD_SCRIPTS/script_GIC_local_part1.R" \
                          "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" \
                          2>&1 | tee -a "$outfile")
                 
@@ -551,7 +557,7 @@ else
                       # Launch one R process per tau_c. 
                       # Inside this R script, it will loop through all tau_p (l=1...num_l)
                       # data stored in temp_data/simu/GIC_local_folder/file.name
-                      Rscript script_GIC_local_part2and3_serial.R \
+                      Rscript "$THRESHOLD_SCRIPTS/script_GIC_local_part2and3_serial.R" \
                           "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" \
                           "$j" "$id_suffix" "$k" "${min_connect_pcts[@]}" >> "$outfile" 2>&1 &                              
     
@@ -567,7 +573,7 @@ else
                 
                 # PART 4: Finalize and combine results
                 # temp_data/simu/GIC_local_folder/GIC_final_combined.RData
-                Rscript script_GIC_local_part4.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" "${min_connect_pcts[@]}" >> "$outfile" 2>&1
+                Rscript "$THRESHOLD_SCRIPTS/script_GIC_local_part4.R" "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" "${min_connect_pcts[@]}" >> "$outfile" 2>&1
     
                 # ---------------------------------------------------------
                 
@@ -581,7 +587,7 @@ else
                 # estimation after GIC
                 # merge part2b with GIC_final results
                 # temp_data/simu/part3...
-                Rscript script_fit_mice_data_part2b_after_GIC.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" "${min_connect_pcts[@]}" >> "$outfile" 2>&1
+                Rscript "$THRESHOLD_SCRIPTS/script_fit_mice_data_part2b_after_GIC.R" "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$j" "${min_connect_pcts[@]}" >> "$outfile" 2>&1
                 
                   
                 
@@ -620,7 +626,7 @@ else
                 
     
                 # PART 1: Precompute tau_c quantiles and get num_k
-                output=$(Rscript script_GIC_global_part1.R \
+                output=$(Rscript "$THRESHOLD_SCRIPTS/script_GIC_global_part1.R" \
                          "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_queries" \
                          2>&1 | tee -a "$outfile")
                 
@@ -649,7 +655,7 @@ else
                         wait_for_slot
                         
                         if [[ "$global_thresh_method" == "joint" || "$global_thresh_method" == "both" ]]; then
-                            Rscript script_GIC_global_part2and3_serial.R \
+                            Rscript "$THRESHOLD_SCRIPTS/script_GIC_global_part2and3_serial.R" \
                                 "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" \
                                 "$id_suffix" "$k" >> "$outfile" 2>&1 &
                         fi
@@ -658,7 +664,7 @@ else
                         wait_for_slot
                         
                         if [[ "$global_thresh_method" == "tau_c" || "$global_thresh_method" == "both" ]]; then
-                            Rscript script_GIC_hybrid_part2and3_serial.R \
+                            Rscript "$THRESHOLD_SCRIPTS/script_GIC_hybrid_part2and3_serial.R" \
                                 "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" \
                                 "$id_suffix" "$k" >> "$outfile" 2>&1 &
                         fi
@@ -673,11 +679,11 @@ else
                 # PART 4: Finalize and combine results
                 
                 if [[ "$global_thresh_method" == "joint" || "$global_thresh_method" == "both" ]]; then
-                    Rscript script_GIC_global_part4.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_queries" >> "$outfile" 2>&1
+                    Rscript "$THRESHOLD_SCRIPTS/script_GIC_global_part4.R" "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_queries" >> "$outfile" 2>&1
                 fi
                 
                 if [[ "$global_thresh_method" == "tau_c" || "$global_thresh_method" == "both" ]]; then
-                    Rscript script_GIC_hybrid_part4.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_queries" >> "$outfile" 2>&1
+                    Rscript "$THRESHOLD_SCRIPTS/script_GIC_hybrid_part4.R" "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$n_queries" >> "$outfile" 2>&1
                 fi
                 
                 
@@ -694,7 +700,7 @@ else
             
             
             # updating /part3 with more info
-            Rscript script_fit_mice_data_part2d.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" \
+            Rscript "$THRESHOLD_SCRIPTS/script_fit_mice_data_part2d.R" "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" \
                                                   "$n_queries" "$cluster" "${min_connect_pcts[@]}" >> "$outfile" 2>&1
                   
             
@@ -706,7 +712,7 @@ else
             echo "At part 3" >> "$outfile"
             
             # mice_results/adj_type/CPGM/... .RData
-            Rscript script_fit_mice_data_part3.R "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" \
+            Rscript "$SAVE_SCRIPTS/script_fit_mice_data_part3.R" "$model_type" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" \
                                                  "$n_queries" "$y_c_bandwidth" "$region" "$experiment_folder" "$cluster" "${min_connect_pcts[@]}" >> "$outfile" 2>&1
             
             echo "" | tee -a "$outfile"
@@ -734,7 +740,7 @@ else
             echo "" | tee -a "$outfile"
             
         
-            Rscript script_unpack_mice_results.R "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$eigen_setting"  >> "$outfile" 2>&1
+            Rscript "$UNPACK_SCRIPTS/script_unpack_mice_results.R" "$ID" "$y_c_structure" "$time_scale" "$method" "$mov" "$vr" "$eigen_setting"  >> "$outfile" 2>&1
             
             echo "Deleting Files ..." >> "$outfile"
             
@@ -764,4 +770,3 @@ else
     done # mouse loop
 
 fi
-

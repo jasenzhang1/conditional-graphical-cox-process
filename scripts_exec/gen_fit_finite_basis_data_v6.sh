@@ -16,6 +16,12 @@
 
 cd "$(dirname "$0")/.."  # go one level up (from /scripts to /)
 
+GENERATE_SCRIPTS="scripts_middle/1_generate_data"
+FIT_SCRIPTS="scripts_middle/2_fit_model"
+THRESHOLD_SCRIPTS="scripts_middle/3_threshold_selection"
+SAVE_SCRIPTS="scripts_middle/4_save_results"
+UNPACK_SCRIPTS="scripts_middle/9_unpack"
+
 # c1 = c2 = 2
 # c3 = c4 = 0.8
 # mu_0 = 5.5
@@ -150,7 +156,7 @@ for entry in "${adj_type_params[@]}"; do
           step1_start=$(date +%s)
         
           # temp_data/simu_data/part0...
-          Rscript script_generate_finite_basis_data_part0.R "$p" "$d" "$n_large" "$rep_i" "$n_query" "$beta_0" "$adj_type" "${adj_params[@]}" >> "$outfile" 2>&1
+          Rscript "$GENERATE_SCRIPTS/script_generate_finite_basis_data_part0.R" "$p" "$d" "$n_large" "$rep_i" "$n_query" "$beta_0" "$adj_type" "${adj_params[@]}" >> "$outfile" 2>&1
           
           for group_idx in $(seq 1 "$groups"); do
               print_bar "$group_idx" "$groups"   # ← live bar on screen
@@ -158,7 +164,7 @@ for entry in "${adj_type_params[@]}"; do
               wait_for_slot
               (
                   # temp_data/simu_data/parts1_and_2...
-                  Rscript script_generate_finite_basis_data_parts_1_and_2.R "$n_large" "$rep_i" "$adj_type" "$group_idx" "$n_group" "$min_events" "$max_events" >> "$outfile" 2>&1
+                  Rscript "$GENERATE_SCRIPTS/script_generate_finite_basis_data_parts_1_and_2.R" "$n_large" "$rep_i" "$adj_type" "$group_idx" "$n_group" "$min_events" "$max_events" >> "$outfile" 2>&1
                   
                   echo "[ $(date '+%F %T') ] Finished group $group_idx" >> "$outfile"
               ) &
@@ -176,7 +182,7 @@ for entry in "${adj_type_params[@]}"; do
           echo "[STEP 1] Starting merging events" | tee -a "$outfile"
           echo "" | tee -a "$outfile"
           
-          Rscript script_generate_finite_basis_data_part3.R "$n_large" "$rep_i" "$adj_type" "$groups" >> "$outfile" 2>&1
+          Rscript "$GENERATE_SCRIPTS/script_generate_finite_basis_data_part3.R" "$n_large" "$rep_i" "$adj_type" "$groups" >> "$outfile" 2>&1
           
           echo "[STEP 1] Finished merging events" | tee -a "$outfile"
           echo "" | tee -a "$outfile"
@@ -196,7 +202,7 @@ for entry in "${adj_type_params[@]}"; do
               wait_for_slot
               (
                   # temp_data/simu_data/truths...
-                  Rscript script_generate_finite_basis_data_part4.R "$n_large" "$rep_i" "$adj_type" "$cont_ind" "$beta_truth" "${adj_params[@]}" >> "$outfile" 2>&1
+                  Rscript "$GENERATE_SCRIPTS/script_generate_finite_basis_data_part4.R" "$n_large" "$rep_i" "$adj_type" "$cont_ind" "$beta_truth" "${adj_params[@]}" >> "$outfile" 2>&1
                   echo "[ $(date '+%F %T') ] Finished query $cont_ind" >> "$outfile"
               ) & 
           done  
@@ -204,7 +210,7 @@ for entry in "${adj_type_params[@]}"; do
           
           # simu_data/adj_type_n.RData
           # simu_data/adj_type_n_truths.RData
-          Rscript script_generate_finite_basis_data_part5.R "$n_large" "$rep_i" "$adj_type" "$n_query" "$groups" >> "$outfile" 2>&1
+          Rscript "$GENERATE_SCRIPTS/script_generate_finite_basis_data_part5.R" "$n_large" "$rep_i" "$adj_type" "$n_query" "$groups" >> "$outfile" 2>&1
           
           step1_end=$(date +%s)
           step1_elapsed=$(( step1_end - step1_start ))
@@ -231,7 +237,7 @@ for entry in "${adj_type_params[@]}"; do
           
         
           # temp_data/simu/part1...
-          output=$(Rscript script_fit_mice_data_part1.R \
+          output=$(Rscript "$FIT_SCRIPTS/script_fit_mice_data_part1.R" \
                     "$model_type" "$n_large" "$n_large" "$rep_i" "$adj_type" "$method" "$X_truth" \
                     2>&1 | tee -a "$outfile")
         
@@ -267,7 +273,7 @@ for entry in "${adj_type_params[@]}"; do
               wait_for_slot
               
               # temp_data/simu/step_2_v5_rho_i...
-              Rscript script_step2_part1_v5.R "$model_type" "$n_large" "$n_large" "$rep_i" "$adj_type" "$method" "$X_truth" "$k" >> "$outfile" 2>&1 &
+              Rscript "$FIT_SCRIPTS/script_step2_part1_v5.R" "$model_type" "$n_large" "$n_large" "$rep_i" "$adj_type" "$method" "$X_truth" "$k" >> "$outfile" 2>&1 &
           done
         
         
@@ -278,7 +284,7 @@ for entry in "${adj_type_params[@]}"; do
               wait_for_slot
               
               # temp_data/simu/step_2_rho_ij...
-              Rscript script_step2_part2_v5.R "$model_type" "$n_large" "$n_large" "$rep_i" "$adj_type" "$method" "$X_truth" "$kl" >> "$outfile" 2>&1 &
+              Rscript "$FIT_SCRIPTS/script_step2_part2_v5.R" "$model_type" "$n_large" "$n_large" "$rep_i" "$adj_type" "$method" "$X_truth" "$kl" >> "$outfile" 2>&1 &
           done
           wait  
           
@@ -287,7 +293,7 @@ for entry in "${adj_type_params[@]}"; do
           
           
           # temp_data/simu/step_2_v5_raw_rho_list...
-          Rscript script_step2_part3_v5.R "$model_type" "$n_large" "$n_large" "$rep_i" "$adj_type" "$method" "$n_i" "$n_ij" >> "$outfile" 2>&1
+          Rscript "$FIT_SCRIPTS/script_step2_part3_v5.R" "$model_type" "$n_large" "$n_large" "$rep_i" "$adj_type" "$method" "$n_i" "$n_ij" >> "$outfile" 2>&1
           
         
           echo "[PART 5] Downstream estimation for all sub_n and y_c values ..." >> "$outfile"
@@ -306,12 +312,12 @@ for entry in "${adj_type_params[@]}"; do
                   (
                       # gets weights and pads rho_i and rho_ii
                       # temp_data/simu/step_2_rho_list...
-                      Rscript script_step2_part4_v5.R "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$j" "$y_c_bandwidth" >> "$outfile" 2>&1
+                      Rscript "$FIT_SCRIPTS/script_step2_part4_v5.R" "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$j" "$y_c_bandwidth" >> "$outfile" 2>&1
                       
             
                       # estimation until GIC
                       # temp_data/simu/part2b...
-                      Rscript script_fit_mice_data_part2b_before_GIC.R "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$X_truth" "$j" "$eigen_setting" "$y_c_bandwidth" >> "$outfile" 2>&1
+                      Rscript "$THRESHOLD_SCRIPTS/script_fit_mice_data_part2b_before_GIC.R" "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$X_truth" "$j" "$eigen_setting" "$y_c_bandwidth" >> "$outfile" 2>&1
                       
                       
                       # ---------------------------------------------------------
@@ -321,7 +327,7 @@ for entry in "${adj_type_params[@]}"; do
                       echo "At GIC local" >> "$outfile"
           
                       # PART 1: Precompute tau_c quantiles and get num_k
-                      output=$(Rscript script_GIC_local_part1.R \
+                      output=$(Rscript "$THRESHOLD_SCRIPTS/script_GIC_local_part1.R" \
                                "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$X_truth" "$j" \
                                2>&1 | tee -a "$outfile")
                       
@@ -351,7 +357,7 @@ for entry in "${adj_type_params[@]}"; do
                                 wait_for_slot
                                 # Launch one R process per tau_c. 
                                 # Inside this R script, it will loop through all tau_p (l=1...num_l)
-                                Rscript script_GIC_local_part2and3_serial.R \
+                                Rscript "$THRESHOLD_SCRIPTS/script_GIC_local_part2and3_serial.R" \
                                     "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" \
                                     "$j" "$id_suffix" "$k" >> "$outfile" 2>&1 &                              
     
@@ -366,7 +372,7 @@ for entry in "${adj_type_params[@]}"; do
                       echo "All GIC local tasks complete. Combining." >> "$outfile"
                       
                       # PART 4: Finalize and combine results
-                      Rscript script_GIC_local_part4.R "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$j" >> "$outfile" 2>&1
+                      Rscript "$THRESHOLD_SCRIPTS/script_GIC_local_part4.R" "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$j" >> "$outfile" 2>&1
           
                       # ---------------------------------------------------------
                       
@@ -378,7 +384,7 @@ for entry in "${adj_type_params[@]}"; do
                       echo "" | tee -a "$outfile"
                       echo "Merging GIC local info with part2b" >> "$outfile"
                       
-                      Rscript script_fit_mice_data_part2b_after_GIC.R "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$X_truth" "$j" >> "$outfile" 2>&1
+                      Rscript "$THRESHOLD_SCRIPTS/script_fit_mice_data_part2b_after_GIC.R" "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$X_truth" "$j" >> "$outfile" 2>&1
                       
                       
                       echo "[END] n = $n, y_c = $j" >> "$outfile"
@@ -406,7 +412,7 @@ for entry in "${adj_type_params[@]}"; do
                   
       
                   # PART 1: Precompute tau_c quantiles and get num_k
-                  output=$(Rscript script_GIC_global_part1.R \
+                  output=$(Rscript "$THRESHOLD_SCRIPTS/script_GIC_global_part1.R" \
                            "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$n_query" \
                            2>&1 | tee -a "$outfile")
                   
@@ -435,7 +441,7 @@ for entry in "${adj_type_params[@]}"; do
                           wait_for_slot
                           
                           if [[ "$global_thresh_method" == "joint" || "$global_thresh_method" == "both" ]]; then
-                              Rscript script_GIC_global_part2and3_serial.R \
+                              Rscript "$THRESHOLD_SCRIPTS/script_GIC_global_part2and3_serial.R" \
                                   "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" \
                                   "$id_suffix" "$k" >> "$outfile" 2>&1 &
                           fi
@@ -444,7 +450,7 @@ for entry in "${adj_type_params[@]}"; do
                           wait_for_slot
                           
                           if [[ "$global_thresh_method" == "tau_c" || "$global_thresh_method" == "both" ]]; then
-                              Rscript script_GIC_hybrid_part2and3_serial.R \
+                              Rscript "$THRESHOLD_SCRIPTS/script_GIC_hybrid_part2and3_serial.R" \
                                   "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" \
                                   "$id_suffix" "$k" >> "$outfile" 2>&1 &
                           fi
@@ -459,11 +465,11 @@ for entry in "${adj_type_params[@]}"; do
                   # PART 4: Finalize and combine results
                   
                   if [[ "$global_thresh_method" == "joint" || "$global_thresh_method" == "both" ]]; then
-                      Rscript script_GIC_global_part4.R "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$n_query" >> "$outfile" 2>&1
+                      Rscript "$THRESHOLD_SCRIPTS/script_GIC_global_part4.R" "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$n_query" >> "$outfile" 2>&1
                   fi
                   
                   if [[ "$global_thresh_method" == "tau_c" || "$global_thresh_method" == "both" ]]; then
-                      Rscript script_GIC_hybrid_part4.R "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$n_query" >> "$outfile" 2>&1
+                      Rscript "$THRESHOLD_SCRIPTS/script_GIC_hybrid_part4.R" "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$n_query" >> "$outfile" 2>&1
                   fi
                   
                   
@@ -480,7 +486,7 @@ for entry in "${adj_type_params[@]}"; do
               
               wait_for_slot
               
-              Rscript script_fit_mice_data_part2d.R "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$n_query" >> "$outfile" 2>&1
+              Rscript "$THRESHOLD_SCRIPTS/script_fit_mice_data_part2d.R" "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$n_query" >> "$outfile" 2>&1
               
               # ----------------
               # Part 3- when all part 2's are done, do part 3
@@ -491,7 +497,7 @@ for entry in "${adj_type_params[@]}"; do
               echo "At part 3" >> "$outfile"
               
               # simu_results/adj_type/CPGM/... .RData
-              Rscript script_fit_mice_data_part3.R "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$n_query" >> "$outfile" 2>&1
+              Rscript "$SAVE_SCRIPTS/script_fit_mice_data_part3.R" "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$n_query" >> "$outfile" 2>&1
               
               echo "" | tee -a "$outfile"
               echo "===================================================" >> "$outfile"
@@ -556,7 +562,7 @@ for entry in "${adj_type_params[@]}"; do
         wait_for_slot
     
     
-        Rscript script_unpack_finite_basis_results.R "$n_large" "${ns[*]}" "$n_reps" "$method" "$X_truth" "$beta_truth" "$eigen_setting" "$adj_type" "${adj_params[@]}" >> "$viz_log" 2>&1
+        Rscript "$UNPACK_SCRIPTS/script_unpack_finite_basis_results.R" "$n_large" "${ns[*]}" "$n_reps" "$method" "$X_truth" "$beta_truth" "$eigen_setting" "$adj_type" "${adj_params[@]}" >> "$viz_log" 2>&1
     
         echo "" | tee -a "$viz_log"
         echo "===================================================" | tee -a "$viz_log"
@@ -569,5 +575,4 @@ for entry in "${adj_type_params[@]}"; do
 done
 
 wait
-
 
