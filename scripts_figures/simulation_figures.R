@@ -49,6 +49,12 @@ settings_done <- dir.exists(file.path(base_folder, adj_types, method))
 if (!any(settings_done)) stop('No results found in ', base_folder, '/<adj_type>/', method)
 if (!all(settings_done)) message('Missing settings (skipped): ', paste(adj_types[!settings_done], collapse = ', '))
 
+# draw one figure; report and carry on if it fails (e.g. a metric that is
+# undefined in every replication)
+try_figure <- function(name, expr) {
+  tryCatch({ expr; TRUE }, error = function(e) { message('  failed: ', name, ': ', conditionMessage(e)); FALSE })
+}
+
 # first replication with saved results for a setting
 first_rep <- function(adj_type) {
   rep_dirs <- list.dirs(file.path(base_folder, adj_type, method), full.names = FALSE, recursive = FALSE)
@@ -72,8 +78,8 @@ results_folders <- lapply(adj_grid, function(x) paste0(base_folder, '/', x, '/',
 visualize_retrieve_metrics(base_folder, results_folders, metrics, n_reps, row_names, col_names)
 
 for (i in seq_along(metrics)) {
-  visualize_metric_CI_across_yc_faceted(metrics[i], metric_names[i], 'local', base_folder, fig_title = NULL)
-  file.copy(file.path(base_folder, paste0('local_', metrics[i], '_faceted_2x3.png')), out_folder, overwrite = TRUE)
+  ok <- try_figure(metrics[i], visualize_metric_CI_across_yc_faceted(metrics[i], metric_names[i], 'local', base_folder, fig_title = NULL))
+  if (ok) file.copy(file.path(base_folder, paste0('local_', metrics[i], '_faceted_2x3.png')), out_folder, overwrite = TRUE)
 }
 
 
@@ -86,8 +92,8 @@ print('Per-setting metric intervals')
 for (i in seq_along(adj_types)[settings_done]) {
   results_folder <- file.path(base_folder, adj_types[i], method)
 
-  visualize_metrics_CI(results_folder, n_reps, adj_types[i])
-  visualize_accuracy_CI_across_yc(results_folder, 'local', n_reps, adj_types[i], verts[i])
+  try_figure(paste(adj_types[i], 'metric intervals'), visualize_metrics_CI(results_folder, n_reps, adj_types[i]))
+  try_figure(paste(adj_types[i], 'accuracy across y_c'), visualize_accuracy_CI_across_yc(results_folder, 'local', n_reps, adj_types[i], verts[i]))
 
   pngs <- list.files(results_folder, pattern = paste0('^', adj_types[i], '_.*\\.(png|pdf)$'), full.names = TRUE)
   file.copy(pngs, out_folder, overwrite = TRUE)
@@ -107,7 +113,7 @@ for (adj_type in adj_types[settings_done]) {
   truth_file <- paste0(data_root, '/', adj_type, '_n_', n_large, '_rep_', rep_i, '/', adj_type, '_n_', n_large, '_rep_', rep_i, '_truths.RData')
   if (!file.exists(truth_file)) next
 
-  visualize_accuracy_heatmap_across_yc(results_folder, truth_file, adj_type)
+  try_figure(paste(adj_type, 'heatmap'), visualize_accuracy_heatmap_across_yc(results_folder, truth_file, adj_type))
 
   heatmaps <- list.files(file.path(results_folder, 'export'), pattern = '_heatmap_combined_n\\.png$', full.names = TRUE)
   file.copy(heatmaps, out_folder, overwrite = TRUE)
