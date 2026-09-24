@@ -1,0 +1,35 @@
+Package: conditionalgraphicalcox
+Title: Conditional Graphical Models for Multivariate Cox Processes
+Version: 1.0.0
+Authors@R: person("Jasen", "Zhang", email = "jasenzhang@g.ucla.edu", role = c("aut", "cre"))
+Description: Code for the simulation study (Section 5) and the mouse spike-train
+    analysis (Section 6) of the manuscript. Not an installable package: this file
+    only records the R dependencies (see README.md and renv.lock).
+License: MIT + file LICENSE
+Depends: R (>= 4.2)
+Imports:
+    abind,
+    data.table,
+    dplyr,
+    future.apply,
+    ggplot2,
+    ggridges,
+    gridExtra,
+    igraph,
+    MASS,
+    Matrix,
+    mvtnorm,
+    patchwork,
+    pbmcapply,
+    pracma,
+    pROC,
+    purrr,
+    reshape2,
+    RhpcBLASctl,
+    scales,
+    tidyr,
+    viridis
+Suggests:
+    gganimate,
+    magick,
+    renv

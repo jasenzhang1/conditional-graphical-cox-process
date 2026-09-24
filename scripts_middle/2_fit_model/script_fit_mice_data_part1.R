@@ -38,15 +38,11 @@ if(model_type == 'mice'){
   method <- args[5]                   # method <- 'CPGM'
   movement <- as.numeric(args[6])     # movement <- 0
   VR <- as.numeric(args[7])           # VR <- 0
-  cluster <- args[8]
+  library(RhpcBLASctl)
   
-  if(cluster == 'andrew'){
-    library(RhpcBLASctl)
-    
-    # limit threads in BLAS/LAPACK
-    blas_set_num_threads(1)   # limit BLAS
-    omp_set_num_threads(1)    # limit OpenMP
-  }
+  # limit threads in BLAS/LAPACK
+  blas_set_num_threads(1)   # limit BLAS
+  omp_set_num_threads(1)    # limit OpenMP
   
   discrete_level <- paste0('m', movement, 'vr', VR)
   
@@ -62,11 +58,7 @@ if(model_type == 'mice'){
   data_folder <- paste0(data_folder, '/', y_c_structure) 
   if (!dir.exists(data_folder)) dir.create(data_folder)  # /mice_data/week_only
   
-  if(cluster == 'andrew'){
-    temp_file_dir <- 'temp_data'
-  } else{
-    temp_file_dir <- '../../../project-biostat-chair/temp_data'
-  }
+  temp_file_dir <- 'temp_data'
   
   if (!dir.exists(temp_file_dir)) dir.create(temp_file_dir)  # /temp_data
   

@@ -1,52 +1,32 @@
-# main script to unpack finite basis results
-
-
+# ------------------------------------------------------------------------------
+#
+# Per-mouse diagnostic figures for the data analysis (Section 6).
+#
+# Called by scripts_exec/run_data_analysis.sh after each mouse x stratum fit:
+#
+#   Rscript scripts_middle/9_unpack/script_unpack_mice_results.R \
+#     <ID> <time_scale> <method> <movement> <VR> <eigen_setting> <results folder> [<results folder> ...]
+#
+# One results folder per lwGIC connectivity floor, e.g.
+#   mice_results/paper/week_only_bw_001_min_05/CPGM_BOTH_100_NORMALIZED
+# Figures go to <results folder>/export/<ID>_<stratum>_t<time_scale>_*.pdf
+#
+# ------------------------------------------------------------------------------
 
 source('functions/00_function_wrapper.R')
 source('functions/20_simulation_function_wrapper.R')
 
-# 2) arguments for simulation settings
-
 args <- commandArgs(trailingOnly = TRUE)
 
-ID             <- args[1]                   # ID <- 'Tau3'
-y_c_structure  <- args[2]                   # y_c_structure <- "week_only" or "time_and_week"
-time_scale     <- as.numeric(args[3])       # time_scale <- 10   (each replicate is 5 seconds)
-method         <- args[4]                   # method <- 'CPGM'
-movement       <- as.numeric(args[5])       # movement <- 0
-VR             <- as.numeric(args[6])       # VR <- 0
-eigen_setting  <- args[7]                   # only_joint, trig_and_joint, trig_simple
-region         <- args[8]                   # 'EHC', 'HIP', 'EHC_HIP'
-
-# ID <- 'WT1'
-# y_c_structure <- 'week_only_bw_0001'
-# time_scale <- 10
-# method <- 'CPGM'
-# movement <- 1
-# VR <- 1
-# eigen_setting <- 'only_joint'
-# region <- 'HIP'
-
+ID              <- args[1]                   # ID <- 'Tau3'
+time_scale      <- as.numeric(args[2])       # time_scale <- 10   (each replicate is 10 seconds)
+method          <- args[3]                   # method <- 'CPGM'
+movement        <- as.numeric(args[4])       # movement <- 0
+VR              <- as.numeric(args[5])       # VR <- 1
+eigen_setting   <- args[6]                   # only_joint, trig_and_joint, trig_simple
+results_folders <- args[7:length(args)]      # results_folders <- 'mice_results/paper/week_only_bw_001_min_05/CPGM_BOTH_100_NORMALIZED'
 
 discrete_level <- paste0('m', movement, 'vr', VR)
-
-make_gif <- F
-
-
-
-data_folder <- 'mice_data'   
-base_folder <- 'mice_results'
-
-base_folder <- '../../../project-biostat-chair/mice_results'
-
-results_folder <- paste0(base_folder, '/', y_c_structure, '/', method, '_', region)
-
-
-results_folder_2 <- paste0(results_folder, '/export')
-
-if (!dir.exists(results_folder_2)) {
-  dir.create(results_folder_2)
-}
 
 # 3) heatmaps of certain metrics 
 
@@ -68,6 +48,11 @@ tau_ids <- c('121')  # tau_c and tau_p
 
 
 
+
+for (results_folder in results_folders) {
+
+results_folder_2 <- paste0(results_folder, '/export')
+if (!dir.exists(results_folder_2)) dir.create(results_folder_2)
 
 # ------------------------------------------------------------------------------
 # 28e - visualize results over y_c
@@ -146,98 +131,8 @@ for(k in 1:length(reg_graphs)){
   dev.off()
 }
 
-
-# ------------------------------------------------------------------------------
-# for all 4 discrete settings, group them and plot adjacency matrices over time
-
-# IDs <- c('Tau3', 'WT3')
-# discrete_levels <- paste0('m', c(0, 0, 1, 1), 'vr', c(0, 1, 0, 1))
-# 
-# for(ID in IDs){
-# 
-#   png_name <- paste0(results_folder_2, '/', ID, '_t', time_scale, '_edge_sets.png')
-# 
-#   png(png_name, width = 45, height = 15, units = "in", res = 100)
-# 
-#   g <- visualize_discrete_comparison(results_folder, ID, time_scale, discrete_levels)
-#   print(g)
-#   dev.off()
-# 
-#   print(ID)
-# }
+}  # results folder
 
 
-
-y_c_structure <- "week_only_bw_0003"
-method <- 'CPGM'
-region <- 'HIP'
-time_scale <- 10
-
-base_folder <- '../../../project-biostat-chair/mice_results'
-
-
-
-
-results_folder <- paste0(base_folder, '/', y_c_structure, '/', method, '_', region)
-
-
-results_folder_2 <- paste0(results_folder, '/export')
-
-if (!dir.exists(results_folder_2)) {
-  dir.create(results_folder_2)
-}
-
-
-IDs <- c('Tau1', 'Tau2', 'Tau3', 'WT1', 'WT2', 'WT3')
-
-
-discrete_levels <- paste0('m', c(0, 0, 1, 1), 'vr', c(0, 1, 0, 1))
-
-discrete_levels_list <- list(discrete_levels,
-                             discrete_levels[c(1,3,4)],
-                             discrete_levels,
-                             discrete_levels[c(2,3,4)],
-                             discrete_levels[c(1,3,4)],
-                             discrete_levels)
-
-
-
-for(i in 1:length(IDs)){
-  print(IDs[i])
-  png_name <- paste0(results_folder_2, '/', IDs[i], '_t', time_scale, '_edge_sets.png')
-  
-  png(png_name, width = 45, height = 15, units = "in", res = 100)
-  
-  g <- visualize_discrete_comparison(results_folder, IDs[i], time_scale, discrete_levels_list[[i]], 'adj')
-  print(g)
-  dev.off()
-}
-
-
-  
-# ------------------------------------------------------------------------------
-# for all 4 discrete settings, group them and plot P_HS over time
-
-
-png_name <- paste0(results_folder_2, '/', ID, '_t', time_scale, '_P_HS.png')
-
-png(png_name, width = 45, height = 15, units = "in", res = 100)
-
-g <- visualize_discrete_comparison(results_folder, ID, time_scale, discrete_levels, 'P_HS')
-print(g)
-dev.off()
-  
-  
-# ------------------------------------------------------------------------------
-# for all 4 discrete settings, group them and plot C_HS over time
-
-
-png_name <- paste0(results_folder_2, '/', ID, '_t', time_scale, '_C_HS.png')
-
-png(png_name, width = 45, height = 15, units = "in", res = 100)
-
-g <- visualize_discrete_comparison(results_folder, ID, time_scale, discrete_levels, 'C_HS')
-print(g)
-dev.off()
-
-
+# Figures that compare mice and strata are drawn once every fit is done:
+# scripts_figures/data_analysis_figures.R

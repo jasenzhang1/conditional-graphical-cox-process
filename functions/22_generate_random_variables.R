@@ -1,10 +1,42 @@
-
-
 # all functions to generate y_c
 
 # 1) generate continuous and discrete RV's
 # 2) generate only continuous RV's because we assume 1 strata
 # 3) generate continuous RV's that reflect week; assume 1 strata
+# 4) simulation_seed: deterministic seeds for data generation
+
+
+
+simulation_seed <- function(adj_type, rep_i, stage, base_seed = NULL) {
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: deterministic RNG seed for one piece of the simulation, so every
+  #       replication (and every group within it) can be regenerated on its own
+  #
+  # inputs:
+  #
+  # - adj_type    (string)    simulation setting, e.g. 'hub_block_v2'
+  # - rep_i       (integer)   replication index
+  # - stage       (integer)   0 = conditioning variables (part 0),
+  #                           g = event generation for group g (parts 1 and 2)
+  # - base_seed   (integer)   defaults to the CGCP_SEED environment variable,
+  #                           or 2025 if it is unset
+  #
+  # output:
+  #
+  # - integer seed in [1, 2^31 - 2]
+  #
+  # ----------------------------------------------------------------------------
+  
+  if (is.null(base_seed)) base_seed <- as.numeric(Sys.getenv('CGCP_SEED', '2025'))
+  
+  adj_hash <- sum(utf8ToInt(adj_type) * seq_along(utf8ToInt(adj_type)))
+  seed <- (base_seed * 7919 + adj_hash * 104729 + rep_i * 1009 + stage) %% 2147483646 + 1
+  
+  as.integer(seed)
+}
+
 
 
 

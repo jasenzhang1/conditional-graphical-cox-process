@@ -1,26 +1,40 @@
 #!/bin/bash
 
-# ---------------------------------------------------------------------------
-# Generate AND fit finite basis data — single unified log per dataset
-# 
-# 11/19/2025 - v2: parallelize bivariate estimation
-#            - v3: parallelize data generation
-# 
-#            - v5: calculate rho_i and rho_ij before normalizing them by different n and y_c
-#            - v6: parallelize GIC
-# ---------------------------------------------------------------------------
-
-# ---------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 #
-# Fall 2026: re-run code and delete unnecessary lines of code 
+# Simulation study (Section 5): generate data, fit the model, select thresholds
+# with lwGIC, save results, and draw the per-setting diagnostic figures.
 #
-# n_large = 500 (so we run quicker)
+# usage:
 #
-# ---------------------------------------------------------------------------
+#   ./scripts_exec/run_simulations.sh [config file]      (default: config/simulation_paper.sh)
+#
+# For every setting in the config and every replication:
+#
+#   1. generate a dataset of n_large subjects                 scripts_middle/1_generate_data
+#   2. estimate rho_i, rho_ij once on all n_large subjects    scripts_middle/2_fit_model
+#   3. for each n in ns and each y_c query: weights, operator
+#      estimation and lwGIC threshold selection               scripts_middle/3_threshold_selection
+#   4. save one result file per n                             scripts_middle/4_save_results
+#                                                               -> simu_results/<adj_type>/CPGM/rep<i>/
+#
+# After all replications of a setting, per-setting diagnostics are drawn
+# (scripts_middle/9_unpack). After all settings, the manuscript figures are drawn
+# (scripts_figures/simulation_figures.R -> figures/simulations/).
+#
+# Logs: script_outputs/simu/<adj_type>_n_<n_large>_rep_<i>.log
+#
+# ------------------------------------------------------------------------------
 
+cd "$(dirname "$0")/.."  # repository root
 
-
-cd "$(dirname "$0")/.."  # go one level up (from /scripts to /)
+CONFIG="${1:-config/simulation_paper.sh}"
+if [ ! -f "$CONFIG" ]; then
+    echo "Config file not found: $CONFIG" >&2
+    exit 1
+fi
+source "$CONFIG"
+export CGCP_SEED
 
 GENERATE_SCRIPTS="scripts_middle/1_generate_data"
 FIT_SCRIPTS="scripts_middle/2_fit_model"
@@ -28,79 +42,14 @@ THRESHOLD_SCRIPTS="scripts_middle/3_threshold_selection"
 SAVE_SCRIPTS="scripts_middle/4_save_results"
 UNPACK_SCRIPTS="scripts_middle/9_unpack"
 
-# c1 = c2 = 2
-# c3 = c4 = 0.8
-# mu_0 = 5.5
-
-adj_type_params=(
-  #"indep_c2 0 1"
-  #"single_c2 0 1 0.5"
-  #"single_v2 0 1 0.7"
-  #"single_j2 0 1 0.5 0.3 0.7"
-  #"banded_c2 0 1 0.5"
-  #"banded_trig2 0 1 0.3"
-  #"sparse_v2 0 1 2 0.3 -1 2 0.01"
-  #"block_banded_v2 0 1 0.4 0.8 2"
-  #"block_banded_c0 0.5 0.5 2"
-  
-                                                      # c1 = 4, c2 = 3 always
-                                                      # c3 < c1 / sqrt(3)
-                                                      # c4 < c2 / sqrt(3)
-  "hub_block_v2 0 1 4 4 3 0 1.2 0 0.9"                # for hub, we can allow [0, 1.2] and [0, 0.9]
-  "hub_block_j2 0 1 4 0.5 4 3 0 1.2 0 0.9"            # jump                  [0, 1.2] and [0, 0.9]
-  #"hub_block_c2 0 1 4 2 2 0.7 0.7"
-  #"hub_block_c0 0.5 4 2 2 0.7 0.7"
-  
-  
-  
-  "complete_block_v2 0 1 4 4 3 0 1.2 0 0.9"             # for complete, c3 < c1/3, c4 < c2/3 [0, 1.2] and [0, 0.9]
-  "complete_block_j2 0 1 4 0.5 4 3 0 1.2 0 0.9"         # for jump                           [0, 1.2] and [0, 0.9]
-  #"complete_block_c0 0.5 4 2 2 0.7 0.7"
-  #"complete_block_c2 0 1 4 2 2 0.7 0.7"
-  
-                                                         # c3 < c1 / 1.618
-                                                         # c4 < c2 / 1.618
-  "flexible_block_banded_v2 0 1 4 4 3 0 1.2 0 0.9"       # for flexible, a bit more chill [0, 1.2] and [0, 0.9]   
-  "flexible_block_banded_j2 0 1 4 0.5 4 3 0 1.2 0 0.9"   # jump from                      [0, 1.2] and [0, 0.9]
-  #"flexible_block_banded_c2 0 1 4 2 2 0.7 0.7"
-  #"flexible_block_banded_c0 0.5 4 2 2 0.7 0.7"  
-  
-)
-
-#n_large=4000
-#ns=(500 1000 2000 4000)
-
-n_large=500
-ns=(100 250 500)
-
-#n_reps=49 # 50
-rep_ids=($(seq 11 50))
 n_reps=${#rep_ids[@]}
 max_rep=${rep_ids[$((n_reps - 1))]}  # unpack loops over rep1..rep{max_rep}, skipping missing reps
-
-y_c_bandwidth=""
-#n_large=20000
-#ns=(100 250 500 1000 2500 5000 10000 20000)
-
-n_group=20
 groups=$(( n_large / n_group ))
+model_type="simu"
+USER="${USER:-$(id -un)}"
 
-method="CPGM"
-model_type="simu"  # simu or mice
-max_jobs=80
-min_events=10
-max_events=5000
-
-p=16 # 16
-d=2
-n_query=6
-beta_0=4.7
-beta_truth="F"
-X_truth="F"
-eigen_setting="trig_simple" #only_joint, trig_and_joint, trig_simple, mfpca
-min_connect_pcts=(0)   # GIC minimum edge proportion; 0 = no constraint (mice use 0.01-0.15)
-global_thresh_method="neither" #both, joint, tau_c, neither   both = do joint and tau_c
-
+echo "Config: $CONFIG"
+echo "Settings: ${#adj_type_params[@]}, n_large=$n_large, ns=(${ns[*]}), replications=$n_reps, base seed=$CGCP_SEED"
 
 
 function wait_for_slot {
@@ -589,4 +538,12 @@ for entry in "${adj_type_params[@]}"; do
 done
 
 wait
+
+# ------------------------------------------------------------------------------
+# Manuscript figures (all settings together)
+# ------------------------------------------------------------------------------
+
+echo ""
+echo "All settings finished. Drawing manuscript figures (log: script_outputs/simu/simulation_figures.log)"
+Rscript scripts_figures/simulation_figures.R "$n_large" "$max_rep" "$method" > script_outputs/simu/simulation_figures.log 2>&1
 

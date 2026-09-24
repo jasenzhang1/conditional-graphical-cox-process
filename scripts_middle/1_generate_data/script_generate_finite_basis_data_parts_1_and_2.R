@@ -27,6 +27,10 @@ source('functions/20_simulation_function_wrapper.R')
 
 temp_file_dir <- paste0('temp_data/simu_data_', adj_type, '_n_', n_large, '_rep_', rep_i)
 
+seed <- simulation_seed(adj_type, rep_i, stage = group_idx)
+cat('seed (group', group_idx, ') =', seed, '\n')
+set.seed(seed)
+
 simulate_finite_basis_cox_data_parts1_and_2(temp_file_dir, setting_info_list, group_idx, n_group, min_events, max_events)
                                           
 

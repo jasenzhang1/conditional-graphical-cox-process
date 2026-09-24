@@ -17,8 +17,7 @@ if(model_type == 'mice'){
   movement <- as.numeric(args[6])     # movement <- 0
   VR <- as.numeric(args[7])           # VR <- 0
   cont_inds <- as.numeric(args[8])    # cont_ind <- 1  
-  cluster <- args[9]
-  min_connect_pcts <- as.numeric(args[10:length(args)])
+  min_connect_pcts <- as.numeric(args[9:length(args)])
   
   min_connect_pcts_string <- sapply(min_connect_pcts, function(min_connect_pct) {
     # min_pct string
@@ -44,18 +43,13 @@ if(model_type == 'mice'){
                             discrete_level = discrete_level,
                             min_connect_pcts_string = min_connect_pcts_string)
   
-  if(cluster == 'andrew'){
-    library(RhpcBLASctl)
-    
-    # limit threads in BLAS/LAPACK
-    blas_set_num_threads(1)   # limit BLAS
-    omp_set_num_threads(1)    # limit OpenMP
-    
-    # temp_data/mice/WT1_m1vr1_t10
-    temp_file_dir <- paste0('temp_data/mice/', ID, '_', discrete_level, '_t', time_scale) # mice/WT2_m0vr1_t10
-  } else{
-    temp_file_dir <- paste0('../../../project-biostat-chair/temp_data/mice/', ID, '_', discrete_level, '_t', time_scale) # biostat_dir for hoffman
-  }
+  library(RhpcBLASctl)
+  
+  # limit threads in BLAS/LAPACK
+  blas_set_num_threads(1)   # limit BLAS
+  omp_set_num_threads(1)    # limit OpenMP
+  
+  temp_file_dir <- paste0('temp_data/mice/', ID, '_', discrete_level, '_t', time_scale) # mice/WT2_m0vr1_t10
   
   
   

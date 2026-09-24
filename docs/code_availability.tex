@@ -1,0 +1,24 @@
+% Code and Data Availability paragraph for the manuscript
+% (after Section 7 or in the Supplementary Appendix). Fill in the TODOs.
+
+\section*{Code and Data Availability}
+
+All code needed to reproduce the results in this paper is available at
+\url{https://github.com/jasenzhang1/conditional-graphical-cox-process}, and the
+version used for this paper is archived on Zenodo (\href{https://doi.org/TODO}{doi:TODO}).
+The repository contains the simulation code for Section~5, covering all six
+topology--trend settings, sample sizes $n \in \{500, 1000, 2000, 4000\}$, the
+query grid and 50 replications with fixed and recorded random seeds, together
+with scripts that regenerate Figure~1 and Supplementary Figures~S1--S2. It also
+contains the data-analysis code for Section~6: pre-processing (windowing,
+stratum filtering, the 5-event replicate filter, the largest-clique
+neuron-retention rule and top-50 selection per region), estimation at every
+observed week in both strata with $h_Y = 0.001$, lwGIC tuning with the 5\%
+connectivity floor, and scripts that regenerate Figures~2--3 and Supplementary
+Figures~S3--S6. Each analysis runs with a single command (\texttt{make simulations},
+\texttt{make analysis}). The README lists software requirements (package versions
+are pinned in \texttt{renv.lock}), maps scripts to figures, and reports expected
+runtimes and hardware. The code is released under the MIT license. The spike-train
+data of \citet{zwang2025} are available from TODO: source and access terms;
+instructions for obtaining them and placing them in the repository are given in
+\texttt{data/README.md}.

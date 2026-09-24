@@ -1,0 +1,16 @@
+# Citation metadata. GitHub shows a "Cite this repository" button from this file,
+# and Zenodo reads it when archiving a release.
+# TODO before release: add co-authors, the manuscript title, and the Zenodo DOI.
+cff-version: 1.2.0
+message: "If you use this code, please cite the manuscript and this software."
+title: "Code for: Conditional Graphical Models for Multivariate Cox Processes"
+type: software
+authors:
+  - family-names: Zhang
+    given-names: Jasen
+    email: jasenzhang@g.ucla.edu
+    affiliation: "University of California, Los Angeles"
+license: MIT
+repository-code: "https://github.com/jasenzhang1/conditional-graphical-cox-process"
+version: 1.0.0
+# doi: 10.5281/zenodo.XXXXXXX

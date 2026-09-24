@@ -1,4 +1,3 @@
-suppressPackageStartupMessages(library(akima))
 
 hilbert_schmidt_norm <- function(A) {
   

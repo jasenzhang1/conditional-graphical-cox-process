@@ -24,8 +24,7 @@ if(model_type == 'mice'){
   
   region            <- args[10]                  # region <- 'HIP'
   experiment_folder <- args[11]                  # experiment_folder <- 'experiment_11'
-  cluster           <- args[12]                  # cluster <- 'hoffman'
-  min_connect_pcts <- as.numeric(args[13:length(args)])
+  min_connect_pcts <- as.numeric(args[12:length(args)])
   
   min_connect_pcts_string <- sapply(min_connect_pcts, function(min_connect_pct) {
     # min_pct string
@@ -50,27 +49,17 @@ if(model_type == 'mice'){
   
   mouse <- T
   
-  if(cluster == 'andrew'){
-    library(RhpcBLASctl)
-    
-    # limit threads in BLAS/LAPACK
-    blas_set_num_threads(1)   # limit BLAS
-    omp_set_num_threads(1)    # limit OpenMP
-    
-    temp_file_dir <- paste0('temp_data/mice/', ID, '_', discrete_level, '_t', time_scale) # temp_data/mice/WT1_m1vr1_t10/
-  } else{
-    temp_file_dir <- paste0('../../../project-biostat-chair/temp_data/mice/', ID, '_', discrete_level, '_t', time_scale)  # hoffman uses biostat-project
-  }
+  library(RhpcBLASctl)
   
+  # limit threads in BLAS/LAPACK
+  blas_set_num_threads(1)   # limit BLAS
+  omp_set_num_threads(1)    # limit OpenMP
+  
+  temp_file_dir <- paste0('temp_data/mice/', ID, '_', discrete_level, '_t', time_scale) # temp_data/mice/WT1_m1vr1_t10/
   temp_file_dir2 <- NA
   
-  if(cluster == 'andrew'){
-    folder_1_name <- 'mice_results'
-    if (!dir.exists(folder_1_name)) dir.create(folder_1_name)  # /mice_results
-  } else{
-    folder_1_name <- '../../../project-biostat-chair/mice_results_hoffman'
-    if (!dir.exists(folder_1_name)) dir.create(folder_1_name)  # /mice_results
-  }
+  folder_1_name <- 'mice_results'
+  if (!dir.exists(folder_1_name)) dir.create(folder_1_name)  # /mice_results
   
   # bw string
   # "1.0_default" or "001" given the bandwidth

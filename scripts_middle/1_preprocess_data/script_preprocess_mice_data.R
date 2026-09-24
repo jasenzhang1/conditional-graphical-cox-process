@@ -42,7 +42,6 @@ min_events     <- as.numeric(args[9])
 max_processes  <- as.numeric(args[10])
 n_weeks        <- as.numeric(args[11])
 deducted_weeks <- as.integer(strsplit(args[12], ",")[[1]])
-cluster        <- args[13]
 
 # ID <- 'Tau3'
 # y_c_structure <- 'week_only'
@@ -56,15 +55,12 @@ cluster        <- args[13]
 # max_processes <- 10000
 # n_weeks <- 50
 # deducted_weeks <- c(1,2)
-# cluster <- 'andrew'
 
-if(cluster == 'andrew'){
-  library(RhpcBLASctl)
-  
-  # limit threads in BLAS/LAPACK
-  blas_set_num_threads(1)   # limit BLAS
-  omp_set_num_threads(1)    # limit OpenMP
-}
+library(RhpcBLASctl)
+
+# limit threads in BLAS/LAPACK
+blas_set_num_threads(1)   # limit BLAS
+omp_set_num_threads(1)    # limit OpenMP
 
 # 2) create folder and print settings
 

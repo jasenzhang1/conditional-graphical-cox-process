@@ -1,4 +1,7 @@
-# main script to unpack finite basis results
+# Per-setting diagnostic figures for the simulation study.
+#
+# Called by scripts_exec/run_simulations.sh after all replications of one setting.
+# Output: simu_results/<adj_type>/CPGM/rep<first rep>/export/ and simu_results/<adj_type>/CPGM/
 
 
 
@@ -289,66 +292,6 @@ grid.arrange(metrics_summary$eval_metrics_graph2)
 dev.off()                                                                         # close the file
 
 # ------------------------------------------------------------------------------
-# 5) 28e) CI's for accuracy/f1/sens/spec etc for each n across reps
-  
-print('Getting CI Results')
-
-adj_types <- c('hub_block_v2', 'hub_block_j2', 'flexible_block_banded_j2', 'flexible_block_banded_v2')
-
-for(adj_type in adj_types){
-  results_folder <- paste0(base_folder, '/', adj_type, '/', method)
-  
-  visualize_metrics_CI(results_folder, n_reps, adj_type)
-}
-
-
-# ------------------------------------------------------------------------------
-# 6) 28e) loess curves, with confidence band from replicates, wrt y_c, for each n
-
-
-print('Getting loess curves')
-
-adj_types <- c('hub_block_j2', 'hub_block_v2', 'flexible_block_banded_j2', 'flexible_block_banded_v2', 'complete_block_j2', 'complete_block_v2')
-verts <- c(T, F, T, F, T, F)
-
-for(i in 1:length(adj_types)){
-  results_folder <- paste0(base_folder, '/', adj_types[i], '/', method)
-  
-  visualize_accuracy_CI_across_yc(results_folder, 'local', n_reps, adj_types[i], verts[i])
-  print(adj_types[i])
-}
-
-
-# ------------------------------------------------------------------------------
-# 6b) loess curves but all 6 of them are in the same figure
-
-method <- 'CPGM'
-
-vert_dashed_line <- list(c(F, F, F),
-                         c(T, T, T))
-
-results_folder <- list(paste0(base_folder, '/', c('flexible_block_banded_v2', 'hub_block_v2', 'complete_block_v2'), '/', method),
-                       paste0(base_folder, '/', c('flexible_block_banded_j2', 'hub_block_j2', 'complete_block_j2'), '/', method))
-
-
-row_names <- c('Linear', 'Jump')
-col_names <- c('Banded', 'Hub', 'Complete')
-
-metrics <- c('accuracy', 'sensitivity', 'specificity', 'ppv', 'npv', 'f1_score')
-metric_names <- c('Accuracy', 'Sensitivity', 'Specificity', 'Positive Predictive Value (PPV)', 'Negative Predictive Value (NPV)', 'F1 Score')
-
-# get the dataframe
-visualize_retrieve_metrics(base_folder, results_folder, metrics, n_reps, row_names, col_names)
-
-# plot
-for(i in 1:length(metrics)){
-  visualize_metric_CI_across_yc_faceted(metrics[i], metric_names[i], 'local', base_folder, fig_title = NULL)
-  print(metrics[i])
-}
-
-
-
-# ------------------------------------------------------------------------------
 # 6c) 28e) just for one setting
 
 results_folder <- paste0(base_folder, '/', adj_type, '/', method)
@@ -363,43 +306,5 @@ if(adj_type %in% c('hub_block_j2', 'flexible_block_banded_j2', 'complete_block_j
 visualize_accuracy_CI_across_yc(results_folder, 'local', n_reps, adj_type, verts)
 
 
-# ------------------------------------------------------------------------------
-# 7) Accuracy plot across n, local only
-
-
-truth_rep <- 50
-
-for(adj_type in c('hub_block_v2', 'hub_block_j2', 'complete_block_v2', 'complete_block_j2', 'flexible_block_banded_v2', 'flexible_block_banded_j2')){
-  for(rep_i in first_rep(adj_type)){
-    results_folder <- paste0(base_folder, '/', adj_type, '/', method, '/rep', rep_i)
-    truth_file <- paste0(data_root, '/', adj_type, '_n_', n_large, '_rep_', truth_rep, '/', adj_type, '_n_', n_large, '_rep_', truth_rep, '_truths.RData')
-    
-    # other adj_types may still be running
-    if (is.na(rep_i) || !file.exists(truth_file)) next
-
-    visualize_accuracy_heatmap_across_yc(results_folder, truth_file, adj_type)
-    print(rep_i)
-  }
-}
-
-# ------------------------------------------------------------------------------
-# 8) table with mean (std err) for accuracy, sens, spec, PPV, NPV, F1
-
-
-
-# results_folders <- list(paste0(base_folder, '/', c('flexible_block_banded_v2', 'hub_block_v2', 'complete_block_v2'), '/', method),
-#                         paste0(base_folder, '/', c('flexible_block_banded_j2', 'hub_block_j2', 'complete_block_j2'), '/', method))
-# 
-# result_folders <- paste0(base_folder, c('flexible_block_banded_v2',
-#                                         'flexible_block_banded_j2',
-#                                         'hub_block_v2',
-#                                         'hub_block_j2',
-#                                         'complete_block_v2',
-#                                         'complete_block_j2'), '/', me)
-# 
-# 
-# visualize_accuracy_CI_across_yc_faceted(results_folders, 'local', n_reps, row_names, col_names, vert_dashed_line, base_folder, fig_title = NULL)
-# 
-# 
-
-
+# Figures that compare settings are drawn once all settings are done:
+# scripts_figures/simulation_figures.R

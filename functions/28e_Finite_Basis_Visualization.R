@@ -389,7 +389,7 @@ visualize_retrieve_metrics <- function(base_folder, results_folder, metrics, n_r
   
   # save 
 
-  save(full_df, file = file.path(output_folder, "full_evaluation_metrics.RData"))
+  save(full_df, file = file.path(base_folder, "full_evaluation_metrics.RData"))
   
   return(NULL)
 }

@@ -47,13 +47,14 @@ y_c_query <- make_y_c_grid(n_query) %>% matrix(nrow = n_query)
 
 
 # 1) system parameters
-seed = NULL
+seed <- simulation_seed(adj_type, rep_i, stage = 0)
+cat('seed (part 0) =', seed, '\n')
 # ncores <- parallel::detectCores() - 1
 ncores = 1
 
 # 0) preprocessing
 
-Y_c <- generate_y_c_adj_type(n_large, adj_type, adj_params, seed = NULL)
+Y_c <- generate_y_c_adj_type(n_large, adj_type, adj_params, seed = seed)
 basis_list <- trig_basis(d)
 mean_vec <- rep(0, p*d) # mean for generating beta
 
