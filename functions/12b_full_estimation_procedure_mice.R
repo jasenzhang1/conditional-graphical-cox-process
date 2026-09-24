@@ -911,7 +911,9 @@ estimate_intensities_stratum_parallel_with_yc_part4_v5 <- function(temp_file_dir
   
   # 2d) if y_c_bandwidth is null, save it
   
-  if (use_default) {
+  if (is.null(y_c_bandwidth)) {
+    results[['y_c_bandwidth']] <- results$gamma_c
+  } else if (use_default) {
     results[['y_c_bandwidth']] <- results$gamma_c * y_c_bandwidth
   } else {
     results[['y_c_bandwidth']] <- y_c_bandwidth

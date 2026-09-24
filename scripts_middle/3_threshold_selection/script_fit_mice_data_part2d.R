@@ -69,12 +69,15 @@ if(model_type == 'mice'){
   adj_type <- args[5]
   method <- args[6]
   cont_inds <- as.numeric(args[7])
+  min_connect_pcts <- as.numeric(args[8:length(args)])
+  min_connect_pcts_string <- min_connect_pct_strings(min_connect_pcts)
   
   setting_info_list <- list(n_large = n_large,
                             n = n,
                             rep_i = rep_i,
                             adj_type = adj_type,
-                            method = method)
+                            method = method,
+                            min_connect_pcts_string = min_connect_pcts_string)
   
   temp_file_dir <- paste0('temp_data/simu_', adj_type, '_n_', n_large, '_rep_', rep_i)
   mouse <- F

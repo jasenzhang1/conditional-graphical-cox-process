@@ -98,6 +98,7 @@ beta_0=4.7
 beta_truth="F"
 X_truth="F"
 eigen_setting="trig_simple" #only_joint, trig_and_joint, trig_simple, mfpca
+min_connect_pcts=(0)   # GIC minimum edge proportion; 0 = no constraint (mice use 0.01-0.15)
 global_thresh_method="neither" #both, joint, tau_c, neither   both = do joint and tau_c
 
 
@@ -372,7 +373,7 @@ for entry in "${adj_type_params[@]}"; do
                                 # Inside this R script, it will loop through all tau_p (l=1...num_l)
                                 Rscript "$THRESHOLD_SCRIPTS/script_GIC_local_part2and3_serial.R" \
                                     "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" \
-                                    "$j" "$id_suffix" "$k" >> "$outfile" 2>&1 &                              
+                                    "$j" "$id_suffix" "$k" "${min_connect_pcts[@]}" >> "$outfile" 2>&1 &                              
     
                                       
                               done
@@ -385,7 +386,7 @@ for entry in "${adj_type_params[@]}"; do
                       echo "All GIC local tasks complete. Combining." >> "$outfile"
                       
                       # PART 4: Finalize and combine results
-                      Rscript "$THRESHOLD_SCRIPTS/script_GIC_local_part4.R" "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$j" >> "$outfile" 2>&1
+                      Rscript "$THRESHOLD_SCRIPTS/script_GIC_local_part4.R" "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$j" "${min_connect_pcts[@]}" >> "$outfile" 2>&1
           
                       # ---------------------------------------------------------
                       
@@ -397,7 +398,7 @@ for entry in "${adj_type_params[@]}"; do
                       echo "" | tee -a "$outfile"
                       echo "Merging GIC local info with part2b" >> "$outfile"
                       
-                      Rscript "$THRESHOLD_SCRIPTS/script_fit_mice_data_part2b_after_GIC.R" "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$X_truth" "$j" >> "$outfile" 2>&1
+                      Rscript "$THRESHOLD_SCRIPTS/script_fit_mice_data_part2b_after_GIC.R" "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$X_truth" "$j" "${min_connect_pcts[@]}" >> "$outfile" 2>&1
                       
                       
                       echo "[END] n = $n, y_c = $j" >> "$outfile"
@@ -499,7 +500,7 @@ for entry in "${adj_type_params[@]}"; do
               
               wait_for_slot
               
-              Rscript "$THRESHOLD_SCRIPTS/script_fit_mice_data_part2d.R" "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$n_query" >> "$outfile" 2>&1
+              Rscript "$THRESHOLD_SCRIPTS/script_fit_mice_data_part2d.R" "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$n_query" "${min_connect_pcts[@]}" >> "$outfile" 2>&1
               
               # ----------------
               # Part 3- when all part 2's are done, do part 3
@@ -510,7 +511,7 @@ for entry in "${adj_type_params[@]}"; do
               echo "At part 3" >> "$outfile"
               
               # simu_results/adj_type/CPGM/... .RData
-              Rscript "$SAVE_SCRIPTS/script_fit_mice_data_part3.R" "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$n_query" >> "$outfile" 2>&1
+              Rscript "$SAVE_SCRIPTS/script_fit_mice_data_part3.R" "$model_type" "$n_large" "$n" "$rep_i" "$adj_type" "$method" "$n_query" "${min_connect_pcts[@]}" >> "$outfile" 2>&1
               
               echo "" | tee -a "$outfile"
               echo "===================================================" >> "$outfile"

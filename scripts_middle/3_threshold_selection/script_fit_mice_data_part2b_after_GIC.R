@@ -64,16 +64,20 @@ if(model_type == 'mice'){
   method <- args[6]
   X_truth <- as.logical(args[7])
   cont_ind <- as.numeric(args[8])
+  min_connect_pcts <- as.numeric(args[9:length(args)])
+  min_connect_pcts_string <- min_connect_pct_strings(min_connect_pcts)
   
   setting_info_list <- list(n_large = n_large,
                             n = n,
                             rep_i = rep_i,
                             adj_type = adj_type,
-                            method = method)
+                            method = method,
+                            min_connect_pcts_string = min_connect_pcts_string)
   
   temp_file_dir <- paste0('temp_data/simu_', adj_type, '_n_', n_large, '_rep_', rep_i) 
   GIC_dir <- paste0(temp_file_dir, '/GIC_local_', adj_type, '_n_', n, '_nquery', cont_ind, '_rep', rep_i)
   dirs <- c(temp_file_dir, GIC_dir)
+  GIC_min_pct_dirs <- paste0(GIC_dir, '/', min_connect_pcts_string)
   
   mouse <- F
   

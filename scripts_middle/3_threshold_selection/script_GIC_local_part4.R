@@ -57,6 +57,7 @@ if(model_type == 'mice'){
   adj_type <- args[5]
   method <- args[6]
   cont_ind <- as.numeric(args[7])
+  min_connect_pcts <- as.numeric(args[8:length(args)])
   
   setting_info_list <- list(n_large = n_large,
                             n = n,
@@ -67,6 +68,7 @@ if(model_type == 'mice'){
   
   temp_file_dir <- paste0('temp_data/simu_', adj_type, '_n_', n_large, '_rep_', rep_i)
   temp_file_dir <- paste0(temp_file_dir, '/GIC_local_', adj_type, '_n_', n, '_nquery', cont_ind, '_rep', rep_i)
+  temp_file_min_dirs <- paste0(temp_file_dir, '/', min_connect_pct_strings(min_connect_pcts))
   mouse <- F
   
 } else{

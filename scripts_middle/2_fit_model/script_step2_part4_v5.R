@@ -52,6 +52,8 @@ if(model_type == 'mice'){
   use_default <- grepl('_default$', args[8])
   if (use_default) {
     y_c_bandwidth <- as.numeric(sub('_default$', '', args[8]))
+  } else if (is.na(args[8]) || args[8] == '') {
+    y_c_bandwidth <- NULL   # use the default gamma_c
   } else {
     y_c_bandwidth <- as.numeric(args[8])
   }

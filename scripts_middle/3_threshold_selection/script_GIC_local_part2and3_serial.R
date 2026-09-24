@@ -43,6 +43,7 @@ if(model_type == 'mice'){
   cont_ind <- as.numeric(args[7])
   id_suffix <- as.numeric(args[8])   # est or X_truth
   k         <- as.numeric(args[9])   # tau_c index
+  min_connect_pcts <- as.numeric(args[10:length(args)])
 
   temp_file_dir <- paste0('temp_data/simu_', adj_type, '_n_', n_large, '_rep_', rep_i)
   temp_file_dir <- paste0(temp_file_dir, '/GIC_local_', adj_type, '_n_', n, '_nquery', cont_ind, '_rep', rep_i)

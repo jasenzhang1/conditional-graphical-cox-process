@@ -45,6 +45,21 @@ GIC_step1_precompute <- function(C_cond, p, W_y, save_path, id_suffix) {
 
 
 
+min_connect_pct_strings <- function(min_connect_pcts) {
+  
+  # 0 -> 'min_00', 1 -> 'min_100', 0.05 -> 'min_05'
+  sapply(min_connect_pcts, function(min_connect_pct) {
+    if (min_connect_pct == 0) {
+      'min_00'
+    } else if (min_connect_pct == 1) {
+      'min_100'
+    } else {
+      paste0('min_', sub(".*\\.", "", formatC(min_connect_pct, digits = 2, format = "f")))
+    }
+  })
+}
+
+
 GIC_step2and3_serial_tau_c <- function(temp_file_dir, id_suffix, k, min_connect_pcts) {
   
   # temp_file_dir = folder name
