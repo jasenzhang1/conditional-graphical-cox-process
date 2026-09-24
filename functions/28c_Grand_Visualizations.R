@@ -798,7 +798,7 @@ visualize_over_time <- function(graph_results_i, graph_ids, ground_truth, beta_t
     # Based on your original code's logic for est_names
     est_v2_names <- v2_names[!grepl("none", v2_names)]
     step_12b_v3 <- lapply(step_12b_v2, function(x) x[names(x) %in% est_v2_names])
-    graphs[['g_115']] <- result_heatmap_mismatch_x(step_12b_v3, 'truth', 1, rm_diag = T, zmid = 0)
+    graphs[['g_115']] <- result_heatmap_mismatch_x(step_12b_v3, 'truth', 1, 14, rm_diag = T, zmid = 0)
     
 
   }
