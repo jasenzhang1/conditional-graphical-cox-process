@@ -854,7 +854,6 @@ trig_basis_rho_truth <- function(basis_list, mean_vec, cov_mat, time_grid, mu_t)
   
   
 
-  
   return(list(rho_i_truth = rho_i_truth_matrix,   # (p x m)
               rho_ij_truth = rho_ij_truth,        # (all pc2 lists of mxm matrices)
               g_ij_truth = g_ij_truth,            # (pc2 list of mxm matrices)
@@ -867,48 +866,6 @@ trig_basis_rho_truth <- function(basis_list, mean_vec, cov_mat, time_grid, mu_t)
 }
 
 
-
-trig_basis_cross_covariance_truth <- function(basis_list, cov_mat, time_grid){
-  
-  
-  # ----------------------------------------------------------------------------
-  # 
-  # GOAL: calculate the ground truth cross-covariance (pm x pm) for any time discretization setting
-  #
-  # - Recall: Cov(X_i(s), X_j(t)) = \phi(s)^\top [Sigma]_{ij} \phi(t)
-  # 
-  # input:
-  # 
-  # - basis_list  (d-dim list)             output from trig_basis
-  # - cov_mat     (pd x pd matrix)         covariance matrix
-  # - time_grid   (m-dim vector)           time discretization
-  #
-  #
-  # output:
-  #
-  # - G_ij_list      (list of mxm matrices) G_ij(s,t) for i_j where i <= j
-  #
-  #
-  # ----------------------------------------------------------------------------
-  
-  m <- length(time_grid)
-  phi <- trig_basis_realization(basis_list, time_grid) # (m x d matrix)
-  d <- dim(phi)[2]
-  p <- dim(cov_mat)[1] / d
-  
-  G_ij_list <- list()
-  
-  for(i in 1:p){
-    for(j in i:p){
-      key <- paste0(i, '_', j)
-      G_ij_list[[key]] <- phi %*% extract_block_structure_ij(cov_mat, d, i, j) %*% t(phi)
-    }
-  }
-  
-  
-  return(G_ij_list)
-  
-}
 
 trig_basis_gram_matrix <- function(basis_list, t_min, t_max){
   
@@ -1250,7 +1207,5 @@ trig_basis_eigendecomposition_beta_truths <- function(beta_coeffs, eigen_decomp_
   return(step_9_10_11_beta_truth)
                                
 }
-
-
 
 

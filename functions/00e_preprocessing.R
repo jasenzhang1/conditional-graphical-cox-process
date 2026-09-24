@@ -16,84 +16,7 @@ make_y_c_grid <- function(m){
   return(seq(0, 1, length.out = m))
 }
 
-convert_data_for_estimation <- function(subject_list, Tmax){
-  
-  # ----------------------------------------------------------------------------
-  #
-  #
-  # GOAL: convert data that was generated in simulation to a format ready for estimation. 
-  #
-  #   - it uses data from `dataset$subject_data`
-  #
-  # 
-  # subject_list (list)
-  # - Y_continuous
-  # - X_functions
-  # - precision_operator
-  # - event_times
-  # - event_counts
-  #
-  # 
-  # Output:
-  #
-  # - df (data.frame with 'feature_id', 'time', and 'subject_num')
-  #
-  #   - feature_id
-  #   - time
-  #   - subject_num
-  #
-  # ----------------------------------------------------------------------------
-  
-  df <- extract_event_times_df(subject_list)
-  colnames(df) <- c('time', 'feature_id', 'subject_num')
-  
-  df$time <- df$time / Tmax
-  
-  return(as.data.table(df))  
-  
-}
 
-extract_event_times_df <- function(subject_list) {
-  
-  
-  # ----------------------------------------------------------------------------
-  #
-  # GOAL: helper function for convert_data_for_estimation
-  # 
-  #
-  # input:
-  #
-  # - subject_list   (list of the following)
-  #
-  #   - Y_continuous
-  #   - X_functions
-  #   - precision_operator
-  #   - event_times
-  #   - event_counts
-  # 
-  # 
-  # ----------------------------------------------------------------------------
-  
-  
-  do.call(rbind, lapply(seq_along(subject_list), function(subject_id) {
-    event_times <- subject_list[[subject_id]]$event_times
-    
-    # Handle if event_times is NULL or missing
-    if (is.null(event_times)) return(NULL)
-    
-    do.call(rbind, lapply(seq_along(event_times), function(event_id) {
-      values <- event_times[[event_id]]
-      
-      if (length(values) == 0) return(NULL)  # skip empty vectors
-      
-      data.frame(
-        value = values,
-        event_id = event_id,
-        subject_id = subject_id
-      )
-    }))
-  }))
-}
 
 convert_data_for_estimation_event_times <- function(event_times){
   
@@ -143,63 +66,6 @@ convert_data_for_estimation_event_times <- function(event_times){
   
 }
 
-convert_data_adj_check <- function(process_ids, subject_ids){
-  
-  # ----------------------------------------------------------------------------
-  #
-  # GOAL: in preparation for bivariate estimation, there must be at least one subject_ID connecting each pair of process IDs
-  # 
-  #       so we create a maximal clique by deleting processes that do not connect with everyone
-  # 
-  #
-  # inputs:
-  #
-  # - process_ids   (vector)   vector of process ID's 
-  # - subject_ids   (vector)   vector of subject ID's 
-  #
-  # outputs:
-  #
-  # - nodes_to_keep  (vector)    which vertices to keep of process_ids
-  #
-  # ----------------------------------------------------------------------------
-  
-  # part 1) obtain an adjacency matrix
-  
-  # 1. Create the incidence matrix (Binary: Process vs Subject)
-  incidence_matrix <- table(process_ids, subject_ids)
-  incidence_matrix[incidence_matrix > 1] <- 1  # Ensure it is binary
-  
-  # 2. Matrix Multiplication (P x S) * (S x P) = (P x P)
-  adj_matrix <- incidence_matrix %*% t(incidence_matrix)
-  
-  # 3. Final touch: Binary adjacency (1 if shared, 0 otherwise)
-  adj_matrix[adj_matrix > 0] <- 1
-  
-
-  diag(adj_matrix) <- 0
-  
-
-  # part 2) choose which vertices to delete, if any 
-  
-  # 1. Create the graph from your adjacency matrix
-  g <- graph_from_adjacency_matrix(adj_matrix, mode = "undirected", diag = FALSE)
-  
-  # 2. Find the Maximum Clique (the largest fully connected subset)
-  max_clique_list <- largest_cliques(g)
-  
-  # 3. Get the names of the processes to KEEP
-  nodes_to_keep <- names(V(g)[max_clique_list[[1]]])
-  
-  # 4. Identify which to DELETE
-  all_nodes <- V(g)$name
-  nodes_to_delete <- setdiff(all_nodes, nodes_to_keep)
-  
-  print(paste("Keep:", paste(nodes_to_keep, collapse=", ")))
-  print(paste("Delete:", paste(nodes_to_delete, collapse=", ")))
-  
-  return(sort(as.numeric(nodes_to_keep)))
-  
-}
 
 convert_data_for_storage <- function(LGCP_data, df_brain_region, ID, y_c_structure, movement_num, vr_num, region, time_scale,
                                      time_grid_est, min_events, n_weeks, deducted_weeks = NULL, max_processes = Inf, seed = NULL){
@@ -539,6 +405,5 @@ convert_data_for_storage <- function(LGCP_data, df_brain_region, ID, y_c_structu
     )
   )
 }
-
 
 
