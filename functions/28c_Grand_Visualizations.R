@@ -203,7 +203,7 @@ visualize_over_time <- function(graph_results_i, graph_ids, ground_truth, beta_t
   # histograms of event times with intensity (Lambda) overlay
   if('02' %in% graph_ids){
     k <- 1
-    if(is.na(time_grid)){
+    if(all(is.na(time_grid))){
       graphs[['g_02']] <- visualize_points_on_intensity(step_0_events, step_1b, k, time_grid_est, F, time_grid) #28b
     } else{
       graphs[['g_02']] <- visualize_points_on_intensity(step_0_events, step_1b, k, time_grid_est, T, time_grid) #28b
