@@ -2,25 +2,27 @@
 
 extract_pieces_cond <- function(files) {
   
-  # 
-  # 
+  # ----------------------------------------------------------------------------
   #
-  # if our string is 
+  # GOAL: split result file names into their pieces
   #
-  #           "WT1_m0vr0_w17.rda"
-  #
-  #
-  # I want to keep
-  # - 'WT1' to denote the mouse
-  # - 0 to denote the movement
-  # - 0 to denote the VR
-  # - 17 to denote week
+  #       - if our string is "WT1_m0vr0_w17.rda", I want to keep
+  #         - 'WT1' to denote the mouse
+  #         - 0 to denote the movement
+  #         - 0 to denote the VR
+  #         - 17 to denote week
   #
   #
   # input:
-  # 
-  # - files (vector of strings)    .rda files
-  
+  #
+  # - files            (vector of strings)    .rda files
+  #
+  #
+  # output:
+  #
+  # - df               (data.frame)           columns mouse_ID, movement, VR, ew_num
+  #
+  # ----------------------------------------------------------------------------
   
   rda_files <- sub("\\.rda$", "", files)
   # 1) WT1
@@ -53,28 +55,25 @@ extract_pieces_cond <- function(files) {
 extract_pieces_cond_v2 <- function(files) {
   
   # ----------------------------------------------------------------------------
-  # 
   #
-  # if our string is 
+  # GOAL: split result file names into their pieces
   #
-  #           "WT1_m0vr0_age_0.5_ts_0.5.rda"
-  #
-  #
-  # I want to keep
-  # - 'WT1' to denote the mouse
-  # - 0 to denote the movement
-  # - 0 to denote the VR
-  # - 0.5 to denote normalized age
-  # - 0.5 to denote normalized timestamp
+  #       - if our string is "WT1_m0vr0_age_0.5_ts_0.5.rda", I want to keep
+  #         - 'WT1' to denote the mouse
+  #         - 0 to denote the movement
+  #         - 0 to denote the VR
+  #         - 0.5 to denote normalized age
+  #         - 0.5 to denote normalized timestamp
   #
   #
   # input:
-  # 
-  # - files (vector of strings)    .rda files
+  #
+  # - files            (vector of strings)    .rda files
+  #
   #
   # output:
   #
-  # -df (data.frame)
+  # - df               (data.frame)           columns mouse_ID, movement, VR, age_norm, ts_norm
   #
   # ----------------------------------------------------------------------------
   
@@ -112,11 +111,22 @@ extract_pieces_cond_v2 <- function(files) {
 
 get_mvr_interaction <- function(summary_df){
   
-  # assume summary_df has movement (0, 1) and VR (0, 1) as columns
+  # ----------------------------------------------------------------------------
   #
-  # create m_vr_factor
+  # GOAL: create movement, VR, and combined movement x VR factors
   #
-  # returns summary_df
+  #
+  # input:
+  #
+  # - summary_df       (data.frame)           has movement (0, 1) and VR (0, 1) as columns
+  #
+  #
+  # output:
+  #
+  # - summary_df       (data.frame)           with movement_factor ('Resting', 'Running'), VR_factor ('VR_Off', 'VR_On'),
+  #                                           and m_vr_factor columns added
+  #
+  # ----------------------------------------------------------------------------
   
   movement_factor <- rep('Resting', nrow(summary_df))
   movement_factor[summary_df$movement == 1] <- 'Running'
@@ -138,8 +148,20 @@ get_mvr_interaction <- function(summary_df){
 
 graph_stat_trends <- function(df_stats){
   
-  # once we have a dataframe of all the graph stats, we are ready to plot
+  # ----------------------------------------------------------------------------
   #
-  # 
+  # GOAL: once we have a dataframe of all the graph stats, we are ready to plot (not implemented yet)
+  #
+  #
+  # input:
+  #
+  # - df_stats         (data.frame)           graph statistics
+  #
+  #
+  # output:
+  #
+  # - none
+  #
+  # ----------------------------------------------------------------------------
   
 }

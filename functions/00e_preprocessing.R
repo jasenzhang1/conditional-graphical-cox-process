@@ -1,17 +1,45 @@
 make_time_grid <- function(m){
   
-  # make m bins from 0 to 1, and create each timepoint to be in the middle of each range.
-  # 
-  # ex: m = 10 --> (0.05, 0.15, ..., 0.95)
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: make m bins from 0 to 1, and place each timepoint in the middle of each bin
+  #
+  #       - ex: m = 10 --> (0.05, 0.15, ..., 0.95)
+  #
+  #
+  # input:
+  #
+  # - m                (integer)              number of bins
+  #
+  #
+  # output:
+  #
+  # - time_grid        (m-dim vector)         bin midpoints
+  #
+  # ----------------------------------------------------------------------------
   
   return((2*(1:m) - 1) / (2 * m))
 }
 
 make_y_c_grid <- function(m){
   
-  # make m bins from 0 to 1 including the borders
-  # 
-  # ex: m = 10 --> (0, 1/9, 2/9, ... , 9/9)
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: make m evenly spaced points from 0 to 1, including the borders
+  #
+  #       - ex: m = 10 --> (0, 1/9, 2/9, ... , 9/9)
+  #
+  #
+  # input:
+  #
+  # - m                (integer)              number of points
+  #
+  #
+  # output:
+  #
+  # - y_c_grid         (m-dim vector)         evenly spaced points on [0, 1]
+  #
+  # ----------------------------------------------------------------------------
   
   return(seq(0, 1, length.out = m))
 }
@@ -22,25 +50,22 @@ convert_data_for_estimation_event_times <- function(event_times){
   
   # ----------------------------------------------------------------------------
   #
+  # GOAL: convert data that was generated in simulation to a format ready for estimation
   #
-  # GOAL: convert data that was generated in simulation to a format ready for estimation. 
+  #       - it uses data from `dataset$event_times`
   #
-  #   - it uses data from `dataset$event_times`
   #
-  # 
   # input:
   #
-  # - event_times (n*p-dim list)  each item is named 'k_i' is a vector of timestamps for the i-th process and k-th subject
-  # 
+  # - event_times      (n*p-dim list)         each item is named 'k_i' and is a vector of timestamps for the i-th process and k-th subject
   #
-  # 
-  # Output:
   #
-  # - df (data.frame with 'feature_id', 'time', and 'subject_num')
+  # output:
   #
-  #   - feature_id
-  #   - time
-  #   - subject_num
+  # - df               (data.table)           one row per event, with columns:
+  #   - feature_id     (integer)              process i
+  #   - time           (number)               event timestamp
+  #   - subject_num    (integer)              subject k
   #
   # ----------------------------------------------------------------------------
   
@@ -72,66 +97,57 @@ convert_data_for_storage <- function(LGCP_data, df_brain_region, ID, y_c_structu
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: Convert data from the mice pipeline and wrap it in a format ready
-  #       for estimation.
+  # GOAL: convert data from the mice pipeline and wrap it in a format ready for estimation
   #
-  #   - Re-numbers replicates if they are discarded due to movement and VR
-  #     filtering.
-  #   - Runs iterative pruning to ensure a valid, fully-connected neuron set
-  #     (maximum clique) for the requested strata.
+  #       - re-numbers replicates if they are discarded due to movement and VR filtering
+  #       - runs iterative pruning to ensure a valid, fully-connected neuron set
+  #         (maximum clique) for the requested strata
+  #
   #
   # input:
   #
-  # - LGCP_data   (list of 3 items)
+  # - LGCP_data            (list of 3 items)
+  #   - [[1]]              (data.frame)           columns 'feature_id', 'time', and 'subject_num'
+  #   - [[2]]              (n x 3 data.frame)     columns 'movement', 'VR', and 'subject_num'
+  #   - [[3]]              (n x 3 data.frame)     columns 'subject_num', 'age', and 'timestamp'
+  # - df_brain_region      (data.frame)
+  #   - Neuron_Num         (integer)              i = 1, ..., p
+  #   - Electrode_Num      (integer)              1 through 64
+  #   - Brain_Region       (factor)               'Hippocampus' or 'Entorhinal_Cortex'
+  #   - Mouse              (string)               '346' mouse ID in string form
+  #   - Strain             (string)               'Tau' or 'WT'
+  #   - ID2                (factor)               'Tau1', 'Tau2', 'Tau3', 'WT1', 'WT2', 'WT3'
+  # - ID                   (string)               mouse name like "Tau1"
+  # - y_c_structure        (string)               "week_only" or "time_and_week"
+  # - movement_num         (0 or 1)               movement filter for the target stratum
+  # - vr_num               (0 or 1)               VR filter for the target stratum
+  # - region               (string)               brain region selector:
+  #                                               'HIP'                 - hippocampus only
+  #                                               'EHC'                 - entorhinal cortex only
+  #                                               'BOTH_100'            - top 50 per region by total spikes
+  #                                               'BOTH_150'            - top 75 per region by total spikes
+  #                                               'BOTH_100_NORMALIZED' - top 50 per region by spikes within the VR-on union
+  #                                                                       (m0vr1 + m1vr1), subject to the constraint that every
+  #                                                                       neuron pair has at least one co-active replicate in BOTH
+  #                                                                       m0vr1 AND m1vr1 strata. A greedy maximum-clique approach
+  #                                                                       is used jointly on both strata before trimming to the
+  #                                                                       top 50 per region.
+  # - time_scale           (integer)              seconds per replicate
+  # - time_grid_est        (m-dim vector)         estimation time grid, stored in simulation_params
+  # - min_events           (integer)              minimum spikes for a (replicate, process) to be included
+  # - n_weeks              (integer)              how many weeks to query
+  # - deducted_weeks       (vector or NULL)       weeks to remove from the query grid
+  # - max_processes        (integer)              cap on number of neurons (applied after region selection)
+  # - seed                 (integer or NULL)      stored in simulation_params
   #
-  #   - [[1]] (data.frame with 'feature_id', 'time', and 'subject_num')
-  #     - feature_id
-  #     - time
-  #     - subject_num
-  #
-  #   - [[2]] (nx3 data.frame with 'movement', 'VR', and 'subject_num')
-  #   - [[3]] (nx3 data.frame with 'subject_num', 'age', and 'timestamp')
-  #
-  # - df_brain_region  (dataframe of)
-  #
-  #   - Neuron_Num      (integer)  i = 1, ..., p
-  #   - Electrode_Num   (integer)  1 through 64
-  #   - Brain_Region    (factor)   'Hippocampus' or 'Entorhinal_Cortex'
-  #   - Mouse           (string)   '346' mouse ID in string form
-  #   - Strain          (string)   'Tau' or 'WT'
-  #   - ID2             (factor)   'Tau1', 'Tau2', 'Tau3', 'WT1', 'WT2', 'WT3'
-  #
-  # - ID                (string)      mouse name like "Tau1"
-  # - y_c_structure     (string)      "week_only" or "time_and_week"
-  # - movement_num      (0 or 1)      movement filter for the target stratum
-  # - vr_num            (0 or 1)      VR filter for the target stratum
-  # - region            (string)      brain region selector:
-  #                                     'HIP'               — hippocampus only
-  #                                     'EHC'               — entorhinal cortex only
-  #                                     'BOTH_100'          — top 50 per region by total spikes
-  #                                     'BOTH_150'          — top 75 per region by total spikes
-  #                                     'BOTH_100_NORMALIZED' — top 50 per region by spikes
-  #                                       within the VR-on union (m0vr1 + m1vr1), subject to
-  #                                       the constraint that every neuron pair has at least one
-  #                                       co-active replicate in BOTH m0vr1 AND m1vr1 strata.
-  #                                       A greedy maximum-clique approach is used jointly on
-  #                                       both strata before trimming to the top 50 per region.
-  # - time_scale        (integer)     seconds per replicate
-  # - time_grid_est
-  # - min_events        (integer)     minimum spikes for a (replicate, process) to be included
-  # - n_weeks           (integer)     how many weeks to query
-  # - max_processes     (integer)     cap on number of neurons (applied after region selection)
-  # - seed              (integer)
   #
   # output:
   #
-  # - output_list (list)
-  #
-  #   - event_times        (n*p-dim list)  each item named 'k_i' is a vector of
-  #                                        timestamps for the i-th process and k-th subject
-  #   - Y_continuous       (matrix)        continuous covariate matrix
-  #   - simulation_params  (list)          run metadata and query grid
-  #   - recovery_params    (list)          original neuron IDs, regions, and subjects kept
+  # - output_list          (list)
+  #   - event_times        (n*p-dim list)         each item named 'k_i' is a vector of timestamps for the i-th process and k-th subject
+  #   - Y_continuous       (matrix)               continuous covariate matrix
+  #   - simulation_params  (list)                 run metadata and query grid
+  #   - recovery_params    (list)                 original neuron IDs, regions, and subjects kept
   #
   # ----------------------------------------------------------------------------
   

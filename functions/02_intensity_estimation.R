@@ -6,18 +6,19 @@ estimate_rho_ij_from_Lambda_v5 <- function(X_mat, i, j){
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: with log-intensity values (X_mat) for i_j pair, calculate its weighted bivariate intensity (rho_ij)
+  # GOAL: with log-intensity values (X_mat) for an i_j pair, calculate its weighted bivariate intensity (rho_ij)
   #
   #
   # input:
   #
-  # - X_mat         (p x m x n) 
-  # - i             (integer) 
-  # - j             (integer)
+  # - X_mat            (p x m x n array)      log-intensities for each process, time, and subject
+  # - i                (integer)              first process
+  # - j                (integer)              second process
   #
-  # outputs:
   #
-  # - rho_ij    (m^2 x n) matrix
+  # output:
+  #
+  # - rho_ij           (m^2 x n matrix)       column k is as.vector(Lambda_i^k %*% t(Lambda_j^k))
   #
   # ----------------------------------------------------------------------------
   

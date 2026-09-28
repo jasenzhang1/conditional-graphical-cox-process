@@ -4,27 +4,27 @@
 
 assemble_block_matrix_v2 <- function(operator_list, p, block_size) {
   
-  # ------------------------------------------------------------------------
+  # ----------------------------------------------------------------------------
   #
-  # GOAL: rearrange correlation list into a pm x pm matrix
+  # GOAL: rearrange a correlation list into a pm x pm matrix
   #
-  # - v2: operator list only has j >= i entries
-  # - we assume the i_j entry that is ommitted is the transpose of the existing one
+  #       - v2: operator list only has j >= i entries
+  #       - we assume the i_j entry that is omitted is the transpose of the existing one
+  #       - (10/1/2025) we allow i_i entries only and assemble them accordingly
   #
   #
-  # Input: 
+  # input:
   #
-  # - operator_list     (list of length p + pC2, each element is a matrix of block_size x block_size)
-  #                     (10/1/2025, we allow i_i entries only and assemble them accordingly)
-  # - p                 (scalar)
-  # - block_size        (scalar, equals m)
+  # - operator_list    (list)                 length p + pC2, each element is a block_size x block_size matrix named i_j
+  # - p                (integer)              number of processes
+  # - block_size       (integer)              size of each block, equals m
   #
-  # 
-  # Output: 
   #
-  # - block_matrix      (pm x pm matrix)
+  # output:
   #
-  # ------------------------------------------------------------------------
+  # - block_matrix     (pm x pm matrix)
+  #
+  # ----------------------------------------------------------------------------
   
   check1 <- all(sapply(operator_list, function(x) {
     is.matrix(x) && all(dim(x) == c(block_size, block_size))
@@ -71,26 +71,25 @@ assemble_block_matrix_irregular <- function(operator_list, p) {
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: Assemble a block matrix from a list of blocks operator_list
-  # 
-  # - Only contains i_j with i <= j. Off-diagonal blocks can be rectangular
-  # - j_i entries are automatically set as transpose of i_j
+  # GOAL: assemble a block matrix from a list of blocks operator_list
+  #
+  #       - only contains i_j with i <= j. Off-diagonal blocks can be rectangular
+  #       - j_i entries are automatically set as transpose of i_j
   #
   #
   # input:
-  # 
-  # - operator_list  (list of entries named i_j)
-  # - p              (integer)                      number of processes
+  #
+  # - operator_list    (list of i_j matrices)  only entries with i <= j
+  # - p                (integer)               number of processes
   #
   #
   # output:
   #
-  # - list of the following:
+  # - output           (list)
+  #   - block_matrix   (pd x pd-ish matrix)    square block matrix
+  #   - row_borders    (vector)                last index of the respective row block (y = c horizontal borders)
+  #   - col_borders    (vector)                last index of the respective column block (x = d vertical borders)
   #
-  #   - block_matrix  (square pd x pd-ish matrix)
-  #   - row_borders   (last index of the respective row block)    (y = c horizontal borders)
-  #   - col_borders   (last index of the respective column block) (x = d vertical borders)
-  # 
   # ----------------------------------------------------------------------------
   
   # parse names into i,j
@@ -153,16 +152,21 @@ extract_block_matrix_irregular <- function(full_matrix, row_borders, col_borders
   
   
   # ----------------------------------------------------------------------------
-  # GOAL:
-  # Given a full matrix and row/column borders, extract blocks as a list.
   #
-  # Inputs:
-  # - full_matrix  (pm x qm matrix)
-  # - row_borders: (vector of cumulative row ends, e.g. row_ends)
-  # - col_borders: (vector of cumulative col ends, e.g. col_ends)
+  # GOAL: given a full matrix and row/column borders, extract blocks as a list
   #
-  # Outputs:
-  # - block_list: list of i_j blocks (names "i_j")
+  #
+  # input:
+  #
+  # - full_matrix      (pm x qm matrix)
+  # - row_borders      (vector)                cumulative row ends, e.g. row_ends
+  # - col_borders      (vector)                cumulative column ends, e.g. col_ends
+  #
+  #
+  # output:
+  #
+  # - block_list       (list of i_j matrices)  blocks named "i_j"
+  #
   # ----------------------------------------------------------------------------
   
   p <- length(row_borders)
@@ -195,20 +199,20 @@ extract_block_structure_v2 <- function(block_matrix, p, block_size) {
   #
   # GOAL: extract block sub-matrices from a block matrix
   #
-  # - it's the reverse of assemble_block_matrix
-  # - only want to keep the i_j entries for i <= j
+  #       - it's the reverse of assemble_block_matrix
+  #       - only want to keep the i_j entries for i <= j
   #
-  # 
-  # Input: 
   #
-  # - block_matrix   (pm x pm matrix)
-  # - p              (scalar)
-  # - block_size     (scalar) m 
+  # input:
   #
-  # 
-  # Output: 
+  # - block_matrix     (pm x pm matrix)
+  # - p                (integer)              number of processes
+  # - block_size       (integer)              size of each block, equals m
   #
-  # - operator_list (list of length p + pC2, each element block_size x block_size)
+  #
+  # output:
+  #
+  # - operator_list    (list)                 length p + pC2, each element block_size x block_size
   #
   # ----------------------------------------------------------------------------
   
@@ -240,26 +244,24 @@ extract_block_structure_v2 <- function(block_matrix, p, block_size) {
 
 extract_block_structure_ij <- function(block_matrix, block_size, i, j) {
   
-  # ------------------------------------------------------------------------
+  # ----------------------------------------------------------------------------
   #
-  # GOAL: extract block sub-matrices from a block matrix
+  # GOAL: extract a single i_j block sub-matrix from a block matrix
   #
-  # - we only want to extract a single i_j entry 
   #
-  # 
-  # Input: 
+  # input:
   #
-  # - block_matrix   (pm x pm matrix)
-  # - block_size     (scalar)  m
-  # - i              (scalar)  row number
-  # - j              (scalar)  column number
+  # - block_matrix     (pm x pm matrix)
+  # - block_size       (integer)              size of each block, equals m
+  # - i                (integer)              row block number
+  # - j                (integer)              column block number
   #
-  # 
-  # Output: 
   #
-  # -  the [i, j] block (m x m matrix)
+  # output:
   #
-  # ------------------------------------------------------------------------
+  # - block            (m x m matrix)         the [i, j] block
+  #
+  # ----------------------------------------------------------------------------
   
   
   row_start <- (i-1) * block_size + 1
@@ -278,24 +280,24 @@ assemble_blockwise_correlation <- function(Sigma, p, d){
   
   
   # ----------------------------------------------------------------------------
-  # 
-  # 
+  #
   # GOAL: for a pd x pd covariance matrix, return blocks that are correlation matrices
   #
-  # - [Sigma]_{ij} is the (i,j)th block
-  # - Let [R]_{ij} = diag(Sigma_{ii})^{-1/2} %*% Sigma_{ij} %*% diag(Sigma_{jj})^{-1/2}
-  # - Then block them into pd x pd matrix R
+  #       - [Sigma]_{ij} is the (i,j)th block
+  #       - Let [R]_{ij} = diag(Sigma_{ii})^{-1/2} %*% Sigma_{ij} %*% diag(Sigma_{jj})^{-1/2}
+  #       - Then block them into pd x pd matrix R
   #
   #
-  # inputs:
+  # input:
   #
-  # - Sigma        (pd x pd matrix)  block covariance matrix
-  # - p            (scalar)
-  # - d            (scalar)
+  # - Sigma            (pd x pd matrix)       block covariance matrix
+  # - p                (integer)              number of processes
+  # - d                (integer)              size of each block
+  #
   #
   # output:
   #
-  # - R            (pd x pd matrix)   block correlation matrix
+  # - R                (pd x pd matrix)       block correlation matrix
   #
   # ----------------------------------------------------------------------------
   

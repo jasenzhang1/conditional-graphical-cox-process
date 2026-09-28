@@ -2,17 +2,20 @@ plot_edge_proportion_all_mice <- function(results_folder, time_scale, discrete_l
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: For each discrete stratum, plot edge proportion over weeks for all
-  #       available mice discovered automatically from results_folder.
-  #       Returns a named list of ggplots, one per discrete level.
+  # GOAL: for each discrete stratum, plot edge proportion over weeks for all
+  #       available mice discovered automatically from results_folder
   #
-  # inputs:
   #
-  # - results_folder   (string)
-  # - time_scale       (integer)  e.g. 10
-  # - discrete_levels  (vector of strings)  e.g. c('m0vr0', 'm1vr1', ...)
+  # input:
   #
-  # returns: named list of ggplot objects, one per discrete level
+  # - results_folder   (string)               results folder
+  # - time_scale       (integer)              e.g. 10
+  # - discrete_levels  (vector of strings)    e.g. c('m0vr0', 'm1vr1', ...)
+  #
+  #
+  # output:
+  #
+  # - plot_list        (named list)           ggplot objects, one per discrete level
   #
   # ----------------------------------------------------------------------------
   
@@ -137,7 +140,7 @@ plot_edge_instability_all_mice <- function(results_folder, time_scale, discrete_
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: For each discrete stratum, plot edge instability over weeks for all
+  # GOAL: for each discrete stratum, plot edge instability over weeks for all
   #       available mice discovered automatically from results_folder.
   #       Instability at week t is defined as:
   #
@@ -148,15 +151,20 @@ plot_edge_instability_all_mice <- function(results_folder, time_scale, discrete_
   #       disjoint. Only computed for consecutive present weeks (gap = 1).
   #       All computations use upper triangle only to exclude diagonal.
   #
-  # inputs:
   #
-  # - results_folder   (string)
-  # - time_scale       (integer)  e.g. 10
-  # - discrete_levels  (vector of strings)  e.g. c('m0vr0', 'm1vr1', ...)
+  # input:
   #
-  # returns: named list with two ggplot objects (linear, sqrt), each a
-  #          single faceted plot with all discrete strata stacked vertically,
-  #          one raw geom_line per mouse
+  # - results_folder   (string)               results folder
+  # - time_scale       (integer)              e.g. 10
+  # - discrete_levels  (vector of strings)    e.g. c('m0vr0', 'm1vr1', ...)
+  #
+  #
+  # output:
+  #
+  # - output           (named list)           two ggplot objects, each a single faceted plot with all discrete
+  #                                           strata stacked vertically, one raw geom_line per mouse
+  #   - linear         (ggplot object)        linear y-axis
+  #   - sqrt           (ggplot object)        sqrt y-axis
   #
   # ----------------------------------------------------------------------------
   
@@ -358,7 +366,7 @@ plot_edge_instability_all_mice_v2 <- function(results_folder, time_scale, discre
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: For each discrete stratum, plot edge instability over weeks for all
+  # GOAL: for each discrete stratum, plot edge instability over weeks for all
   #       available mice discovered automatically from results_folder.
   #       Instability at week t is defined as:
   #
@@ -371,14 +379,20 @@ plot_edge_instability_all_mice_v2 <- function(results_folder, time_scale, discre
   #       Loess is pre-computed separately per mouse x stratum to guarantee
   #       within-panel fitting (geom_smooth pools across facets).
   #
-  # inputs:
   #
-  # - results_folder   (string)
-  # - time_scale       (integer)  e.g. 10
-  # - discrete_levels  (vector of strings)  e.g. c('m0vr0', 'm1vr1', ...)
+  # input:
   #
-  # returns: named list with two ggplot objects (linear, sqrt), each a
-  #          single faceted plot with all discrete strata stacked vertically
+  # - results_folder   (string)               results folder
+  # - time_scale       (integer)              e.g. 10
+  # - discrete_levels  (vector of strings)    e.g. c('m0vr0', 'm1vr1', ...)
+  #
+  #
+  # output:
+  #
+  # - output           (named list)           two ggplot objects, each a single faceted plot with all discrete
+  #                                           strata stacked vertically
+  #   - linear         (ggplot object)        linear y-axis
+  #   - sqrt           (ggplot object)        sqrt y-axis
   #
   # ----------------------------------------------------------------------------
   
@@ -640,7 +654,7 @@ plot_strata_instability_all_mice <- function(results_folder, time_scale, discret
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: Supply two discrete strata and plot Jaccard similarity over weeks for
+  # GOAL: supply two discrete strata and plot Jaccard similarity over weeks for
   #       all available mice discovered automatically from results_folder.
   #       Jaccard similarity at week t is defined as:
   #
@@ -652,16 +666,19 @@ plot_strata_instability_all_mice <- function(results_folder, time_scale, discret
   #       (both graphs agree on having no edges).
   #       All computations use upper triangle only to exclude diagonal.
   #
-  # inputs:
   #
-  # - results_folder   (string)
-  # - time_scale       (integer)  e.g. 10
+  # input:
+  #
+  # - results_folder   (string)                         results folder
+  # - time_scale       (integer)                        e.g. 10
   # - discrete_levels  (vector of exactly two strings)  e.g. c('m0vr1', 'm1vr1')
   #
-  # returns: named list with two elements:
-  #   - linear : named list of ggplot objects (linear y-axis), one per mouse
-  #   - sqrt   : named list of ggplot objects (sqrt y-axis), one per mouse
-  #   Both sub-lists also contain a 'combined' entry with all mice on one plot.
+  #
+  # output:
+  #
+  # - output           (named list)                     both sub-lists also contain a 'combined' entry with all mice on one plot
+  #   - linear         (named list)                     ggplot objects (linear y-axis), one per mouse
+  #   - sqrt           (named list)                     ggplot objects (sqrt y-axis), one per mouse
   #
   # ----------------------------------------------------------------------------
   
@@ -884,7 +901,7 @@ plot_strata_instability_all_mice_v2 <- function(results_folder, time_scale, disc
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: Supply two discrete strata and plot Jaccard similarity over weeks for
+  # GOAL: supply two discrete strata and plot Jaccard similarity over weeks for
   #       all available mice discovered automatically from results_folder.
   #       Jaccard similarity at week t is defined as:
   #
@@ -898,16 +915,19 @@ plot_strata_instability_all_mice_v2 <- function(results_folder, time_scale, disc
   #       Loess is pre-computed per mouse to avoid geom_smooth pooling across
   #       groups.
   #
-  # inputs:
   #
-  # - results_folder   (string)
-  # - time_scale       (integer)  e.g. 10
+  # input:
+  #
+  # - results_folder   (string)                         results folder
+  # - time_scale       (integer)                        e.g. 10
   # - discrete_levels  (vector of exactly two strings)  e.g. c('m0vr1', 'm1vr1')
   #
-  # returns: named list with two elements:
-  #   - linear : named list of ggplot objects (linear y-axis), one per mouse
-  #   - sqrt   : named list of ggplot objects (sqrt y-axis), one per mouse
-  #   Both sub-lists also contain a 'combined' entry with all mice on one plot.
+  #
+  # output:
+  #
+  # - output           (named list)                     both sub-lists also contain a 'combined' entry with all mice on one plot
+  #   - linear         (named list)                     ggplot objects (linear y-axis), one per mouse
+  #   - sqrt           (named list)                     ggplot objects (sqrt y-axis), one per mouse
   #
   # ----------------------------------------------------------------------------
   
@@ -1157,40 +1177,44 @@ plot_edge_stability_combined <- function(results_folder, time_scale, discrete_le
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: Produce a single faceted plot with three panels stacked vertically:
+  # GOAL: produce a single faceted plot with three panels stacked vertically:
   #
-  #   Panel 1 ("Temporal, Resting"):
-  #     Jaccard similarity between consecutive-week edge sets within m0vr1.
-  #     J(t) = |E(t) ∩ E(t+1)| / |E(t) ∪ E(t+1)|
-  #     Only computed for weeks with gap = 1.
+  #       Panel 1 ("Temporal, Resting"):
+  #         Jaccard similarity between consecutive-week edge sets within m0vr1.
+  #         J(t) = |E(t) ∩ E(t+1)| / |E(t) ∪ E(t+1)|
+  #         Only computed for weeks with gap = 1.
   #
-  #   Panel 2 ("Temporal, Running"):
-  #     Same as Panel 1 but within m1vr1.
+  #       Panel 2 ("Temporal, Running"):
+  #         Same as Panel 1 but within m1vr1.
   #
-  #   Panel 3 ("Cross-Stratum, Same Week"):
-  #     Jaccard similarity between Resting and Running edge sets at
-  #     the same week t.
-  #     J(t) = |E_rest(t) ∩ E_run(t)| / |E_rest(t) ∪ E_run(t)|
-  #     Only computed for weeks present in both strata.
+  #       Panel 3 ("Cross-Stratum, Same Week"):
+  #         Jaccard similarity between Resting and Running edge sets at
+  #         the same week t.
+  #         J(t) = |E_rest(t) ∩ E_run(t)| / |E_rest(t) ∪ E_run(t)|
+  #         Only computed for weeks present in both strata.
   #
-  #   All computations use upper triangle only to exclude diagonal
-  #   (self-loops) and avoid double counting from symmetry.
-  #   When both edge sets are empty, similarity is defined as 1
-  #   (both graphs agree on having no edges).
-  #   Loess is pre-computed separately per mouse x panel to guarantee
-  #   within-panel fitting (geom_smooth pools across facets).
-  #   Panel labels are assigned after rbind to prevent factor-level
-  #   contamination across row blocks.
+  #       All computations use upper triangle only to exclude diagonal
+  #       (self-loops) and avoid double counting from symmetry.
+  #       When both edge sets are empty, similarity is defined as 1
+  #       (both graphs agree on having no edges).
+  #       Loess is pre-computed separately per mouse x panel to guarantee
+  #       within-panel fitting (geom_smooth pools across facets).
+  #       Panel labels are assigned after rbind to prevent factor-level
+  #       contamination across row blocks.
   #
-  # inputs:
   #
-  # - results_folder   (string)
-  # - time_scale       (integer)  e.g. 10
-  # - discrete_levels  (vector of exactly two strings) c('m0vr1', 'm1vr1')
+  # input:
   #
-  # returns: named list with two ggplot objects:
-  #   - linear : faceted plot with linear y-axis
-  #   - sqrt   : faceted plot with sqrt-transformed y-axis
+  # - results_folder   (string)                         results folder
+  # - time_scale       (integer)                        e.g. 10
+  # - discrete_levels  (vector of exactly two strings)  e.g. c('m0vr1', 'm1vr1')
+  #
+  #
+  # output:
+  #
+  # - output           (named list)
+  #   - linear         (ggplot object)                  faceted plot with linear y-axis
+  #   - sqrt           (ggplot object)                  faceted plot with sqrt-transformed y-axis
   #
   # ----------------------------------------------------------------------------
   
@@ -1523,19 +1547,24 @@ plot_edge_regional_proportion_all_mice <- function(results_folder, time_scale, d
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: For each discrete stratum, plot the proportion of existing edges that
+  # GOAL: for each discrete stratum, plot the proportion of existing edges that
   #       are HIP-HIP, HIP-EHC, or EHC-EHC across all discovered mice.
   #
   #       n_hip inferred per mouse from res_i$recovery_params$kept_neuron_regions
   #       (same source used by visualize_strata_all_mice_v2).
   #       All computations use upper.tri() only.
   #
-  # inputs:
-  #   results_folder   (string)
-  #   time_scale       (integer)  e.g. 10
-  #   discrete_levels  (vector of strings)  e.g. c('m0vr0', 'm1vr1', ...)
   #
-  # returns: named list of ggplot objects, keyed as e.g. "m0vr1_HIPHIP"
+  # input:
+  #
+  # - results_folder   (string)               results folder
+  # - time_scale       (integer)              e.g. 10
+  # - discrete_levels  (vector of strings)    e.g. c('m0vr0', 'm1vr1', ...)
+  #
+  #
+  # output:
+  #
+  # - plot_list        (named list)           ggplot objects, keyed as e.g. "m0vr1_HIPHIP"
   #
   # ----------------------------------------------------------------------------
   
@@ -1680,7 +1709,7 @@ plot_edge_regional_proportion_all_mice_v2 <- function(results_folder, time_scale
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: For each discrete stratum, plot the proportion of existing edges that
+  # GOAL: for each discrete stratum, plot the proportion of existing edges that
   #       are HIP-HIP, HIP-EHC, or EHC-EHC across all discovered mice.
   #
   #       n_hip inferred per mouse from res_i$recovery_params$kept_neuron_regions
@@ -1692,12 +1721,17 @@ plot_edge_regional_proportion_all_mice_v2 <- function(results_folder, time_scale
   #       Loess is pre-computed separately per mouse x stratum x region_pair
   #       to guarantee within-panel fitting (geom_smooth pools across facets).
   #
-  # inputs:
-  #   results_folder   (string)
-  #   time_scale       (integer)  e.g. 10
-  #   discrete_levels  (vector of strings)  e.g. c('m0vr1', 'm1vr1')
   #
-  # returns: a single ggplot object (faceted grid)
+  # input:
+  #
+  # - results_folder   (string)               results folder
+  # - time_scale       (integer)              e.g. 10
+  # - discrete_levels  (vector of strings)    e.g. c('m0vr1', 'm1vr1')
+  #
+  #
+  # output:
+  #
+  # - p                (ggplot object)        faceted grid
   #
   # ----------------------------------------------------------------------------
   
@@ -1903,21 +1937,24 @@ plot_median_nonzero_degree_all_mice <- function(results_folder, time_scale, disc
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: For each discrete stratum, and for each mouse, compute the 25th
+  # GOAL: for each discrete stratum, and for each mouse, compute the 25th
   #       percentile, median, and 75th percentile of degree across neurons
   #       that have at least one edge (positive degree) at each week.
   #       Plots one loess curve per mouse (fit to the median), with a shaded
   #       band spanning the 25th-75th percentile loess fits. The 50% CI band
   #       reflects the IQR of the non-zero degree distribution at each week.
   #
-  #       Returns one ggplot per discrete level.
   #
-  # inputs:
-  #   results_folder   (string)
-  #   time_scale       (integer)  e.g. 10
-  #   discrete_levels  (vector of strings)  e.g. c('m0vr0', 'm1vr1', ...)
+  # input:
   #
-  # returns: named list of ggplot objects, one per discrete level
+  # - results_folder   (string)               results folder
+  # - time_scale       (integer)              e.g. 10
+  # - discrete_levels  (vector of strings)    e.g. c('m0vr0', 'm1vr1', ...)
+  #
+  #
+  # output:
+  #
+  # - plot_list        (named list)           ggplot objects, one per discrete level
   #
   # ----------------------------------------------------------------------------
   
@@ -2064,7 +2101,7 @@ plot_median_nonzero_degree_all_mice_v2 <- function(results_folder, time_scale, d
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: For each discrete stratum, and for each mouse, compute the median
+  # GOAL: for each discrete stratum, and for each mouse, compute the median
   #       degree across neurons that have at least one edge (positive degree)
   #       at each week. Plots one loess curve per mouse (fit to the median),
   #       with no confidence interval or IQR ribbon.
@@ -2074,12 +2111,17 @@ plot_median_nonzero_degree_all_mice_v2 <- function(results_folder, time_scale, d
   #       All discrete strata are combined into a single faceted plot,
   #       stacked vertically (ncol = 1).
   #
-  # inputs:
-  #   results_folder   (string)
-  #   time_scale       (integer)  e.g. 10
-  #   discrete_levels  (vector of strings)  e.g. c('m0vr1', 'm1vr1')
   #
-  # returns: a single ggplot object (faceted vertically by stratum)
+  # input:
+  #
+  # - results_folder   (string)               results folder
+  # - time_scale       (integer)              e.g. 10
+  # - discrete_levels  (vector of strings)    e.g. c('m0vr1', 'm1vr1')
+  #
+  #
+  # output:
+  #
+  # - p                (ggplot object)        faceted vertically by stratum
   #
   # ----------------------------------------------------------------------------
   
@@ -2250,18 +2292,23 @@ plot_median_degree_all_mice_v3 <- function(results_folder, time_scale, discrete_
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: For each discrete stratum, and for each mouse, compute the median
+  # GOAL: for each discrete stratum, and for each mouse, compute the median
   #       normalized degree across ALL neurons (including zero-degree nodes)
   #       at each week. Degree is normalized by (n_neurons - 1). Plots one
   #       loess curve per mouse, no CI or ribbon. All discrete strata combined
   #       into a single faceted plot, stacked vertically (ncol = 1).
   #
-  # inputs:
-  #   results_folder   (string)
-  #   time_scale       (integer)  e.g. 10
-  #   discrete_levels  (vector of strings)  e.g. c('m0vr1', 'm1vr1')
   #
-  # returns: a single ggplot object (faceted vertically by stratum)
+  # input:
+  #
+  # - results_folder   (string)               results folder
+  # - time_scale       (integer)              e.g. 10
+  # - discrete_levels  (vector of strings)    e.g. c('m0vr1', 'm1vr1')
+  #
+  #
+  # output:
+  #
+  # - p                (ggplot object)        faceted vertically by stratum
   #
   # ----------------------------------------------------------------------------
   
@@ -2417,7 +2464,7 @@ plot_degree_ridgeline_all_mice <- function(results_folder, time_scale, discrete_
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: For each mouse x stratum combination, plot a ridgeline (joy plot)
+  # GOAL: for each mouse x stratum combination, plot a ridgeline (joy plot)
   #       of the non-zero normalized degree distribution over time. Each
   #       ridge corresponds to one week; ridges are stacked by week (oldest
   #       at bottom, most recent at top). Area under each ridge is proportional
@@ -2432,12 +2479,17 @@ plot_degree_ridgeline_all_mice <- function(results_folder, time_scale, discrete_
   #       Uses ggridges::geom_density_ridges with stat="density" and
   #       after_stat(count) scaling.
   #
-  # inputs:
-  #   results_folder   (string)
-  #   time_scale       (integer)  e.g. 10
-  #   discrete_levels  (vector of strings)  e.g. c('m0vr1', 'm1vr1')
   #
-  # returns: a single ggplot object (faceted by mouse x stratum)
+  # input:
+  #
+  # - results_folder   (string)               results folder
+  # - time_scale       (integer)              e.g. 10
+  # - discrete_levels  (vector of strings)    e.g. c('m0vr1', 'm1vr1')
+  #
+  #
+  # output:
+  #
+  # - p                (ggplot object)        faceted by mouse x stratum
   #
   # ----------------------------------------------------------------------------
   

@@ -8,32 +8,30 @@ full_conditional_estimation_with_no_truth_part1 <- function(dataset, setting_inf
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: bundle all relevant parameters into a list called:
+  # GOAL: preprocess the data, estimate log intensities (step 1), and bundle all relevant parameters into a file like:
   #
   #       temp_data/simu/part1_block_banded_c0_n_100.rds
   #       temp_data/mice/part1_Tau1_m0vr0_t5.rds
   #
-  # inputs:
   #
-  # - dataset               (list of the following)
-  #   - event_times           (list of vectors)  each vector is named k_i for subject k and process i
-  #   - Y_continuous          (n x q_c matrix)   continuous covariates
-  #   - simulation_params     (list of various parameters)
-  # 
-  # - setting_info_list    (list)
-  # - ncores               (integer)
-  # - temp_file_dir        (string)   'temp_data/simu'
-  # - mouse                (boolean)  are we working with mice data?
-  # - X_truth              (boolean)  do we want to get estimates starting from true log intensities?
+  # input:
   #
-  # 
-  # outputs:
-  # 
-  # - save a list of items that are relevant when we select n out of n_large subjects, including:
+  # - dataset              (list)
+  #   - event_times        (list of vectors)      each vector is named k_i for subject k and process i
+  #   - Y_continuous       (n x q_c matrix)       continuous covariates
+  #   - simulation_params  (list)                 various parameters
+  # - setting_info_list    (list)                 setting info, loaded into the environment
+  # - ncores               (integer)              number of cores
+  # - temp_file_dir        (string)               e.g. 'temp_data/simu'
+  # - mouse                (boolean)              are we working with mice data?
+  # - X_truth              (boolean)              do we want to get estimates starting from true log intensities?
   #
-  #   - gamma_c (varies with n)
-  #   - 
-  # 
+  #
+  # output:
+  #
+  # - none                                        saves a list of items that are relevant when we select n out of n_large subjects,
+  #                                               including gamma_c (varies with n), keys, step_0_events, step_1, step_1b
+  #
   # ----------------------------------------------------------------------------
 
   list2env(setting_info_list, envir = environment())  
@@ -167,26 +165,24 @@ estimate_intensities_stratum_parallel_with_yc_part1_v5 <- function(temp_file_dir
   # ----------------------------------------------------------------------------
   #
   # GOAL: calculate rho_i for a single i and save it as
-  #       
-  #       temp_data/simu/step_2_v5_rho_i_block_banded_v2_n_100_nqueryk_i.rds'
   #
-  # 
-  # inputs:
-  # 
-  #
-  # - temp_file_dir         (string)    'temp_data/simu'
-  # - setting_info_list     (list)
-  # - i                     (integer)   process_id from 1 to p
-  # - mouse                 (boolean)   mouse (T) or simulation (F)
-  # - X_truth               (boolean)   do we want to do estimation from true log-intensities?
+  #       temp_data/simu/step_2_v5_rho_i_block_banded_v2_n_100_nqueryk_i.rds
   #
   #
-  # outputs:
+  # input:
   #
-  # - rho_i_result          (list)
+  # - temp_file_dir      (string)               e.g. 'temp_data/simu'
+  # - setting_info_list  (list)                 setting info, loaded into the environment
+  # - i                  (integer)              process_id from 1 to p
+  # - mouse              (boolean)              mouse (T) or simulation (F)
+  # - X_truth            (boolean)              do we want to do estimation from true log-intensities?
   #
-  #   - rho_i_est           (m x n matrix)  rho_i_est for each subject
-  #   - rho_i_X_truth       (m x n matrix)  only computed if we have X_truth = T
+  #
+  # output:
+  #
+  # - none                                      saves rho_i_result to disk
+  #   - rho_i_est        (m x n matrix)         rho_i_est for each subject
+  #   - rho_i_X_truth    (m x n matrix)         only computed if X_truth = T
   #
   # ----------------------------------------------------------------------------
   
@@ -253,29 +249,26 @@ estimate_intensities_stratum_parallel_with_yc_part2_v5 <- function(temp_file_dir
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: calculate rho_ij for a single i_j pair and save it as 
-  #       
+  # GOAL: calculate rho_ij for a single i_j pair and save it as
+  #
   #       temp_data/simu/step_2_rho_ij_block_banded_v2_n_100_nquery_cont_ind_k.rds
   #       temp_data/mice/step_2_rho_ij_Tau1_m0vr0_t5_nquery_cont_ind_k.rds
-  # 
-  # inputs:
-  # 
-  #
-  # - temp_file_dir         (string)
-  # - setting_info_list     (list)
-  # - cont_ind              (integer)   which n_query index
-  # - k                     (integer)   index number corresponding to a i_j pair
-  # - mouse                 (boolean)   mouse (T) or simulation (F)
-  # - X_truth               (boolean)   do we want X_truth?
   #
   #
-  # outputs:
+  # input:
   #
-  # - rho_ij_result       (list)
-  # 
-  #   - rho_ii_est        (m^2 x n matrix)
-  #   - rho_ii_X_truth    (m^2 x n matrix)  only calcualted when X_truth = T
+  # - temp_file_dir      (string)               e.g. 'temp_data/simu'
+  # - setting_info_list  (list)                 setting info, loaded into the environment
+  # - k                  (integer)              index number corresponding to an i_j pair
+  # - mouse              (boolean)              mouse (T) or simulation (F)
+  # - X_truth            (boolean)              do we want X_truth?
   #
+  #
+  # output:
+  #
+  # - none                                      saves rho_ij_result to disk
+  #   - rho_ii_est       (m^2 x n matrix)
+  #   - rho_ii_X_truth   (m^2 x n matrix)       only calculated when X_truth = T
   #
   # ----------------------------------------------------------------------------
   
@@ -373,30 +366,28 @@ estimate_intensities_stratum_parallel_with_yc_part3_v5 <- function(temp_file_dir
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: putting the rho_i, rho_ii, and rho_list results together
-  #       used in script_step2_part3
+  # GOAL: put the rho_i, rho_ii, and rho_list results together (used in script_step2_part3)
   #
   #       output file:
   #
   #       step_2_v5_rho_list_block_banded_c0_n_100_nquery1.rds
   #
-  # 
-  # inputs
   #
-  # - temp_file_dir         'temp_data/simu'
-  # - setting_info_list
-  # - n_keys_univariate     (integer)   p = 12
-  # - n_keys_bivariate      (integer)   pc2 + p = 78
-  # - mouse                 (boolean)   is it a mouse?
+  # input:
   #
-  # 
-  # outputs:
+  # - temp_file_dir      (string)                    e.g. 'temp_data/simu'
+  # - setting_info_list  (list)                      setting info, loaded into the environment
+  # - n_keys_univariate  (integer)                   p, e.g. 12
+  # - n_keys_bivariate   (integer)                   pC2 + p, e.g. 78
+  # - mouse              (boolean)                   is it a mouse?
   #
-  # - result  --> 'step_2_v5_rho_list_block_banded_v2_n_1000.rds'
-  # 
-  #   - step_2_raw    (list, each item is a m x n matrix)  rho_i_est
-  #   - step_2b_raw   (list, each item is a m^2 x n matrix)   rho_ii_est
-  # 
+  #
+  # output:
+  #
+  # - none                                           saves result to disk
+  #   - step_2_raw       (list of m x n matrices)    rho_i_est
+  #   - step_2b_raw      (list of m^2 x n matrices)  rho_ii_est
+  #
   # ----------------------------------------------------------------------------
   
   
@@ -461,22 +452,23 @@ estimate_intensities_stratum_parallel_with_yc_part4_helper <- function(results, 
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: with results, trim everything from n_large to n
+  # GOAL: with results, trim everything from n_large to n subjects and compute the kernel weights for y_c_query
   #
   #
-  # inputs:
+  # input:
   #
-  # - results
-  # - n_large
-  # - n 
-  # - cont_ind
-  # - gamma_c_manual   (number)   bandwidth parameter for y_c_kernel
+  # - results          (list)                 part1 results
+  # - n_large          (integer)              number of subjects in results
+  # - n                (integer)              number of subjects to keep
+  # - cont_ind         (integer)              which query ID
+  # - gamma_c_manual   (number or NULL)       bandwidth parameter for y_c_kernel, defaults to results$gamma_c
   #
   #
-  # outputs:
+  # output:
   #
-  # - list(results = results, 
-  #        weight_vec = weight_vec)
+  # - output           (list)
+  #   - results        (list)                 results trimmed to n subjects, with weights and W_y added
+  #   - weight_vec     (n_large-dim vector)   normalized weights, 0 for subjects that were dropped
   #
   # ----------------------------------------------------------------------------
   
@@ -618,28 +610,28 @@ estimate_intensities_stratum_parallel_with_yc_part4_v5 <- function(temp_file_dir
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: filtering which subjects at which weights to allocate to get step_2 and step_2b
+  # GOAL: filter which subjects at which weights to allocate to get step_2 and step_2b
   #
-  #       output file:
+  #       output files:
   #
+  #       part2_block_banded_c0_n_100_nquery1.rds
   #       step_2_rho_list_block_banded_c0_n_100_nquery1.rds
   #
-  # 
-  # inputs
   #
-  # - temp_file_dirs         'temp_data/simu' and 'temp_data/simu_data'
-  # - setting_info_list
-  # - cont_ind              (integer)   which query ID
-  # - mouse                 (boolean)   is it a mouse?
+  # input:
   #
-  # 
-  # outputs:
+  # - temp_file_dirs     (vector of strings)           'temp_data/simu' and 'temp_data/simu_data'
+  # - setting_info_list  (list)                        setting info, loaded into the environment
+  # - cont_ind           (integer)                     which query ID
+  # - mouse              (boolean)                     is it a mouse?
   #
-  # - result  --> 'step_2_v5_rho_list_block_banded_v2_n_1000.rds'
-  # 
-  #   - step_2        (list, each item pxm matrix)  rho_i_est
-  #   - step_2b       (list, each item denotes i_j pair and is a mxm matrix)   rho_ii_est
-  # 
+  #
+  # output:
+  #
+  # - none                                             saves result to disk
+  #   - step_2           (list of p x m matrices)      rho_i_est
+  #   - step_2b          (list of i_j m x m matrices)  rho_ii_est
+  #
   # ----------------------------------------------------------------------------
   
   
@@ -808,36 +800,33 @@ full_conditional_estimation_with_no_truth_part2b_before_GIC <- function(temp_fil
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: estimation of everything else after step 2 in series
-  #       used in script_fit_mice_data_part2b
+  # GOAL: estimation of everything else after step 2 in series (used in script_fit_mice_data_part2b)
   #
-  #       save file called:
+  #       saves a file called:
   #
   #       temp_data/simu/part3_block_banded_c0_n_100_nquery1.rds
-  # 
-  # 
-  # inputs
   #
-  # - temp_file_dir
-  # - setting_info_list
-  # - cont_ind              (integer)   n_query id
-  # - mouse                 (boolean)   is it a mouse?
-  # - eigen_setting         (string)   'only_joint', 'trig_and_joint'
+  #       loads:
   #
-  # 
-  # loading
+  #       - part2             (list of various parameters)
+  #       - step_2_rho_list   (list of step_2 and step_2b)
   #
-  # - part2             (list of various parameters)
-  # - step_2_rho_list   (list of step_2 and step_2b)
-  # 
-  # outputs:
   #
-  # - estimated_graphs  (list of steps 2 and later, each of these differs based on y_c_query)
-  # 
-  # estimated_graphs <- list(step_2 = step_2, step_2b = step_2b, step_3 = step_3,
-  #                          step_4 = step_4, step_5 = step_5, step_5b = step_5b, step_9 = step_9, step_9b = step_9b,
-  #                          step_10 = step_10, step_11 = step_11)
-  # 
+  # input:
+  #
+  # - temp_file_dir      (string)               e.g. 'temp_data/simu'
+  # - setting_info_list  (list)                 setting info, loaded into the environment
+  # - cont_ind           (integer)              n_query id
+  # - mouse              (boolean)              is it a mouse?
+  # - X_truth            (boolean)              do we want X_truth?
+  # - eigen_setting      (string)               'only_joint', 'trig_and_joint'
+  #
+  #
+  # output:
+  #
+  # - none                                      saves estimated_graphs (steps 2 and later, each differs based on y_c_query):
+  #                                             list(step_2, step_2b, step_3, step_4, step_5, step_5b, step_9, step_9b, step_10, step_11)
+  #
   # ----------------------------------------------------------------------------
   
   
@@ -947,8 +936,27 @@ full_conditional_estimation_with_no_truth_part2b_before_GIC <- function(temp_fil
 
 full_conditional_estimation_with_no_truth_part2b_after_GIC <- function(temp_file_dir, GIC_min_pct_dirs, setting_info_list, cont_ind, mouse, X_truth){
   
-  # temp_file_dir = temp_data/simu
-  # GIC_min_pct_dirs[1] = temp_data/simu/GIC
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: after GIC, collect the step_11 HS norms with and without thresholding and save part3 files
+  #       for each min_connect_pct directory
+  #
+  #
+  # input:
+  #
+  # - temp_file_dir      (string)               e.g. 'temp_data/simu'
+  # - GIC_min_pct_dirs   (vector of strings)    min_xx subdirs, e.g. 'temp_data/simu/GIC/min_00'
+  # - setting_info_list  (list)                 setting info, loaded into the environment
+  # - cont_ind           (integer)              n_query id
+  # - mouse              (boolean)              is it a mouse?
+  # - X_truth            (boolean)              do we want X_truth?
+  #
+  #
+  # output:
+  #
+  # - none                                      saves estimated_graphs (steps 2 through 11y) as part3_*.rds files
+  #
+  # ----------------------------------------------------------------------------
   
   if(mouse){
     part_2b_file_name <- paste0('part2b_', ID, '_', discrete_level, '_t', time_scale, '_nquery', cont_ind, '.rds')
@@ -1025,23 +1033,21 @@ full_conditional_estimation_with_no_truth_part2d <- function(temp_file_dir, sett
   #
   # GOAL: get ROC and edge sets
   #
-  #   retrieve part3 and add step_12 (if not mouse) and step_12b. 
-  # 
-  # 
-  # inputs
+  #       - retrieve part3 and add step_12 (if not mouse) and step_12b
   #
-  # - temp_file_dir     (string)    temp_data/simu  (base dir, for part2 files)
-  # - GIC_min_pct_dirs  (vector)    vector of min_xx subdirs
-  # - setting_info_list (list)
-  # - cont_inds         (integer)   number of y_queries
-  # - mouse             (boolean)
   #
-  # 
+  # input:
   #
-  # 
-  # outputs:
+  # - temp_file_dir      (string)               e.g. temp_data/simu (base dir, for part2 files)
+  # - setting_info_list  (list)                 setting info, loaded into the environment (includes min_connect_pcts_string)
+  # - cont_inds          (integer)              number of y_queries
+  # - mouse              (boolean)              is it a mouse?
   #
-  # 
+  #
+  # output:
+  #
+  # - none                                      part3_*.rds files are overwritten with step_12 and step_12b added
+  #
   # ----------------------------------------------------------------------------
   
   # 0) load 
@@ -1097,36 +1103,37 @@ full_conditional_estimation_with_no_truth_part3 <- function(temp_file_dir, temp_
   #
   # GOAL: merge all the estimates from each y_c_query
   #
-  #       just return an object called 'estimated_graphs'
+  #       - just return an object called 'estimated_graphs'
   #
-  # inputs:
-  # 
-  # - temp_file_dir
-  # - temp_file_dir2      (temp_data/simu_data so we can delete)
-  # - setting_info_list
-  # - cont_inds           (scalar)  number of y_c_queries
-  # - mouse               (boolean) are we working with mice data
   #
-  # outputs:
+  # input:
   #
-  # - estimated_graphs   (list of the following)
+  # - temp_file_dir      (string)               e.g. 'temp_data/simu'
+  # - temp_file_dir2     (string)               temp_data/simu_data so we can delete
+  # - setting_info_list  (list)                 setting info, loaded into the environment
+  # - cont_inds          (integer)              number of y_c_queries
+  # - mouse              (boolean)              are we working with mice data
   #
-  #   - step_0_events     (list of i_j entries --> each entry is a vector of timestamps)
-  #   - step_1            X_k_suffix
-  #   - step_1b           Lambda_k_suffix
-  #   - step_1c           mu_t_suffix
-  #   - step_2            (list for each y_c_query --> rho_i_est)
-  #   - step_2b           (list for each y_c_query --> rho_ii_est)
-  #   - step_3            (list for each y_c_query --> g_ij_est)
-  #   - step_4            (list for each y_c_query --> eigen_decomp_est)
-  #   - step_5            (list for each y_c_query --> KL_cov_est)
-  #   - step_5b           (list for each y_c_query --> KL_cor_est)
-  #   - step_5c           (list for each y_c_query --> KL_prec_est)
-  #   - step_9            (list for each y_c_query --> C_cond_est_full, C_cond_est_unnorm_full)
-  #   - step_9b
-  #   - step_10           (list for each y_c_query --> P_cond_est_full, P_cond_est_unnorm_full)
-  #   - step_11           (list for each y_c_query --> w_mat_est, w_mat_est_unnorm, C_HS_est, C_HS_est_unnorm)
-  #   - step_12           (optional, not used for mice)
+  #
+  # output:
+  #
+  # - estimated_graphs   (list)
+  #   - step_0_events    (list of i_j entries)  each entry is a vector of timestamps
+  #   - step_1                                  X_k_suffix
+  #   - step_1b                                 Lambda_k_suffix
+  #   - step_1c                                 mu_t_suffix
+  #   - step_2           (list)                 for each y_c_query --> rho_i_est
+  #   - step_2b          (list)                 for each y_c_query --> rho_ii_est
+  #   - step_3           (list)                 for each y_c_query --> g_ij_est
+  #   - step_4           (list)                 for each y_c_query --> eigen_decomp_est
+  #   - step_5           (list)                 for each y_c_query --> KL_cov_est
+  #   - step_5b          (list)                 for each y_c_query --> KL_cor_est
+  #   - step_5c          (list)                 for each y_c_query --> KL_prec_est
+  #   - step_9           (list)                 for each y_c_query --> C_cond_est_full, C_cond_est_unnorm_full
+  #   - step_9b          (list)
+  #   - step_10          (list)                 for each y_c_query --> P_cond_est_full, P_cond_est_unnorm_full
+  #   - step_11          (list)                 for each y_c_query --> w_mat_est, w_mat_est_unnorm, C_HS_est, C_HS_est_unnorm
+  #   - step_12          (list)                 optional, not used for mice
   #   - y_c_query
   #   - p
   #   - time_grid

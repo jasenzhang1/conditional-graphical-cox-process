@@ -11,7 +11,21 @@ source('functions/00b_matrix_norms.R')
 
 result_01_prep <- function(step_0){
   
-  # return a list of plots
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: build one ground-truth precision heatmap per queried continuous covariate
+  #
+  #
+  # input:
+  #
+  # - step_0           (list of p x p matrices)  one matrix per y_c query
+  #
+  #
+  # output:
+  #
+  # - plots            (list of ggplot objects)  one heatmap per y_c query
+  #
+  # ----------------------------------------------------------------------------
   
   # Build plots dynamically
   plots <- lapply(seq_len(length(step_0)), function(i) {
@@ -23,6 +37,22 @@ result_01_prep <- function(step_0){
 }
 
 result_01 <- function(step_0){
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: arrange the ground truth precision heatmaps (result_01_prep) in one row with a caption
+  #
+  #
+  # input:
+  #
+  # - step_0           (list of p x p matrices)  one matrix per y_c query
+  #
+  #
+  # output:
+  #
+  # - g                (grob)                    grid.arrange output
+  #
+  # ----------------------------------------------------------------------------
   
 
   plots <- result_01_prep(step_0)
@@ -38,12 +68,29 @@ result_01 <- function(step_0){
 }
 
 result_11_prep <- function(step_1, time_grid, time_grid_est){
-  #   - X_k_est                   (p x m_est   x n)
-  #   - X_k_truth                 (p x m_truth x n)
-  #   - X_k_coarse_truth          (p x m_est   x n)
-  #   - X_k_both_truth            (p x m_both  x n)
-  #   - Lambda_k_truth            (p x m_truth x n)
-  #   - Lambda_k_coarse_truth     (p x m_est   x n)
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: plot the log-intensities of the first 5 processes of the first subject for the estimate and the truths
+  #
+  #
+  # input:
+  #
+  # - step_1              (list)
+  #   - X_k_est           (p x m_est x n array)
+  #   - X_k_truth         (p x m_truth x n array)
+  #   - X_k_coarse_truth  (p x m_est x n array)
+  #   - X_k_both_truth    (p x m_both x n array)
+  # - time_grid           (m-dim vector)
+  # - time_grid_est       (m_est-dim vector)
+  #
+  #
+  # output:
+  #
+  # - g_list              (list of ggplot objects)  Estimate, Coarser Truth, Finer Truth, Combined Truth
+  #
+  # ----------------------------------------------------------------------------
+  
   g_list <- list(visualize_log_intensity(step_1[[1]][1:5,,1],   time_grid_est,  'Estimate'),
                  visualize_log_intensity(step_1[[3]][1:5,,1],   time_grid_est,  'Coarser Truth'),
                  visualize_log_intensity(step_1[[2]][1:5,,1],   time_grid,      'Finer Truth'),
@@ -53,6 +100,32 @@ result_11_prep <- function(step_1, time_grid, time_grid_est){
 }
 
 result_22_prep <- function(step_2, time_grid, time_grid_est, ymin = NULL, ymax = NULL, full = T){
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: plot rho_i(t) of the first 5 processes for the estimate and the truths
+  #
+  #
+  # input:
+  #
+  # - step_2                  (list)
+  #   - rho_i_truth           (p x m matrix)
+  #   - rho_i_coarse_truth    (p x m_est matrix)
+  #   - rho_i_X_truth         (p x m matrix)
+  #   - rho_i_X_coarse_truth  (p x m_est matrix)
+  #   - rho_i_est             (p x m_est matrix)
+  # - time_grid               (m-dim vector)
+  # - time_grid_est           (m_est-dim vector)
+  # - ymin                    (number)               lower y-axis limit (only when full = F)
+  # - ymax                    (number)               upper y-axis limit (only when full = F)
+  # - full                    (boolean)              if FALSE, only plot rho_i_est and rho_i_truth
+  #
+  #
+  # output:
+  #
+  # - g_list                  (list of ggplot objects)
+  #
+  # ----------------------------------------------------------------------------
   
   if(! full){
     g_list <- list(visualize_log_intensity(step_2$rho_i_est[1:5,],     time_grid_est, 'Estimate', ymin = ymin, ymax = ymax),
@@ -77,11 +150,32 @@ result_22_prep <- function(step_2, time_grid, time_grid_est, ymin = NULL, ymax =
 }
 
 result_20s_prep <- function(step_2b, i, j, zmin = NULL, zmax = NULL, full = T){
-  #   - rho_ii_truth               (list of m x m matrices)
-  #   - rho_ii_coarse_truth        (list of m_est x m_est matrices)
-  #   - rho_ii_X_truth             (list of m x m matrices)
-  #   - rho_ii_X_coarse_truth      (list of m_est x m_est matrices)
-  #   - rho_ii_est                 (list of m_est x m_est matrices)
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: plot heatmaps of rho_ij(s,t) for the (i, j) pair for the estimate and the truths
+  #
+  #
+  # input:
+  #
+  # - step_2b                  (list)
+  #   - rho_ii_truth           (list of m x m matrices)
+  #   - rho_ii_coarse_truth    (list of m_est x m_est matrices)
+  #   - rho_ii_X_truth         (list of m x m matrices)
+  #   - rho_ii_X_coarse_truth  (list of m_est x m_est matrices)
+  #   - rho_ii_est             (list of m_est x m_est matrices)
+  # - i                        (integer)              process i
+  # - j                        (integer)              process j
+  # - zmin                     (number)               lowest color value
+  # - zmax                     (number)               highest color value
+  # - full                     (boolean)              if FALSE, only plot rho_ii_truth and rho_ii_est
+  #
+  #
+  # output:
+  #
+  # - g_list                   (list of ggplot objects)
+  #
+  # ----------------------------------------------------------------------------
   
   key <- paste0(i, '_', j)
   
@@ -104,22 +198,27 @@ result_heatmap_ij_prep <- function(my_list, entry_name, time_grid_est, i, j, pal
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: using facet_grid to plot all heatmaps together with one legend, one x-axis, one y-axis, etc...
+  # GOAL: using facet_grid to plot all heatmaps of the (i, j) block together with one legend,
+  #       one x-axis, one y-axis, etc...
   #
   #
-  # inputs:
+  # input:
   #
-  # - my_list     (list)     step_x; list of y_c_queries --> g_ij_est etc items
-  # - entry_name  (string)   estimate prefix (e.g. rho_ii, g_ij)
-  # - time_grid_est
-  # - i 
-  # - j
+  # - my_list          (list)                 step_x; list of y_c_queries --> g_ij_est etc items
+  # - entry_name       (string)               estimate prefix (e.g. rho_ii, g_ij)
+  # - time_grid_est    (m_est-dim vector)     time grid used for the axes
+  # - i                (integer)              process i
+  # - j                (integer)              process j
+  # - palette_ID       (string)               hcl.colors palette name
+  # - zmin             (number)               lowest color value
+  # - zmid             (number)               midpoint color value
+  # - zmax             (number)               highest color value
   #
   #
-  # outputs:
+  # output:
   #
-  # - ggplot object
-  # 
+  # - g                (ggplot object)        faceted by estimand (rows) and y_c (columns)
+  #
   # ----------------------------------------------------------------------------
   
 
@@ -219,23 +318,27 @@ result_heatmap_nonblock_prep <- function(my_list, entry_name, data_format, time_
   #
   # GOAL: using facet_grid to plot all heatmaps together with one legend, one x-axis, one y-axis, etc...
   #
-  #       instead of extracting the ij-th block, we look at the entire block
+  #       - instead of extracting the ij-th block, we look at the entire block
   #
-  # inputs:
   #
-  # - my_list          (list)     step_x; list of y_c_queries --> g_ij_est etc items
-  # - entry_name       (string)   estimate prefix (e.g. rho_ii, g_ij)
-  # - data_format      (string)   'full', 'regular', 'list'
-  # - time_grid_est    (vector)   do we substitute indices with timestamps? If so, provide it
-  # - rm_diag          (boolean)  do we remove the diag term?
-  # - palette_ID       (string)
-  # - graph_title      (string)   overall graph title
-  # - zmin, zmid, zmax   (values)   do we manually decide on the bordering color values?
+  # input:
   #
-  # outputs:
-  # 
-  # - ggplot object
-  # 
+  # - my_list          (list)                 step_x; list of y_c_queries --> g_ij_est etc items
+  # - entry_name       (string)               estimate prefix (e.g. rho_ii, g_ij)
+  # - data_format      (string)               'full', 'regular', 'list'
+  # - time_grid_est    (vector)               do we substitute indices with timestamps? If so, provide it
+  # - rm_diag          (boolean)              do we remove the diag term?
+  # - palette_ID       (string)               hcl.colors palette name
+  # - graph_title      (string)               overall graph title
+  # - zmin             (number)               lowest color value
+  # - zmid             (number)               midpoint color value
+  # - zmax             (number)               highest color value
+  #
+  #
+  # output:
+  #
+  # - g                (ggplot object)        faceted by estimand (rows) and y_c (columns)
+  #
   # ----------------------------------------------------------------------------
   
   # 1) obtain `queried_names` and `value_names`
@@ -391,23 +494,28 @@ result_heatmap_mismatch_x <- function(my_list, truth_name, x_size, facet_size, r
   #
   # GOAL: similar to result_heatmap_nonblock_prep, but we already prepared our list of lists of adjacency matrices
   #
-  #       instead of extracting the ij-th block, we look at the entire block
+  #       - entries that differ from the truth are marked with a dot
   #
-  # inputs:
   #
-  # - my_list          (list)     step_x; list of y_c_queries --> g_ij_est etc items
-  # - truth_name       (string)   name of truth item within each sublist, almost always 'truth'
-  # - x_size           (integer)  size of x's
-  # - facet_size       (integer)  size of text in facet (14 is good)
-  # - rm_diag          (boolean)  do we remove the diag term?
-  # - palette_ID       (string)
-  # - graph_title      (string)   overall graph title
-  # - zmin, zmid, zmax   (values)   do we manually decide on the bordering color values?
+  # input:
   #
-  # outputs:
-  # 
-  # - ggplot object
-  # 
+  # - my_list          (list)                 step_x; list of y_c_queries --> g_ij_est etc items
+  # - truth_name       (string)               name of truth item within each sublist, almost always 'truth'
+  # - x_size           (number)               size of the mismatch dots
+  # - facet_size       (number)               size of text in facet (14 is good)
+  # - rm_diag          (boolean)              do we remove the diag term?
+  # - palette_ID       (string)               hcl.colors palette name
+  # - graph_title      (string)               overall graph title
+  # - zmin             (number)               lowest color value
+  # - zmid             (number)               midpoint color value
+  # - zmax             (number)               highest color value
+  # - ordering_vec     (vector of strings)    optional ordering of the estimand rows
+  #
+  #
+  # output:
+  #
+  # - g                (ggplot object)        faceted by estimand (rows) and y_c (columns)
+  #
   # ----------------------------------------------------------------------------
   
   # 1) Setup Basics
@@ -501,23 +609,22 @@ result_line_graph_prep <- function(my_list, entry_name, time_grid, grouping = 'e
   # GOAL: using facet_grid to plot all line graphs together with one legend, one x-axis, one y-axis, etc...
   #
   #
-  # inputs:
+  # input:
   #
-  # - my_list          (list)     step_x; list of y_c_queries --> g_ij_est etc items
-  # - entry_name       (string)   estimate prefix (e.g. rho_i)
-  # - time_grid        (vector)   vector of timepoints
-  # - grouping         (string)   'estimand' or 'process' if we group by estimand, different processes will be placed together.
-  #                                                       if we group by process, different estimands will be placed together.
-  # - palette_ID       (string)   preset colors
-  # - num_processes    (integer)  do we want to trim the number of processes?
+  # - my_list          (list)                 step_x; list of y_c_queries --> g_ij_est etc items
+  # - entry_name       (string)               estimate prefix (e.g. rho_i)
+  # - time_grid        (vector)               timepoints
+  # - grouping         (string)               'estimand' or 'process'. If we group by estimand, different processes will be placed together.
+  #                                           If we group by process, different estimands will be placed together.
+  # - palette_ID       (string)               preset colors
+  # - num_processes    (integer)              do we want to trim the number of processes?
   #
   #
-  # ouptput:
+  # output:
   #
-  # - ggplot object
+  # - g                (ggplot object)        NULL if grouping is invalid
   #
-  # 
-  # ----------------------------------------------------------------------------  
+  # ----------------------------------------------------------------------------
   
   # 0) borrow from 12z - get suffix names
   suffix_names <- step_00_grab_ID(names(my_list[[1]]), entry_name)
@@ -634,19 +741,19 @@ result_histogram_prep <- function(my_list, entry_name, data_format, nbins = 20){
   # GOAL: using facet_grid to plot all histograms together with one legend, one x-axis, one y-axis, etc...
   #
   #
-  # inputs:
+  # input:
   #
-  # - my_list     (list)     step_x; list of y_c_queries --> g_ij_est etc items
-  # - entry_name  (string)   estimate prefix (e.g. rho_i)
-  # - data_format (string)   describes how the data is packaged (rho_i_est = matrix), options include 'full', 'regular', 'list', 'vector'
-  # - nbins       (integer)  number of bins
+  # - my_list          (list)                 step_x; list of y_c_queries --> g_ij_est etc items
+  # - entry_name       (string)               estimate prefix (e.g. rho_i)
+  # - data_format      (string)               describes how the data is packaged (rho_i_est = matrix), options include 'full', 'regular', 'list', 'vector'
+  # - nbins            (integer)              number of bins
   #
   #
-  # outputs:
+  # output:
   #
-  # - ggplot output
-  # 
-  # ----------------------------------------------------------------------------  
+  # - g                (ggplot object)        faceted by estimand (rows) and y_c (columns)
+  #
+  # ----------------------------------------------------------------------------
   
   # 1) borrow from 12z - get suffix names
   suffix_names <- step_00_grab_ID(names(my_list[[1]]), entry_name)
@@ -720,11 +827,23 @@ result_histogram_prep <- function(my_list, entry_name, data_format, nbins = 20){
 
 result_ROC_prep <- function(step_12, kept_names, kept_time_idx){
   
-  # 
-  # kept_names = which items to keep
+  # ----------------------------------------------------------------------------
   #
-  # kept_time_idx = c(2,3) out of c(1,2,3,4), if we want to display certain weeks
+  # GOAL: plot ROC curves for each y_c query (columns) and estimation method (rows)
   #
+  #
+  # input:
+  #
+  # - step_12          (list)                 list of y_c_queries --> roc_suffix items
+  # - kept_names       (vector of strings)    which items to keep
+  # - kept_time_idx    (vector)               e.g. c(2,3) out of c(1,2,3,4), if we want to display certain weeks
+  #
+  #
+  # output:
+  #
+  # - g                (patchwork object)     grid of ROC curves
+  #
+  # ----------------------------------------------------------------------------
   
   if(! is.null(kept_names)){
     
@@ -794,20 +913,20 @@ result_ROC_prep <- function(step_12, kept_names, kept_time_idx){
 result_step_12_prep <- function(step_12, est_names) {
   
   # ----------------------------------------------------------------------------
-  # 
-  # GOAL: with step_12 object, plot a particular metric, stratified by estimation method (est_eig1 etc)
+  #
+  # GOAL: with step_12 object, plot the metrics, stratified by estimation method (est_eig1 etc)
   #       and x-axis denotes the continuous covariate
   #
-  # 
-  # inputs:
   #
-  # - step_12       (list)
-  # - metric_name   (string)
-  # - est_names     (vector of strings of estimation method names we want to keep)
+  # input:
   #
-  # outputs:
+  # - step_12          (list)                 list of y_c_queries --> roc_suffix items
+  # - est_names        (vector of strings)    estimation method names we want to keep
   #
-  # - graph       (ggplot object)
+  #
+  # output:
+  #
+  # - g                (ggplot object)
   #
   # ----------------------------------------------------------------------------
   
@@ -881,12 +1000,20 @@ result_29 <- function(weights, Y_continuous, y_c_names){
   
   
   # ----------------------------------------------------------------------------
-  # 
+  #
   # GOAL: plot the distribution of the weights in estimating rho_i(t)
   #
-  # - weights      (list of n-dim vector)    list of weight vector
-  # - Y_continuous (n-dim vector)            time vector
-  # - y_c_names    (vector of values)          vector of y_c_query names
+  #
+  # input:
+  #
+  # - weights          (list of n-dim vectors)  weight vector for each y_c query
+  # - Y_continuous     (n-dim vector)           continuous covariate of each subject
+  # - y_c_names        (vector)                 y_c_query names
+  #
+  #
+  # output:
+  #
+  # - g                (ggplot object)          one facet per y_c query
   #
   # ----------------------------------------------------------------------------
 
@@ -922,13 +1049,32 @@ result_29 <- function(weights, Y_continuous, y_c_names){
 }
 
 result_30s_prep <- function(step_3, i, j, full = T){
-  #   - g_ij_ground_truth                (list of m x m matrices for i_j entries)
-  #   - g_ij_coarse_ground_truth         (list of m_est x m_est matrices for i_j entries)
-  #   - g_ij_truth                       (list of m x m matrices for i_j entries)
-  #   - g_ij_coarse_truth                (list of m_est x m_est matrices for i_j entries)
-  #   - g_ij_X_truth                     (list of m x m matrices for i_j entries)
-  #   - g_ij_X_coarse_truth              (list of m_est x m_est matrices for i_j entries)
-  #   - g_ij_est                         (list of m_est x m_est matrices for i_j entries)   
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: plot heatmaps of g_ij(s,t) for the (i, j) pair for the estimate and the truths
+  #
+  #
+  # input:
+  #
+  # - step_3                      (list)
+  #   - g_ij_ground_truth         (list of m x m matrices)          i_j entries
+  #   - g_ij_coarse_ground_truth  (list of m_est x m_est matrices)  i_j entries
+  #   - g_ij_truth                (list of m x m matrices)          i_j entries
+  #   - g_ij_coarse_truth         (list of m_est x m_est matrices)  i_j entries
+  #   - g_ij_X_truth              (list of m x m matrices)          i_j entries
+  #   - g_ij_X_coarse_truth       (list of m_est x m_est matrices)  i_j entries
+  #   - g_ij_est                  (list of m_est x m_est matrices)  i_j entries
+  # - i                           (integer)                         process i
+  # - j                           (integer)                         process j
+  # - full                        (boolean)                         if FALSE, only plot g_ij_truth, g_ij_truth_v2, and g_ij_est
+  #
+  #
+  # output:
+  #
+  # - g_list                      (list of ggplot objects)
+  #
+  # ----------------------------------------------------------------------------
   
   key <- paste0(i, '_', j)
   
@@ -952,7 +1098,21 @@ result_30s_prep <- function(step_3, i, j, full = T){
 
 result_41_prep <- function(step_4){
   
-  # list --> n_query --> eigen_decomp_suffix
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: extract the (transposed) eigenfunctions of the first process for each eigendecomposition and y_c query
+  #
+  #
+  # input:
+  #
+  # - step_4           (list)                 list of y_c_queries --> eigen_decomp_suffix items
+  #
+  #
+  # output:
+  #
+  # - step_4_v2        (list)                 list of y_c_queries --> d_1 x m matrices named like eigen_decomp_suffix
+  #
+  # ----------------------------------------------------------------------------
   
   full_names <- names(step_4[[1]])
   
@@ -970,7 +1130,25 @@ result_41_prep <- function(step_4){
 # does eigenreconstruction give us our original g_ij?
 result_42_prep <- function(step_3, step_4, p){
   
-  # assume step_3 and step_4 are n_query specific lists
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: check whether the eigen-reconstruction gives us our original g_ii by plotting both for the first process
+  #
+  #       - assume step_3 and step_4 are n_query specific lists
+  #
+  #
+  # input:
+  #
+  # - step_3           (list)                    g_ij_suffix items
+  # - step_4           (list)                    eigen_decomp_suffix items
+  # - p                (integer)                 number of processes
+  #
+  #
+  # output:
+  #
+  # - g_list           (list of ggplot objects)  g_ii and its reconstruction for each suffix
+  #
+  # ----------------------------------------------------------------------------
   
   source('functions/04_eigendecomposition.R')
   source('functions/13_estimation_validation.R')
@@ -1007,6 +1185,22 @@ result_42_prep <- function(step_3, step_4, p){
 # orthogonality of eigenfunctions
 result_43_prep <- function(step_4){
   
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: check orthogonality of the eigenfunctions of the first process by plotting t(Phi) %*% Phi
+  #
+  #
+  # input:
+  #
+  # - step_4           (list)                    eigen_decomp_suffix items
+  #
+  #
+  # output:
+  #
+  # - g_list           (list of ggplot objects)  one heatmap per suffix
+  #
+  # ----------------------------------------------------------------------------
+  
   g_list <- list()
   
   # 0) borrow from 12z - get suffix names
@@ -1024,6 +1218,27 @@ result_43_prep <- function(step_4){
 
 # reconstruction error histogram
 result_44_prep <- function(step_3, step_4, p, ground_truth, X_truth, eigen_setting){
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: compute the reconstruction errors g_ii - g_ii_reconstruct for a histogram
+  #
+  #
+  # input:
+  #
+  # - step_3           (list)                 g_ij_suffix items
+  # - step_4           (list)                 eigen_decomp_suffix items
+  # - p                (integer)              number of processes
+  # - ground_truth     (boolean)              do our results have the overall truth?
+  # - X_truth          (boolean)              do our results have X_truth values?
+  # - eigen_setting    (string)               only_joint, trig_and_joint, trig_simple
+  #
+  #
+  # output:
+  #
+  # - error_list       (list of vectors)      error_suffix for each eigendecomposition
+  #
+  # ----------------------------------------------------------------------------
 
   step_3_names <- names(step_3)
   step_4_names <- names(step_4)
@@ -1066,6 +1281,22 @@ result_44_prep <- function(step_3, step_4, p, ground_truth, X_truth, eigen_setti
 }
 
 result_45_prep <- function(step_4){
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: plot the eigenvalues of the first 5 processes for each eigendecomposition
+  #
+  #
+  # input:
+  #
+  # - step_4           (list)                      eigen_decomp_suffix items
+  #
+  #
+  # output:
+  #
+  # - g_list           (list of 5 ggplot objects)  one per process
+  #
+  # ----------------------------------------------------------------------------
   
   # keep eigenvalues of at most 5 processes
   step_4_evals <- lapply(step_4, function(x) x$eigenvalues[1:min(5, length(x$eigenvalues))])
@@ -1111,20 +1342,25 @@ result_46_prep <- function(step_3, step_4){
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: For each process, check if Phi_a %*% G_ii %*% Phi_b = 0 for a \neq b
-  # 
-  #       We want to check if the covariance between different eigencomponents of the same process is indeed 0
+  # GOAL: for each process, check if Phi_a %*% G_ii %*% Phi_b = 0 for a \neq b
   #
-  # inputs:
+  #       - we want to check if the covariance between different eigencomponents of the same process is indeed 0
   #
-  # - step_3    (list) list of g_ij_suffix
-  #   - (list of m x m matrices for i_j entries)
-  # 
-  # - step_4    (list) list of eigen_decomp_suffix with the following 3 entries
-  #     - [[1]] eigenvalues  (list of p vectors of eigenvalues)
-  #     - [[2]] eigenvectors (list of p matrices of m x d_i)
-  #     - [[3]] n_dims       (list of p integers denoting d_i)
-  # 
+  #
+  # input:
+  #
+  # - step_3            (list)                 g_ij_suffix items (list of m x m matrices for i_j entries)
+  # - step_4            (list)                 eigen_decomp_suffix items with the following 3 entries
+  #   - eigenvalues     (list of p vectors)
+  #   - eigenfunctions  (list of p m x d_i matrices)
+  #   - n_dims          (list of p integers)   d_i for each process
+  #
+  #
+  # output:
+  #
+  # - results_list      (list)                 for each eigen_decomp_suffix, a list per process of
+  #                                            matrix_check (d_i x d_i matrix), max_error, and is_near_zero
+  #
   # ----------------------------------------------------------------------------
   
   # 1) arrange names due to eig_k
@@ -1184,6 +1420,24 @@ result_46_prep <- function(step_3, step_4){
 # plot the (dxd) KL covariance values of the (i, j) block
 result_55_prep <- function(step_5, i, j){
   
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: plot the (d x d) KL covariance values of the (i, j) block
+  #
+  #
+  # input:
+  #
+  # - step_5           (list)                    KL_cov_suffix items
+  # - i                (integer)                 process i
+  # - j                (integer)                 process j
+  #
+  #
+  # output:
+  #
+  # - g_list           (list of ggplot objects)  one heatmap per suffix
+  #
+  # ----------------------------------------------------------------------------
+  
   key <- paste0(i, '_', j)
   
   g_list <- list()
@@ -1208,6 +1462,24 @@ result_55_prep <- function(step_5, i, j){
 
 # plot the (dxd) KL correlation values of the (i, j) block
 result_56_prep <- function(step_5b, i, j){
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: plot the (d x d) KL correlation values of the (i, j) block
+  #
+  #
+  # input:
+  #
+  # - step_5b          (list)                    KL_cor_suffix items
+  # - i                (integer)                 process i
+  # - j                (integer)                 process j
+  #
+  #
+  # output:
+  #
+  # - g_list           (list of ggplot objects)  one heatmap per suffix
+  #
+  # ----------------------------------------------------------------------------
   
   
   key <- paste0(i, '_', j)
@@ -1235,6 +1507,24 @@ result_56_prep <- function(step_5b, i, j){
 # plot the (dxd) KL precision values of the (i, j) block
 result_57_prep <- function(step_5c, i, j){
   
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: plot the (d x d) KL precision values of the (i, j) block
+  #
+  #
+  # input:
+  #
+  # - step_5c          (list)                    KL_prec_suffix items
+  # - i                (integer)                 process i
+  # - j                (integer)                 process j
+  #
+  #
+  # output:
+  #
+  # - g_list           (list of ggplot objects)  one heatmap per suffix
+  #
+  # ----------------------------------------------------------------------------
+  
   
   key <- paste0(i, '_', j)
   
@@ -1260,6 +1550,23 @@ result_57_prep <- function(step_5c, i, j){
 
 # plot the assembled KL covariance values of all blocks
 result_58_cov_prep <- function(step_5, p){
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: plot the assembled KL covariance values of all blocks, with a shared color scale
+  #
+  #
+  # input:
+  #
+  # - step_5           (list)                    KL_cov_suffix items
+  # - p                (integer)                 number of processes
+  #
+  #
+  # output:
+  #
+  # - g_list           (list of ggplot objects)  one heatmap per suffix
+  #
+  # ----------------------------------------------------------------------------
   
   g_list <- list()
   
@@ -1300,6 +1607,23 @@ result_58_cov_prep <- function(step_5, p){
 # plot the assembled KL correlation values of all blocks
 result_58_prep <- function(step_5b, p){
   
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: plot the assembled KL correlation values of all blocks, with a shared color scale
+  #
+  #
+  # input:
+  #
+  # - step_5b          (list)                    KL_cor_suffix items
+  # - p                (integer)                 number of processes
+  #
+  #
+  # output:
+  #
+  # - g_list           (list of ggplot objects)  one heatmap per suffix
+  #
+  # ----------------------------------------------------------------------------
+  
   g_list <- list()
   
   # 0) borrow from 12z - get suffix names
@@ -1339,6 +1663,23 @@ result_58_prep <- function(step_5b, p){
 # plot the assembled KL precision values of all blocks
 result_59_prep <- function(step_5c, p){
   
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: plot the assembled KL precision values of all blocks
+  #
+  #
+  # input:
+  #
+  # - step_5c          (list)                    KL_prec_suffix items
+  # - p                (integer)                 number of processes
+  #
+  #
+  # output:
+  #
+  # - g_list           (list of ggplot objects)  one heatmap per suffix
+  #
+  # ----------------------------------------------------------------------------
+  
   g_list <- list()
   
   # 0) borrow from 12z - get suffix names
@@ -1366,13 +1707,32 @@ result_59_prep <- function(step_5c, p){
 
 result_80s_prep <- function(step_8, m, m_est, i, j){
   
-  #   - V_cond_ground_truth_full          (pm x pm matrix)
-  #   - V_cond_coarse_ground_truth_full   (pm_est x pm_est matrix)
-  #   - V_cond_truth_full                 (pm x pm matrix)
-  #   - V_cond_coarse_truth_full          (pm_est x pm_est matrix)
-  #   - V_cond_X_truth_full               (pm x pm matrix)
-  #   - V_cond_X_coarse_truth_full        (pm_est x pm_est matrix)
-  #   - V_cond_est_full                   (pm_est x pm_est matrix)  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: plot the (1, 2) block of V_cond for the estimate and the truths
+  #
+  #
+  # input:
+  #
+  # - step_8                             (list)
+  #   - V_cond_ground_truth_full         (pm x pm matrix)
+  #   - V_cond_coarse_ground_truth_full  (pm_est x pm_est matrix)
+  #   - V_cond_truth_full                (pm x pm matrix)
+  #   - V_cond_coarse_truth_full         (pm_est x pm_est matrix)
+  #   - V_cond_X_truth_full              (pm x pm matrix)
+  #   - V_cond_X_coarse_truth_full       (pm_est x pm_est matrix)
+  #   - V_cond_est_full                  (pm_est x pm_est matrix)
+  # - m                                  (integer)              size of the true time grid
+  # - m_est                              (integer)              size of the estimation time grid
+  # - i                                  (integer)              process i (currently the (1, 2) block is always plotted)
+  # - j                                  (integer)              process j (currently the (1, 2) block is always plotted)
+  #
+  #
+  # output:
+  #
+  # - g_list                             (list of ggplot objects)
+  #
+  # ----------------------------------------------------------------------------
   
   g_list <- list(visualize_matrix_heatmap(extract_block_structure_ij(step_8[[1]], m,     1, 2), 'Ground Truth'), 
                  visualize_matrix_heatmap(extract_block_structure_ij(step_8[[2]], m_est, 1, 2), 'Coarse Ground Truth'), 
@@ -1388,9 +1748,26 @@ result_80s_prep <- function(step_8, m, m_est, i, j){
 
 result_90s_prep_ij <- function(step_9, m, m_est, i, j, full = T){
   
-  # list of heatmaps of C_Xi_Xj 
-  # i = 1
-  # j = 2
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: plot heatmaps of the (i, j) block C_{X_i X_j} of C_cond for the estimate and the truths
+  #
+  #
+  # input:
+  #
+  # - step_9           (list)                 C_cond_suffix_full items (pm x pm or pm_est x pm_est matrices)
+  # - m                (integer)              size of the true time grid
+  # - m_est            (integer)              size of the estimation time grid
+  # - i                (integer)              process i
+  # - j                (integer)              process j
+  # - full             (boolean)              if FALSE, only plot C_cond_truth_full and C_cond_est_full
+  #
+  #
+  # output:
+  #
+  # - g_list           (list of ggplot objects)
+  #
+  # ----------------------------------------------------------------------------
   
   if(! full){
     g_list <- list(visualize_matrix_heatmap(extract_block_structure_ij(step_9$C_cond_truth_full, m,     i, j), 'Truth',               zmid = 0),
@@ -1413,6 +1790,25 @@ result_90s_prep_ij <- function(step_9, m, m_est, i, j, full = T){
 }
 
 result_90s_prep_pm <- function(step_9, m, m_est, full = T){
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: plot heatmaps of the full C_cond matrices for the estimate and the truths
+  #
+  #
+  # input:
+  #
+  # - step_9           (list)                 C_cond_suffix_full items (pm x pm or pm_est x pm_est matrices)
+  # - m                (integer)              size of the true time grid
+  # - m_est            (integer)              size of the estimation time grid
+  # - full             (boolean)              if FALSE, only plot the truth and estimate (normalized and unnormalized)
+  #
+  #
+  # output:
+  #
+  # - g_list           (list of ggplot objects)
+  #
+  # ----------------------------------------------------------------------------
   
   if(! full){
     g_list <- list(visualize_matrix_heatmap(step_9$C_cond_truth_full,        'Truth',            zmid = 0),
@@ -1438,6 +1834,27 @@ result_90s_prep_pm <- function(step_9, m, m_est, full = T){
 }
 
 result_95_prep <- function(step_11, m, m_est, p, full = T){
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: plot heatmaps of the p x p HS norms of C_cond (with 0's on the diagonal) for the estimate and the truths
+  #
+  #
+  # input:
+  #
+  # - step_11          (list)                 C_HS_suffix items (p x p matrices)
+  # - m                (integer)              size of the true time grid
+  # - m_est            (integer)              size of the estimation time grid
+  # - p                (integer)              number of processes
+  # - full             (boolean)              if FALSE, only plot the truth and estimate (normalized and unnormalized);
+  #                                           if TRUE, HS norms are computed from step_9 in the calling environment
+  #
+  #
+  # output:
+  #
+  # - g_list           (list of ggplot objects)
+  #
+  # ----------------------------------------------------------------------------
   
   
   if(! full){
@@ -1492,13 +1909,34 @@ result_95_prep <- function(step_11, m, m_est, p, full = T){
 
 # only view the (i, j)-th block
 result_100s_prep_ij <- function(step_10, m, m_est, i, j){
-  #   - P_cond_ground_truth_full          (pm x pm matrix)
-  #   - P_cond_coarse_ground_truth_full   (pm_est x pm_est matrix)
-  #   - P_cond_truth_full                 (pm x pm matrix)
-  #   - P_cond_coarse_truth_full          (pm_est x pm_est matrix)
-  #   - P_cond_X_truth_full               (pm x pm matrix)
-  #   - P_cond_X_coarse_truth_full        (pm_est x pm_est matrix)
-  #   - P_cond_est_full                   (pm_est x pm_est matrix)    
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: plot heatmaps of the (i, j) block of P_cond for the estimate and the truths
+  #
+  #
+  # input:
+  #
+  # - step_10                            (list)
+  #   - P_cond_ground_truth_full         (pm x pm matrix)
+  #   - P_cond_coarse_ground_truth_full  (pm_est x pm_est matrix)
+  #   - P_cond_truth_full                (pm x pm matrix)
+  #   - P_cond_coarse_truth_full         (pm_est x pm_est matrix)
+  #   - P_cond_X_truth_full              (pm x pm matrix)
+  #   - P_cond_X_coarse_truth_full       (pm_est x pm_est matrix)
+  #   - P_cond_est_full                  (pm_est x pm_est matrix)
+  # - m                                  (integer)              size of the true time grid
+  # - m_est                              (integer)              size of the estimation time grid
+  # - i                                  (integer)              process i
+  # - j                                  (integer)              process j
+  #
+  #
+  # output:
+  #
+  # - g_list                             (list of ggplot objects)
+  #
+  # ----------------------------------------------------------------------------
+  
   g_list <- list(visualize_matrix_heatmap(extract_block_structure_ij(step_10[[1]], m,     i, j), 'Truth Ground',         zmid = 0),
                  visualize_matrix_heatmap(extract_block_structure_ij(step_10[[2]], m_est, i, j), 'Coarse Truth Ground',  zmid = 0),
                  visualize_matrix_heatmap(extract_block_structure_ij(step_10[[3]], m,     i, j), 'Truth Theory',         zmid = 0),
@@ -1512,6 +1950,25 @@ result_100s_prep_ij <- function(step_10, m, m_est, i, j){
 
 # view entire pm matrix
 result_100s_prep_pm <- function(step_10, m, m_est, full = T){
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: plot heatmaps of the full P_cond matrices for the estimate and the truths
+  #
+  #
+  # input:
+  #
+  # - step_10          (list)                 P_cond_suffix_full items (pm x pm or pm_est x pm_est matrices)
+  # - m                (integer)              size of the true time grid
+  # - m_est            (integer)              size of the estimation time grid
+  # - full             (boolean)              if FALSE, only plot the truth and estimate (normalized and unnormalized)
+  #
+  #
+  # output:
+  #
+  # - g_list           (list of ggplot objects)
+  #
+  # ----------------------------------------------------------------------------
   
   if(!full){
     g_list <- list(visualize_matrix_heatmap(step_10$P_cond_truth_full,        'Truth',            zmid = 0),
@@ -1540,15 +1997,31 @@ result_100s_prep_pm <- function(step_10, m, m_est, full = T){
 }
 
 result_112_prep <- function(step_11, remove_diag, full = T){
-  #   - w_mat_ground_truth        (p x p)   matrix of HS norms of the pm x pm ground truth
-  #   - w_mat_coarse_ground_truth (p x p)   matrix of HS norms of the pm_est x pm_est ground truth 
-  #   - w_mat_X_coarse_truth      (p x p)   matrix of HS norms of ...
-  #   - w_mat_X_truth             (p x p)   matrix of HS norms of ...
-  #   - w_mat_coarse_truth        (p x p)   matrix of HS norms of ...
-  #   - w_mat_truth               (p x p)   matrix of HS norms of ...
-  #   - w_mat_est                 (p x p)   matrix of HS norms of ...  
   
-
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: plot heatmaps of the p x p w_mat HS norms for the estimate and the truths
+  #
+  #
+  # input:
+  #
+  # - step_11                      (list)
+  #   - w_mat_ground_truth         (p x p matrix)         HS norms of the pm x pm ground truth
+  #   - w_mat_coarse_ground_truth  (p x p matrix)         HS norms of the pm_est x pm_est ground truth
+  #   - w_mat_X_coarse_truth       (p x p matrix)
+  #   - w_mat_X_truth              (p x p matrix)
+  #   - w_mat_coarse_truth         (p x p matrix)
+  #   - w_mat_truth                (p x p matrix)
+  #   - w_mat_est                  (p x p matrix)
+  # - remove_diag                  (boolean)              set the diagonals to 0?
+  # - full                         (boolean)              if FALSE, only plot the truth and estimate (normalized and unnormalized)
+  #
+  #
+  # output:
+  #
+  # - g_list                       (list of ggplot objects)
+  #
+  # ----------------------------------------------------------------------------
   
   if(remove_diag){
     step_11 <- lapply(step_11, function(x) {
@@ -1580,13 +2053,28 @@ result_112_prep <- function(step_11, remove_diag, full = T){
 
 result_113_prep <- function(step_12){
   
-  #   - roc_ground_truth           (list of roc outputs)
-  #   - roc_coarse_ground_truth
-  #   - roc_truth
-  #   - roc_coarse_truth
-  #   - roc_X_truth
-  #   - roc_X_coarse_truth
-  #   - roc_est
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: plot the ROC curves for the estimate and the truths
+  #
+  #
+  # input:
+  #
+  # - step_12                    (list)
+  #   - roc_ground_truth         (list)                 roc outputs
+  #   - roc_coarse_ground_truth  (list)                 roc outputs
+  #   - roc_truth                (list)                 roc outputs
+  #   - roc_coarse_truth         (list)                 roc outputs
+  #   - roc_X_truth              (list)                 roc outputs
+  #   - roc_X_coarse_truth       (list)                 roc outputs
+  #   - roc_est                  (list)                 roc outputs
+  #
+  #
+  # output:
+  #
+  # - roc_graphs                 (list of 7 ggplot objects)
+  #
+  # ----------------------------------------------------------------------------
   
   # ROC plot - done on qrsh 
   roc_graphs <- list()
@@ -1623,7 +2111,23 @@ result_113_prep <- function(step_12){
 
 result_arr_mat <- function(g_list, grob_caption, arr_mat_i){
   
-  # reused function to arrange all graphs in an arr_mat_8 fashion
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: reused function to arrange graphs and a caption in an arr_mat fashion
+  #
+  #
+  # input:
+  #
+  # - g_list           (list of ggplot objects)
+  # - grob_caption     (string)               caption text
+  # - arr_mat_i        (2 x k matrix)         layout matrix, k = 2, 3, 4, or 5
+  #
+  #
+  # output:
+  #
+  # - g                (grob)                 grid.arrange output
+  #
+  # ----------------------------------------------------------------------------
   
   nrows <- dim(arr_mat_i)[1]
   ncols <- dim(arr_mat_i)[2]
@@ -1693,19 +2197,20 @@ result_arr_mat <- function(g_list, grob_caption, arr_mat_i){
 result_121_prep <- function(step_11x, step_11y, suffix_names) {
   
   # ----------------------------------------------------------------------------
-  # 
+  #
   # GOAL: with step_11x and step_11y object, plot the tau_c and tau_p values across continuous covariate and stratified by estimate
   #
-  # 
-  # inputs:
   #
-  # - step_11x       (list)
-  # - step_11y       (list)
-  # - suffix_names   (vector of strings of estimation method names we want to keep)
+  # input:
   #
-  # outputs:
+  # - step_11x         (list)                 tau_c values for each y_c query
+  # - step_11y         (list)                 tau_p values for each y_c query
+  # - suffix_names     (vector of strings)    estimation method names we want to keep
   #
-  # - graph       (ggplot object)
+  #
+  # output:
+  #
+  # - g                (ggplot object)
   #
   # ----------------------------------------------------------------------------
   

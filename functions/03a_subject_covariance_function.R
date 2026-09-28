@@ -5,22 +5,21 @@
 
 subject_specific_log_intensity <- function(data_df4, Tseq_est){
   
-  # ---------------------------------------------------------------------------- 
+  # ----------------------------------------------------------------------------
   #
+  # GOAL: calculate subject-specific log intensities for all (n) subjects and (p) processes
   #
-  # GOAL: calcualte subject-specific log intensities for all (n) subjects and (p) processes
-  # 
   #
   # input:
-  # 
-  # - data_df4   ('time', 'feature_id', 'subject_num' dataframe)
-  # - Tseq_est   (m-dim vector)   time discretizations
-  # 
-  # output:
-  # 
-  # - X_k_est  (p x m x n)  matrix of estimated log-intensities for each subject (n) and each process (p)
   #
-  # 
+  # - data_df4         (data.frame)           columns 'time', 'feature_id', 'subject_num'
+  # - Tseq_est         (m-dim vector)         time discretizations
+  #
+  #
+  # output:
+  #
+  # - X_k_est          (p x m x n array)      estimated log-intensities for each subject (n) and each process (p)
+  #
   # ----------------------------------------------------------------------------
   
   m_est <- length(Tseq_est)

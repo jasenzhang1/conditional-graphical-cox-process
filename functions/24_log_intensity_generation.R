@@ -7,26 +7,29 @@ prec_mat_massager <- function(prec_mat, manual_thresh = NULL){
   #
   # GOAL: if we manually generate a precision matrix, we need to:
   #
-  # 1) invert it to be a covariance matrix
-  # 2) normalize it to be a correlation matrix
-  # 3) invert it again to be a standardized precision matrix
-  # 4) make it a partial correlation matrix
+  #       1) invert it to be a covariance matrix
+  #       2) normalize it to be a correlation matrix
+  #       3) invert it again to be a standardized precision matrix
+  #       4) make it a partial correlation matrix
   #
   #
+  # input:
   #
-  # input: 
+  # - prec_mat           (p x p matrix)         un-normalized precision matrix, where 0's mean no adjacency
+  # - manual_thresh      (number or NULL)       if not NULL, threshold used to define the adjacency matrix
   #
-  # - prec_mat (p x p matrix)  un-normalized precision matrix, where 0's mean no adjacency
   #
-  # 
   # output:
   #
-  # - list of precision matrix features
-  #   - adj_mat         (p x p matrix)    adjacency matrix with 0's on the diagonal. 1 = dependent, 0 = independent
-  #   - prec_mat        (p x p matrix)    precision matrix from the massaged correlation matrix
-  #   - cor_mat         (p x p matrix)    correlation matrix 
-  #   - partial_cor_mat (p x p matrix)    partial correlation matrix
-  #   - threshold_p    (number)           smallest non-zero off-diagonal value. Anything less than this threshold will be assumed to be 0
+  # - output             (list)                 precision matrix features
+  #   - adj_mat          (p x p matrix)         adjacency matrix with 0's on the diagonal. 1 = dependent, 0 = independent
+  #   - prec_mat_og      (p x p matrix)         the input precision matrix
+  #   - prec_mat         (p x p matrix)         precision matrix from the massaged correlation matrix
+  #   - cor_mat          (p x p matrix)         correlation matrix
+  #   - cov_mat          (p x p matrix)         covariance matrix
+  #   - partial_cor_mat  (p x p matrix)         partial correlation matrix
+  #   - simu_mat         (p x p matrix)         same as prec_mat
+  #   - threshold_p      (number)               smallest non-zero off-diagonal value. Anything less than this threshold will be assumed to be 0
   #
   # ----------------------------------------------------------------------------
   
@@ -79,18 +82,17 @@ assemble_block_matrix_24 <- function(precision_operators){
   
   # ----------------------------------------------------------------------------
   #
-  #
   # GOAL: assemble block matrix
   #
   #
   # input:
-  # 
-  # - precision_operators (p x p x m x m)
   #
-  # 
+  # - precision_operators  (p x p x m x m array)
+  #
+  #
   # output:
-  # 
-  # - precision_matrix (pm x pm)
+  #
+  # - precision_matrix     (pm x pm matrix)
   #
   # ----------------------------------------------------------------------------
   

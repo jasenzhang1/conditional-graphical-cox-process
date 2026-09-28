@@ -9,17 +9,18 @@ visualize_points_step_0_events <- function(step_0_events, k = 1){
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: plot the event timestamps from t = 0 to t = 1 for various processes
+  # GOAL: plot the event timestamps from t = 0 to t = 1 for various processes of subject k
   #
-  # 
-  # input: 
   #
-  # - step_0_events   (list)  each item is a vector, named k_i for subject k and process i, with all event timestamps 
+  # input:
   #
-  # 
+  # - step_0_events    (list)                 each item is a vector, named k_i for subject k and process i, with all event timestamps
+  # - k                (integer)              subject id
+  #
+  #
   # output:
   #
-  # - g     (graph)
+  # - g_points         (ggplot object)
   #
   # ----------------------------------------------------------------------------
   
@@ -61,15 +62,16 @@ visualize_points_data_df4 <- function(data_df4, k = 1){
   #
   # GOAL: plot the event timestamps from t = 0 to t = 1 for all processes of subject k
   #
-  # 
-  # input: 
   #
-  # - data_df4   (dataframe)  three columns (feature_id, time, subject_num)
+  # input:
   #
-  # 
+  # - data_df4         (data.frame)           three columns (feature_id, time, subject_num)
+  # - k                (integer)              subject id
+  #
+  #
   # output:
   #
-  # - g     (graph)
+  # - g                (ggplot object)        returned invisibly
   #
   # ----------------------------------------------------------------------------
   
@@ -92,26 +94,25 @@ visualize_points_on_intensity <- function(step_0_events, step_1b, k, time_grid_e
   
   # ----------------------------------------------------------------------------
   #
-  # 
   # GOAL: map the events onto the estimated and true intensities from step_1b
   #
-  # inputs:
   #
-  # - step_0_events   (list)    each item denotes a process and is a vector of points
-  # - step_1b         (list)    
-  #   - Lambda_k_truth            (p x m_truth x n)
-  #   - Lambda_k_coarse_truth     (p x m_est   x n)
-  #   - Lambda_k_est              (p x m_est   x n)
+  # input:
   #
-  # - k              (integer)          subject id
-  # - time_grid_est  (m_est-dim vec)    vector of timepoints
-  # - X_truth        (boolean)          do we have X_truths?
-  # - time_grid      (m-dim vec)        vector of timepoints for the truth (if we have it)
+  # - step_0_events            (list)                 each item denotes a process and is a vector of points
+  # - step_1b                  (list)
+  #   - Lambda_k_truth         (p x m_truth x n array)
+  #   - Lambda_k_coarse_truth  (p x m_est x n array)
+  #   - Lambda_k_est           (p x m_est x n array)
+  # - k                        (integer)              subject id
+  # - time_grid_est            (m_est-dim vector)     timepoints
+  # - X_truth                  (boolean)              do we have X_truths?
+  # - time_grid                (m-dim vector)         timepoints for the truth (if we have it)
   #
-  # outputs:
   #
-  # - graphs   (list of graphs)       graph of all processes mapped on their Lambda_k_est and Lambda_k_truth when available
+  # output:
   #
+  # - final_plot               (ggplot object)        all processes mapped on their Lambda_k_est and Lambda_k_truth when available
   #
   # ----------------------------------------------------------------------------
   
@@ -220,24 +221,22 @@ visualize_log_intensity_bold_mean <- function(Lambda_k_est, time_grid_est){
   
   # ----------------------------------------------------------------------------
   #
-  # 
   # GOAL: for each process visualize intensities for all subjects along with their averaged intensity (bold)
   #       then, collect all p averaged intensities and plot them
-  # 
-  # inputs:
-  # 
-  # - Lambda_k_est            (p x m x n matrix)  (12 x 30 x 100)
-  # - time_grid_est           (m-dim vec of timepoints)
+  #
+  #
+  # input:
+  #
+  # - Lambda_k_est     (p x m x n array)      e.g. 12 x 30 x 100
+  # - time_grid_est    (m-dim vector)         timepoints
   #
   #
   # output:
-  # 
-  # list of graphs:
   #
-  # - g_bold   (for each process, graph all the Lambda_k's and its average in bold)
-  # - g_means  (graph all averages from each process)
+  # - output           (list)
+  #   - g_bold         (ggplot object)        for each process, graph all the Lambda_k's and its average in bold
+  #   - g_means        (ggplot object)        graph all averages from each process
   #
-  # 
   # ----------------------------------------------------------------------------
   
   
@@ -309,24 +308,22 @@ visualize_beta_corr <- function(KL_coeffs_truth, cov_mat_truth, cor_mat_truth, p
   
   # ----------------------------------------------------------------------------
   #
-  # 
-  # visualize whether the KL_coeffs (beta) values reflect the underlying cov_mat_truth, corr_mat_truth, prec_mat_truth
-  # 
-  # inputs:
-  # 
-  # - KL_coeffs_truth          (p x d x n matrix)  (12 x 2 x 100)
-  # - cov_mat_truth            (pd x pd matrix)    (24 x 24)
-  # - cor_mat_truth            (pd x pd matrix)    (24 x 24)
-  # - prec_mat_truth           (pd x pd matrix)    (24 x 24)
-  # - graph_type               (string)          'heatmap' or 'histogram'
+  # GOAL: visualize whether the KL_coeffs (beta) values reflect the underlying cov_mat_truth, cor_mat_truth, prec_mat_truth
+  #
+  #
+  # input:
+  #
+  # - KL_coeffs_truth  (p x d x n array)      e.g. 12 x 2 x 100
+  # - cov_mat_truth    (pd x pd matrix)       e.g. 24 x 24
+  # - cor_mat_truth    (pd x pd matrix)       e.g. 24 x 24
+  # - prec_mat_truth   (pd x pd matrix)       e.g. 24 x 24
+  # - graph_type       (string)               'heatmap' or 'histogram'
   #
   #
   # output:
-  # 
-  # - 3x2 grid of graphs of (cov, cor, prec) with (truth, est)
   #
+  # - final_graph      (grob)                 3 x 2 grid of graphs of (cov, cor, prec) with (truth, est)
   #
-  # 
   # ----------------------------------------------------------------------------
   
 
@@ -389,7 +386,6 @@ visualize_V_cond_convergence <- function(folder_name, mat_name, i, j){
   
   # ----------------------------------------------------------------------------
   #
-  #
   # GOAL: visualize V_cond_convergence at block matrix (i, j)
   #
   #       error =  || V_{X_i, X_j}^(y_c) - \hat{V}_{X_i, X_j}^(y_c) ||_HS
@@ -397,15 +393,15 @@ visualize_V_cond_convergence <- function(folder_name, mat_name, i, j){
   #
   # input:
   #
-  # - folder_name (string)  'simu_results_banded_c1_3'
-  # - mat_name    (string)  'V', 'C', or 'P'
-  # - i, j        (scalar)  block matrix numbers
+  # - folder_name      (string)               'simu_results_banded_c1_3'
+  # - mat_name         (string)               'V', 'C', or 'P'
+  # - i                (integer)              block row
+  # - j                (integer)              block column
   #
   #
   # output:
   #
-  # - graph of V_12 error as we change sample size 
-  #
+  # - g                (ggplot object)        graph of V_ij error as we change sample size
   #
   # ----------------------------------------------------------------------------
   
@@ -486,20 +482,17 @@ visualize_AUC_across_n <- function(folder_name){
   
   # ----------------------------------------------------------------------------
   #
-  #
   # GOAL: visualize AUC metric across n and y_c_query
-  #
   #
   #
   # input:
   #
-  # - folder_name (string)  'simu_results_banded_c1_3'
+  # - folder_name      (string)               'simu_results_banded_c1_3'
   #
   #
   # output:
   #
-  # - graph of AUC vs y_c_query (x-axis) and n (color)
-  #
+  # - g                (ggplot object)        AUC vs y_c_query (x-axis) and n (color)
   #
   # ----------------------------------------------------------------------------
   
@@ -565,44 +558,36 @@ visualize_metrics <- function(folder_name, metrics, i = NULL, j = NULL){
   
   # ----------------------------------------------------------------------------
   #
-  #
   # GOAL: visualize convergences of various metrics:
   #
-  # - metrics
-  #   - rho_i_dist (scalar)
-  #   - rho_ij_dist (pxp matrix, each value is HS norm of m_est x m_est rho_ij)
-  #   - g_ij_dist   (pxp matrix)
-  #   - P_HS        (pxp matrix, each value is HS norm of difference of P_hat - P)
-  #   - C_HS        (pxp matrix)
-  #   - C_HS_v2     (pxp matrix)
-  #   - V_HS        (pxp matrix)
-  #   - sens        (scalar)
-  #   - spec        (scalar)
-  #   - auc         (scalar)
-  #   - accuracy    (scalar)
-  #
+  #       - rho_i_dist  (scalar)
+  #       - rho_ij_dist (p x p matrix, each value is HS norm of m_est x m_est rho_ij)
+  #       - g_ij_dist   (p x p matrix)
+  #       - P_HS        (p x p matrix, each value is HS norm of difference of P_hat - P)
+  #       - C_HS        (p x p matrix)
+  #       - C_HS_v2     (p x p matrix)
+  #       - V_HS        (p x p matrix)
+  #       - sens        (scalar)
+  #       - spec        (scalar)
+  #       - auc         (scalar)
+  #       - accuracy    (scalar)
   #
   #
   # input:
   #
-  # - folder_name (string)  'simu_results_banded_c1_3'
-  # - metric      (string)  
-  #   - 'rho_i_dist'
-  #   - 'rho_ij_dist'
-  #   - 'g_ij_dist'
-  #   - 'P_HS', 'C_HS', 'V_HS'
-  # - i and j    (integers)  indices for matrix metrics
+  # - folder_name      (string)               'simu_results_banded_c1_3'
+  # - metrics          (vector of strings)    e.g. 'rho_i_dist', 'rho_ij_dist', 'g_ij_dist', 'P_HS', 'C_HS', 'V_HS'
+  # - i                (integer)              row index for matrix metrics
+  # - j                (integer)              column index for matrix metrics
+  #
   #
   # output:
   #
-  # - table and graph of intermediate convergence metrics:
-  # 
-  #   - ||rho_i(t) - rho_i_est(t)||
-  #   - ||rho_ij(s,t) - rho_ij_est(s,t)||
-  #   - ||g_ij(s,t) - g_ij_est(s,t)||
-  #   - ||C_ij - C_ij_est||
-  #   - ||P_ij - P_ij_est||
-  #   - AUC
+  # - output           (list)                 table and graph of intermediate convergence metrics:
+  #                                           ||rho_i(t) - rho_i_est(t)||, ||rho_ij(s,t) - rho_ij_est(s,t)||,
+  #                                           ||g_ij(s,t) - g_ij_est(s,t)||, ||C_ij - C_ij_est||, ||P_ij - P_ij_est||, AUC
+  #   - metric_graph   (grob)                 arranged plots
+  #   - metric_table   (data.frame)
   #
   # ----------------------------------------------------------------------------
   
@@ -700,6 +685,23 @@ visualize_metrics <- function(folder_name, metrics, i = NULL, j = NULL){
 # merge two lists recursively if they have the same name
 merge_lists_recursive <- function(x, y) {
   
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: recursively merge two (nested) lists by name
+  #
+  #
+  # input:
+  #
+  # - x                (list or other object)
+  # - y                (list or other object)
+  #
+  #
+  # output:
+  #
+  # - merged           (list)                 union of names; non-list leaves are combined into list(x, y)
+  #
+  # ----------------------------------------------------------------------------
+  
   # If either is NULL, return the other
   if (is.null(x)) return(y)
   if (is.null(y)) return(x)
@@ -735,30 +737,23 @@ convergence_metrics_part2 <- function(merged, k, i, j){
   # ----------------------------------------------------------------------------
   #
   # GOAL: for a y_c query, obtain its estimate metrics
-  # 
-  # input:
-  # 
-  # - merged  (list of step_2, step_2b, etc)
-  #     - within each list, we have y_c_query 
-  #     - then we have rho_i_est, rho_i_truth etc
   #
-  # - k       (integer)  query_id
-  # - i       (integer)  process i
-  # - j       (integer)  process j
-  # 
+  #
+  # input:
+  #
+  # - merged           (list)                 list of step_2, step_2b, etc
+  #                                           within each list, we have y_c_query, then rho_i_est, rho_i_truth, etc
+  # - k                (integer)              query_id
+  # - i                (integer)              process i
+  # - j                (integer)              process j
+  #
   #
   # output:
   #
-  # - list of lists:
-  #   - point_metrics
-  #     
-  #     each list has a named vector of values that can be graphed
-  # 
-  #   - eval_metrics
+  # - output           (list)
+  #   - point_metrics  (list)                 each list has a named vector of values that can be graphed
+  #   - eval_metrics   (data.frame)           eigenvalues that are graphed separately
   #
-  #     dataframe with eigenvalues that are graphed separately
-  #
-  # 
   # ----------------------------------------------------------------------------
   
   # 0) extract parameters
@@ -967,16 +962,17 @@ convergence_metrics_part3 <- function(merged, i, j){
   # GOAL: from `merged`, create `metrics` that obtains metrics for each y_c_query
   #
   #
-  # inputs:
+  # input:
   #
-  # - merged  (list of step_2, step_2b, etc)
-  #     - within each list, we have y_c_query 
-  #     - then we have rho_i_est, rho_i_truth etc
+  # - merged           (list)                 list of step_2, step_2b, etc
+  #                                           within each list, we have y_c_query, then rho_i_est, rho_i_truth, etc
+  # - i                (integer)              process i
+  # - j                (integer)              process j
   #
   #
-  # outputs:
+  # output:
   #
-  # - metrics
+  # - metrics          (list)                 output of convergence_metrics_part2 for each y_c_query
   #
   # ----------------------------------------------------------------------------
   
@@ -997,40 +993,37 @@ visualize_metrics_finite_basis <- function(truth_file_name, results_folder, i, j
   
   # ----------------------------------------------------------------------------
   #
-  #
   # GOAL: visualize metrics where the truths and estimates are in different folders
   #
-  # - metrics
-  #   - rho_i_dist (scalar)
-  #   - rho_ij_dist (pxp matrix, each value is HS norm of m_est x m_est rho_ij)
-  #   - g_ij_dist   (pxp matrix)
-  #   - P_HS        (pxp matrix, each value is HS norm of difference of P_hat - P)
-  #   - C_HS        (pxp matrix)
-  #   - C_HS_v2     (pxp matrix)
-  #   - V_HS        (pxp matrix)
-  #   - sens        (scalar)
-  #   - spec        (scalar)
-  #   - auc         (scalar)
-  #   - accuracy    (scalar)
-  #
+  #       - rho_i_dist  (scalar)
+  #       - rho_ij_dist (p x p matrix, each value is HS norm of m_est x m_est rho_ij)
+  #       - g_ij_dist   (p x p matrix)
+  #       - P_HS        (p x p matrix, each value is HS norm of difference of P_hat - P)
+  #       - C_HS        (p x p matrix)
+  #       - C_HS_v2     (p x p matrix)
+  #       - V_HS        (p x p matrix)
+  #       - sens        (scalar)
+  #       - spec        (scalar)
+  #       - auc         (scalar)
+  #       - accuracy    (scalar)
   #
   #
   # input:
   #
-  # - truth_file_name    (string)    'simu_data/block_banded_c0_n_2000_truths.RData'
-  # - results_folder     (string)    'simu_results/block_banded_v2/CPGM'
-  # - i and j            (integers)  indices for matrix metrics
+  # - truth_file_name        (string)               'simu_data/block_banded_c0_n_2000_truths.RData'
+  # - results_folder         (string)               'simu_results/block_banded_v2/CPGM'
+  # - i                      (integer)              row index for matrix metrics
+  # - j                      (integer)              column index for matrix metrics
+  #
   #
   # output:
   #
-  # - table and graph of intermediate convergence metrics:
-  # 
-  #   - ||rho_i(t) - rho_i_est(t)||
-  #   - ||rho_ij(s,t) - rho_ij_est(s,t)||
-  #   - ||g_ij(s,t) - g_ij_est(s,t)||
-  #   - ||C_ij - C_ij_est||
-  #   - ||P_ij - P_ij_est||
-  #   - AUC
+  # - output                 (list)                 tables and graphs of intermediate convergence metrics
+  #   - point_metrics_graph  (ggplot object)        metrics displayed in graphical fashion
+  #   - metric_tables        (data.frame)           metrics displayed in tabular fashion
+  #   - eval_metrics_graph   (ggplot object)        eigenvalue graphs
+  #   - eval_metrics_graph2  (ggplot object)        eigenvalue graphs
+  #   - metric_df            (data.frame)           raw dataframe of metrics
   #
   # ----------------------------------------------------------------------------
   
@@ -1349,23 +1342,23 @@ visualize_truths_from_est <- function(folder_name, n, graph_ids, cl, time_grid, 
   #
   # GOAL: visualize intermediate metrics for simulations
   #
-  # inputs:
   #
-  # - folder_name     (string)   "simu_results/single_c2/CPGM"
-  # - n               (integer)  
-  # - graph_ids       (vector)             numerical string ID's of graphs we want
-  # - cl              (string)             "cross" = one timepoint, "long" = all timepoints
-  # - time_grid       (m-dim vector)
-  # - time_grid_est   (m_est-dim vector)
-  # - time_grid_both  (m_both-dim vector)
-  # - p               (integer)
-  # - y_c_id          (integer)           which queried y_c ID to have
+  # input:
   #
-  # 
-  # outputs:
+  # - folder_name      (string)               "simu_results/single_c2/CPGM"
+  # - n                (integer)              sample size
+  # - graph_ids        (vector)               numerical string ID's of graphs we want
+  # - cl               (string)               "cross" = one timepoint, "long" = all timepoints
+  # - time_grid        (m-dim vector)
+  # - time_grid_est    (m_est-dim vector)
+  # - time_grid_both   (m_both-dim vector)
+  # - p                (integer)              number of processes
+  # - y_c_id           (integer)              which queried y_c ID to have
   #
-  # - graphs (list)   list of grpahs for each correspondign graph_id
-  # 
+  #
+  # output:
+  #
+  # - graphs           (list)                 graphs for each corresponding graph_id
   #
   # ----------------------------------------------------------------------------
   
@@ -2035,32 +2028,19 @@ unpack_step_list <- function(folder_name, n, query_id){
   
   # ----------------------------------------------------------------------------
   #
-  #
   # GOAL: get step_list of a specific dataset in a folder, to prepare to visualize results
-  #
-  # - metrics
-  #   - rho_i_dist (scalar)
-  #   - rho_ij_dist (pxp matrix, each value is HS norm of m_est x m_est rho_ij)
-  #   - g_ij_dist   (pxp matrix)
-  #   - P_HS        (pxp matrix, each value is HS norm of difference of P_hat - P)
-  #   - C_HS        (pxp matrix)
-  #   - V_HS        (pxp matrix)
-  #   - sens        (scalar)
-  #   - spec        (scalar)
-  #   - auc         (scalar)
-  #   - accuracy    (scalar)
-  #
   #
   #
   # input:
   #
-  # - folder_name    (string)         'simu_results_banded_c1_3'
-  # - n              (integer)        sample size result in the folder that we want
-  # - query_id       (integer)        integer denoting which query to look at
+  # - folder_name      (string)               'simu_results_banded_c1_3'
+  # - n                (integer)              sample size result in the folder that we want
+  # - query_id         (integer)              which query to look at
+  #
   #
   # output:
   #
-  # - step_list (list with all relevant estimates)
+  # - step_list        (list)                 all relevant estimates
   #
   # ----------------------------------------------------------------------------
   
@@ -2130,36 +2110,23 @@ unpacking_pipeline <- function(folder_name, graph_id, time_grid_est, time_grid, 
   
   # ----------------------------------------------------------------------------
   #
-  #
   # GOAL: for a specific query_id and specific n, visualize a specific result
-  #
-  # - metrics
-  #   - rho_i_dist (scalar)
-  #   - rho_ij_dist (pxp matrix, each value is HS norm of m_est x m_est rho_ij)
-  #   - g_ij_dist   (pxp matrix)
-  #   - P_HS        (pxp matrix, each value is HS norm of difference of P_hat - P)
-  #   - C_HS        (pxp matrix)
-  #   - V_HS        (pxp matrix)
-  #   - sens        (scalar)
-  #   - spec        (scalar)
-  #   - auc         (scalar)
-  #   - accuracy    (scalar)
-  #
   #
   #
   # input:
   #
-  # - folder_name    (string)         'simu_results_banded_c1_3'
-  # - graph_id       (string)         '113' for ROC curve 
-  # - time_grid_est  (m_est-dim vec)  time grid discretization
-  # - time_grid      (m-dim vec)      time grid discretization
-  # - n              (integer)
-  # - p              (integer)
-  # - query_id       (integer)        integer denoting which query to look at
+  # - folder_name      (string)               'simu_results_banded_c1_3'
+  # - graph_id         (string)               e.g. '113' for ROC curve
+  # - time_grid_est    (m_est-dim vector)     time grid discretization
+  # - time_grid        (m-dim vector)         time grid discretization
+  # - n                (integer)              sample size
+  # - p                (integer)              number of processes
+  # - query_id         (integer)              which query to look at
+  #
   #
   # output:
   #
-  # - visualize_truths_from_est() output
+  # - graphs           (list)                 visualize_truths_from_est() output
   #
   # ----------------------------------------------------------------------------
   

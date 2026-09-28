@@ -1,17 +1,27 @@
 type_1_graphs <- function(summary_df, graph_type, x_graph_title, x_var, y_var, color_var, group_var, color_palette=NULL, color_low='red', color_high='green'){
   
   # ----------------------------------------------------------------------------
-  # 
-  # goal: produce a graph of statistics over time
   #
-  # - graph_type      (integer) 1: discrete color palette, 2: continuous color palette
-  # - x_graph_title   (string) display name of the x-axis 
-  # - x_var           (string) name of x-axis variable
-  # - y_var           (string) name of y-axis variable 
-  # - color_var       (string) name of the color variable, can admit NA values, for which they will be black
-  # - group_var       (string) name of the grouping variable in facet_wrap 
-  # 
-  # - color_palette   (named vector) to denote color scheme for color_var
+  # GOAL: produce a graph of statistics over time
+  #
+  #
+  # input:
+  #
+  # - summary_df       (data.frame)           graph statistics
+  # - graph_type       (integer)              1: discrete color palette, 2: continuous color palette
+  # - x_graph_title    (string)               display name of the x-axis
+  # - x_var            (string)               name of x-axis variable
+  # - y_var            (string)               name of y-axis variable
+  # - color_var        (string)               name of the color variable, can admit NA values, for which they will be black
+  # - group_var        (string)               name of the grouping variable in facet_wrap
+  # - color_palette    (named vector)         color scheme for color_var (graph_type = 1)
+  # - color_low        (string)               low color (graph_type = 2)
+  # - color_high       (string)               high color (graph_type = 2)
+  #
+  #
+  # output:
+  #
+  # - g                (ggplot object)
   #
   # ----------------------------------------------------------------------------
   
@@ -52,64 +62,36 @@ plot_graph_stats_ts <- function(summary_df, graph_type, x_graph_title, x_var, co
   #
   # GOAL: plot graph statistics over time
   #
-  # - see how timestamp affects estimates
-  # 
-  # 
-  # Input:
-  # 
-  # - thresh_value       (number)
-  # - x_graph_title      (string)          name of x-axis to visualize 
-  # - x_var              (string)          name of variable to plot along x axis
-  # - color_var          (string)          name of variable to create different colors, can admit NA, and we make it black
-  # - group_var          (string)          name of variable to facet_wrap() group by 
-  # - mouse_var          (string)          name of variable to filter and iterate by
-  # - final_results_dir  (string)   where to store final results
-  # - thresh_value       (numeric)  value for which we chose to threshold by
-  # - summary_df         (data.frame) each row captures information about a specific E(y_c, y_d) estimated graph 
+  #       - see how timestamp affects estimates
   #
-  #   - mouse_ID (string)
-  #   - movement (0 = rest, 1 = run)
-  #   - VR       (0 = off, 1 = on)
+  #
+  # input:
+  #
+  # - summary_df                                                                        (data.frame)           each row captures information about a specific E(y_c, y_d) estimated graph
+  #   - mouse_ID                                                                        (string)
+  #   - movement                                                                        (0 or 1)               0 = rest, 1 = run
+  #   - VR                                                                              (0 or 1)               0 = off, 1 = on
   #   - ew_num OR age_norm / ts_norm
+  #   - num_neurons, num_NA, num_candidates, num_islands, num_con_verts
+  #   - num_edges, num_HE_edges, num_EE_edges, num_HH_edges
+  #   - avg_deg, avg_deg_HIP, avg_deg_EHC, avg_deg_normalized, avg_deg_HIP_normalized,
+  #                                                                                                            avg_deg_EHC_normalized, num_comps
+  #   - avg_node_strength, avg_edge_strength, avg_dist, diameter
+  #   - num_zeros, fiedler_value, lambda_max, lambda_median, lambda_25, lambda_75,
+  #                                                                                                            lambda_max_sym, lambda_median_sym, lambda_25_sym, lambda_75_sym
+  # - graph_type                                                                        (integer)              1: discrete color palette, 2: continuous color palette
+  # - x_graph_title                                                                     (string)               name of x-axis to visualize
+  # - x_var                                                                             (string)               name of variable to plot along x axis
+  # - color_var                                                                         (string)               name of variable to create different colors, can admit NA, and we make it black
+  # - group_var                                                                         (string)               name of variable to facet_wrap() group by
+  # - mouse_var                                                                         (string)               name of variable to filter and iterate by
+  # - final_results_dir                                                                 (string)               where to store final results
+  # - thresh_value                                                                      (number)               value for which we chose to threshold by
   #
-  #   - num_neurons
-  #   - num_NA
-  #   - num_candidates
-  #   - num_islands
-  #   - num_con_verts
-  #   - num_edges
-  #   - num_HE_edges
-  #   - num_EE_edges
-  #   - num_HH_edges
   #
-  #   - avg_deg
-  #   - avg_deg_HIP
-  #   - avg_deg_EHC
-  #   - avg_deg_normalized
-  #   - avg_deg_HIP_normalized
-  #   - avg_deg_EHC_normalized
-  #   - num_comps
+  # output:
   #
-  #   - avg_node_strength
-  #   - avg_edge_strength
-  #   - avg_dist
-  #   - diameter
-  #
-  #   - num_zeros
-  #   - fiedler_value
-  #   - lambda_max
-  #   - lambda_median
-  #   - lambda_25
-  #   - lambda_75
-  #   - lambda_max_sym
-  #   - lambda_median_sym
-  #   - lambda_25_sym
-  #   - lambda_75_sym
-  #
-  # Output:
-  # 
-  # - saved pdf of all the graphs
-  # - save summary_df as well
+  # - none                                                                                                     saves summary_df as a csv and pdfs of all the graphs to final_results_dir
   #
   # ----------------------------------------------------------------------------
   

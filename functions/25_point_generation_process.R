@@ -4,27 +4,24 @@ generate_cox_process_events <- function(X_functions, time_grid, T_max,
   
   # ----------------------------------------------------------------------------
   #
+  # GOAL: generate point process events from log-intensity functions via thinning
   #
-  # GOAL: Generate point process events from log-intensity functions
   #
-  # 
-  # Input: 
+  # input:
   #
-  # - X_functions    (p x m)
-  # - time_grid      (m x 1)
-  # - T_max          (scalar)
-  # - max_intensity  (scalar)
-  # - seed           (scalar)
+  # - X_functions      (p x m matrix)               log-intensities
+  # - time_grid        (m-dim vector)               time discretization
+  # - T_max            (scalar)                     end of the time domain
+  # - max_intensity    (scalar)                     cap on the intensity
+  # - seed             (scalar)                     reproducibility seed
   #
-  # Output: 
   #
-  # - list with event_times and event_counts
+  # output:
   #
-  #   - [[1]]
-  #     - event_times (unnamed list of p vectors)
-  #     - event_counts (unnamed p-dim vector)
+  # - output           (list)
+  #   - event_times    (unnamed list of p vectors)  event timestamps for each process
+  #   - event_counts   (unnamed p-dim vector)       number of events for each process
   #
-  # 
   # ----------------------------------------------------------------------------
   
   if (!is.null(seed)) set.seed(seed)

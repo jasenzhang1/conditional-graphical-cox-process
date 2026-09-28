@@ -1,28 +1,46 @@
 
 hilbert_schmidt_norm <- function(A) {
   
-  # ------------------------------------------------------------------------
+  # ----------------------------------------------------------------------------
   #
-  # GOAL: Compute Hilbert-Schmidt norm, which is just frobenius norm 
+  # GOAL: compute the Hilbert-Schmidt norm, which is just the Frobenius norm
   #
-  # - ||A||_{HS} = sqrt(sum of squares of elements)
-  # 
-  # 
-  # Input: 
+  #       - ||A||_{HS} = sqrt(sum of squares of elements)
   #
-  # - A       (m x m matrix)
   #
-  # 
-  # Output: 
+  # input:
   #
-  # - HS norm (scalar)
+  # - A                (m x m matrix)
   #
-  # ------------------------------------------------------------------------
+  #
+  # output:
+  #
+  # - HS_norm          (scalar)               Hilbert-Schmidt norm of A
+  #
+  # ----------------------------------------------------------------------------
   
   return(sqrt(sum(A^2)))  # sqrt(sum of all squared elements)
 }
 
 hilbert_schmidt_norm_rmse <- function(A){
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: compute the root mean square of the elements of a matrix
+  #
+  #       - sqrt(sum of squares of elements / number of elements)
+  #
+  #
+  # input:
+  #
+  # - A                (m x m matrix)
+  #
+  #
+  # output:
+  #
+  # - HS_rmse          (scalar)               Hilbert-Schmidt norm of A scaled by the number of elements
+  #
+  # ----------------------------------------------------------------------------
   
   # sum of squares --> divide by amount of elements --> then take sqrt
   
@@ -33,23 +51,25 @@ hilbert_schmidt_norm_rmse <- function(A){
 
 hilbert_schmidt_norm_pm <- function(A, p, m) {
   
-  # ------------------------------------------------------------------------
+  # ----------------------------------------------------------------------------
   #
-  # GOAL: Compute Hilbert-Schmidt norm of all p^2 mxm block matrices
+  # GOAL: compute the Hilbert-Schmidt norm of all p^2 m x m blocks of a block matrix
   #
-  # - ||A||_{HS} = sqrt(sum of squares of elements)
-  # 
-  # 
-  # Input: 
+  #       - ||A||_{HS} = sqrt(sum of squares of elements)
   #
-  # - A       (pm x pm matrix)
   #
-  # 
-  # Output: 
+  # input:
   #
-  # - norms (p x p matrix)
+  # - A                (pm x pm matrix)       block matrix
+  # - p                (integer)              number of processes (row/column blocks)
+  # - m                (integer)              size of each block
   #
-  # ------------------------------------------------------------------------
+  #
+  # output:
+  #
+  # - norms            (p x p matrix)         [i, j] entry is the HS norm of the (i, j) block
+  #
+  # ----------------------------------------------------------------------------
   
   
   if (!is.matrix(A) || nrow(A) != p*m || ncol(A) != p*m) {
@@ -80,18 +100,19 @@ hilbert_schmidt_norm_list_to_mat <- function(M_list, p){
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: Given a list of i_j matrices, compute the Hilbert-Schmidt norm of these blocks and arrange them in a pxp matrix
+  # GOAL: given a list of i_j matrices, compute the Hilbert-Schmidt norm of these blocks
+  #       and arrange them in a p x p matrix
   #
   #
-  # inputs:
-  # 
-  # - M_list  (list of i_j matrices, where i <= j)
-  # - p       (integer)
-  # 
-  # 
-  # Output: 
+  # input:
   #
-  # - HS_mat (p x p matrix)
+  # - M_list           (list of i_j matrices)  only entries with i <= j
+  # - p                (integer)               number of processes
+  #
+  #
+  # output:
+  #
+  # - HS_mat           (p x p matrix)          symmetric matrix of HS norms
   #
   # ----------------------------------------------------------------------------
   

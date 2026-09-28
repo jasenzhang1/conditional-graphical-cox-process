@@ -9,10 +9,20 @@ GP_kernel <- function(timepoints, kernel, kernel_params) {
   
   
   # ----------------------------------------------------------------------------
-  # 
-  # - timepoints     (vector)    vector of timepoints
-  # - kernel         (string)    'RBF', 'Matern'
-  # - kernel_params  (vector)    vector of parameters
+  #
+  # GOAL: compute the covariance matrix of a Gaussian process at the given timepoints
+  #
+  #
+  # input:
+  #
+  # - timepoints       (m-dim vector)         timepoints
+  # - kernel           (string)               'RBF', 'Matern'
+  # - kernel_params    (vector)               (variance, lengthscale) for 'RBF', (variance, lengthscale, nu) for 'Matern'
+  #
+  #
+  # output:
+  #
+  # - K                (m x m matrix)         kernel matrix
   #
   # ----------------------------------------------------------------------------
   
@@ -50,15 +60,21 @@ GP_kernel <- function(timepoints, kernel, kernel_params) {
 present_GP_funcs <- function(p, timepoints, kernel, kernel_params){
   
   # ----------------------------------------------------------------------------
-  # 
-  # - p              (integer)         number of random function draws
-  # - timepoints     (m-dim vector)    vector of timepoints
-  # - kernel         (string)          'RBF', 'Matern'
-  # - kernel_params  (vector)          vector of parameters
+  #
+  # GOAL: draw random functions from a Gaussian process with mean 2
+  #
+  #
+  # input:
+  #
+  # - p                (integer)              number of random function draws
+  # - timepoints       (m-dim vector)         timepoints
+  # - kernel           (string)               'RBF', 'Matern'
+  # - kernel_params    (vector)               kernel parameters, see GP_kernel
+  #
   #
   # output:
   #
-  # - gp_funcs       (p x m matrix)    p realizations of random functions
+  # - gp_funcs         (m x p matrix)         p realizations of random functions
   #
   # ----------------------------------------------------------------------------
   
@@ -84,15 +100,16 @@ thinning <- function(time_vec, lambda_vec){
   #
   # GOAL: thinning algorithm to draw events from an inhomogeneous point process
   #
-  # inputs:
   #
-  # - time_vec   (vector) times
-  # - lambda_vec (vector) values of the intensity at certain times
+  # input:
   #
-  # 
-  # outputs:
+  # - time_vec         (vector)               times
+  # - lambda_vec       (vector)               values of the intensity at certain times
   #
-  # - events   (vector) vector of drawn events
+  #
+  # output:
+  #
+  # - events           (vector)               drawn events
   #
   # ----------------------------------------------------------------------------
   
@@ -135,28 +152,30 @@ sine_random_function_with_points_generate <- function(tmin, tmax, delta_t, mu, s
   #
   # GOAL: generate a random function + point process points from the following:
   #
-  #        x(t) = mu(t) + a1 * sin(100t) + a2 * sin(189t) + a3 * sin(71t) 
-  # 
-  #        where a1, a2, a3 are drawn uniformly from [0, 1] and sum to 1. So use stick breaking to find them. 
-  # 
-  # inputs:
+  #         x(t) = mu(t) + sigma * (a1 * sin(0.40t + c1) + a2 * sin(1.19t + c2) + a3 * sin(2.12t + c3))
   #
-  # - tmin     (scalar) 
-  # - tmax     (scalar)
-  # - delta_t  (scalar)  discretization of time
-  # - mu       (scalar)  constant value for constant mu(t) function
-  # - sigma    (scalar)  how much to amplify each sine function
-  # - seed     (scalar)  seed for replicability
-  # 
-  # 
-  # outputs:
-  # 
-  # - list of the following:
-  #   - t_vec      (vector)  time discretization vector
-  #   - x_t        (vector)  realized random function starting from tmin to tmax at step sizes of delta_t
-  #   - events     (vector)  realized timestamps of the events
-  #   - sin_prop   (vector)  [a1, a2, a3] vector of allocated proportions to each sine function
-  # 
+  #       where a1, a2, a3 are drawn uniformly from [0, 1] and sum to 1. So use stick breaking to find them.
+  #
+  #
+  # input:
+  #
+  # - tmin             (scalar)               start of the time domain
+  # - tmax             (scalar)               end of the time domain
+  # - delta_t          (scalar)               discretization of time
+  # - mu               (scalar)               constant value for constant mu(t) function
+  # - sigma            (scalar)               how much to amplify each sine function
+  # - seed             (scalar)               seed for replicability
+  # - sin_prop         (vector)               optional [a1, a2, a3]; drawn by stick breaking if NULL
+  #
+  #
+  # output:
+  #
+  # - output           (list)
+  #   - t_vec          (vector)               time discretization vector
+  #   - x_t            (vector)               realized random function starting from tmin to tmax at step sizes of delta_t
+  #   - events         (vector)               realized timestamps of the events
+  #   - sin_prop       (vector)               [a1, a2, a3] vector of allocated proportions to each sine function
+  #
   # ----------------------------------------------------------------------------
   
   set.seed(seed)
@@ -223,22 +242,24 @@ sine_random_function_with_points_plot <- function(t_vec, x_t, events, event_y, e
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: continuation of sine_random_function_with_points_generate, 
+  # GOAL: continuation of sine_random_function_with_points_generate,
   #       plot the realized random function with its points
   #
-  # inputs:
-  # 
-  # - t_vec       (vector)  time discretization vector
-  # - x_t         (vector)  intensity function vector
-  # - events      (vector)  realized timestamps of events
-  # - event_y     (scalar)  y-value for which all the events are lying on
-  # - event_alpha (scalar)  opacity of the event points (0 to 1)
   #
-  # outputs:  
-  # 
-  # - a list of:
-  #   - graph_events_only: point processes timestamps alone
-  #   - graph_with_intensity: point processes timestamps with intensity function 
+  # input:
+  #
+  # - t_vec                   (vector)               time discretization vector
+  # - x_t                     (vector)               intensity function vector
+  # - events                  (vector)               realized timestamps of events
+  # - event_y                 (scalar)               y-value for which all the events are lying on
+  # - event_alpha             (scalar)               opacity of the event points (0 to 1)
+  #
+  #
+  # output:
+  #
+  # - output                  (list)
+  #   - graph_events_only     (ggplot object)        point processes timestamps alone
+  #   - graph_with_intensity  (ggplot object)        point processes timestamps with intensity function
   #
   # ----------------------------------------------------------------------------
   

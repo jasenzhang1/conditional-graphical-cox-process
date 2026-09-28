@@ -1,13 +1,30 @@
 make_edge_weight_graph <- function(silence_df, ID, ID_num, neuron_i, neuron_j, movements, VRs, weeks, results_dir){
   
-  # silence_df () object that is saved
-  # ID         (string) 'Tau1'
-  # ID_num     (string) '346'
-  # neuron_i   (integer) 
-  # neuron_j   (integer)
-  # movements  (vector)
-  # VRs        (vector)
-  # weeks      (vector)
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: plot the log edge weight between neurons i and j over weeks for each movement x VR setting,
+  #       shading the weeks where neuron i (gray) or neuron j (red) is silent
+  #
+  #
+  # input:
+  #
+  # - silence_df       (list)                 saved silence status, silence_df[[ID_num]] is a week x neuron matrix
+  # - ID               (string)               'Tau1'
+  # - ID_num           (string)               '346'
+  # - neuron_i         (integer)              first neuron
+  # - neuron_j         (integer)              second neuron
+  # - movements        (vector)               movement values (0, 1)
+  # - VRs              (vector)               VR values (0, 1)
+  # - weeks            (vector)               weeks to plot
+  # - results_dir      (string)               folder containing the <ID>_m<movement>vr<VR>_w<week>.rda results
+  #
+  #
+  # output:
+  #
+  # - g_edge_silence   (ggplot object)
+  #
+  # ----------------------------------------------------------------------------
+  
 
   # start ------------------------------------------------------------------------
   

@@ -2,14 +2,19 @@
 GIC_pseudo_logdet <- function(A, tol = 1e-8) {
   
   # ----------------------------------------------------------------------------
-  # 
+  #
   # GOAL: pseudo logdet function in case our matrix is near singular
   #
-  # 
-  # inputs: 
   #
-  # - A     (square matrix)
-  # - tol   (value)           eigenvalue threshold when taking sum(log(lambda)) = logd
+  # input:
+  #
+  # - A                (square matrix)
+  # - tol              (number)               eigenvalue threshold when taking sum(log(lambda)) = logdet
+  #
+  #
+  # output:
+  #
+  # - logdet           (number)               sum of log eigenvalues above tol (-Inf if none)
   #
   # ----------------------------------------------------------------------------
   
@@ -40,15 +45,15 @@ GIC_local_loss <- function(C_mat, Theta){
   #       L(Theta) = trace(C_mat %*% Theta) - log_det(Theta)
   #
   #
-  # Input: 
+  # input:
   #
-  # - C_mat        (pd x pd matrix)   correlation operator before any thresholding
-  # - Theta        (pd x pd matrix)   precision operator after thresholding for tau_c and tau_p
+  # - C_mat            (pd x pd matrix)       correlation operator before any thresholding
+  # - Theta            (pd x pd matrix)       precision operator after thresholding for tau_c and tau_p
   #
-  # 
-  # Output: 
   #
-  # - local_loss   (scalar)  local loss evaluation
+  # output:
+  #
+  # - local_loss       (scalar)               local loss evaluation
   #
   # ----------------------------------------------------------------------------
   
@@ -100,12 +105,13 @@ GIC_set_CXX_diag_identity <- function(C_cond){
   #
   # input:
   #
-  # - C_cond    (list of i_j matrices)
+  # - C_cond           (list of i_j matrices)
+  #
   #
   # output:
   #
-  # - C_cond2  (list of i_j matrices)
-  # 
+  # - C_cond2          (list of i_j matrices)  same as C_cond, but the i_i blocks are identity matrices
+  #
   # ----------------------------------------------------------------------------
   
   C_cond2 <- lapply(seq_along(C_cond), function(idx) {
@@ -146,23 +152,22 @@ GIC_set_CXX_diag_identity <- function(C_cond){
 GIC_theta_to_adj <- function(M_list, p){
   
   # ----------------------------------------------------------------------------
-  # 
-  # GOAL: Given a full theta block matrix, return a pxp adjacency matrix 
-  #       along with an nx2 matrix detailing which vertices are connected
+  #
+  # GOAL: given a full theta block matrix, return a p x p adjacency matrix
+  #       along with an n x 2 matrix detailing which vertices are connected
   #
   #
   # input:
-  # 
-  # - M_list  (list of i_j entries of d_i x d_j matrices) 
-  # - p       (integer)
   #
-  # 
+  # - M_list           (list of i_j d_i x d_j matrices)
+  # - p                (integer)              number of processes
+  #
+  #
   # output:
-  # 
-  # list of the following:
   #
-  # - adj_list   (n x 2 matrix)   matrix of all (i, j) edges 
-  # - adj_mat    (p x p matrix)   adjacency matrix where diag entries are 0
+  # - output           (list)
+  #   - adj_mat        (p x p matrix)         adjacency matrix where diag entries are 0
+  #   - adj_list       (n x 2 matrix)         matrix of all (i, j) edges
   #
   # ----------------------------------------------------------------------------
   
@@ -217,18 +222,20 @@ GIC_evalulation <- function(C_cond, Theta_cond_thresh, W_y, num_edges){
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: evalulate GIC for a specific value of tau_c, tau_p
+  # GOAL: evaluate GIC for a specific value of tau_c, tau_p
+  #
+  #       GIC = W_y * L(Theta) + sqrt(W_y) * num_edges
   #
   #
-  # Input: 
+  # input:
   #
   # - C_cond             (pd x pd matrix)
   # - Theta_cond_thresh  (pd x pd matrix)
-  # - W_y                (scalar)           effective sample size
-  # - num_edges          (scalar)
+  # - W_y                (scalar)               effective sample size
+  # - num_edges          (scalar)               number of edges in Theta_cond_thresh
   #
-  # 
-  # Output: 
+  #
+  # output:
   #
   # - GIC                (scalar)
   #
@@ -245,20 +252,19 @@ GIC_edge_count <- function(M_list, p){
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: Given a list of matrices of the form i_j, find the edge count (Excluding diagonals)
+  # GOAL: given a list of matrices of the form i_j, find the edge count (excluding diagonals)
   #
   #
-  # inputs:
+  # input:
   #
-  # - M_list (list of i_j entries that are d_i x d_j matrices)
-  # - p      (integer, number of processes) 
-  # 
+  # - M_list           (list of i_j d_i x d_j matrices)
+  # - p                (integer)              number of processes
   #
-  # outputs:
   #
-  # - num_edges (integer)
+  # output:
   #
-  # 
+  # - num_edges        (integer)
+  #
   # ----------------------------------------------------------------------------
   
   hs_vals <- sapply(M_list, hilbert_schmidt_norm)
@@ -281,20 +287,21 @@ GIC_edge_count <- function(M_list, p){
 GIC_get_percentile_info <- function(current_list, indices) {
   
   # ----------------------------------------------------------------------------
-  # 
-  # GOAL: Function to get threshold info based on percentiles
+  #
+  # GOAL: get threshold info based on percentiles of the off-diagonal HS norms
   #
   #
-  # inputs:
+  # input:
   #
-  # - current_list    (i_j list of any sized matrix, d_i x d_j or m x m)
-  # - indices         (vector) vector if idx's of the off-diagonals of interest       
+  # - current_list     (list of i_j matrices)  any sized matrix, d_i x d_j or m x m
+  # - indices          (vector)                indices of the off-diagonals of interest
   #
   #
-  # outputs:
+  # output:
   #
-  # - hs_vals        (vector)    vector of thresholds that we chose
-  # - index_path     (list)      list of off-diagonal values that we want to zero out for the i-th quantile
+  # - output           (list)
+  #   - hs_vals        (vector)                unique percentile thresholds that we chose
+  #   - index_path     (list)                  for each threshold, the off-diagonal indices that we want to zero out
   #
   # ----------------------------------------------------------------------------
   

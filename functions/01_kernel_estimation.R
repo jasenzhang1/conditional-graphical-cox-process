@@ -2,18 +2,25 @@
 
 get_gamma <- function(tseq=NULL, gamma_max = 100){
   
-  # we want a custom bandwidth parameter in KDE depending on the data
-  # Taken from Sun Lee Li Cai
+  # ----------------------------------------------------------------------------
   #
-  # calculate the average time between all pairs of events. 
-  # then take the inverse square
+  # GOAL: custom bandwidth parameter for KDE depending on the data (taken from Sun Lee Li Cai)
+  #
+  #       - calculate the average distance between all pairs of events, then take
+  #         the inverse fourth power
+  #
   #
   # input:
-  # 
-  # - tseq   (vector of event times)
+  #
+  # - tseq             (vector)               event times
+  # - gamma_max        (number)               upper cap on gamma, also returned when there are 2 or fewer events
+  #
   #
   # output:
-  # - gamma 
+  #
+  # - gamma            (number)               KDE bandwidth parameter
+  #
+  # ----------------------------------------------------------------------------
   
   n = length(tseq)
   
@@ -37,6 +44,24 @@ get_gamma <- function(tseq=NULL, gamma_max = 100){
 
 
 get_gamma_adaptive <- function(event_times, gamma_max = 100){
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: KDE bandwidth parameter from the Sheather-Jones bandwidth, gamma = 1 / (2 * bw^2)
+  #
+  #
+  # input:
+  #
+  # - event_times      (vector)               event times
+  # - gamma_max        (number)               upper cap on gamma
+  #
+  #
+  # output:
+  #
+  # - gamma            (number)               KDE bandwidth parameter
+  #
+  # ----------------------------------------------------------------------------
+  
   bw <- bw.SJ(event_times)  # or use bw.ucv(event_times)
   gamma <- 1 / (2 * bw^2)
   
@@ -50,41 +75,49 @@ get_gamma_adaptive <- function(event_times, gamma_max = 100){
 
 truncNorm_denom <- function(t=NULL, gamma=1 ,a=0, b=1){
   
-  # Obtain 1 / w_h(t), the boundary correction factor for KDE
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: obtain 1 / w_h(t), the boundary correction factor for KDE
+  #
   #
   # input:
-  # 
-  # - t       (vector of times)   discretized times 
-  # - gamma   (number)            bandwidth parameter for KDE
-  # - a       (number)            start of time domain
-  # - b       (number)            end of time domain
-  # 
+  #
+  # - t                (number)               discretized time
+  # - gamma            (number)               bandwidth parameter for KDE
+  # - a                (number)               start of time domain
+  # - b                (number)               end of time domain
+  #
+  #
   # output:
   #
-  # - 1 / w_h(t)  (vector of times)   each element corresponds to the correction factor at t_i
-  # 
+  # - denom            (number)               correction factor at t, integral of exp(-gamma (t - x)^2) over [a, b]
+  #
+  # ----------------------------------------------------------------------------
   
   integrate(function(x) {exp(-gamma*(t-x)^2)}, a, b)$value
 }
 
 gaussian_kernel <- function(t_1, t_2, gamma){
   
-  # ------------------------------------------------------------------------
+  # ----------------------------------------------------------------------------
+  #
   # GOAL: return K(t_1, t_2) for an rbf kernel
   #
-  #        K(t_1, t_2) = exp(-gamma ||t_1 - t_2||^2)
+  #       K(t_1, t_2) = exp(-gamma ||t_1 - t_2||^2)
   #
-  # 
   #
-  # Input:
+  # input:
   #
-  # - t_1             (m-dim vector)   vector of times      
-  # - t_2             (n-dim vector)   vector of times
+  # - t_1              (m-dim vector)         vector of times
+  # - t_2              (n-dim vector)         vector of times
+  # - gamma            (number)               bandwidth parameter
+  #
   #
   # output:
   #
-  # - kernel_evals    (m x n matrix)   matrix of kernel evalulations
-  # -----------------------------------------------
+  # - kernel_evals     (m x n matrix)         matrix of kernel evaluations
+  #
+  # ----------------------------------------------------------------------------
   
   pair_diffs <- outer(t_1, t_2, '-')         # m x n matrix of differences
   
@@ -96,36 +129,32 @@ gaussian_kernel <- function(t_1, t_2, gamma){
 estimate_density <- function(t_event, t_seq){
   
   # ----------------------------------------------------------------------------
-  # 
-  # GOAL: 
   #
-  # obtain \Gamma_i^k(t) density estimate and \rho_i^k(t) intensity estimate
+  # GOAL: obtain \Gamma_i^k(t) density estimate and \rho_i^k(t) intensity estimate
   #
-  # Checked 6/20/2025
+  #       Checked 6/20/2025
   #
-  # 8/5/2025
-  # Need to tune gamma of KDE to be more adaptive to density. KDE is too smooth.
+  #       8/5/2025
+  #       Need to tune gamma of KDE to be more adaptive to density. KDE is too smooth.
   #
-  #
-  # 1/12/2026
-  # adapting for mice data, where a given process doesn't necessarily have data from all subjects
+  #       1/12/2026
+  #       adapting for mice data, where a given process doesn't necessarily have data from all subjects
   #
   #
-  # Input:
+  # input:
   #
-  # t_event  (3805-dim vector)         all timestamps for mark i, subject k 
-  # t_seq    (m-dim vector)           evenly spaced out times between  0 and 1
+  # - t_event          (vector)               all timestamps for mark i, subject k
+  # - t_seq            (m-dim vector)         evenly spaced out times between 0 and 1
   #
-  # 
-  # Output:
   #
-  # - list of intensity/density values for subject k 
+  # output:
   #
-  #   - gamma_hat     (m-dim vector)           density estimates for each Tseq time for subject k 
-  #   - rho_hat       (m-dim vector)           intensity estimates for each Tseq time for subject k
-  #   - denom         (m-dim vector)           denominator 
-  #   - gamma         (number)                 KDE gamma parameter, obtained adaptively
-  # 
+  # - output           (list)                 intensity/density values for subject k (an m-dim zero vector if t_event is empty)
+  #   - gamma_hat      (m-dim vector)         density estimates for each t_seq time for subject k
+  #   - rho_hat        (m-dim vector)         intensity estimates for each t_seq time for subject k
+  #   - denom          (m-dim vector)         boundary correction denominator
+  #   - gamma          (number)               KDE gamma parameter, obtained adaptively
+  #
   # ----------------------------------------------------------------------------
   
   if (length(t_event) == 0) { # moot case when the density is zero
@@ -165,25 +194,27 @@ estimate_density <- function(t_event, t_seq){
 estimate_bivariate_density <- function(event_times_i, event_times_j, 
                                        eval_grid_s, eval_grid_t, d_or_i) {
   
-  # ------------------------------------------------------------------------
+  # ----------------------------------------------------------------------------
   #
   # GOAL: estimate \Gamma_{i, j}^k(s,t) for given processes i and j at replicate k
   #
-  # cheked 6/20 (very sure)
+  #       checked 6/20 (very sure)
+  #
   #
   # input:
   #
-  # - event_times_i (n_i vector of times)
-  # - event_times_j (n_j vector of times)
-  # - eval_grid_s   (m_s-dimensional vector of realized times)
-  # - eval_grid_t   (m_t-dimensional vector of realized times)
-  # - d_or_i        (string):  density or intensity
-  # 
-  # output:
-  # 
-  # - density2   (m_s x m_t matrix) : bivariate density/intensity estimate
+  # - event_times_i    (n_i-dim vector)       event times of process i
+  # - event_times_j    (n_j-dim vector)       event times of process j
+  # - eval_grid_s      (m_s-dim vector)       evaluation times s
+  # - eval_grid_t      (m_t-dim vector)       evaluation times t
+  # - d_or_i           (string)               'd' for density or 'i' for intensity
   #
-  # ------------------------------------------------------------------------
+  #
+  # output:
+  #
+  # - density2         (m_s x m_t matrix)     bivariate density/intensity estimate
+  #
+  # ----------------------------------------------------------------------------
   
   # Estimate bivariate density function
   

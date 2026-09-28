@@ -3,24 +3,24 @@ GIC_step1_precompute <- function(C_cond, p, W_y, save_path, id_suffix) {
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: obtain quantiles for tau_c to iterate through
+  # GOAL: obtain quantiles for tau_c to iterate through (local GIC, step 1)
+  #
+  #       - saves C_cond, p, W_y, off_diag_indices, threshold_list_c to
+  #         save_path/GIC_local_initial_data_<id_suffix>.RData
   #
   #
-  # Input: 
+  # input:
   #
-  # - C_cond        (i_j list of any sized matrix, d_i x d_j or m x m)
-  # - p             (scalar)
-  # - W_y           (scalar)           effective sample size
-  # - save_path     (string)          'temp_data/simu/GIC_local'
-  # - id_suffix     (string)          'est' or 'X_truth'
+  # - C_cond           (list of i_j matrices)  any sized matrix, d_i x d_j or m x m
+  # - p                (integer)               number of processes
+  # - W_y              (scalar)                effective sample size
+  # - save_path        (string)                e.g. 'temp_data/simu/GIC_local'
+  # - id_suffix        (string)                e.g. 'est' or 'X_truth'
   #
-  # 
-  # Output: 
   #
-  # - list of the following metrics:
+  # output:
   #
-  #   - tau_c   (scalar)    threshold where if your HS norm is less than this, you are zeroed out 
-  #   - tau_p   (scalar) 
+  # - num_tau_c        (integer)               number of tau_c candidates, so Bash knows the loop range
   #
   # ----------------------------------------------------------------------------
   
@@ -47,7 +47,24 @@ GIC_step1_precompute <- function(C_cond, p, W_y, save_path, id_suffix) {
 
 min_connect_pct_strings <- function(min_connect_pcts) {
   
-  # 0 -> 'min_00', 1 -> 'min_100', 0.05 -> 'min_05'
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: convert minimum connectivity percentages to folder name strings
+  #
+  #       - 0 -> 'min_00', 1 -> 'min_100', 0.05 -> 'min_05'
+  #
+  #
+  # input:
+  #
+  # - min_connect_pcts  (vector)               minimum edge percentages between 0 and 1
+  #
+  #
+  # output:
+  #
+  # - min_strings       (character vector)     one 'min_xx' string per percentage
+  #
+  # ----------------------------------------------------------------------------
+  
   sapply(min_connect_pcts, function(min_connect_pct) {
     if (min_connect_pct == 0) {
       'min_00'
@@ -62,10 +79,28 @@ min_connect_pct_strings <- function(min_connect_pcts) {
 
 GIC_step2and3_serial_tau_c <- function(temp_file_dir, id_suffix, k, min_connect_pcts) {
   
-  # temp_file_dir = folder name
-  # id_suffix = suffix name
-  # k = tau_c index
-  # min_connect_pcts = vector of min edge pcts (0 for nothing, 1 for something)
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: for a fixed tau_c (index k), threshold C, invert it, and evaluate GIC for all tau_p (local GIC, steps 2 and 3)
+  #
+  #       - for each min_connect_pct, saves the best tau_p result (with at least
+  #         min_connect_pct of all possible edges) to
+  #         temp_file_dir/min_xx/GIC_local_best_k_<id_suffix>_k<k>.RData
+  #
+  #
+  # input:
+  #
+  # - temp_file_dir     (string)               folder containing GIC_local_initial_data_<id_suffix>.RData
+  # - id_suffix         (string)               e.g. 'est' or 'X_truth'
+  # - k                 (integer)              tau_c index
+  # - min_connect_pcts  (vector)               minimum edge percentages (0 for no constraint, 1 for fully connected)
+  #
+  #
+  # output:
+  #
+  # - none                                     results are saved to disk
+  #
+  # ----------------------------------------------------------------------------
   
   # --- Step 1: Logic from your original GIC_step2 ---
   # Load the ID-specific initial data (contains C_cond, p, W_y, threshold_list_c)
@@ -164,9 +199,26 @@ GIC_step2and3_serial_tau_c <- function(temp_file_dir, id_suffix, k, min_connect_
 
 GIC_step4_finalize <- function(temp_file_dir, min_dirs) {
   
-  # min_dirs = vector of directories, one per min_connect_pct
-  # e.g. c('temp_data/mice/WT2_m0vr1_t10/GIC_local_WT2_m0vr1_t10_nquery1/min_00',
-  #         'temp_data/mice/WT2_m0vr1_t10/GIC_local_WT2_m0vr1_t10_nquery1/min_01')
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: pick the best (tau_c, tau_p) among all k-winners and save the final thresholded graphs (local GIC, step 4)
+  #
+  #       - saves final_gic_results to min_dir/GIC_final_combined.RData for each min_dir
+  #
+  #
+  # input:
+  #
+  # - temp_file_dir    (string)               folder containing task_map.csv and GIC_local_initial_data_*.RData
+  # - min_dirs         (vector of strings)    one directory per min_connect_pct, e.g.
+  #                                           c('temp_data/mice/WT2_m0vr1_t10/GIC_local_WT2_m0vr1_t10_nquery1/min_00',
+  #                                             'temp_data/mice/WT2_m0vr1_t10/GIC_local_WT2_m0vr1_t10_nquery1/min_01')
+  #
+  #
+  # output:
+  #
+  # - none                                    results are saved to disk
+  #
+  # ----------------------------------------------------------------------------
   
   for (min_dir in min_dirs) {
     
@@ -292,24 +344,24 @@ GIC_joint_part1_setup <- function(C_cond_list, p, W_y_list, folder, id_suffix) {
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: gridsearch across (tau_c, tau_p) for minimum summed GIC for all n graphs
+  # GOAL: set up the grid search across (tau_c, tau_p) for minimum summed GIC for all graphs (global GIC, part 1)
+  #
+  #       - saves C_cond_list, C_norms_list, tau_c_levels, off_diag_indices, p, W_y_list, id_suffix
+  #         to folder/GIC_joint_initial_<id_suffix>.RData
   #
   #
-  # Input: 
+  # input:
   #
-  # - C_cond_list   (list of i_j list of any sized matrix, d_i x d_j or m x m)   each item is for a y_c_query
-  # - p             (scalar)
-  # - W_y           (list of scalars) effective sample size
-  # - folder        (string)   'temp_data/simu/GIC_global...'
-  # - id_suffix     (string) (e.g., "est_eig1") to distinguish different estimation runs
+  # - C_cond_list      (list of i_j lists)    each item is the C_cond for a y_c_query
+  # - p                (integer)              number of processes
+  # - W_y_list         (list of scalars)      effective sample size for each y_c_query
+  # - folder           (string)               e.g. 'temp_data/simu/GIC_global...'
+  # - id_suffix        (string)               e.g. "est_eig1", to distinguish different estimation runs
   #
-  # 
-  # Output: 
   #
-  # - list of the following metrics:
+  # output:
   #
-  #   - tau_c   (scalar)    threshold where if your HS norm is less than this, you are zeroed out 
-  #   - tau_p   (scalar) 
+  # - num_tau_c        (integer)              number of tau_c candidates for the Bash loop (max_k)
   #
   # ----------------------------------------------------------------------------
   
@@ -363,8 +415,24 @@ GIC_joint_part1_setup <- function(C_cond_list, p, W_y_list, folder, id_suffix) {
 GIC_joint_part2and3_serialized <- function(k, suffix_name, folder) {
   
   # ----------------------------------------------------------------------------
-  # GOAL: For a fixed tau_c (k) and estimation type (suffix_name), evaluate ALL tau_p levels.
-  # This avoids reloading/re-inverting the large C matrices multiple times.
+  #
+  # GOAL: for a fixed tau_c (k) and estimation type (suffix_name), evaluate ALL tau_p levels (global GIC, parts 2 and 3)
+  #
+  #       - this avoids reloading/re-inverting the large C matrices multiple times
+  #       - saves a data.frame of summed GIC per (tau_c, tau_p) to folder/GIC_joint_res_<suffix_name>_k<k>.rds
+  #
+  #
+  # input:
+  #
+  # - k                (integer)              tau_c index
+  # - suffix_name      (string)               id of the estimation run
+  # - folder           (string)               folder containing GIC_joint_initial_<suffix_name>.RData
+  #
+  #
+  # output:
+  #
+  # - none                                    results are saved to disk
+  #
   # ----------------------------------------------------------------------------
   
   
@@ -443,6 +511,27 @@ GIC_joint_part2and3_serialized <- function(k, suffix_name, folder) {
 
 GIC_joint_part4_finalize <- function(GIC_folder, temp_file_dir, setting_info_list, cont_inds, mouse) {
   
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: pick the global (tau_c, tau_p) with minimum summed GIC and write the resulting graphs
+  #       back into the step 3 results (global GIC, part 4)
+  #
+  #
+  # input:
+  #
+  # - GIC_folder         (string)               folder containing task_map.csv and the GIC_joint_* files
+  # - temp_file_dir      (string)               folder containing the part3_*.rds results
+  # - setting_info_list  (list)                 setting info (ID, discrete_level, time_scale or adj_type, n, rep_i)
+  # - cont_inds          (integer)              number of y_c queries
+  # - mouse              (boolean)              TRUE for mice data file names, FALSE for simulation file names
+  #
+  #
+  # output:
+  #
+  # - none                                      part3_*.rds files are overwritten with step_11 entries added
+  #
+  # ----------------------------------------------------------------------------
+  
   
   # 1) Setup original file paths for infusion
   list2env(setting_info_list, envir = environment())
@@ -498,6 +587,26 @@ GIC_joint_part4_finalize <- function(GIC_folder, temp_file_dir, setting_info_lis
 # hybrid can join in with joint
 
 GIC_hybrid_part2and3_serialized <- function(k, suffix_name, folder) {
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: for a fixed global tau_c (k), find the best local tau_p for each y_c query (hybrid GIC, parts 2 and 3)
+  #
+  #       - saves list(k, tau_c, total_gic, locals) to folder/GIC_hybrid_res_<suffix_name>_k<k>.rds
+  #
+  #
+  # input:
+  #
+  # - k                (integer)              tau_c index
+  # - suffix_name      (string)               id of the estimation run
+  # - folder           (string)               folder containing GIC_joint_initial_<suffix_name>.RData
+  #
+  #
+  # output:
+  #
+  # - none                                    results are saved to disk
+  #
+  # ----------------------------------------------------------------------------
   
   
   # 1. Load Setup Data
@@ -564,6 +673,28 @@ GIC_hybrid_part2and3_serialized <- function(k, suffix_name, folder) {
 }
 
 GIC_hybrid_part4_finalize <- function(GIC_folder, temp_file_dir, setting_info_list, cont_inds, mouse) {
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: pick the global tau_c with minimum summed hybrid GIC, apply the local tau_p's, and write the resulting
+  #       graphs back into the step 3 results (hybrid GIC, part 4)
+  #
+  #
+  # input:
+  #
+  # - GIC_folder         (string)               folder containing task_map.csv and the GIC_hybrid_* files
+  # - temp_file_dir      (string)               folder containing the part3_*.rds results
+  # - setting_info_list  (list)                 setting info (ID, discrete_level, time_scale or adj_type, n, rep_i)
+  # - cont_inds          (integer)              number of y_c queries
+  # - mouse              (boolean)              TRUE for mice data file names, FALSE for simulation file names
+  #
+  #
+  # output:
+  #
+  # - none                                      part3_*.rds files are overwritten with step_11 entries added
+  #
+  # ----------------------------------------------------------------------------
+  
   # 1) Setup original file paths for infusion
   list2env(setting_info_list, envir = environment())
   if(mouse){

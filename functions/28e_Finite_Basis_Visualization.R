@@ -7,26 +7,26 @@ visualize_finite_basis <- function(truth_file_name, estimates_file_name, graph_i
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: visualize intermediate plots of the finite basis simulation setting 
+  # GOAL: visualize intermediate plots of the finite basis simulation setting
   #
-  # - just merging `truths` and `estimates` from the finite basis setting
-  # - then using `visualize over time` from 28_c
+  #       - just merging `truths` and `estimates` from the finite basis setting
+  #       - then using `visualize_over_time` from 28c
   #
-  # inputs:
-  # 
-  # - truth_file_name       (string)              'simu_data/block_banded_v2_n_100_truths.RData'
-  # - estimates_file_name   (string)              'simu_results/block_banded_v2/CPGM/CPGM_n_100.RData'
-  # - graph_ids             (vector of strings)   which graphs do we want to see
-  # - i
-  # - j
-  # - ground_truth          (boolean)             do our results have the overall truth?
-  # - beta_truth            (boolean)             do our results have beta_truth values? 
-  # - X_truth               (boolean)             do our results have X_truth values? 
-  # - eigen_setting         (string)              only_joint, trig_and_joint, trig_simple
   #
-  # outputs:
+  # input:
   #
-  # - g_comparisons    (list)  list of graphs that display heatmaps (estimate, truth) over queries
+  # - truth_file_name      (string)               'simu_data/block_banded_v2_n_100_truths.RData'
+  # - estimates_file_name  (string)               'simu_results/block_banded_v2/CPGM/CPGM_n_100.RData'
+  # - graph_ids            (vector of strings)    which graphs do we want to see
+  # - ground_truth         (boolean)              do our results have the overall truth?
+  # - beta_truth           (boolean)              do our results have beta_truth values?
+  # - X_truth              (boolean)              do our results have X_truth values?
+  # - eigen_setting        (string)               only_joint, trig_and_joint, trig_simple
+  #
+  #
+  # output:
+  #
+  # - g_comparisons        (list)                 graphs that display heatmaps (estimate, truth) over queries
   #
   # ----------------------------------------------------------------------------
   
@@ -54,17 +54,19 @@ visualize_metrics_CI <- function(results_folder, n_reps, adj_type) {
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: Visualize final prediction metrics across multiple reps 
+  # GOAL: visualize final prediction metrics across multiple reps
   #
-  # 
-  # inputs:
   #
-  # - results_folder    (string)    simu_results/hub_block_v2/CPGM
-  # - n_reps            (integer)   how many reps?
-  # - adj_type          (string)    hub_block_v2
+  # input:
   #
-  # 
+  # - results_folder   (string)               simu_results/hub_block_v2/CPGM
+  # - n_reps           (integer)              how many reps?
+  # - adj_type         (string)               hub_block_v2
   #
+  #
+  # output:
+  #
+  # - none                                    saves <adj_type>_metrics_CI_results.csv and <adj_type>_metrics_CI_plots.pdf to results_folder
   #
   # ----------------------------------------------------------------------------
   
@@ -188,19 +190,21 @@ visualize_accuracy_CI_across_yc <- function(results_folder, mode, n_reps, adj_ty
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: Visualize accuracy across reps at each sample size. Allow adding a vertically dashed line for the jump cases
+  # GOAL: visualize accuracy across reps at each sample size. Allow adding a vertically dashed line for the jump cases
   #
-  # 
-  # inputs:
   #
-  # - results_folder    (string)    simu_results/hub_block_v2/CPGM
-  # - mode              (string)    'method', 'local', 'hybrid', 'global'
-  # - n_reps            (integer)   how many reps?
-  # - adj_type          (string)    hub_block_v2
-  # - vert_dashed_line  (boolean)   add a vertical dashed line at x = 0.5?
+  # input:
   #
-  # 
+  # - results_folder    (string)               simu_results/hub_block_v2/CPGM
+  # - mode              (string)               'method', 'local', 'hybrid', 'global'
+  # - n_reps            (integer)              how many reps?
+  # - adj_type          (string)               hub_block_v2
+  # - vert_dashed_line  (boolean)              add a vertical dashed line at x = 0.5?
   #
+  #
+  # output:
+  #
+  # - none                                     png files are saved to results_folder
   #
   # ----------------------------------------------------------------------------
   
@@ -295,21 +299,23 @@ visualize_retrieve_metrics <- function(base_folder, results_folder, metrics, n_r
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: Extract all metrics from step_12 across all settings and reps in preparation for loess
+  # GOAL: extract all metrics from step_12 across all settings and reps in preparation for loess
   #
-  # inputs:
   #
-  # - base_folder       (string)    where to store the result
-  # - results_folder    (list)      named list of chr vectors: list(Linear=c(...), Jump=c(...))
-  # - metrics           (vector)    e.g. c('accuracy', 'sensitivity', 'specificity', 'ppv', 'npv', 'f1_score')
-  # - n_reps            (integer)   how many reps?
-  # - row_names         e.g. c("Linear", "Jump")
-  # - col_names         e.g. c("Banded", "Hub", "Complete")
-  # - vert_dashed_line  (list)      named list of logical vectors
+  # input:
+  #
+  # - base_folder      (string)               where to store the result
+  # - results_folder   (list)                 named list of chr vectors: list(Linear=c(...), Jump=c(...))
+  # - metrics          (vector)               e.g. c('accuracy', 'sensitivity', 'specificity', 'ppv', 'npv', 'f1_score')
+  # - n_reps           (integer)              how many reps?
+  # - row_names        (vector of strings)    e.g. c("Linear", "Jump")
+  # - col_names        (vector of strings)    e.g. c("Banded", "Hub", "Complete")
+  #
   #
   # output:
-  # - a single long data.frame with columns:
-  #   n, y_yc, suffix, rep, row_label, col_label, vdl, xintercept, + one col per metric
+  #
+  # - none                                    saves full_df to base_folder/full_evaluation_metrics.RData, a single long data.frame with columns:
+  #                                           n, y_yc, suffix, rep, row_label, col_label, vdl, xintercept, + one col per metric
   #
   # ----------------------------------------------------------------------------
   
@@ -399,18 +405,22 @@ visualize_metric_CI_across_yc_faceted <- function(metric, metric_title, mode, ou
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: Visualize loess accuracy of all 6 settings in one figure!!!
+  # GOAL: visualize loess accuracy of all 6 settings in one figure!!!
   #
-  # 
-  # inputs:
   #
-  # - metric            (string)    'accuracy', 'sensitivity', 'specificity', 'ppv', 'npv', 'f1_score'
-  # - metric_title      (string)    y-axis name
-  # - mode              (string)    'method', 'local', 'hybrid', 'global'
-  # - output_folder      where to save the combined figure
-  # - fig_title = NULL   optional overall title
-  # 
-  # 
+  # input:
+  #
+  # - metric           (string)               'accuracy', 'sensitivity', 'specificity', 'ppv', 'npv', 'f1_score'
+  # - metric_title     (string)               y-axis name
+  # - mode             (string)               'method', 'local', 'hybrid', 'global'
+  # - output_folder    (string)               where to save the combined figure
+  # - fig_title        (string)               optional overall title
+  #
+  #
+  # output:
+  #
+  # - none                                    <mode>_<metric>_faceted_2x3.png is saved to output_folder
+  #
   # ----------------------------------------------------------------------------
 
   load(file.path(output_folder, "full_evaluation_metrics.RData"))
@@ -481,6 +491,24 @@ visualize_metric_CI_across_yc_faceted <- function(metric, metric_title, mode, ou
 
 # Helper function to maintain consistent Beamer aesthetics
 apply_beamer_theme <- function(p, vert_dashed_line) {
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: apply the presentation theme and axis limits to a metric plot
+  #
+  #
+  # input:
+  #
+  # - p                 (ggplot object)
+  # - vert_dashed_line  (boolean)              add a vertical dashed line at x = 0.5?
+  #
+  #
+  # output:
+  #
+  # - p                 (ggplot object)        themed plot
+  #
+  # ----------------------------------------------------------------------------
+  
   p <- p +
     scale_y_continuous(limits = c(0.4, 1.05), breaks = seq(0.4, 1, 0.1)) +
     scale_x_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.2)) +
@@ -503,6 +531,24 @@ apply_beamer_theme <- function(p, vert_dashed_line) {
 }
 
 apply_beamer_theme_faceted <- function(p, vert_dashed_line = FALSE) {
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: apply the presentation theme and axis limits to a faceted metric plot
+  #
+  #
+  # input:
+  #
+  # - p                 (ggplot object)
+  # - vert_dashed_line  (boolean)              add a vertical dashed line at x = 0.5?
+  #
+  #
+  # output:
+  #
+  # - p                 (ggplot object)        themed plot
+  #
+  # ----------------------------------------------------------------------------
+  
   p <- p +
     scale_y_continuous(breaks = seq(0.6, 1.0, 0.2)) +
     scale_x_continuous(breaks = c(0, 0.5, 1), labels = c("0", "0.5", "1")) + 
@@ -532,21 +578,21 @@ visualize_accuracy_heatmap_across_yc <- function(results_folder, truth_file, adj
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: Heatmaps with dots to visualize accuracy for a single rep at different sample sizes. Select one mode only.
+  # GOAL: heatmaps with dots to visualize accuracy for a single rep at different sample sizes. Select one mode only.
   #
-  # 
-  # inputs:
   #
-  # - results_folder    (string)    result folder of this specific replicate
-  # - truth_file        (string)    name of truth file for this particular replicate
-  # - adj_type          (string)    hub_block_v2
-  # - mode              (string)    'method', 'local', 'hybrid', 'global'
-  # - eigen_setting     (string)    useful to get eig_est_x
+  # input:
   #
-  # 
-  # outputs:
+  # - results_folder   (string)               result folder of this specific replicate
+  # - truth_file       (string)               name of truth file for this particular replicate
+  # - adj_type         (string)               hub_block_v2
+  # - mode             (string)               'method', 'local', 'hybrid', 'global'
+  # - eigen_setting    (string)               useful to get eig_est_x
   #
-  # - none, just save a png
+  #
+  # output:
+  #
+  # - none                                    just save a png
   #
   # ----------------------------------------------------------------------------
   
@@ -689,20 +735,24 @@ summarize_metrics_table <- function(results_folder, settings, mode, ns, n_reps, 
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: Visualize loess accuracy of all 6 settings in one figure!!!
+  # GOAL: summarize the performance metrics of each setting and sample size in tables (table 1 in paper)
   #
-  # 
-  # inputs:
   #
-  # - results_folder    (vector)    vector of results_folder names
-  # - settings          (vector)    vector of setting names that correspond with the folders
-  # - mode              (string)    'method', 'local', 'hybrid', 'global'
-  # - ns                (vector)    simulation sample sizes, will be the subcategory for each setting
-  # - n_reps            (integer)   how many reps?
-  # - output_folder      where to save the combined figure
-  # - fig_title = NULL   optional overall title
-  # 
-  # 
+  # input:
+  #
+  # - results_folder   (vector)               results_folder names
+  # - settings         (vector)               setting names that correspond with the folders
+  # - mode             (string)               'method', 'local', 'hybrid', 'global'
+  # - ns               (vector)               simulation sample sizes, will be the subcategory for each setting
+  # - n_reps           (integer)              how many reps?
+  # - output_folder    (string)               where to save the csv files
+  # - fig_title        (string)               optional prefix for the file names
+  #
+  #
+  # output:
+  #
+  # - tables           (list)                 one wide data.frame per metric (returned invisibly), each also saved as a csv
+  #
   # ----------------------------------------------------------------------------
   
   suffix_target <- "roc_KL_GIC_local_est_eig1"

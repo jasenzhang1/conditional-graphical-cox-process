@@ -14,21 +14,19 @@
 estimate_KL_covariance <- function(G_hat, eigenfunctions){
   
   # ----------------------------------------------------------------------------
-  # 
   #
   # GOAL: estimate cov(alpha_i^a, alpha_j^b) between processes i and j and eigencomponents a and b
   #
   #
-  # inputs:
+  # input:
   #
-  # - G_hat            (list of i_j m x m matrices)              each i_j is a G_{i,j}(s,t) covariance matrix
-  # - eigenfunctions   (list of p entries, m x d_i matrices)     each entry represents the eigenfunctions for the i-th process, we assume they are not normalized
+  # - G_hat            (list of i_j m x m matrices)      each i_j is a G_{i,j}(s,t) covariance matrix
+  # - eigenfunctions   (list of p m x d_i matrices)      eigenfunctions for the i-th process, we assume they are not normalized
   #
   #
   # output:
   #
-  # - KL_cov           (list of i_j d_max x d_max matrices)     each entry represents the covariance of KL coefficients for process i and j
-  #
+  # - KL_cov           (list of i_j d_i x d_j matrices)  covariance of KL coefficients for processes i and j
   #
   # ----------------------------------------------------------------------------
   
@@ -69,20 +67,21 @@ estimate_KL_covariance <- function(G_hat, eigenfunctions){
 estimate_KL_correlation <- function(KL_cov, p){
   
   # ----------------------------------------------------------------------------
-  # 
   #
   # GOAL: estimate cor(alpha_i^a, alpha_j^b) between processes i and j and eigencomponents a and b
   #
-  #       if i == j, correlation is the identity no matter what
+  #       - if i == j, correlation is the identity no matter what
   #
-  # inputs:
   #
-  # - KL_cov           (list of i_j d_max x d_max matrices)     each entry represents the covariance of KL coefficients for process i and j
-  # - p                (integer)
+  # input:
+  #
+  # - KL_cov           (list of i_j d_i x d_j matrices)  covariance of KL coefficients for processes i and j
+  # - p                (integer)                         number of processes
+  #
   #
   # output:
   #
-  # - KL_cor           (list of i_j d_max x d_max matrices)     each entry represents the correlation of KL coefficients for process i and j 
+  # - KL_cor           (list of i_j d_i x d_j matrices)  correlation of KL coefficients for processes i and j
   #
   # ----------------------------------------------------------------------------
   
@@ -123,19 +122,19 @@ estimate_KL_correlation <- function(KL_cov, p){
 estimate_KL_precision <- function(KL_cor, p){
   
   # ----------------------------------------------------------------------------
-  # 
   #
   # GOAL: estimate KL_precision between processes i and j and eigencomponents a and b
   #
   #
-  # inputs:
+  # input:
   #
-  # - KL_cor           (list of i_j d_max x d_max matrices)     each entry represents the correlation of KL coefficients for process i and j
-  # - p                (integer)
+  # - KL_cor           (list of i_j d_i x d_j matrices)  correlation of KL coefficients for processes i and j
+  # - p                (integer)                         number of processes
+  #
   #
   # output:
   #
-  # - KL_prec           (list of i_j d_max x d_max matrices)     each entry represents the precision of KL coefficients for process i and j 
+  # - KL_prec          (list of i_j d_i x d_j matrices)  precision of KL coefficients for processes i and j
   #
   # ----------------------------------------------------------------------------
   

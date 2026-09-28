@@ -5,22 +5,20 @@ prep_eigendecomposition_ii <- function(G_hat, p){
   
   # ----------------------------------------------------------------------------
   #
-  #
   # GOAL: restructure G_ij so that it can be fed into `compute_eigendecomposition_ii`
   #
-  # - only keep the i_i values from the list
+  #       - only keep the i_i values from the list
   #
   #
   # input:
   #
-  # - G_hat        (list of i_j entries)
-  # - p            (integer)
+  # - G_hat            (list of i_j m x m matrices)
+  # - p                (integer)              number of processes
   #
-  # 
+  #
   # output:
   #
-  # - G_mat (m x m x p matrix)
-  # 
+  # - G_mat            (m x m x p array)      G_{i,i}(s,t) stacked over processes
   #
   # ----------------------------------------------------------------------------
   
@@ -45,24 +43,25 @@ compute_eigendecomposition_ii <- function(G_hat, same_basis, constant_d, var_exp
   
   # ----------------------------------------------------------------------------
   #
-  #
   # GOAL: from G_{i,i}(s,t), estimate the eigendecomposition
   #
-  # - note that we only have G_{i, i} entries 
+  #       - note that we only have G_{i, i} entries
   #
-  # Input: 
-  # 
-  # - G_hat        (m x m x p matrix)
-  # - same_basis   (boolean)            if true, use the trig basis in finite_basis procedure
-  # - constant_d   (integer)            if not null, each process gets d eigencomponents                        
-  # - var_explained (percentage)        used to calculate number of eigencomponents if constant_d = null
-  # 
-  # 
-  # Output: 
   #
-  # - eigenvalues    (list of p vectors)
-  # - eigenfunctions (list of p matrices)
-  # - n_dims         (list of p numbers denoting d_i)
+  # input:
+  #
+  # - G_hat             (m x m x p array)
+  # - same_basis        (boolean)              if TRUE, use the trig basis in finite_basis procedure
+  # - constant_d        (integer or NULL)      if not NULL, each process gets d eigencomponents
+  # - var_explained     (number)               used to calculate number of eigencomponents if constant_d = NULL
+  #
+  #
+  # output:
+  #
+  # - output            (list)
+  #   - eigenvalues     (list of p vectors)
+  #   - eigenfunctions  (list of p m x d_i matrices)
+  #   - n_dims          (list of p integers)   d_i for each process
   #
   # ----------------------------------------------------------------------------
   
@@ -183,23 +182,29 @@ compute_eigendecomposition_mfpca <- function(G_hat_list, p, same_basis, constant
   #
   # GOAL: from all G_{i,j}(s,t), estimate the MFPCA eigendecomposition
   #       via Happ & Greven (2018) two-step approach:
-  #         Step A — univariate FPCA on each G_{ii} -> basis Phi_i (m x d_i)
-  #         Step B — project all G_{ij} onto Phi_i x Phi_j -> matrix C (D x D)
-  #         Step C — eigendecompose C -> joint eigenvalues & eigenfunctions
   #
-  # Input:
-  #   - G_hat_list   (named list of m x m matrices, keys "i_j", i <= j)
-  #   - p            (integer) number of processes
-  #   - same_basis   (boolean) if TRUE use trig basis; if FALSE use empirical PCA
-  #   - constant_d   (integer or NULL) fixed d_i per process; if NULL use var_explained
-  #   - var_explained (numeric) cumulative variance threshold when constant_d = NULL
+  #       - Step A: univariate FPCA on each G_{ii} -> basis Phi_i (m x d_i)
+  #       - Step B: project all G_{ij} onto Phi_i x Phi_j -> matrix C (D x D)
+  #       - Step C: eigendecompose C -> joint eigenvalues & eigenfunctions
   #
-  # Output:  list with
-  #   - eigenvalues     numeric(D)        joint eigenvalues, descending
-  #   - eigenfunctions  list of p (m x D) multivariate eigenfunctions per process
-  #   - univariate      list of p lists   per-process eigenvalues & eigenfunctions
-  #   - n_dims          list of p integers d_i per process
-  #   - C               (D x D) matrix    projected covariance matrix
+  #
+  # input:
+  #
+  # - G_hat_list        (list of i_j m x m matrices)  keys "i_j", i <= j
+  # - p                 (integer)                     number of processes
+  # - same_basis        (boolean)                     if TRUE use trig basis; if FALSE use empirical PCA
+  # - constant_d        (integer or NULL)             fixed d_i per process; if NULL use var_explained
+  # - var_explained     (number)                      cumulative variance threshold when constant_d = NULL
+  #
+  #
+  # output:
+  #
+  # - output            (list)
+  #   - eigenvalues     (D-dim vector)                joint eigenvalues, descending
+  #   - eigenfunctions  (list of p m x D matrices)    multivariate eigenfunctions per process
+  #   - univariate      (list of p lists)             per-process eigenvalues & eigenfunctions
+  #   - n_dims          (list of p integers)          d_i per process
+  #   - C               (D x D matrix)                projected covariance matrix
   #
   # ----------------------------------------------------------------------------
   

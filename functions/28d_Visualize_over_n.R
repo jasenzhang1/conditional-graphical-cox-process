@@ -12,21 +12,22 @@ Visualize_over_n_and_time <- function(folder_name, graph_ids, m_est, m, i, j){
   #
   # GOAL: for all n and y_c values, plot a specific intermediate value
   #
-  # 
-  # input: 
   #
-  # - folder_name   (string)   "simu_results/single_c2/CPGM"
-  # - graph_ids     (vector)   vector of graph ID's that we want
-  # - m_est
-  # - m
-  # - i
-  # - j
-  # 
+  # input:
+  #
+  # - folder_name      (string)               "simu_results/single_c2/CPGM"
+  # - graph_ids        (vector)               graph ID's that we want
+  # - m_est            (integer)              size of the estimation time grid
+  # - m                (integer)              size of the true time grid
+  # - i                (integer)              block row (currently overridden to 1)
+  # - j                (integer)              block column (currently overridden to 2)
+  #
+  #
   # output:
   #
+  # - g_91             (grob)                 grid of C_cond_est_full[i, j] heatmaps over n and y_c when '91' is in graph_ids (returned invisibly)
   #
-  # 
-  # ----------------------------------------------------------------------------   
+  # ----------------------------------------------------------------------------
   
   # prep - load all datasets
   

@@ -5,10 +5,24 @@ source('functions/00c_block_matrix_arrange.R')
 
 trig_basis <- function(d) {
   # ----------------------------------------------------------------------------
-  # (1) 1
-  # (2) sqrt(2) * sin(2 * 1 * pi * t)
-  # (3) sqrt(2) * cos(2 * 1 * pi * t)
-  # (4) sqrt(2) * sin(2 * 2 * pi * t) ...
+  #
+  # GOAL: create the first d trigonometric basis functions on [0, 1]
+  #
+  #       (1) 1
+  #       (2) sqrt(2) * sin(2 * 1 * pi * t)
+  #       (3) sqrt(2) * cos(2 * 1 * pi * t)
+  #       (4) sqrt(2) * sin(2 * 2 * pi * t) ...
+  #
+  #
+  # input:
+  #
+  # - d                (integer)              number of basis functions
+  #
+  #
+  # output:
+  #
+  # - basis_list       (d-dim list)           each entry is a function of t
+  #
   # ----------------------------------------------------------------------------
   
   # Initialize with the constant basis function
@@ -47,18 +61,19 @@ trig_basis <- function(d) {
 trig_basis_realization <- function(basis_list, time_grid){
   
   # ----------------------------------------------------------------------------
-  # 
+  #
   # GOAL: for all d basis functions, compute their realizations at timepoints in [tmin, tmax]
   #
-  # inputs:
   #
-  # - basis_list (list)             output from trig_basis
-  # - time_grid  (m-dim vector)
+  # input:
+  #
+  # - basis_list       (d-dim list)           output from trig_basis
+  # - time_grid        (m-dim vector)         time discretization
+  #
   #
   # output:
   #
-  # - basis_mat   (m x d matrix) matrix of all d discretized realizations of the eigenfunctions
-  #
+  # - B_mat            (m x d matrix)         all d discretized realizations of the eigenfunctions
   #
   # ----------------------------------------------------------------------------
   
@@ -76,23 +91,25 @@ trig_basis_prec_mat <- function(d, p, y_c_k, adj_type, adj_params){
   
   # ----------------------------------------------------------------------------
   #
+  # GOAL: define the raw precision matrix to generate beta's
   #
-  # GOAL: define the raw precision matrix to generate beta's 
-  # 
-  #       it doesn't necessarily need to invert to a correlation matrix. It just needs to be invertible
-  #
-  # inputs:
-  #
-  # - d                 (integer)
-  # - p                 (integer)
-  # - y_c_k             (q_c-dim vector)
-  # - adj_type          (string)
-  # - adj_params        (vector)
+  #       - it doesn't necessarily need to invert to a correlation matrix. It just needs to be invertible
   #
   #
-  # outputs:
+  # input:
   #
-  # - theta_pd   (pd x pd matrix)
+  # - d                (integer)              number of basis functions
+  # - p                (integer)              number of processes
+  # - y_c_k            (scalar)               continuous covariate of subject k
+  # - adj_type         (string)               '<structure>_<variant>' where structure is one of 'block_banded',
+  #                                           'flexible_block_banded', 'hub_block', 'complete_block' and variant is one of
+  #                                           'c0', 'c2', 'v2', 'j2'
+  # - adj_params       (vector)               parameters for adj_type
+  #
+  #
+  # output:
+  #
+  # - theta_pd         (pd x pd matrix)       precision matrix
   #
   # ----------------------------------------------------------------------------
   
@@ -559,21 +576,21 @@ trig_basis_cov_mat <- function(d, p, y_c_k, adj_type, adj_params){
   
   # ----------------------------------------------------------------------------
   #
-  #
-  # GOAL: define the covariance matrix to generate beta's 
-  #
-  # inputs:
-  #
-  # - d                 (integer)
-  # - p                 (integer)
-  # - y_c_k             (q_c-dim vector)
-  # - adj_type          (string)
-  # - adj_params        (vector)
+  # GOAL: define the covariance matrix to generate beta's
   #
   #
-  # outputs:
+  # input:
   #
-  # cov_mat   (pd x pd matrix)
+  # - d                (integer)              number of basis functions
+  # - p                (integer)              number of processes
+  # - y_c_k            (scalar)               continuous covariate of subject k
+  # - adj_type         (string)               see trig_basis_prec_mat
+  # - adj_params       (vector)               parameters for adj_type
+  #
+  #
+  # output:
+  #
+  # - cov_mat          (pd x pd matrix)       covariance matrix
   #
   # ----------------------------------------------------------------------------
   
@@ -591,21 +608,21 @@ trig_basis_cor_mat <- function(d, p, y_c_k, adj_type, adj_params){
   
   # ----------------------------------------------------------------------------
   #
-  #
-  # GOAL: define the corrleation matrix that generated beta's 
-  #
-  # inputs:
-  #
-  # - d                 (integer)
-  # - p                 (integer)
-  # - y_c_k             (q_c-dim vector)
-  # - adj_type          (string)
-  # - adj_params        (vector)
+  # GOAL: define the correlation matrix that generated beta's
   #
   #
-  # outputs:
+  # input:
   #
-  # cov_mat   (pd x pd matrix)
+  # - d                (integer)              number of basis functions
+  # - p                (integer)              number of processes
+  # - y_c_k            (scalar)               continuous covariate of subject k
+  # - adj_type         (string)               see trig_basis_prec_mat
+  # - adj_params       (vector)               parameters for adj_type
+  #
+  #
+  # output:
+  #
+  # - cor_mat          (pd x pd matrix)       correlation matrix
   #
   # ----------------------------------------------------------------------------
   
@@ -623,21 +640,21 @@ trig_basis_prec_mat_normalized <- function(d, p, y_c_k, adj_type, adj_params){
   
   # ----------------------------------------------------------------------------
   #
-  #
-  # GOAL: define the normalized precision matrix that generated beta's 
-  #
-  # inputs:
-  #
-  # - d                 (integer)
-  # - p                 (integer)
-  # - y_c_k             (q_c-dim vector)
-  # - adj_type          (string)
-  # - adj_params        (vector)
+  # GOAL: define the normalized precision matrix that generated beta's
   #
   #
-  # outputs:
+  # input:
   #
-  # prec_mat_normalized   (pd x pd matrix)
+  # - d                    (integer)              number of basis functions
+  # - p                    (integer)              number of processes
+  # - y_c_k                (scalar)               continuous covariate of subject k
+  # - adj_type             (string)               see trig_basis_prec_mat
+  # - adj_params           (vector)               parameters for adj_type
+  #
+  #
+  # output:
+  #
+  # - prec_mat_normalized  (pd x pd matrix)       normalized precision matrix
   #
   # ----------------------------------------------------------------------------
   
@@ -654,21 +671,22 @@ trig_basis_adj_mat <- function(d, p, y_c_k, adj_type, adj_params, thresh = 1e-3)
   
   # ----------------------------------------------------------------------------
   #
-  #
-  # GOAL: define the adjacency matrix behind a covariance matrix through its precision HS
-  #
-  # inputs:
-  #
-  # - d                 (integer)
-  # - p                 (integer)
-  # - y_c_k             (q_c-dim vector)
-  # - adj_type          (string)
-  # - adj_params        (vector)
+  # GOAL: define the adjacency matrix behind a covariance matrix through its precision HS norms
   #
   #
-  # outputs:
+  # input:
   #
-  # adj_mat   (p x p matrix)  0's on the diagonal
+  # - d                (integer)              number of basis functions
+  # - p                (integer)              number of processes
+  # - y_c_k            (scalar)               continuous covariate of subject k
+  # - adj_type         (string)               see trig_basis_prec_mat
+  # - adj_params       (vector)               parameters for adj_type
+  # - thresh           (number)               an edge exists if the HS norm of its precision block is > thresh
+  #
+  #
+  # output:
+  #
+  # - adj_mat          (p x p matrix)         0's and 1's with 0's on the diagonal
   #
   # ----------------------------------------------------------------------------
 
@@ -688,26 +706,27 @@ trig_basis_log_intensity <- function(cov_mat_list, basis_list, mu_t, time_grid, 
   
   
   # ----------------------------------------------------------------------------
-  # 
+  #
   # GOAL: draw n log-intensities from the trig-basis data generation process
   #
   #       beta_i ~ N(mean_vec, cov_mat[[i]])
   #
+  #
   # input:
   #
-  # - cov_mat_list  (n-dim list of pd x pd matrix)  covariance matrix for each subject
-  # - basis_list    (list of d eigenfunctions)   
-  # - mu_t          (m-dim vector)                baseline mean mu(t)
-  # - time_grid     (m-dim vector)                time discretization
-  # - mean_vec      (pd-dim vector)               mean vector for beta generation
+  # - cov_mat_list         (n-dim list of pd x pd matrices)     covariance matrix for each subject
+  # - basis_list           (d-dim list)                         output from trig_basis
+  # - mu_t                 (m-dim vector)                       baseline mean mu(t)
+  # - time_grid            (m-dim vector)                       time discretization
+  # - mean_vec             (pd-dim vector)                      mean vector for beta generation
   #
   #
   # output:
-  # 
-  # - list of the following:
-  #   - log_intensities      (n-dim list of p x m_both matrices) each item is for the k-th subject across all p processes
-  #   - beta_coefficients    (n-dim list of p x d matrices)      each item is for the k-th subject across all p processes, realizations of beta
-  # 
+  #
+  # - output               (list)
+  #   - log_intensities    (n-dim list of p x m_both matrices)  each item is for the k-th subject across all p processes
+  #   - beta_coefficients  (n-dim list of p x d matrices)       each item is for the k-th subject across all p processes, realizations of beta
+  #
   # ----------------------------------------------------------------------------
   
   # dimensions
@@ -766,30 +785,36 @@ trig_basis_log_intensity <- function(cov_mat_list, basis_list, mu_t, time_grid, 
 trig_basis_rho_truth <- function(basis_list, mean_vec, cov_mat, time_grid, mu_t){
   
   # ----------------------------------------------------------------------------
-  # 
+  #
   # GOAL: calculate the ground truth rho_i(t), rho_ij(s,t), and G_{ij}(s,t)
   #
-  # - recall that X_i(t) = mu(t) + sum_{k=1}^d beta_{ik} * phi^k(t)
-  # - recall that beta_i ~ N(m_i, [cov]_{ii})
-  # - where phi^k(t) are the k orthonormal basis functions
-  # - and beta_{ik} are normally distributed with a pd x pd matrix
+  #       - recall that X_i(t) = mu(t) + sum_{k=1}^d beta_{ik} * phi^k(t)
+  #       - recall that beta_i ~ N(m_i, [cov]_{ii})
+  #       - where phi^k(t) are the k orthonormal basis functions
+  #       - and beta_{ik} are normally distributed with a pd x pd matrix
   #
-  # - E[exp(X_i(t))] = exp( mu(t) + \sum_{k=1}^d m_{ik} phi^k(t) +  0.5 \sum_{k=1}^d lambda_k [phi^k(t)]^2 )
-  # 
+  #       - E[exp(X_i(t))] = exp( mu(t) + \sum_{k=1}^d m_{ik} phi^k(t) +  0.5 \sum_{k=1}^d lambda_k [phi^k(t)]^2 )
+  #
+  #
   # input:
-  # 
-  # - basis_list       (d-dim list)                           output from trig_basis
-  # - mean_vec         (pd-dim vector)                        mean vector for beta: beta ~ N(mean_vec, cov_mat)
-  # - cov_mat          (pd x pm matrix)                       covariance matrix for beta: beta ~ N(mean_vec, cov_mat)
-  # - time_grid        (m-dim vector)                         time discretization
-  # - mu_t             (m-dim vector)                         mu(t) when defining X_i(t)
+  #
+  # - basis_list       (d-dim list)                  output from trig_basis
+  # - mean_vec         (pd-dim vector)               mean vector for beta: beta ~ N(mean_vec, cov_mat)
+  # - cov_mat          (pd x pd matrix)              covariance matrix for beta: beta ~ N(mean_vec, cov_mat)
+  # - time_grid        (m-dim vector)                time discretization
+  # - mu_t             (m-dim vector)                mu(t) when defining X_i(t)
   #
   #
   # output:
   #
-  # - rho_i_truth       (p x m matrix)   marginal intensity for all p processes 
-  # - rho_ij_Truth      (list of i_j entries)  each is mxm matrix
-  # - g_ij_truth        (list of i_j entries)  each is mxm matrix
+  # - output           (list)
+  #   - rho_i_truth    (p x m matrix)                marginal intensity for all p processes
+  #   - rho_ij_truth   (list of i_j m x m matrices)  bivariate intensities
+  #   - g_ij_truth     (list of i_j m x m matrices)  covariance functions
+  #   - mu_t           (m-dim vector)
+  #   - term_2         (list of p vectors)           mu_beta * phi (usually 0)
+  #   - term_3         (list of p vectors)           phi %*% Sigma_ii %*% phi
+  #   - term_3b        (list of p vectors)           eigenvalue-weighted phi^2
   #
   # ----------------------------------------------------------------------------
   
@@ -874,16 +899,16 @@ trig_basis_gram_matrix <- function(basis_list, t_min, t_max){
   # GOAL: obtain the (d x d) gram matrix of inner products of all basis functions
   #
   #
-  # input: 
+  # input:
   #
-  # - basis_list   (d-dim list)       each entry is a basis functions when we set up the log-intensities
-  # - t_min        (number)           lower bound of integration
-  # - t_max        (number)           upper bound of integration
+  # - basis_list       (d-dim list)           each entry is a basis function when we set up the log-intensities
+  # - t_min            (number)               lower bound of integration
+  # - t_max            (number)               upper bound of integration
   #
   #
   # output:
   #
-  # - G         (d x d matrix)   Gram matrix, which contains the inner product between each pair of basis functions
+  # - G                (d x d matrix)         Gram matrix, which contains the inner product between each pair of basis functions
   #
   # ----------------------------------------------------------------------------
   
@@ -923,38 +948,38 @@ trig_basis_eigendecomposition <- function(G, cov_mat, cor_mat, prec_mat, basis_l
   # GOAL: find ground truths in the trig_basis framework
   #
   #
-  # inputs:
+  # input:
   #
-  # - G             (d x d matrix)      Gram matrix
-  # - cov_mat       (pd x pd matrix)    current covariance matrix for betas 
-  # - cor_mat       (pd x pd matrix)    current correlation matrix for betas 
-  # - prec_mat      (pd x pd matrix)    current precision matrix for betas 
-  # - basis_list
-  # - time_grid     (m-dim vector)
+  # - G                     (d x d matrix)                Gram matrix
+  # - cov_mat               (pd x pd matrix)              current covariance matrix for betas
+  # - cor_mat               (pd x pd matrix)              current correlation matrix for betas
+  # - prec_mat              (pd x pd matrix)              current precision matrix for betas
+  # - basis_list            (d-dim list)                  output from trig_basis
+  # - time_grid             (m-dim vector)                time discretization
   #
-  # outputs:
   #
-  # - eigen_result (list)  each list contains the following truths:
+  # output:
   #
-  #   - eigen_decomp (list of 3 things)
-  #     - eigenvalues         (p-dim list of d_i-dim vector of eigenvalues)
-  #     - eigenfunctions      (p-dim list of m x d_i matrices of eigenfunctions)
-  #     - n_dims              (p-dim list of d_i scalars)
-  #
-  # - KL_cov        (pc2 list of dxd matrices)    cov(beta, beta)
-  # - KL_cor        (pc2 list of dxd matrices)    cor(beta, beta)
-  # - KL_prec       (pc2 list of dxd matrices)    prec(beta, beta)
-  # - C_cond        (pc2 list of mxm matrices)    double sum of cor(beta, beta) * tensorprod(phi, phi)
-  # - P_cond        (pc2 list of mxm matrices)    double sum of prec(beta, beta) * tensorprod(phi, phi)
-  # - C_HS          (pxp matrix)                  HS norm of pm x pm matrix
-  # - P_HS          (pxp matrix)                  HS norm of pm x pm matrix
-  # - C_HS_unnorm   (pxp matrix)                  HS norm of pm x pm matrix
-  # - P_HS_unnorm   (pxp matrix)                  HS norm of pm x pm matrix
-  # - C_HS_KL       (pxp matrix)                  HS norm of pd x pd matrix of correlations
-  # - P_HS_KL       (pxp matrix)                  HS norm of pd x pd matrix of precisions
-  # - efunc_outer           (i_j list of mxm matrices)
-  # - efunc_outer_unnorm    (i_j list of mxm matrices)
-  #
+  # - output                (list)
+  #   - eigen_decomp        (list of 3 things)
+  #     - eigenvalues       (p-dim list of d_i-dim vectors)
+  #     - eigenfunctions    (p-dim list of m x d_i matrices)
+  #     - n_dims            (p-dim list of d_i scalars)
+  #   - KL_cov              (i_j list of d x d matrices)  cov(beta, beta)
+  #   - KL_cor              (i_j list of d x d matrices)  cor(beta, beta)
+  #   - KL_prec             (i_j list of d x d matrices)  prec(beta, beta)
+  #   - C_cond              (i_j list of m x m matrices)  double sum of cor(beta, beta) * tensorprod(phi, phi)
+  #   - P_cond              (i_j list of m x m matrices)  double sum of prec(beta, beta) * tensorprod(phi, phi)
+  #   - C_cond_unnorm       (i_j list of m x m matrices)
+  #   - P_cond_unnorm       (i_j list of m x m matrices)
+  #   - efunc_outer         (i_j list of m x m matrices)
+  #   - efunc_outer_unnorm  (i_j list of m x m matrices)
+  #   - C_HS                (p x p matrix)                HS norm of pm x pm matrix
+  #   - P_HS                (p x p matrix)                HS norm of pm x pm matrix
+  #   - C_HS_unnorm         (p x p matrix)                HS norm of pm x pm matrix
+  #   - P_HS_unnorm         (p x p matrix)                HS norm of pm x pm matrix
+  #   - C_HS_KL             (p x p matrix)                HS norm of pd x pd matrix of correlations
+  #   - P_HS_KL             (p x p matrix)                HS norm of pd x pd matrix of precisions
   #
   # ----------------------------------------------------------------------------
   
@@ -1108,29 +1133,29 @@ trig_basis_eigendecomposition_beta_truths <- function(beta_coeffs, eigen_decomp_
   # GOAL: find ground truths from realized beta values
   #
   #
-  # inputs:
+  # input:
+  #
+  # - beta_coeffs                 (p x d x n array)      realized beta coefficients
+  # - eigen_decomp_truth          (list of 3 things)
+  #   - eigenvalues               (p-dim list of d_i-dim vectors)
+  #   - eigenfunctions            (p-dim list of m x d_i matrices)
+  #   - n_dims                    (p-dim list of d_i scalars)
+  # - Y_c                         (n x q_c matrix)       continuous covariates
+  # - y_c_query_k                 (scalar)               query covariate value
   #
   #
-  # - beta_coeffs        (p x d x n matrix of realized beta coefficients)
-  # - eigen_decomp_truth (list of 3 things)
-  #   - eigenvalues         (p-dim list of d_i-dim vector of eigenvalues)
-  #   - eigenfunctions      (p-dim list of m x d_i matrices of eigenfunctions)
-  #   - n_dims              (p-dim list of d_i scalars)
+  # output:
   #
-  # - Y_c               (n x q_c matrix)
-  # - y_c_query_k       (scalar)
-  #
-  # outputs:
-  # 
-  # - list of the following:
-  #
-  # - C_cond_beta_truth
-  # - C_cond_beta_truth_unnorm
-  # - P_cond_beta_truth
-  # - P_cond_beta_truth_unnorm
-  # - C_HS_beta_truth
-  # - P_HS_beta_truth
-  #
+  # - output                      (list)
+  #   - KL_cov_beta_truth
+  #   - KL_cor_beta_truth
+  #   - KL_prec_beta_truth
+  #   - C_cond_beta_truth
+  #   - C_cond_beta_truth_unnorm
+  #   - P_cond_beta_truth
+  #   - P_cond_beta_truth_unnorm
+  #   - C_HS_beta_truth
+  #   - P_HS_beta_truth
   #
   # ----------------------------------------------------------------------------
   

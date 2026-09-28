@@ -5,25 +5,23 @@ validate_eigendecomposition_ii <- function(G_hat, eigen_decomp){
   
   # ----------------------------------------------------------------------------
   #
-  #
   # GOAL: validate the function `compute_eigendecomposition_ii`
   #
   #
-  # Input: 
-  # 
-  # - G_hat             (m x m x p array) ground truth
-  # - eigen_decomp      (list)            list of three lists, each of length p
-  # 
-  #   - eigenvalues     (list of d-dim vectors)  the top d eigenvalues
-  #   - eigenfunctions  (list of mxd matrices)   the top d eigenfunctions (of length m)
-  #   - n_dims          (list of integers)       d for each process. we stop at 90% var explained or dmax
-  # 
-  # 
-  # Output: 
+  # input:
   #
-  # - G_hat_approx (m x m x p array)  estimate
+  # - G_hat             (m x m x p array)         ground truth
+  # - eigen_decomp      (list)                    list of three lists, each of length p
+  #   - eigenvalues     (list of d-dim vectors)   the top d eigenvalues
+  #   - eigenfunctions  (list of m x d matrices)  the top d eigenfunctions (of length m)
+  #   - n_dims          (list of integers)        d for each process. we stop at 90% var explained or dmax
   #
-  # ----------------------------------------------------------------------------  
+  #
+  # output:
+  #
+  # - G_hat_approx      (m x m x p array)         estimate
+  #
+  # ----------------------------------------------------------------------------
   
   p <- dim(G_hat)[3]
   m <- dim(G_hat)[2]
@@ -57,22 +55,21 @@ validate_eigendecomposition_ii_visualization <- function(G_hat, G_hat_approx, i)
   
   # ----------------------------------------------------------------------------
   #
-  #
   # GOAL: visualize G_hat vs G_hat_approx during KL expansion estimation step
   #
   #
-  # Input: 
-  # 
-  # - G_hat             (p x m x m array) ground truth
-  # - G_hat_approx      (p x m x m array) estimate
-  # 
-  # 
-  # 
-  # Output: 
+  # input:
   #
-  # - grid.arranged graphs of G_hat[i,,] and G_hat_approx[i,,]
+  # - G_hat            (p x m x m array)      ground truth
+  # - G_hat_approx     (p x m x m array)      estimate
+  # - i                (integer)              process to plot
   #
-  # ----------------------------------------------------------------------------   
+  #
+  # output:
+  #
+  # - plot             (grid.arrange object)  heatmaps of G_hat[i,,] and G_hat_approx[i,,]
+  #
+  # ----------------------------------------------------------------------------
   
   # Convert matrix to long format for ggplot
   df1 <- reshape2::melt(G_hat[i,,])
@@ -106,20 +103,19 @@ validate_kl_coeffs <- function(eigenfunctions, kl_coeffs){
   
   
   # ----------------------------------------------------------------------------
-  # 
-  # 
+  #
   # GOAL: recreate the X_k matrix of log intensities with eigenfunctions and KL coefficients
-  # 
-  # Inputs:
-  # 
-  # - eigenfunctions       (p-dim list)   each entry is a m x d matrix of eigenfunctions for process i.
-  # - kl_coeffs            (n x p x d)    all KL coeffs for n subjets and p processes
   #
   #
+  # input:
   #
-  # Output:
+  # - eigenfunctions   (p-dim list)           each entry is an m x d matrix of eigenfunctions for process i
+  # - kl_coeffs        (n x p x d array)      all KL coeffs for n subjects and p processes
   #
-  # - X_k_reconstruct      (p x m x n)    all m-dim vectors of log intensities for p processes and n subjects
+  #
+  # output:
+  #
+  # - X_k_reconstruct  (p x m x n array)      all m-dim vectors of log intensities for p processes and n subjects
   #
   # ----------------------------------------------------------------------------
   
@@ -150,26 +146,29 @@ validate_kl_coeffs <- function(eigenfunctions, kl_coeffs){
 validate_kl_full <- function(X_k, eigenfunctions, Tseq, x_name, ncores){
   
   # ----------------------------------------------------------------------------
-  # 
+  #
   # GOAL: code to parallelize repetitiveness of validating kl coeff validation
   #
-  # 1) find the sample mean and subtract it from X_k to get X_k_center
-  # 2) calculate KL coefficients
-  # 3) reconstruct X_k_center
-  # 4) add the sample mean to get X_k_reconstruct
+  #       1) find the sample mean and subtract it from X_k to get X_k_center
+  #       2) calculate KL coefficients
+  #       3) reconstruct X_k_center
+  #       4) add the sample mean to get X_k_reconstruct
+  #       5) keep the first subject and reshape it into a df
   #
-  # 5) keep the first subject and reshape it into a df
-  # 
   #
-  # 
-  # inputs:
+  # input:
   #
-  # - X_k                  (p x m x n matrix)
-  # - eigenfunctions       (p-dim list)   each entry is a m x d matrix of eigenfunctions for process i.
-  # - Tseq                 (m-dim vector of times)
-  # - x_name               (string)   name for ggtitle like `X Truth` (X Truth --> X Truth Reconstruct)
-  # - ncores               (integer) number of cores
-  # 
+  # - X_k              (p x m x n array)      log intensities
+  # - eigenfunctions   (p-dim list)           each entry is an m x d matrix of eigenfunctions for process i
+  # - Tseq             (m-dim vector)         time grid
+  # - x_name           (string)               name for ggtitle like `X Truth` (X Truth --> X Truth Reconstruct)
+  # - ncores           (integer)              number of cores
+  #
+  #
+  # output:
+  #
+  # - df               (data.frame)           long format of X_k[,,1] and its reconstruction, labeled by `cat`
+  #
   # ----------------------------------------------------------------------------
   
   # 1)

@@ -3,20 +3,22 @@ step_00_grab_ID <- function(vec, prefix, suffix = NULL){
   # ----------------------------------------------------------------------------
   #
   # GOAL: grab names from a vector of names that share the same prefix and perhaps a suffix
-  # 
+  #
   #       E.G. c('prefix_name1_suffix', 'prefix_name2_suffix', 'diff_prefix_name3')
   #
   #       output: c('name1', 'name2')
   #
-  # inputs:
   #
-  # - vec     (vector of untrimmed names)
-  # - prefix  (string)                      prefix name, not including the underscore between prefix and name
-  # - suffix  (string)                      suffix name, not including the underscore between name and suffix
+  # input:
   #
-  # ouptuts:
+  # - vec              (vector of strings)    untrimmed names
+  # - prefix           (string)               prefix name, not including the underscore between prefix and name
+  # - suffix           (string)               suffix name, not including the underscore between name and suffix
   #
-  # - out     (vector of names)
+  #
+  # output:
+  #
+  # - out              (vector of strings)    trimmed names
   #
   # ----------------------------------------------------------------------------
   
@@ -45,19 +47,19 @@ step_0_keep_events <- function(dataset, k_vec, i_vec){
   
   # ----------------------------------------------------------------------------
   #
-  # keep point process events for subject k and processes i
+  # GOAL: keep point process events for subjects k and processes i
   #
   #
   # input:
   #
-  # - dataset    (list)
-  # - k          (vector)            vector of subject id's
-  # - i_vec      (vector)            vector of process ID's
+  # - dataset          (list)                 dataset with event_times named k_i
+  # - k_vec            (vector)               subject ID's
+  # - i_vec            (vector)               process ID's
   #
-  # 
-  # outputs:
-  # 
-  # - events     (list of q vectors)
+  #
+  # output:
+  #
+  # - events           (list of vectors)      event times for each kept k_i
   #
   # ----------------------------------------------------------------------------
   
@@ -79,25 +81,22 @@ step_0_preprocess <- function(dataset){
   # ----------------------------------------------------------------------------
   #
   # GOAL: create `data_df4` to pass into estimation functions
-  # 
+  #
   #
   # input:
   #
-  # - dataset (dataset created from simulation)
-  #
+  # - dataset            (list)                 dataset created from simulation or convert_data_for_storage
   #
   #
   # output:
-  # 
-  # - processed_data (list)
   #
-  #   - [[1]] data_df4
-  #   - [[2]] y_c_strata        all n y_c_strata
-  #   - [[3]] y_c_strata_sel    subset of stratas in case some subjects are discarded
-  #   - [[4]] query_y_cs
-  #   - [[5]] patient_sel
-  #   - [[6]] feature_sel
-  #   
+  # - processed_data     (list)
+  #   - data_df4         (data.table)           columns `time`, `feature_id`, `subject_num`
+  #   - y_c_strata_full  (n x q_c matrix)       all n y_c_strata
+  #   - y_c_strata       (matrix)               subset of strata in case some subjects are discarded
+  #   - query_y_cs       (matrix)               y_c values to query
+  #   - patient_sel      (vector)               kept subject ID's
+  #   - feature_sel      (vector)               kept process ID's
   #
   # ----------------------------------------------------------------------------
   
@@ -142,23 +141,23 @@ step_1_log_intensities <- function(data_df4, time_grid_est){
   
   
   # ----------------------------------------------------------------------------
-  # 
+  #
   # GOAL: obtain log-intensities (X) and intensities (Lambda)
   #
-  # 
-  # inputs:
-  # 
-  # - data_df4          (data.table with `time`, `feature_id`, `subject_num`)
-  # - time_grid_est     (m_est-dim vec of discretized times)
+  #
+  # input:
+  #
+  # - data_df4          (data.table)           columns `time`, `feature_id`, `subject_num`
+  # - time_grid_est     (m_est-dim vector)     discretized times
   #
   #
-  # outputs:
-  # 
-  # - list of:
-  #   - step_1:
-  #     - X_k_est                 (p x m x n)
-  #   - step_1b:
-  #     - Lambda_k_est            (p x m x n)
+  # output:
+  #
+  # - output            (list)
+  #   - step_1          (list)
+  #     - X_k_est       (p x m x n array)      log-intensities
+  #   - step_1b         (list)
+  #     - Lambda_k_est  (p x m x n array)      intensities
   #
   # ----------------------------------------------------------------------------
   
@@ -180,26 +179,23 @@ step_3_g_ij <- function(step_2, step_2b, i_neq_j){
   
   
   # ----------------------------------------------------------------------------
-  # 
+  #
   # GOAL: covariance function (g_ij) estimation
   #
-  # 
-  # inputs:
   #
-  # - step_2:
-  #   - rho_i_suffix              (p x m)
-  #   - suffixes = truth, X_truth, est, etc
+  # input:
+  #
+  # - step_2           (list)
+  #   - rho_i_suffix   (p x m matrix)            suffixes = truth, X_truth, est, etc
+  # - step_2b          (list)
+  #   - rho_ii_suffix  (list of m x m matrices)  could have only i_i or i_j as well
+  # - i_neq_j          (boolean)                 do we include i =/= j terms?
   #
   #
-  # - step_2b: 
-  #   - rho_ii_suffix              (list of m x m matrices, could have only i_i or i_j as well)
+  # output:
   #
-  # - i_neq_j                    (boolean) do we include i =/= j terms?
-  # 
-  # outputs:
-  #
-  # - list of:
-  #   - g_ij_suffix                      (list of m x m matrices for i_j entries)
+  # - result           (list)
+  #   - g_ij_suffix    (list of m x m matrices)  i_j entries
   #
   # ----------------------------------------------------------------------------
   
@@ -232,27 +228,26 @@ step_4_eigendecomp <- function(step_3, p, same_basis, constant_d){
   
 
   # ----------------------------------------------------------------------------
-  # 
+  #
   # GOAL: eigendecomposition of G_ii
   #
-  # inputs:
   #
-  # - step_3
-  #   - g_ij_suffix                (list of m x m matrices for i_j entries)
+  # input:
   #
-  # - p                            (scalar)
-  # - same_basis                   (boolean)  does each process use the same basis?
-  # - constant_d                   (integer)  does each process use a constant amount of components, if not null
+  # - step_3                 (list)
+  #   - g_ij_suffix          (list of m x m matrices)  i_j entries
+  # - p                      (integer)                 number of processes
+  # - same_basis             (boolean)                 does each process use the same basis?
+  # - constant_d             (integer or NULL)         if not NULL, each process uses a constant amount of components
   #
   #
-  # outputs:
+  # output:
   #
-  # - list of:
-  #   - eigen_decomp_suffix             (list of 3 things)
-  #     - [[1]] eigenvalues            (list of p vectors of eigenvalues)
-  #     - [[2]] eigenvectors           (list of p matrices of m x d_i)
-  #     - [[3]] n_dims                 (list of p integers denoting d_i)
-  #
+  # - result                 (list)
+  #   - eigen_decomp_suffix  (list of 3 things)
+  #     - eigenvalues        (list of p vectors)
+  #     - eigenfunctions     (list of p m x d_i matrices)
+  #     - n_dims             (list of p integers)      d_i for each process
   #
   # ----------------------------------------------------------------------------
   
@@ -282,25 +277,28 @@ step_4_eigendecomp_mfpca <- function(step_3, p, same_basis, constant_d){
   
   
   # ----------------------------------------------------------------------------
-  # 
-  # GOAL: copy of 'step_4_eigendecomp', but we assume mfpca setting
+  #
+  # GOAL: copy of 'step_4_eigendecomp', but we assume the mfpca setting (results are suffixed '_eig4')
   #
   #
-  # inputs:
+  # input:
   #
-  # - step_3
-  #   - g_ij_suffix                (list of m x m matrices for i_j entries)
+  # - step_3                      (list)
+  #   - g_ij_suffix               (list of m x m matrices)  i_j entries
+  # - p                           (integer)                 number of processes
+  # - same_basis                  (boolean)                 if TRUE use trig basis; if FALSE use empirical PCA
+  # - constant_d                  (integer or NULL)         fixed d_i per process; if NULL use var_explained
   #
-  # - p                            (scalar) number of processes
   #
-  # outputs:
+  # output:
   #
-  # - list of:
-  #   - eigen_decomp_suffix             (list of 3 things)
-  #     - [[1]] eigenvalues            (list of p vectors of eigenvalues)
-  #     - [[2]] eigenvectors           (list of p matrices of m x d_i)
-  #     - [[3]] n_dims                 (list of p integers denoting d_i)
-  #
+  # - result                      (list)
+  #   - eigen_decomp_suffix_eig4  (list)                    output of compute_eigendecomposition_mfpca
+  #     - eigenvalues             (D-dim vector)            joint eigenvalues, descending
+  #     - eigenfunctions          (list of p m x D matrices)
+  #     - univariate              (list of p lists)         per-process eigenvalues & eigenfunctions
+  #     - n_dims                  (list of p integers)      d_i for each process
+  #     - C                       (D x D matrix)            projected covariance matrix
   #
   # ----------------------------------------------------------------------------
   
@@ -328,29 +326,31 @@ step_4_eigendecomp_troubleshoot <- function(step_3, p, eigen_setting){
   
   
   # ----------------------------------------------------------------------------
-  # 
+  #
   # GOAL: copy of 'step_4_eigendecomp', but we calculate all 3 settings:
   #
-  # 1) same_basis = T, constant_d = 2
-  # 2) same_basis = T, constant_d = NULL
-  # 3) same_basis = F, constant_d = NULL
+  #       1) same_basis = T, constant_d = 2      (eig1)
+  #       2) same_basis = T, constant_d = NULL   (eig2)
+  #       3) same_basis = F, constant_d = NULL   (eig3)
   #
-  # inputs:
+  #       - if eigen_setting = 'trig_simple', only setting 1) is calculated
   #
-  # - step_3
-  #   - g_ij_suffix                (list of m x m matrices for i_j entries)
   #
-  # - p                            (scalar)
-  # - eigen_setting                (string)  'trig_and_joint',  'trig_simple', 'mfpca
+  # input:
   #
-  # outputs:
+  # - step_3                      (list)
+  #   - g_ij_suffix               (list of m x m matrices)  i_j entries
+  # - p                           (integer)                 number of processes
+  # - eigen_setting               (string)                  'trig_and_joint', 'trig_simple', 'mfpca'
   #
-  # - list of:
-  #   - eigen_decomp_suffix             (list of 3 things)
-  #     - [[1]] eigenvalues            (list of p vectors of eigenvalues)
-  #     - [[2]] eigenvectors           (list of p matrices of m x d_i)
-  #     - [[3]] n_dims                 (list of p integers denoting d_i)
   #
+  # output:
+  #
+  # - result                      (list)
+  #   - eigen_decomp_suffix_eigk  (list of 3 things)
+  #     - eigenvalues             (list of p vectors)
+  #     - eigenfunctions          (list of p m x d_i matrices)
+  #     - n_dims                  (list of p integers)      d_i for each process
   #
   # ----------------------------------------------------------------------------
   
@@ -399,28 +399,27 @@ step_4_eigendecomp_troubleshoot <- function(step_3, p, eigen_setting){
 step_5_KL_covariance_eigencases <- function(step_3, step_4){
   
   # ----------------------------------------------------------------------------
-  # 
-  # GOAL: step_5_KL_covariance troubleshooting
   #
-  # inputs:
+  # GOAL: estimate the covariance of the KL coefficients for each eigendecomposition case
   #
-  # - step_3
-  #   - g_ij_suffix                (list of m x m matrices for i_j entries)
-  # 
-  # - step_4
-  #   - eigen_decomp_suffix_eigk               (list of 3 things)
-  #     - [[1]] eigenvalues  (list of p vectors of eigenvalues)
-  #     - [[2]] eigenvectors (list of p matrices of m x d_i)
-  #     - [[3]] n_dims       (list of p integers denoting d_i)
-  #
-  # NOTE: eigk is either eig1, eig2, or eig3
+  #       NOTE: eigk is either eig1, eig2, eig3, or eig4
   #
   #
+  # input:
   #
-  # outputs:
+  # - step_3                      (list)
+  #   - g_ij_suffix               (list of m x m matrices)      i_j entries
+  # - step_4                      (list)
+  #   - eigen_decomp_suffix_eigk  (list of 3 things)
+  #     - eigenvalues             (list of p vectors)
+  #     - eigenfunctions          (list of p m x d_i matrices)
+  #     - n_dims                  (list of p integers)          d_i for each process
   #
-  # - list of:
-  #   - KL_cov_suffix           (list of d_i x d_j matrices for i_j entries)
+  #
+  # output:
+  #
+  # - result                      (list)
+  #   - KL_cov_suffix             (list of d_i x d_j matrices)  i_j entries
   #
   # ----------------------------------------------------------------------------
   
@@ -452,21 +451,21 @@ step_5_KL_covariance_eigencases <- function(step_3, step_4){
 step_5b_KL_correlation <- function(step_5, p){
   
   # ----------------------------------------------------------------------------
-  # 
+  #
   # GOAL: estimate correlations of the KL coefficients for CPGM method
   #
-  # inputs:
   #
-  # - step_5
-  #   - KL_cov_suffix          (list of d_i x d_j matrices for i_j entries)
-  # 
-  # - p            (integer)
+  # input:
+  #
+  # - step_5           (list)
+  #   - KL_cov_suffix  (list of d_i x d_j matrices)  i_j entries
+  # - p                (integer)                     number of processes
   #
   #
-  # outputs:
+  # output:
   #
-  # - list of:
-  #   - KL_cor_suffix          (list of d_i x d_j matrices for i_j entries)
+  # - result           (list)
+  #   - KL_cor_suffix  (list of d_i x d_j matrices)  i_j entries
   #
   # ----------------------------------------------------------------------------
   
@@ -493,21 +492,21 @@ step_5b_KL_correlation <- function(step_5, p){
 step_5c_KL_precision <- function(step_5b, p){
   
   # ----------------------------------------------------------------------------
-  # 
+  #
   # GOAL: estimate precisions of the KL coefficients for CPGM method
   #
-  # inputs:
   #
-  # - step_5b
-  #   - KL_cor_suffix          (list of d_i x d_j matrices for i_j entries)
-  # 
-  # - p            (integer)
+  # input:
+  #
+  # - step_5b           (list)
+  #   - KL_cor_suffix   (list of d_i x d_j matrices)  i_j entries
+  # - p                 (integer)                     number of processes
   #
   #
-  # outputs:
+  # output:
   #
-  # - list of:
-  #   - KL_prec_suffix          (list of d_i x d_j matrices for i_j entries)
+  # - result            (list)
+  #   - KL_prec_suffix  (list of d_i x d_j matrices)  i_j entries
   #
   # ----------------------------------------------------------------------------
   
@@ -540,18 +539,18 @@ step_11_HS_norms_from_KL <- function(step_5c, p){
   # GOAL: get w_mat from KL_prec
   #
   #
-  # inputs:
+  # input:
   #
-  # - step_5c (list)
-  #   - KL_prec_suffix
+  # - step_5c            (list)
+  #   - KL_prec_suffix   (list of d_i x d_j matrices)  i_j entries
+  # - p                  (integer)                     number of processes
   #
-  # - p      (integer)
   #
-  # outputs:
+  # output:
   #
-  # - step_11 (list)
-  #   - w_mat_KL_suffix
-  # 
+  # - result             (list)
+  #   - w_mat_KL_suffix  (p x p matrix)                HS norms of the KL precision blocks
+  #
   # ----------------------------------------------------------------------------
   
   result <- list()
@@ -581,18 +580,18 @@ step_11b_HS_norms_from_KL <- function(step_5b, p){
   # GOAL: get C_HS from KL_cor
   #
   #
-  # inputs:
+  # input:
   #
-  # - step_5b (list)
-  #   - KL_cor_suffix
+  # - step_5b           (list)
+  #   - KL_cor_suffix   (list of d_i x d_j matrices)  i_j entries
+  # - p                 (integer)                     number of processes
   #
-  # - p      (integer)
   #
-  # outputs:
+  # output:
   #
-  # - step_11 (list)
-  #   - C_HS_KL_suffix
-  # 
+  # - result            (list)
+  #   - C_HS_KL_suffix  (p x p matrix)                HS norms of the KL correlation blocks
+  #
   # ----------------------------------------------------------------------------
   
   result <- list()
@@ -620,21 +619,21 @@ step_11b_HS_norms_from_KL <- function(step_5b, p){
 step_11_HS_norms_from_KL_GIC <- function(step_11_GIC_bundle){
   
   
-  # ----------------------------------------------------------------------------  
+  # ----------------------------------------------------------------------------
   #
   # GOAL: obtain HS_norms from the GIC bundle
   #
-  # 
-  # inputs:
   #
-  # - step_11_GIC_bundle
-  #   - GIC_KL_suffix                        (list of items)  
+  # input:
+  #
+  # - step_11_GIC_bundle     (list)
+  #   - GIC_KL_suffix        (list)                 GIC results
   #
   #
-  # outputs:
+  # output:
   #
-  # - list of:
-  #   - w_mat_KL_GIC_suffix                  (list of pxp HS matrices)
+  # - result                 (list)
+  #   - w_mat_KL_GIC_suffix  (p x p matrix)         HS norms of the thresholded precision
   #
   # ----------------------------------------------------------------------------
   
@@ -664,21 +663,21 @@ step_11_HS_norms_from_KL_GIC <- function(step_11_GIC_bundle){
 step_11b_HS_norms_from_KL_GIC <- function(step_11_GIC_bundle){
   
   
-  # ----------------------------------------------------------------------------  
+  # ----------------------------------------------------------------------------
   #
   # GOAL: obtain HS_norms for correlation operator from the GIC bundle
   #
-  # 
-  # inputs:
   #
-  # - step_11_GIC_bundle
-  #   - GIC_KL_suffix                        (list of items)  
+  # input:
+  #
+  # - step_11_GIC_bundle    (list)
+  #   - GIC_KL_suffix       (list)                 GIC results
   #
   #
-  # outputs:
+  # output:
   #
-  # - list of:
-  #   - C_HS_KL_GIC_suffix                  (list of pxp HS matrices)
+  # - result                (list)
+  #   - C_HS_KL_GIC_suffix  (p x p matrix)         HS norms of the thresholded correlation
   #
   # ----------------------------------------------------------------------------
   
@@ -708,27 +707,22 @@ step_11b_HS_norms_from_KL_GIC <- function(step_11_GIC_bundle){
 step_11xy_HS_norms_from_KL_GIC <- function(step_11_GIC_bundle){
   
   
-  # ----------------------------------------------------------------------------  
+  # ----------------------------------------------------------------------------
   #
   # GOAL: obtain tau_c and tau_p from the GIC bundle
   #
-  # 
-  # inputs:
   #
-  # - step_11_GIC_bundle
-  #   - GIC_KL_suffix                        (list of items)  
+  # input:
+  #
+  # - step_11_GIC_bundle  (list)
+  #   - GIC_KL_suffix     (list)                 GIC results
   #
   #
-  # outputs:
+  # output:
   #
-  # - list of:
-  #   - step_11x
-  #     - tau_c_local_est
-  #     - tau_c_local_X_truth etc...
-  #
-  #   - step_11y
-  #     - tau_p_local_est
-  #     - tau_p_local_X_truth etc...
+  # - output              (list)
+  #   - step_11x          (list)                 tau_c_local_est, tau_c_local_X_truth, etc.
+  #   - step_11y          (list)                 tau_p_local_est, tau_p_local_X_truth, etc.
   #
   # ----------------------------------------------------------------------------
   
@@ -766,19 +760,18 @@ step_12_ROC <- function(step_11, adj_mat_i){
   #
   # GOAL: estimate ROC curves
   #
-  # inputs:
   #
-  # - step_11
-  #   - w_mat_suffix        (p x p)   matrix of HS norms of the pm x pm ground truth
+  # input:
+  #
+  # - step_11          (list)
+  #   - w_mat_suffix   (p x p matrix)         HS norms of the estimated precision
+  # - adj_mat_i        (p x p matrix)         ground truth adjacencies (0's and 1's) with 0's on the diagonal
   #
   #
-  # - adj_mat_i    (p x p matrix of 0's and 1's)   denoting ground truth adjacencies with 0's on the diagonal
+  # output:
   #
-  #
-  # outputs:
-  #
-  # - list of:
-  #   - roc_suffix           (list of roc outputs)
+  # - result           (list)
+  #   - roc_suffix     (list)                 ROC outputs
   #
   # ----------------------------------------------------------------------------
   
@@ -810,23 +803,22 @@ step_12_ROC <- function(step_11, adj_mat_i){
 step_12b_adj_mat <- function(step_11){
   
   # ----------------------------------------------------------------------------
-  # 
-  # GOAL: get pxp adjacency matrices from w_mat. 
   #
-  #       label an edge if its HS_norm is > 0
-  # 
+  # GOAL: get p x p adjacency matrices from w_mat
   #
-  # inputs:
+  #       - label an edge if its HS_norm is > 0
   #
-  # step_11 (list)
-  #   - w_mat_suffix
   #
-  # 
-  # outputs:
+  # input:
   #
-  # - step_12b (list)
-  #   - adj_mat_suffix
+  # - step_11           (list)
+  #   - w_mat_suffix    (p x p matrix)
   #
+  #
+  # output:
+  #
+  # - result            (list)
+  #   - adj_mat_suffix  (p x p matrix)         0's and 1's
   #
   # ----------------------------------------------------------------------------
   

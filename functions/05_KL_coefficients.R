@@ -5,18 +5,18 @@ estimate_log_intensity_function <- function(event_times, t_seq) {
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: Obtain X_ik(t) estimate
+  # GOAL: obtain X_ik(t) estimate
   #
-  # Input: 
   #
-  # - event_times    (vector of length xi_k_i)  subject k, process i 
-  # - t_seq          (vector of length m)
+  # input:
   #
-  # 
-  # Output: 
+  # - event_times      (xi_k_i-dim vector)    event times for subject k, process i
+  # - t_seq            (m-dim vector)         time grid
   #
-  # - X_hat           (vector of length m)    subject k, process i
   #
+  # output:
+  #
+  # - X_hat            (m-dim vector)         log-intensity for subject k, process i (-10 everywhere if there are no events)
   #
   # ----------------------------------------------------------------------------
   
@@ -40,24 +40,24 @@ estimate_kl_coefficients_parallel_v2 <- function(X_k_est, eigenfunctions,
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: Obtain KL coefficients for subject k, process i
+  # GOAL: obtain KL coefficients for subject k, process i
   #
-  # - use pbmclapply to parallelize for each subject + process
+  #       - use pbmclapply to parallelize for each subject + process
+  #       - 8/11/2025 faster, assumes we already have log-intensities
+  #       - 8/12/2025 I DON'T NEED TO MULTIPLY BY DT HUH
   #
-  # - 8/11/2025 faster, assumes we already have log-intensities
-  # - 8/12/2025 I DON'T NEED TO MULTIPLY BY DT HUH
+  #
+  # input:
+  #
+  # - X_k_est          (p x m x n array)          estimated log-intensities
+  # - eigenfunctions   (list of p m x d_i matrices)
+  # - t_seq            (m-dim vector)             time grid
+  # - ncores           (integer)                  number of cores for pbmclapply
   #
   #
-  # Input: 
-  # 
-  # - X_k_est           (p x m x n matrix)
-  # - eigenfunctions    (list of p matrices of dimension m x d_i) 
-  # - t_seq             (vector of length m)
-  # - ncores            
+  # output:
   #
-  # Output: 
-  #
-  # - alpha_tensor (n_stratum x p x d array)
+  # - alpha_tensor     (n_stratum x p x d array)  KL coefficients (NULL if t_seq and eigenfunctions are incompatible)
   #
   # ----------------------------------------------------------------------------
   

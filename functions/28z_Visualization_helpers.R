@@ -7,23 +7,22 @@ get_ns <- function(folder_name){
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: within a folder, there are several datasets that end in a number then .RData
-  #       get all possible n's 
+  # GOAL: within a folder, there are several datasets that end in a number then .RData,
+  #       get all possible n's
   #
-  # - example: 'CPGM_n_500.RData' --> 500
+  #       - example: 'CPGM_n_500.RData' --> 500
   #
   #
+  # input:
   #
-  # inputs:
+  # - folder_name      (string)               'simu_results/banded_trig2/OG'
   #
-  # - folder_name     (string)    'simu_results/banded_trig2/OG'
-  # 
   #
-  # outputs:
+  # output:
   #
-  # - ns              (vector)
+  # - ns               (vector)               sample sizes
   #
-  # ----------------------------------------------------------------------------  
+  # ----------------------------------------------------------------------------
   
   # 1) find the file in the folder and load it 
   files <- list.files(folder_name, full.names = TRUE)
@@ -40,13 +39,25 @@ get_ns <- function(folder_name){
 get_ns_with_rep_unsorted <- function(folder_name) {
   
   # ----------------------------------------------------------------------------
-  # GOAL: Extract 'n' from filenames like 'adj_type_n_500_rep_1.RData'
   #
-  # Pattern logic:
-  #   - Look for "_n_"
-  #   - Capture digits (\\d+)
-  #   - Stop at "_rep_"
-  # ----------------------------------------------------------------------------  
+  # GOAL: extract 'n' from filenames like 'adj_type_n_500_rep_1.RData'
+  #
+  #       pattern logic:
+  #         - look for "_n_"
+  #         - capture digits (\\d+)
+  #         - stop at "_rep_"
+  #
+  #
+  # input:
+  #
+  # - folder_name      (string)               'simu_results/hub_block_v2/CPGM'
+  #
+  #
+  # output:
+  #
+  # - ns               (vector)               unique sample sizes, in file order
+  #
+  # ----------------------------------------------------------------------------
   
   # 1) Get all file names in the directory
   files <- list.files(folder_name, full.names = FALSE)
@@ -69,13 +80,25 @@ get_ns_with_rep_unsorted <- function(folder_name) {
 get_ns_with_rep <- function(folder_name) {
   
   # ----------------------------------------------------------------------------
-  # GOAL: Extract 'n' from filenames like 'adj_type_n_500_rep_1.RData'
   #
-  # Pattern logic:
-  #   - Look for "_n_"
-  #   - Capture digits (\\d+)
-  #   - Stop at "_rep_"
-  # ----------------------------------------------------------------------------  
+  # GOAL: extract 'n' from filenames like 'adj_type_n_500_rep_1.RData'
+  #
+  #       pattern logic:
+  #         - look for "_n_"
+  #         - capture digits (\\d+)
+  #         - stop at "_rep_"
+  #
+  #
+  # input:
+  #
+  # - folder_name      (string)               'simu_results/hub_block_v2/CPGM'
+  #
+  #
+  # output:
+  #
+  # - ns               (vector)               unique sample sizes, sorted
+  #
+  # ----------------------------------------------------------------------------
   
   # 1) Get all file names in the directory
   files <- list.files(folder_name, full.names = FALSE)
@@ -99,18 +122,19 @@ get_file_name_and_load <- function(folder_name, n){
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: within a folder, there are several datasets that end in a number then .RData
-  #       load that file
+  # GOAL: within a folder, there are several datasets that end in a number then .RData,
+  #       load the one that ends with n
   #
-  # inputs:
   #
-  # - folder_name     (string)    'simu_results/banded_trig2/OG'
-  # - n               (integer)   100
-  # 
+  # input:
   #
-  # outputs:
+  # - folder_name      (string)               'simu_results/banded_trig2/OG'
+  # - n                (integer)              e.g. 100
   #
-  # - NULL, just loads that file
+  #
+  # output:
+  #
+  # - object           (any)                  the first object stored in that file
   #
   # ----------------------------------------------------------------------------
   
@@ -139,6 +163,23 @@ get_file_name_and_load <- function(folder_name, n){
 # helper function
 get_y_c_query <- function(folder_name, n){
   
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: get the queried y_c values of the dataset with sample size n
+  #
+  #
+  # input:
+  #
+  # - folder_name      (string)               'simu_results/banded_trig2/OG'
+  # - n                (integer)              e.g. 100
+  #
+  #
+  # output:
+  #
+  # - y_c_query        (vector of strings)    names of estimated_graphs_part_2
+  #
+  # ----------------------------------------------------------------------------
+  
   graph_results_i <- get_file_name_and_load(folder_name, n)
   
   return(names(graph_results_i$estimated_graphs_part_2))
@@ -147,10 +188,23 @@ get_y_c_query <- function(folder_name, n){
 
 get_method <- function(folder_name){
   
-  
-  # assume that method names lie at the beginning of the .RData file
-  # OG_n_1000.RData
-  # method <- 'OG'
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: get the estimation method name, assuming it lies at the beginning of the .RData file
+  #
+  #       - e.g. OG_n_1000.RData --> 'OG'
+  #
+  #
+  # input:
+  #
+  # - folder_name      (string)               'simu_results/banded_trig2/OG'
+  #
+  #
+  # output:
+  #
+  # - method           (string)               method name
+  #
+  # ----------------------------------------------------------------------------
   
   files <- list.files(folder_name, full.names = TRUE)
   
@@ -165,11 +219,22 @@ get_method <- function(folder_name){
 # helper function
 old_to_new_graph_results_i <- function(graph_results_i){
   
-  # old graph_results_i had 
-  # - estimated_graphs_part_1
-  # - estimated_graphs_part_2
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: reorganize an old graph_results_i, which had estimated_graphs_part_1 and estimated_graphs_part_2,
+  #       into the new step-first format
   #
   #
+  # input:
+  #
+  # - graph_results_i  (list)                 old results with estimated_graphs_part_1 and estimated_graphs_part_2
+  #
+  #
+  # output:
+  #
+  # - graph_results_i  (list)                 step_0, step_1 (shared) + reorganized steps --> y_c queries
+  #
+  # ----------------------------------------------------------------------------
   
   steps <- unique(unlist(lapply(graph_results_i$estimated_graphs_part_2, names)))
   reorganized <- setNames(lapply(steps, function(step) {
@@ -185,7 +250,21 @@ old_to_new_graph_results_i <- function(graph_results_i){
 
 load_all_results <- function(folder_name){
   
-  # in a folder with multiple fitted datasets, load them all into a list
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: in a folder with multiple fitted datasets, load them all into a list
+  #
+  #
+  # input:
+  #
+  # - folder_name      (string)               'simu_results/banded_trig2/OG'
+  #
+  #
+  # output:
+  #
+  # - results_list     (list)                 one list of loaded objects per file, named by n
+  #
+  # ----------------------------------------------------------------------------
   
   files <- list.files(folder_name, full.names = TRUE)
   
@@ -217,14 +296,15 @@ load_file <- function(file_name){
   #
   # GOAL: with the base folder as `Conditional_LGCP`, locate an RData file and load it
   #
-  # inputs:
   #
-  # - file_name     (string)    'simu_results/banded_trig2/OG/temp.RData'
-  # 
+  # input:
   #
-  # outputs:
+  # - file_name        (string)               'simu_results/banded_trig2/OG/temp.RData'
   #
-  # - NULL, just loads that file
+  #
+  # output:
+  #
+  # - object           (any)                  the first object stored in that file
   #
   # ----------------------------------------------------------------------------
   

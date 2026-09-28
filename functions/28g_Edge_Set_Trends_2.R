@@ -5,39 +5,41 @@ visualize_edge_set_one_mouse_all_strata <- function(results_folder, all_weeks, t
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: For a single mouse, plot all available discrete strata as rows in a
+  # GOAL: for a single mouse, plot all available discrete strata as rows in a
   #       single facet_grid. Rows = stratum label, Columns = week.
   #       One set of axis labels. Stratum labels are human-readable
   #       (m0vr1 -> "Resting", m1vr1 -> "Running"; others passed through).
   #
-  # inputs:
+  #       Color scheme for output == 'adj':
+  #         HIP-HIP edges  -> emerald teal  (#00C896)
+  #         EHC-EHC edges  -> vivid purple  (#CC3FFF)
+  #         HIP-EHC edges  -> periwinkle    (#6694CC)  [sqrt-mean-squares RGB fusion]
   #
-  # - results_folder   (string)
-  # - all_weeks        (vector)  full set of possible weeks, e.g. 17:38;
-  #                              used only to compute absent_weeks
-  # - time_scale       (integer)  e.g. 10
-  # - discrete_levels  (vector of strings)  e.g. c("m0vr1", "m1vr1")
-  # - output           (string)   'adj', 'P_HS', or 'C_HS'
-  # - region_border    (boolean)
-  # - mouse_ID         (string)   e.g. "Tau1", "WT2"
-  # - display_weeks    (vector)  subset of weeks to actually show, e.g. 17:22;
-  #                              defaults to all_weeks
+  #       Region assignment: nodes 1..boundary are HIP, nodes (boundary+1)..max_node
+  #       are EHC, where boundary = floor(first element of boundaries vector).
+  #       If no boundary is available, all nodes are treated as HIP-HIP.
   #
-  # returns: named list with two elements:
-  #   - plot         : single ggplot object (all strata as rows)
-  #   - found_levels : character vector of discrete levels actually loaded
+  #       Col_ID factor levels are set to display_weeks so that exactly those columns
+  #       appear. Weeks outside display_weeks are never rendered.
   #
-  # Color scheme for output == 'adj':
-  #   HIP-HIP edges  -> emerald teal  (#00C896)
-  #   EHC-EHC edges  -> vivid purple  (#CC3FFF)
-  #   HIP-EHC edges  -> periwinkle    (#6694CC)  [sqrt-mean-squares RGB fusion]
   #
-  # Region assignment: nodes 1..boundary are HIP, nodes (boundary+1)..max_node
-  # are EHC, where boundary = floor(first element of boundaries vector).
-  # If no boundary is available, all nodes are treated as HIP-HIP.
+  # input:
   #
-  # Col_ID factor levels are set to display_weeks so that exactly those columns
-  # appear. Weeks outside display_weeks are never rendered.
+  # - results_folder   (string)               results folder
+  # - all_weeks        (vector)               full set of possible weeks, e.g. 17:38; used only to compute absent_weeks
+  # - time_scale       (integer)              e.g. 10
+  # - discrete_levels  (vector of strings)    e.g. c("m0vr1", "m1vr1")
+  # - output           (string)               'adj', 'P_HS', or 'C_HS'
+  # - region_border    (boolean)              should we look for region borders?
+  # - mouse_ID         (string)               e.g. "Tau1", "WT2"
+  # - display_weeks    (vector)               subset of weeks to actually show, e.g. 17:22; defaults to all_weeks
+  #
+  #
+  # output:
+  #
+  # - output           (named list)
+  #   - plot           (ggplot object)        all strata as rows
+  #   - found_levels   (character vector)     discrete levels actually loaded
   #
   # ----------------------------------------------------------------------------
   
@@ -429,7 +431,7 @@ visualize_edge_set_one_mouse_all_strata_v2 <- function(results_folder, time_scal
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: For a single mouse, plot all available discrete strata as rows in a
+  # GOAL: for a single mouse, plot all available discrete strata as rows in a
   #       single facet_grid. Rows = stratum label, Columns = week.
   #       One set of axis labels. Stratum labels are human-readable
   #       (m0vr1 -> "Resting", m1vr1 -> "Running"; others passed through).
@@ -441,27 +443,31 @@ visualize_edge_set_one_mouse_all_strata_v2 <- function(results_folder, time_scal
   #       gap between them. This converts a 2x22 layout into a 4x11 layout
   #       (for 2 strata and 22 weeks).
   #
-  # inputs:
+  #       Color scheme for output == 'adj':
+  #         HIP-HIP edges  -> emerald teal  (#00C896)
+  #         EHC-EHC edges  -> vivid purple  (#CC3FFF)
+  #         HIP-EHC edges  -> periwinkle    (#6694CC)  [sqrt-mean-squares RGB fusion]
   #
-  # - results_folder   (string)
-  # - time_scale       (integer)  e.g. 10
-  # - discrete_levels  (vector of strings)  e.g. c("m0vr1", "m1vr1")
-  # - output           (string)   'adj', 'P_HS', or 'C_HS'
-  # - region_border    (boolean)
-  # - mouse_ID         (string)   e.g. "Tau1", "WT2"
+  #       Region assignment: nodes 1..boundary are HIP, nodes (boundary+1)..max_node
+  #       are EHC, where boundary = floor(first element of boundaries vector).
+  #       If no boundary is available, all nodes are treated as HIP-HIP.
   #
-  # returns: named list with two elements:
-  #   - plot         : single ggplot object (all strata as rows, weeks wrapped)
-  #   - found_levels : character vector of discrete levels actually loaded
   #
-  # Color scheme for output == 'adj':
-  #   HIP-HIP edges  -> emerald teal  (#00C896)
-  #   EHC-EHC edges  -> vivid purple  (#CC3FFF)
-  #   HIP-EHC edges  -> periwinkle    (#6694CC)  [sqrt-mean-squares RGB fusion]
+  # input:
   #
-  # Region assignment: nodes 1..boundary are HIP, nodes (boundary+1)..max_node
-  # are EHC, where boundary = floor(first element of boundaries vector).
-  # If no boundary is available, all nodes are treated as HIP-HIP.
+  # - results_folder   (string)               results folder
+  # - time_scale       (integer)              e.g. 10
+  # - discrete_levels  (vector of strings)    e.g. c("m0vr1", "m1vr1")
+  # - output           (string)               'adj', 'P_HS', or 'C_HS'
+  # - region_border    (boolean)              should we look for region borders?
+  # - mouse_ID         (string)               e.g. "Tau1", "WT2"
+  #
+  #
+  # output:
+  #
+  # - output           (named list)
+  #   - plot           (ggplot object)        all strata as rows, weeks wrapped
+  #   - found_levels   (character vector)     discrete levels actually loaded
   #
   # ----------------------------------------------------------------------------
   
@@ -896,40 +902,41 @@ visualize_strata_some_mice <- function(results_folder, all_weeks, time_scale, di
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: For each discrete level, plot a selected subset of mice as rows in a
+  # GOAL: for each discrete level, plot a selected subset of mice as rows in a
   #       single facet_grid, showing only selected weeks as columns.
   #       Rows = mouse ID, Columns = week. One set of axis labels.
   #       Tau mice appear before WT mice in row order.
   #
-  # inputs:
+  #       Color scheme for output == 'adj':
+  #         HIP-HIP edges  -> emerald teal  (#00C896)
+  #         EHC-EHC edges  -> vivid purple  (#CC3FFF)
+  #         HIP-EHC edges  -> periwinkle    (#6694CC)  [sqrt-mean-squares RGB fusion]
   #
-  # - results_folder   (string)
-  # - all_weeks        (vector)  full set of possible weeks, e.g. 17:38;
-  #                              used only to compute absent_weeks
-  # - time_scale       (integer)  e.g. 10
-  # - discrete_levels  (vector of strings)
-  # - output           (string)   'adj', 'P_HS', or 'C_HS'
-  # - region_border    (boolean)
-  # - display_weeks    (vector)  subset of weeks to actually show, e.g. 17:22;
-  #                              defaults to all_weeks
-  # - display_mice     (vector of strings or NULL)  e.g. c("Tau1", "WT2");
-  #                              if NULL, all discovered mice are shown
+  #       Region assignment: nodes 1..boundary are HIP, nodes (boundary+1)..max_node
+  #       are EHC, where boundary = floor(first element of boundaries vector).
+  #       If no boundary is available, all nodes are treated as HIP-HIP.
   #
-  # returns: named list with two elements:
-  #   - plots   : named list of ggplot objects, one per discrete level
-  #   - n_mice  : named integer list of mouse counts, one per discrete level
+  #       Col_ID factor levels are set to display_weeks so that exactly those columns
+  #       appear. Weeks outside display_weeks are never rendered.
   #
-  # Color scheme for output == 'adj':
-  #   HIP-HIP edges  -> emerald teal  (#00C896)
-  #   EHC-EHC edges  -> vivid purple  (#CC3FFF)
-  #   HIP-EHC edges  -> periwinkle    (#6694CC)  [sqrt-mean-squares RGB fusion]
   #
-  # Region assignment: nodes 1..boundary are HIP, nodes (boundary+1)..max_node
-  # are EHC, where boundary = floor(first element of boundaries vector).
-  # If no boundary is available, all nodes are treated as HIP-HIP.
+  # input:
   #
-  # Col_ID factor levels are set to display_weeks so that exactly those columns
-  # appear. Weeks outside display_weeks are never rendered.
+  # - results_folder   (string)                     results folder
+  # - all_weeks        (vector)                     full set of possible weeks, e.g. 17:38; used only to compute absent_weeks
+  # - time_scale       (integer)                    e.g. 10
+  # - discrete_levels  (vector of strings)          e.g. c("m0vr1", "m1vr1")
+  # - output           (string)                     'adj', 'P_HS', or 'C_HS'
+  # - region_border    (boolean)                    should we look for region borders?
+  # - display_weeks    (vector)                     subset of weeks to actually show, e.g. 17:22; defaults to all_weeks
+  # - display_mice     (vector of strings or NULL)  e.g. c("Tau1", "WT2"); if NULL, all discovered mice are shown
+  #
+  #
+  # output:
+  #
+  # - output           (named list)
+  #   - plots          (named list)                 ggplot objects, one per discrete level
+  #   - n_mice         (named list)                 integer mouse counts, one per discrete level
   #
   # ----------------------------------------------------------------------------
   

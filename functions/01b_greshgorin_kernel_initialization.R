@@ -1,5 +1,25 @@
 # Helper function for null coalescing
-`%||%` <- function(x, y) if (is.null(x)) y else x
+`%||%` <- function(x, y){
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: null coalescing, return x unless it is NULL, in which case return y
+  #
+  #
+  # input:
+  #
+  # - x                (any)                  preferred value
+  # - y                (any)                  fallback value
+  #
+  #
+  # output:
+  #
+  # - value            (any)                  x if not NULL, otherwise y
+  #
+  # ----------------------------------------------------------------------------
+  
+  if (is.null(x)) y else x
+}
 
 
 calculate_optimal_rho_max <- function(p, structure_type, structure_params) {
@@ -7,19 +27,20 @@ calculate_optimal_rho_max <- function(p, structure_type, structure_params) {
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: Calculate optimal rho_max based on structure type and Gershgorin bounds
-  # 
+  # GOAL: calculate optimal rho_max based on structure type and Gershgorin bounds
   #
-  # inputs:
   #
-  # - p                 (integer)   Matrix dimension
-  # - structure_type    (string)    Structure type, one of "banded", 'exponential_decay', or 'sparse'
-  # - structure_params  (list)      Structure parameters  
+  # input:
   #
-  # outputs:
+  # - p                 (integer)              matrix dimension
+  # - structure_type    (string)               one of "banded", 'exponential_decay', or 'sparse'
+  # - structure_params  (list)                 structure parameters (k, gamma, or s)
   #
-  # - rho_max           (number)    optimal rho_max by Gershgorin bounds
-  # 
+  #
+  # output:
+  #
+  # - rho_max           (number)               optimal rho_max by Gershgorin bounds
+  #
   # ----------------------------------------------------------------------------
   
   if (structure_type == "banded") {
@@ -51,21 +72,21 @@ create_sparse_alpha <- function(p, s, connection_prob, base_strength, covariate_
   
   # ----------------------------------------------------------------------------
   #
+  # GOAL: create alpha functions for sparse structure
   #
-  # GOAL: Create alpha functions for sparse structure
+  #
+  # input:
+  #
+  # - p                   (integer)              matrix dimension
+  # - s                   (integer)              maximum number of connections per node
+  # - connection_prob     (number)               probability of connection
+  # - base_strength       (number)               intercept coefficient
+  # - covariate_strength  (number)               strength of covariate modulation
   #
   #
-  # inputs:
-  # 
-  # - p                    (integer)       Matrix dimension
-  # - s                    (integer)       Maximum number of connections per node
-  # - connection_prob      (number)        Probability of connection
-  # - base_strength        (number)        Intercept coefficient
-  # - covariate_strength   (number)        Strength of covariate modulation
+  # output:
   #
-  # outputs:
-  #
-  # - alpha_functions      (list of alpha functions)
+  # - alpha_functions     (named list)           each i_j item is a function alpha_ij(y_c)
   #
   # ----------------------------------------------------------------------------
   
@@ -102,15 +123,17 @@ calculate_row_sums <- function(rho_matrix) {
   
   # ----------------------------------------------------------------------------
   #
-  # Calculate row sums for Gershgorin bound
-  # 
-  # inputs:
-  # 
-  # - rho_matrix  (p x p matrix)
+  # GOAL: calculate absolute off-diagonal row sums for the Gershgorin bound
   #
-  # outputs:
   #
-  # row_sums     (p-dim vector)   rowsum values
+  # input:
+  #
+  # - rho_matrix       (p x p matrix)
+  #
+  #
+  # output:
+  #
+  # - row_sums         (p-dim vector)         row sum values
   #
   # ----------------------------------------------------------------------------
   
@@ -126,15 +149,27 @@ calculate_row_sums <- function(rho_matrix) {
 
 apply_structure_constraints <- function(rho_val, i, j, structure_type, structure_params) {
   
+  # ----------------------------------------------------------------------------
   #
-  # GOAL: after calculating rho = rho_max * tanh(alpha_val), we may need more massaging
+  # GOAL: apply structure-specific constraints to correlation values
   #
-  #' Apply structure-specific constraints to correlation values
-  #' @param rho_val Current correlation value
-  #' @param i Row index
-  #' @param j Column index
-  #' @param structure_type Structure type
-  #' @param structure_params Structure parameters  
+  #       - after calculating rho = rho_max * tanh(alpha_val), we may need more massaging
+  #
+  #
+  # input:
+  #
+  # - rho_val           (number)               current correlation value
+  # - i                 (integer)              row index
+  # - j                 (integer)              column index
+  # - structure_type    (string)               one of "banded", "exponential_decay", "sparse"
+  # - structure_params  (list)                 structure parameters (k, gamma, or s)
+  #
+  #
+  # output:
+  #
+  # - rho_val           (number)               constrained correlation value
+  #
+  # ----------------------------------------------------------------------------
   
   if (structure_type == "banded") {
     k <- structure_params$k %||% 5
@@ -167,28 +202,41 @@ construct_gershgorin_precision_matrix <- function(p, y_c, alpha_functions,
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: Construct precision matrix using Gershgorin-based bounds
-  # 
-  # inputs:
-  # 
-  # - p                 (integer)           Matrix dimension
-  # - y_c               (q_c-dim vector)    Covariate vector
-  # - alpha_functions   (Named list)        each item is a function alpha_ij(y_c)
-  # - structure_type    (string)            One of "banded", "exponential_decay", "sparse"
-  # - structure_params  (list)              structure-specific parameters
-  #   - k               (value)             'banded' parameter
-  #   - gamma           (value)             'exponential_decay' parameter
-  #   - s               (value)             'sparse' parameter
-  #
-  # - epsilon           (number)            Minimum absolute value threshold
-  # - delta             (number)            Regularization parameter for spectral adjustment
+  # GOAL: construct precision matrix using Gershgorin-based bounds
   #
   #
-  # outputs:
+  # input:
   #
-  # - List with precision matrix and diagnostics  
-  #   - precision_matrix   (p x p matrix)   precision matrix with 1's on the diagonal
+  # - p                             (integer)              matrix dimension
+  # - y_c                           (q_c-dim vector)       covariate vector
+  # - alpha_functions               (named list)           each item is a function alpha_ij(y_c)
+  # - structure_type                (string)               one of "banded", "exponential_decay", "sparse"
+  # - structure_params              (list)                 structure-specific parameters
+  #   - k                           (number)               'banded' parameter
+  #   - gamma                       (number)               'exponential_decay' parameter
+  #   - s                           (number)               'sparse' parameter
+  # - epsilon                       (number)               minimum absolute value threshold
+  # - delta                         (number)               regularization parameter for spectral adjustment
   #
+  #
+  # output:
+  #
+  # - output                        (list)                 precision matrix and diagnostics
+  #   - precision_matrix            (p x p matrix)         precision matrix with 1's on the diagonal
+  #   - original_matrix             (p x p matrix)         matrix before spectral adjustment
+  #   - eigenvalues_original        (p-dim vector)
+  #   - eigenvalues_adjusted        (p-dim vector)
+  #   - spectral_adjustment_needed  (boolean)
+  #   - min_eigenvalue_original     (number)
+  #   - min_eigenvalue_adjusted     (number)
+  #   - gershgorin_r_max            (number)               largest Gershgorin row sum
+  #   - gershgorin_bound_satisfied  (boolean)              r_max < 1
+  #   - theoretical_min_eigenvalue  (number)               1 - r_max
+  #   - rho_max                     (number)
+  #   - structure_type              (string)
+  #   - structure_params            (list)
+  #   - y_c                         (q_c-dim vector)
+  #   - row_sums                    (p-dim vector)
   #
   # ----------------------------------------------------------------------------
   

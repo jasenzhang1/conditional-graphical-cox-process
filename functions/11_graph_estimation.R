@@ -7,11 +7,28 @@ roc_for_thresholded_w_mat <- function(w_mat, adj_mat) {
   #
   # GOAL: for a w_mat that's thresholded already, report ROC metrics
   #
+  #       - AUC and roc_df are NA since the ranking info is lost after thresholding
   #
-  # inputs:
   #
-  # - w_mat    (p x p matrix) matrix of 0's and nonzero values
-  # - adj_mat  (p x p matrix) matrix of 0's and 1's with 0's on the diagonal
+  # input:
+  #
+  # - w_mat            (p x p matrix)         matrix of 0's and nonzero values
+  # - adj_mat          (p x p matrix)         matrix of 0's and 1's with 0's on the diagonal
+  #
+  #
+  # output:
+  #
+  # - output           (list)
+  #   - threshold      (NA)
+  #   - accuracy       (number)
+  #   - f1_score       (number)
+  #   - sensitivity    (number)
+  #   - specificity    (number)
+  #   - ppv            (number)
+  #   - npv            (number)
+  #   - auc            (NA)
+  #   - roc_df         (NA)
+  #   - counts         (list)                 TP, FP, TN, FN
   #
   # ----------------------------------------------------------------------------
   
@@ -82,26 +99,28 @@ roc_for_raw_w_mat <- function(w_mat, adj_mat) {
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: identify the ideal threshold for selecting an edge using ROC curves
+  # GOAL: identify the ideal threshold for selecting an edge using ROC curves (Youden's J)
   #
   #
   # input:
-  # 
-  # - w_mat    (p x p matrix)
-  # - adj_mat  (p x p matrix) 0's on the diagonals
+  #
+  # - w_mat            (p x p matrix)         edge weights
+  # - adj_mat          (p x p matrix)         true adjacency matrix with 0's on the diagonal
   #
   #
+  # output:
   #
-  # outputs:
-  #
-  # - list of the following:
-  # 
-  #   - threshold
-  #   - sensitivity
-  #   - specificity
-  #   - auc
-  #   - accuracy
-  #   - roc_df
+  # - output           (list)                 same structure as roc_for_thresholded_w_mat (all NA if adj_mat has only one class)
+  #   - threshold      (number)               ideal threshold
+  #   - accuracy       (number)
+  #   - f1_score       (number)
+  #   - sensitivity    (number)
+  #   - specificity    (number)
+  #   - ppv            (number)
+  #   - npv            (number)
+  #   - auc            (number)
+  #   - roc_df         (data.frame)           FPR and TPR columns for plotting
+  #   - counts         (list)                 TP, FP, TN, FN
   #
   # ----------------------------------------------------------------------------
   

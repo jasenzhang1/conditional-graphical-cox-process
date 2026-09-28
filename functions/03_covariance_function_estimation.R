@@ -9,21 +9,21 @@ estimate_covariance_functions_ii <- function(rho_i, rho_ii, regularization=1e-10
   
   # ----------------------------------------------------------------------------
   #
+  # GOAL: estimate G_{ij}(s, t) across all p x p pairs of processes
   #
-  # GOAL: Want to estimate G_{ij}(s, t)  across all p x p pairs of processes
-  #
-  # - but we only care about G_{i,i}(s,t)
-  #
-  # 
-  # Input: 
-  #
-  #   - rho_i      (p x m matrix)                    univariate intensity
-  #   - rho_ii     (list of p m x m matrices)        bivariate intensity
+  #       - but we only care about G_{i,i}(s,t)
   #
   #
-  # Output: 
+  # input:
   #
-  # - G_hat           (list of m x m matrices for i_i process)
+  # - rho_i            (p x m matrix)              univariate intensity
+  # - rho_ii           (list of p m x m matrices)  bivariate intensity
+  # - regularization   (number)                    lower bound on numerator and denominator to avoid log(0)
+  #
+  #
+  # output:
+  #
+  # - G_hat            (list of p m x m matrices)  G_{i,i}(s,t) for each process i
   #
   # ----------------------------------------------------------------------------
   
@@ -61,19 +61,19 @@ estimate_covariance_functions_ij <- function(rho_i, rho_ii_mat, regularization=1
   
   # ----------------------------------------------------------------------------
   #
-  #
-  # GOAL: Want to estimate G_{ij}(s, t)  across all p x p pairs of processes
-  #
-  # 
-  # Input: 
-  # 
-  #   - rho_i      (p x m matrix)                      univariate intensity
-  #   - rho_ii_mat (i_j list of m x m matrices)        bivariate intensity
+  # GOAL: estimate G_{ij}(s, t) across all p x p pairs of processes
   #
   #
-  # Output: 
+  # input:
   #
-  # - G_hat           (i_j list of m x m matrices) 
+  # - rho_i            (p x m matrix)                univariate intensity
+  # - rho_ii_mat       (list of i_j m x m matrices)  bivariate intensity
+  # - regularization   (number)                      lower bound on numerator and denominator to avoid log(0)
+  #
+  #
+  # output:
+  #
+  # - G_hat            (list of i_j m x m matrices)  G_{i,j}(s,t) for each pair of processes
   #
   # ----------------------------------------------------------------------------
   

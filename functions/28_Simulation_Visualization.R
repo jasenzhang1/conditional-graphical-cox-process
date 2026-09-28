@@ -11,26 +11,28 @@ visualize_matrix_heatmap <- function(mat, g_title = NULL, zmin = NULL, zmid = NU
   
   # ----------------------------------------------------------------------------
   #
-  #
   # GOAL: plot a simple heatmap with optional arguments for max and min values
-  #   - low = blue
-  #   - mid = white
-  #   - max = red
+  #
+  #       - low = blue
+  #       - mid = white
+  #       - max = red
   #
   #
   # input:
   #
-  # - mat            (p x p matrix)
-  # - g_title        (string)
-  # - zmin           (number) to denote the very smallest value
-  # - zmid           (number) to denote the midpoint (white) value
-  # - zmax           (number) to denote the highest value (red)
-  # - x_max_borders  (vector)  optional vector to denote block matrix borders
-  # - y_max_borders  (vector)  optional vector to denote block matrix borders
+  # - mat              (p x p matrix)
+  # - g_title          (string)               plot title
+  # - zmin             (number)               the very smallest value
+  # - zmid             (number)               the midpoint (white) value
+  # - zmax             (number)               the highest value (red)
+  # - x_max_borders    (vector)               optional vector to denote block matrix borders
+  # - y_max_borders    (vector)               optional vector to denote block matrix borders
+  # - palette_ID       (string)               hcl.colors palette name
+  #
   #
   # output:
   #
-  # - graph
+  # - g                (ggplot object)        heatmap
   #
   # ----------------------------------------------------------------------------
   
@@ -84,7 +86,21 @@ visualize_matrix_heatmap <- function(mat, g_title = NULL, zmin = NULL, zmid = NU
 
 visualize_precision_matrix <- function(precision_op){
   
-  # precision_op = (p x p x m x m) matrix
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: plot a heatmap of the assembled pm x pm precision matrix with block borders
+  #
+  #
+  # input:
+  #
+  # - precision_op     (p x p x m x m array)  precision operator
+  #
+  #
+  # output:
+  #
+  # - heatmap_plot     (ggplot object)        heatmap
+  #
+  # ----------------------------------------------------------------------------
   
   p <- dim(precision_op)[1]
   m <- dim(precision_op)[3]
@@ -121,9 +137,25 @@ visualize_precision_matrix <- function(precision_op){
 
 HS_heatmap <- function(precision_op, delta_t){
   
-  # precision_op = (p x p x m x m) matrix
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: plot a logical heatmap of which off-diagonal precision operator blocks have nonzero HS norm
+  #
+  #       - recall that the precision matrix HS norm scales with delta_t^3
+  #
+  #
+  # input:
+  #
+  # - precision_op     (p x p x m x m array)  precision operator
+  # - delta_t          (number)               time spacing
+  #
+  #
+  # output:
+  #
+  # - heatmap_plot     (ggplot object)        logical heatmap (returned invisibly)
+  #
+  # ----------------------------------------------------------------------------
   
-  # recall that the precision matrix HS norm scales with delta_t^3
   HS_values <- apply(precision_op, c(1, 2), function(mat){sum(mat^2) * delta_t^3})
   
   HS_adj <- HS_values
@@ -162,19 +194,19 @@ visualize_histogram <- function(mat_est, mat_reconstruct = NULL, g_title = 'Titl
   #
   # GOAL: 1) visualize the distribution of a matrix object
   #       2) if we supply two matrices, we wish to visualize the errors between mat_est and mat_reconstruct
-  # 
-  # 
-  # inputs:
-  # 
-  # - mat_est           (matrix)
-  # - mat_reconstruct   (matrix)
-  # - g_title           (string)
-  # - n_bins            (integer)  number of histogram bins
+  #
+  #
+  # input:
+  #
+  # - mat_est          (matrix)
+  # - mat_reconstruct  (matrix)               optional
+  # - g_title          (string)               plot title
+  # - bin_count        (integer)              number of histogram bins
   #
   #
   # output:
-  # 
-  # histogram of elementwise differences
+  #
+  # - g                (ggplot object)        histogram of elements or of elementwise differences
   #
   # ----------------------------------------------------------------------------
   
@@ -198,23 +230,25 @@ visualize_log_intensity <- function(X_k, time_grid,  g_title = 'Title', mu_t = N
   
   # ----------------------------------------------------------------------------
   #
-  # 
-  # visualize the log intensities
-  # 
-  # inputs:
-  # 
-  # - X_k            (p x m matrix)
-  # - time_grid      (m-dim vec of timepoints)
-  # - g_title        (string)
-  # - mu_t           (m-dim vec of the mean of the GP)
-  # - legend_title   (string)
+  # GOAL: visualize the log intensities
+  #
+  #
+  # input:
+  #
+  # - X_k              (p x m matrix)         log intensities
+  # - time_grid        (m-dim vector)         timepoints
+  # - g_title          (string)               plot title
+  # - mu_t             (m-dim vector)         the mean of the GP
+  # - palette_ID       (string)               hcl.colors palette name
+  # - legend_title     (string)
+  # - ymin             (number)               lower y-axis limit
+  # - ymax             (number)               upper y-axis limit
   #
   #
   # output:
-  # 
-  # graph of all p log intensites at m timepoints
   #
-  # 
+  # - g                (ggplot object)        all p log intensities at m timepoints
+  #
   # ----------------------------------------------------------------------------
   
   
@@ -259,16 +293,19 @@ visualize_intensity_with_points <- function(intensity, time_grid, event_times){
   
   # ----------------------------------------------------------------------------
   #
-  # inputs:
-  # 
-  # - intensity    (m-dim vector)   y-values of the intensity
-  # - time_grid    (m-dim vector)   x-values of the intensity
-  # - event_times  (n-dim vector)   vector of timestamps of the events
+  # GOAL: overlay an intensity with the step function of its events
   #
   #
-  # outputs:
+  # input:
   #
-  # - g            (ggplot object)  graph overlaying the intensity with step function of events, along with dots on the y = 0 line to represent realizations
+  # - intensity        (m-dim vector)         y-values of the intensity
+  # - time_grid        (m-dim vector)         x-values of the intensity
+  # - event_times      (n-dim vector)         timestamps of the events
+  #
+  #
+  # output:
+  #
+  # - g                (ggplot object)        intensity with a step function of events, along with dots on the y = 0 line to represent realizations
   #
   # ----------------------------------------------------------------------------
   
@@ -318,19 +355,26 @@ visualize_intensity_with_points <- function(intensity, time_grid, event_times){
 
 ground_truth_rho_ij <- function(my_list){
   
-
+  # ----------------------------------------------------------------------------
   #
-  # Assuming your list is called my_list
-  # Each element has a matrix called X_functions of dimension p x m
-  #   
+  # GOAL: generate the rho_ij estimate from a list of log-intensities
   #
-  # generate rho_ij estimate:
+  #       1) exponentiate log-intensity (X) to get intensity
+  #       2) take cross product to get rho_ij
   #
-  # 1) exponentiate log-intensity (X) to get intensity
-  # 2) take cross product to get rho_ij
-  #  
-  #     mean( X %*% t(X) )
+  #          mean( X %*% t(X) )
   #
+  #
+  # input:
+  #
+  # - my_list          (n-dim list)                  each element has a p x m matrix called X_functions
+  #
+  #
+  # output:
+  #
+  # - outer_means      (list of i_j m x m matrices)  i <= j
+  #
+  # ----------------------------------------------------------------------------
   
   p <- nrow(my_list[[1]]$X_functions)
   m <- ncol(my_list[[1]]$X_functions)
@@ -371,18 +415,24 @@ ground_truth_rho_ij <- function(my_list){
 
 block_matrix_HS <- function(pm_mat, p){
   
+  # ----------------------------------------------------------------------------
   #
-  # GOAL: to check if HS norms of precision and covariace operators are the same 
-  #       We have a pm x pm matrix, but want to take the HS norm of each m x m submatrix
+  # GOAL: check if HS norms of precision and covariance operators are the same
+  #
+  #       - we have a pm x pm matrix, but want to take the HS norm of each m x m submatrix
   #
   #
   # input:
   #
-  # - pm_matrix (pm x pm matrix)
-  # - p         (number of processes)
-  # - delta_t   (number to denote time spacing)
+  # - pm_mat           (pm x pm matrix)
+  # - p                (integer)              number of processes
   #
   #
+  # output:
+  #
+  # - HS_mat           (p x p matrix)         HS (Frobenius) norm of each block
+  #
+  # ----------------------------------------------------------------------------
   
   m = dim(pm_mat)[1] / p
   HS_mat <- matrix(0, nrow = p, ncol = p)
@@ -412,25 +462,26 @@ visualize_precision_gif <- function(save_dir, p, d, adj_type_list, adj_params_li
   #
   # GOAL: visualize how the partial correlation matrix changes over time with a gif
   #
-  # - note that adj_params[1:2] denote the min and max y_c value
-  # - note that the structure of adj_type_list denotes where the heatmap is placed
-  #   - adj_type_list[[1]][[2]] denotes the setting of the (1, 2) heatmap, in matrix notation.
+  #       - note that adj_params[1:2] denote the min and max y_c value
+  #       - note that the structure of adj_type_list denotes where the heatmap is placed
+  #         - adj_type_list[[1]][[2]] denotes the setting of the (1, 2) heatmap, in matrix notation
+  #
   #
   # input:
   #
-  # - save_dir           (string)                      where to save the gif, such as simu_results/flexible_block_banded_c0/CPGM
-  # - p                  (integer)                     number of processes
-  # - d                  (integer)                     number of eigencomponents in simulation
-  # - adj_type_list      (list of lists of strings)    can take multiple adj_types
-  # - adj_params_list    (list of lists of vectors)    can take multiple adj_params
-  # - matrix_types       (string)                      which type of matrix to present: 'prec', 'cov', 'adj', 'cor', or 'prec_norm'
-  # - nframes            (number)                      number of frames
-  # - fps                (number)                      frames per second
+  # - save_dir         (string)                    where to save the gif, such as simu_results/flexible_block_banded_c0/CPGM
+  # - p                (integer)                   number of processes
+  # - d                (integer)                   number of eigencomponents in simulation
+  # - adj_type_list    (list of lists of strings)  can take multiple adj_types
+  # - adj_params_list  (list of lists of vectors)  can take multiple adj_params
+  # - matrix_type      (string)                    which type of matrix to present: 'prec', 'cov', 'adj', 'cor', or 'prec_norm'
+  # - nframes          (integer)                   number of frames
+  # - fps              (number)                    frames per second
   #
   #
   # output:
   #
-  # - a grid of animated gifs
+  # - none                                         a gif is saved to save_dir
   #
   # ----------------------------------------------------------------------------
   
@@ -556,8 +607,26 @@ visualize_precision_gif <- function(save_dir, p, d, adj_type_list, adj_params_li
 visualize_precision_grid_gif <- function(save_dir, p, d, adj_type_list, adj_params_list, matrix_type, nframes, fps) {
   
   # ----------------------------------------------------------------------------
-  # GOAL: Create a 2D grid of animated heatmaps based on a matrix of settings
-  # matrix_type: 'prec', 'cov', 'adj', 'cor', or 'prec_norm'
+  #
+  # GOAL: create a 2D grid of animated heatmaps based on a matrix of settings
+  #
+  #
+  # input:
+  #
+  # - save_dir         (string)                    where to save the gif
+  # - p                (integer)                   number of processes
+  # - d                (integer)                   number of eigencomponents in simulation
+  # - adj_type_list    (list of lists of strings)  adj_type_list[[r]][[c]] is the setting of the (r, c) heatmap
+  # - adj_params_list  (list of lists of vectors)  adj_params for each heatmap
+  # - matrix_type      (string)                    'prec', 'cov', 'adj', 'cor', or 'prec_norm'
+  # - nframes          (integer)                   number of frames
+  # - fps              (number)                    frames per second
+  #
+  #
+  # output:
+  #
+  # - none                                         grid_<matrix_type>_p<p>_animation.gif is saved to save_dir
+  #
   # ----------------------------------------------------------------------------
   
   library(magick)
@@ -650,6 +719,30 @@ visualize_precision_grid_gif <- function(save_dir, p, d, adj_type_list, adj_para
 }
 
 visualize_precision_grid_gif_v2 <- function(save_dir, p, d, adj_type_list, adj_params_list, matrix_type, nframes, fps) {
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: memory-friendly version of visualize_precision_grid_gif that writes each frame to disk
+  #
+  #
+  # input:
+  #
+  # - save_dir         (string)                    where to save the gif
+  # - p                (integer)                   number of processes
+  # - d                (integer)                   number of eigencomponents in simulation
+  # - adj_type_list    (list of lists of strings)  adj_type_list[[r]][[c]] is the setting of the (r, c) heatmap
+  # - adj_params_list  (list of lists of vectors)  adj_params for each heatmap
+  # - matrix_type      (string)                    'prec', 'cov', 'adj', 'cor', or 'prec_norm'
+  # - nframes          (integer)                   number of frames
+  # - fps              (number)                    frames per second
+  #
+  #
+  # output:
+  #
+  # - none                                         grid_<matrix_type>.gif is saved to save_dir
+  #
+  # ----------------------------------------------------------------------------
+  
   library(magick)
   
   n_rows <- length(adj_type_list)
@@ -746,6 +839,32 @@ visualize_precision_grid_gif_v2 <- function(save_dir, p, d, adj_type_list, adj_p
 visualize_precision_matrix_facet <- function(save_dir, p, d, adj_type_list, adj_params_list, 
                                              matrix_type, nframes, fps, 
                                              x_lab_vec, y_lab_vec) {
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: animate a 3 x 3 facet grid of matrix heatmaps with gganimate and save the gif and its frames
+  #
+  #
+  # input:
+  #
+  # - save_dir         (string)                          where to save the gif and the frames/ folder
+  # - p                (integer)                         number of processes
+  # - d                (integer)                         number of eigencomponents in simulation
+  # - adj_type_list    (3 x 3 list of lists of strings)  adj_type_list[[r]][[c]] is the setting of the (r, c) facet
+  # - adj_params_list  (3 x 3 list of lists of vectors)  adj_params for each facet
+  # - matrix_type      (string)                          'prec', 'cov', 'adj', 'cor', or 'prec_norm'
+  # - nframes          (integer)                         number of frames
+  # - fps              (number)                          frames per second
+  # - x_lab_vec        (3-dim vector of strings)         column facet labels
+  # - y_lab_vec        (3-dim vector of strings)         row facet labels
+  #
+  #
+  # output:
+  #
+  # - none                                               matrix_grid_<matrix_type>.gif and PNG frames are saved to save_dir
+  #
+  # ----------------------------------------------------------------------------
+  
   library(ggplot2)
   library(gganimate)
   library(dplyr)

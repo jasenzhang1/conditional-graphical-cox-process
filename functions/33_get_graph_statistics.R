@@ -8,29 +8,29 @@ get_adj_matrix <- function(final_graph_estimates, thresh_value, n_neurons_not_di
   
   # ----------------------------------------------------------------------------
   #
-  # Goal: from the estimated object, construct all kinds of matrices 
+  # GOAL: from the estimated object, construct all kinds of matrices
   #
-  # - adjacency matrix
-  # - adjacency matrix with 1's on the diagonal
-  # - weighted adjacency matrix
-  # - weighted adjacency matrix with 1's on the diagonal
+  #       - adjacency matrix
+  #       - adjacency matrix with 1's on the diagonal
+  #       - weighted adjacency matrix
   #
   #
   # input:
   #
-  # - final_graph_estimates      (list)
+  # - final_graph_estimates    (list)
   #   - edges
-  #   - edge_strengths
+  #   - edge_strengths         (list)                 named i_j
   #   - discarded_neurons
-  # - thresh_value               (integer)
-  # - n_neurons_not_discarded    (integer) number of neurons considered in the list
+  # - thresh_value             (number)               keep edges whose strength is above this value
+  # - n_neurons_not_discarded  (integer)              number of neurons considered in the list
   #
-  # 
+  #
   # output:
-  # 
-  # - adjacency matrix 
-  # - adjacacency matrix with 1's on diag
-  # - weighted matrix (with 0's on diag)
+  #
+  # - output                   (list)
+  #   - adj_mat                (p x p matrix)         adjacency matrix
+  #   - adj_mat_w_diag         (p x p matrix)         adjacency matrix with 1's on diag
+  #   - weight_mat             (p x p matrix)         weighted matrix (with 0's on diag)
   #
   # ----------------------------------------------------------------------------
   

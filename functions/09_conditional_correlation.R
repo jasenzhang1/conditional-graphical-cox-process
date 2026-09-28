@@ -2,25 +2,25 @@
 correlation_estimation_KL_cor <- function(eigendecomp, KL_cor, identity = F){
   
   # ----------------------------------------------------------------------------
-  # 
   #
   # GOAL: construct the correlation operator from the KL covariance method, but we already computed KL_cor values
   #
+  #
   # input:
   #
-  # - eigendecomp (list of 3 entries)
+  # - eigendecomp       (list of 3 entries)
+  #   - eigenvalues     (list of p vectors)
+  #   - eigenfunctions  (list of p m x d_i matrices)  NOT NORMALIZED
+  #   - n_dims          (list of p integers)
+  # - KL_cor            (list of i_j d x d matrices)  correlation between KL coeffs of components a and b in processes i and j
+  # - identity          (boolean)                     are the i = j entries just the identity?
   #
-  #   - eigenvalues
-  #   - eigenfunctions   NOT NORMALIZED
-  #   - n_dims
-  #
-  # - KL_cor      (list of i_j entries, each is d x d matrix) each value represents correlation between KL coeffs of components a and b in process i and j
-  # - identity    (boolean)  are the i = j entries just the identity?
   #
   # output:
   #
-  # - C_cond   (list of i_j entries)
-  #
+  # - output            (list)
+  #   - C_cond          (list of i_j m x m matrices)  correlation operator blocks built from normalized eigenfunctions
+  #   - C_cond_unnorm   (list of i_j m x m matrices)  same blocks built from the unnormalized eigenfunctions
   #
   # ----------------------------------------------------------------------------
   

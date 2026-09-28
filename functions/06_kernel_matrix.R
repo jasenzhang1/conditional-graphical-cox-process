@@ -1,22 +1,24 @@
 step_6_kernel <- function(y1, y2, gamma_c) {
   
-  # ---------------------------------------------------------------------
+  # ----------------------------------------------------------------------------
   #
-  # GOAL: defining the kernel in step 6
+  # GOAL: define the kernel in step 6
   #
-  # - for each replicate in strata y_d, obtain its continuous vector and take pairwise kernels
+  #       - for each replicate in strata y_d, obtain its continuous vector and take pairwise kernels
   #
-  # Input: 
   #
-  # - y1 (q_c x 1)
-  # - y2 (q_c x 1)
-  # - gamma_c (scalar)
+  # input:
   #
-  # 
-  # Output: 
-  # - kernel value (scalar)
+  # - y1               (q_c-dim vector)
+  # - y2               (q_c-dim vector)
+  # - gamma_c          (scalar)               kernel bandwidth parameter
   #
-  # ---------------------------------------------------------------------
+  #
+  # output:
+  #
+  # - kernel_value     (scalar)               exp(-gamma_c||y1 - y2||^2)
+  #
+  # ----------------------------------------------------------------------------
   
   diff <- y1 - y2              # q_c x 1
   return(exp(-gamma_c * sum(diff^2)))  # scalar
@@ -26,19 +28,18 @@ KDE_weights <- function(Y_c_k, y_c_query){
   
   # ----------------------------------------------------------------------------
   #
-  #
-  # GOAL: get KDE weights for each Y_c_k value wrt y_c_query
-  #
-  # inputs:
-  # 
-  # - Y_c_k (n x q_c dim matrix)
-  # - y_c_query (q_c-dim vector)
+  # GOAL: get normalized KDE weights for each Y_c_k value wrt y_c_query
   #
   #
-  # outputs:
+  # input:
   #
-  # - weights2 (n-dim vector)
+  # - Y_c_k            (n x q_c matrix)       continuous covariates of each replicate
+  # - y_c_query        (q_c-dim vector)       query covariate value
   #
+  #
+  # output:
+  #
+  # - weights2         (n-dim vector)         kernel weights that sum to 1
   #
   # ----------------------------------------------------------------------------
   
@@ -58,23 +59,24 @@ KDE_weights <- function(Y_c_k, y_c_query){
 
 select_gamma_c_bandwidth_v2 <- function(Y_continuous_stratum) {
   
-  
-  # Heuristic for selecting gamma_c based on median pairwise distance
+  # ----------------------------------------------------------------------------
   #
-  # - faster?
+  # GOAL: heuristic for selecting gamma_c based on median pairwise distance
+  #
+  #       - gamma_c = 1 / median_dist^2, or 1 if there are fewer than 2 replicates
+  #         or the median distance is 0
   #
   #
-  # Iinput: 
+  # input:
   #
-  # - Y_continuous_stratum    (n_stratum x q_c matrix)
-  # 
+  # - Y_continuous_stratum  (n_stratum x q_c matrix)
   #
-  # Output:
   #
-  # - gamma_c
+  # output:
   #
-  # 
-  # -------------------------
+  # - gamma_c               (scalar)               kernel bandwidth parameter
+  #
+  # ----------------------------------------------------------------------------
   
   q_c <- ncol(Y_continuous_stratum)
   n_stratum <- nrow(Y_continuous_stratum)

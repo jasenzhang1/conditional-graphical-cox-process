@@ -13,20 +13,23 @@ visualize_prec_mat_over_time <- function(folder_name, n){
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: plot true pxp matrix versus estimated pxp matrix (w_mat)
+  # GOAL: plot true p x p matrix versus estimated p x p matrix (w_mat)
   #
-  # - this is to be done for a single simulation (adj_method, est_method, n)
-  # 
-  # input: 
+  #       - this is to be done for a single simulation (adj_method, est_method, n)
   #
-  # - folder_name   (string)
-  # - n             (integer)
+  #
+  # input:
+  #
+  # - folder_name      (string)               results folder
+  # - n                (integer)              sample size
+  #
   #
   # output:
   #
-  # - 2 x n graph of prec_mat (row 1) and w_mat (row 2)
+  # - output           (list)
+  #   - graph          (grob)                 2 x n_query graph of prec_mat (row 1) and w_mat (row 2)
+  #   - values         (list)                 truth and est matrices that were plotted
   #
-  # 
   # ----------------------------------------------------------------------------
   
   
@@ -67,6 +70,23 @@ visualize_prec_mat_over_time <- function(folder_name, n){
 # helper 
 rearrange_plots <- function(g_list, main_title = NULL){
   
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: arrange a list of per-time plot lists into a grid, with graphs as rows and times as columns
+  #
+  #
+  # input:
+  #
+  # - g_list           (list of lists of ggplots)  g_list[[time]][[graph]]
+  # - main_title       (string)                    optional title on top of the grid
+  #
+  #
+  # output:
+  #
+  # - arranged_plot    (grob)                      grid.arrange output
+  #
+  # ----------------------------------------------------------------------------
+  
   n_time <- length(g_list)
   n_graphs <- length(g_list[[1]])
   
@@ -101,17 +121,20 @@ label_model_type <- function(vec) {
   # ----------------------------------------------------------------------------
   #
   # GOAL: rename items to whether they are the truth or how they are thresholded
-  # 
-  #       valid names are 'truth', 'none', 'local', 'hybrid', 'global' to describe the thresholding
   #
-  #       example: "C_HS_truth"                  "C_HS_KL_est_eig1"            "C_HS_KL_GIC_local_est_eig1"  "C_HS_KL_GIC_hybrid_est_eig1"
-  #       turn this into 'truth', 'none', 'local', and 'hybrid'
+  #       - valid names are 'truth', 'none', 'local', 'hybrid', 'global' to describe the thresholding
+  #       - example: "C_HS_truth", "C_HS_KL_est_eig1", "C_HS_KL_GIC_local_est_eig1", "C_HS_KL_GIC_hybrid_est_eig1"
+  #         turn this into 'truth', 'none', 'local', and 'hybrid'
   #
-  # inputs:
   #
-  # - vec   (vector of strings)
+  # input:
   #
-  # - results (vector of renamed strings)
+  # - vec              (vector of strings)    names to relabel
+  #
+  #
+  # output:
+  #
+  # - results          (vector of strings)    renamed strings
   #
   # ----------------------------------------------------------------------------
   
@@ -137,12 +160,12 @@ visualize_over_time <- function(graph_results_i, graph_ids, ground_truth, beta_t
   #
   # GOAL: for a single dataset, plot a specific intermediate value over time
   #
-  # - this is to be done for a single simulation (adj_method, est_method, n)
-  # 
-  # input: 
+  #       - this is to be done for a single simulation (adj_method, est_method, n)
   #
-  # - graph_results_i   (list of all step_X's)  --> (list of all y_c_queries) --> (list of 'est' or 'truth' or 'coarse_truth' etc)
   #
+  # input:
+  #
+  # - graph_results_i                                                 (list)                 all step_X's --> all y_c_queries --> 'est' or 'truth' or 'coarse_truth' etc
   #   - step_2, 2b, 3, 4, 5, 5b, 5c, 5d, 9, 9b, 10, 11, 11b, 12, 12b
   #   - step_1, 1b, 1c, step_0_events
   #   - true_graphs
@@ -152,18 +175,18 @@ visualize_over_time <- function(graph_results_i, graph_ids, ground_truth, beta_t
   #   - weights
   #   - W_y
   #   - time_grid, time_grid_est, time_grid_both
+  # - graph_ids                                                       (vector of strings)    which graphs do we want?
+  # - ground_truth                                                    (boolean)              do our results have the overall truth?
+  # - beta_truth                                                      (boolean)              do our results have beta_truth values?
+  # - X_truth                                                         (boolean)              do our results have X_truth values?
+  # - eigen_setting                                                   (string)               only_joint, trig_and_joint, trig_simple
   #
-  # - graph_ids             (vector of strings)   which graphs do we want?
-  # - ground_truth          (boolean)             do our results have the overall truth?
-  # - beta_truth            (boolean)             do our results have beta_truth values? 
-  # - X_truth               (boolean)             do our results have X_truth values? 
-  # - eigen_setting         (string)              only_joint, trig_and_joint, trig_simple
-  # 
+  #
   # output:
   #
-  # - graphs   (list)  list of graphs
-  # 
-  # ---------------------------------------------------------------------------- 
+  # - graphs                                                          (list)                 list of graphs
+  #
+  # ----------------------------------------------------------------------------
   
   
   # 1) load everything from graph_results_i
@@ -849,18 +872,22 @@ visualize_adj_grid <- function(sparse_data_list, all_weeks, absent_week_list, ou
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: arrange edge set adjacency matrices in a 2d grid, 
+  # GOAL: arrange edge set adjacency matrices in a 2d grid,
   #       helper function for visualize_discrete_comparison
   #
-  # 
-  # inputs:
   #
-  # - sparse_data_list   (list of lists)      each item is a list of edge coordinates without repeating (j, i) since we have (i, j)
-  # - all_weeks          (vector)             all weeks in vector form
-  # - absent_week_list   (list of vectors)    for each setting, which weeks are absent so we can gray them out 
-  # - output             (string)             'adj', or 'P_HS', or 'C_HS'
-  # - boundaries         (vector)             vector of border values, but if not present, it will be numeric(0)
+  # input:
   #
+  # - sparse_data_list  (list of lists)        each item is a list of edge coordinates without repeating (j, i) since we have (i, j)
+  # - all_weeks         (vector)               all weeks in vector form
+  # - absent_week_list  (list of vectors)      for each setting, which weeks are absent so we can gray them out
+  # - output            (string)               'adj', or 'P_HS', or 'C_HS'
+  # - boundaries        (vector)               border values, but if not present, it will be numeric(0)
+  #
+  #
+  # output:
+  #
+  # - g                 (ggplot object)        grid of heatmaps
   #
   # ----------------------------------------------------------------------------
   
@@ -1034,6 +1061,25 @@ visualize_adj_grid <- function(sparse_data_list, all_weeks, absent_week_list, ou
 # helper for boundaries
 
 get_factor_boundaries <- function(f) {
+  
+  # ----------------------------------------------------------------------------
+  #
+  # GOAL: get the positions where the level of a factor changes
+  #
+  #       - boundary is the midpoint between the last member of one level and the first of the next
+  #
+  #
+  # input:
+  #
+  # - f                (factor)
+  #
+  #
+  # output:
+  #
+  # - boundaries       (vector)               e.g. 3.5 if the level changes between positions 3 and 4
+  #
+  # ----------------------------------------------------------------------------
+  
   # Get the integer positions where the level changes
   level_int <- as.integer(f)
   change_idx <- which(diff(level_int) != 0)
@@ -1046,19 +1092,22 @@ visualize_discrete_comparison <- function(results_folder, ID, time_scale, discre
   # ----------------------------------------------------------------------------
   #
   # GOAL: plot adjacency matrix results in a grid-like manner where rows represent different discrete levels
-  #       and columns represent weeks. Weeks must be integers. 
-  #
-  # 
-  # inputs:
-  #
-  # - results_folder   (string)
-  # - ID               (string)  'Tau3'
-  # - time_scale       (integer)   10 
-  # - discrete_levels  (vector of strings)  'm0vr0', 'm1vr1' etc
-  # - output           (string)  what to look at. For example 'adj', 'P_HS', 'C_HS'
-  # - region_border    (boolean)  should we look for region borders?
+  #       and columns represent weeks. Weeks must be integers.
   #
   #
+  # input:
+  #
+  # - results_folder   (string)               results folder
+  # - ID               (string)               e.g. 'Tau3'
+  # - time_scale       (integer)              e.g. 10
+  # - discrete_levels  (vector of strings)    'm0vr0', 'm1vr1' etc
+  # - output           (string)               what to look at. For example 'adj', 'P_HS', 'C_HS'
+  # - region_border    (boolean)              should we look for region borders?
+  #
+  #
+  # output:
+  #
+  # - g                (ggplot object)        visualize_adj_grid output for weeks 17:38
   #
   # ----------------------------------------------------------------------------
   
@@ -1229,21 +1278,25 @@ visualize_discrete_comparison_two_mice <- function(results_folder, ID1, ID2, tim
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: For each discrete level, plot a 2-row heatmap grid comparing two mice.
-  #       Row 1 = ID1, Row 2 = ID2. Columns = weeks.
-  #       Returns a named list of ggplots, one per discrete level.
+  # GOAL: for each discrete level, plot a 2-row heatmap grid comparing two mice
   #
-  # inputs:
+  #       - row 1 = ID1, row 2 = ID2. Columns = weeks
   #
-  # - results_folder   (string)
-  # - ID1              (string)   e.g. 'WT3'
-  # - ID2              (string)   e.g. 'Tau1'
-  # - time_scale       (integer)  e.g. 10
-  # - discrete_levels  (vector of strings)
-  # - output           (string)   'adj', 'P_HS', or 'C_HS'
-  # - region_border    (boolean)
   #
-  # returns: named list of ggplot objects, one per discrete level
+  # input:
+  #
+  # - results_folder   (string)               results folder
+  # - ID1              (string)               e.g. 'WT3'
+  # - ID2              (string)               e.g. 'Tau1'
+  # - time_scale       (integer)              e.g. 10
+  # - discrete_levels  (vector of strings)    e.g. 'm0vr0', 'm1vr1'
+  # - output           (string)               'adj', 'P_HS', or 'C_HS'
+  # - region_border    (boolean)              should we look for region borders?
+  #
+  #
+  # output:
+  #
+  # - plot_list        (named list)           ggplot objects, one per discrete level
   #
   # ----------------------------------------------------------------------------
   
@@ -1359,22 +1412,27 @@ visualize_strata_all_mice <- function(results_folder, time_scale, discrete_level
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: For each discrete level, plot all available mice as rows in a single
+  # GOAL: for each discrete level, plot all available mice as rows in a single
   #       facet_grid. Rows = mouse ID, Columns = week. One set of axis labels.
-  #       Each mouse has its own borders, node space, and fills its own panel.
-  #       A visual separator is inserted between Tau and WT groups.
   #
-  # inputs:
+  #       - each mouse has its own borders, node space, and fills its own panel
+  #       - a visual separator is inserted between Tau and WT groups
   #
-  # - results_folder   (string)
-  # - time_scale       (integer)  e.g. 10
-  # - discrete_levels  (vector of strings)
-  # - output           (string)   'adj', 'P_HS', or 'C_HS'
-  # - region_border    (boolean)
   #
-  # returns: named list with two elements:
-  #   - plots   : named list of ggplot objects, one per discrete level
-  #   - n_mice  : named integer list of mouse counts, one per discrete level
+  # input:
+  #
+  # - results_folder   (string)               results folder
+  # - time_scale       (integer)              e.g. 10
+  # - discrete_levels  (vector of strings)    e.g. 'm0vr0', 'm1vr1'
+  # - output           (string)               'adj', 'P_HS', or 'C_HS'
+  # - region_border    (boolean)              should we look for region borders?
+  #
+  #
+  # output:
+  #
+  # - output           (list)
+  #   - plots          (named list)           ggplot objects, one per discrete level
+  #   - n_mice         (named list)           integer mouse counts, one per discrete level
   #
   # ----------------------------------------------------------------------------
   
@@ -1695,31 +1753,36 @@ visualize_strata_all_mice_v2 <- function(results_folder, all_weeks, time_scale, 
   
   # ----------------------------------------------------------------------------
   #
-  # GOAL: For each discrete level, plot all available mice as rows in a single
+  # GOAL: for each discrete level, plot all available mice as rows in a single
   #       facet_grid. Rows = mouse ID, Columns = week. One set of axis labels.
-  #       A visual separator is inserted between Tau and WT groups.
   #
-  # inputs:
+  #       - a visual separator is inserted between Tau and WT groups
   #
-  # - results_folder   (string)
-  # - all_weeks        (vector)  which weeks? i.e. 17:38
-  # - time_scale       (integer)  e.g. 10
-  # - discrete_levels  (vector of strings)
-  # - output           (string)   'adj', 'P_HS', or 'C_HS'
-  # - region_border    (boolean)
+  #       Color scheme for output == 'adj':
+  #         HIP-HIP edges  -> emerald teal  (#00C896)
+  #         EHC-EHC edges  -> vivid purple  (#CC3FFF)
+  #         HIP-EHC edges  -> periwinkle    (#6694CC)  [sqrt-mean-squares RGB fusion]
   #
-  # returns: named list with two elements:
-  #   - plots   : named list of ggplot objects, one per discrete level
-  #   - n_mice  : named integer list of mouse counts, one per discrete level
+  #       Region assignment: nodes 1..boundary are HIP, nodes (boundary+1)..max_node
+  #       are EHC, where boundary = floor(first element of boundaries vector).
+  #       If no boundary is available, all nodes are treated as HIP-HIP.
   #
-  # Color scheme for output == 'adj':
-  #   HIP-HIP edges  -> emerald teal  (#00C896)
-  #   EHC-EHC edges  -> vivid purple  (#CC3FFF)
-  #   HIP-EHC edges  -> periwinkle    (#6694CC)  [sqrt-mean-squares RGB fusion]
   #
-  # Region assignment: nodes 1..boundary are HIP, nodes (boundary+1)..max_node
-  # are EHC, where boundary = floor(first element of boundaries vector).
-  # If no boundary is available, all nodes are treated as HIP-HIP.
+  # input:
+  #
+  # - results_folder   (string)               results folder
+  # - all_weeks        (vector)               which weeks? i.e. 17:38
+  # - time_scale       (integer)              e.g. 10
+  # - discrete_levels  (vector of strings)    e.g. 'm0vr0', 'm1vr1'
+  # - output           (string)               'adj', 'P_HS', or 'C_HS'
+  # - region_border    (boolean)              should we look for region borders?
+  #
+  #
+  # output:
+  #
+  # - output           (list)
+  #   - plots          (named list)           ggplot objects, one per discrete level
+  #   - n_mice         (named list)           integer mouse counts, one per discrete level
   #
   # ----------------------------------------------------------------------------
   
