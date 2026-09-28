@@ -22,8 +22,8 @@ adj_type_params=(
   "flexible_block_banded_j2 0 1 4 0.5 4 3 0 1.2 0 0.9"
 )
 
-n_large=4000                # size of each generated dataset
-ns=(500 1000 2000 4000)     # sample sizes: nested subsamples of the n_large subjects
+n_large=1000                # size of each generated dataset
+ns=(500 1000)               # sample sizes: nested subsamples of the n_large subjects
 rep_ids=(1)                 # one replication
 n_query=6                   # number of y_c query points (the query grid)
 
