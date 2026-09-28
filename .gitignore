@@ -24,3 +24,6 @@ nohup.out
 renv/library/
 renv/staging/
 .DS_Store
+
+# Local helpers
+fetch_simulation_figures.sh
